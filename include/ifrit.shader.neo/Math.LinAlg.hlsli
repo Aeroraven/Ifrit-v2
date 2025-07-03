@@ -159,5 +159,31 @@ namespace Math{
         return d1 * d2;
     }
 
+    float2x2 ClampDiag(float2x2 A, float minValue, float maxValue)
+    {
+        return float2x2(
+            clamp(A._11, minValue, maxValue), A._12,
+            A._21, clamp(A._22, minValue, maxValue)
+        );
+    }
+
+    float3x3 ClampDiag(float3x3 A, float minValue, float maxValue)
+    {
+        return float3x3(
+            clamp(A._11, minValue, maxValue), A._12, A._13,
+            A._21, clamp(A._22, minValue, maxValue), A._23,
+            A._31, A._32, clamp(A._33, minValue, maxValue)
+        );
+    }
+
+    float DiagProductRelative(float3x3 A, float3x3 B)
+    {
+        return (A._11/B._11) * (A._22/B._22) * (A._33/B._33);
+    }
+
+    float DiagProductRelative(float2x2 A, float2x2 B)
+    {
+        return (A._11/B._11) * (A._22/B._22);
+    }
 }
 }

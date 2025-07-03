@@ -16,7 +16,7 @@ namespace MPM{
         FPackedMatrixHandle m_ParticleB;
         FDenseGridStructureHandle m_Grid;
         FPackedMatrixHandle m_ParticleDeformationGrad;
-        FScalarHandle m_ParticleDeformationGradDet;
+        FScalarHandle m_ParticlePlasticity; //m_ParticleDeformationGradDet
         FPackedMatrixHandle m_ParticleDebug;
         FPackedMatrixHandle m_ParticleStressContrib;
 
@@ -48,6 +48,8 @@ namespace MPM{
         FScalar DInv = 0.0f;
         FScalar GridSpacing = Grid.GetGridSpacing();
         bool IsFluid = ParticleMaterial.m_Type == 1;
+        bool IsSnow = ParticleMaterial.m_Type == 2;
+        bool IsJelly = ParticleMaterial.m_Type == 0;
 
 #ifdef IFSHADER_MPM_INTERP_CUBIC
         DInv = 3.0f * rcp(GridSpacing*GridSpacing);
@@ -63,17 +65,23 @@ namespace MPM{
         ParticleDeformGrad += DeformGradChange;
 
         FScalar TraceC = Math::Trace(ParticleC);
-        FScalar J = PushConst.m_ParticleDeformationGradDet.Load(ThreadId.x);
+        FScalar Jp = PushConst.m_ParticlePlasticity.Load(ThreadId.x);
+        FScalar Hardening = exp(10 * (1.0 - Jp));  // From MPM-99
 
-    #ifdef IFSHADER_MPM_UPDATE_J
-        J += PushConst.m_DeltaTime * TraceC * J;
-    #else
+        if(IsJelly) Hardening = 0.3f;
+
         FSpatialTransform U,S,V;
         Math::SVD(ParticleDeformGrad, U, S, V);
-        J = Math::DiagProduct(S,1e-6f);
-    #endif
-        PushConst.m_ParticleDeformationGradDet.Store(ThreadId.x, J);
+        S = Math::ClampDiag(S, 1e-6f, 1e30f);
+        FSpatialTransform Sx = S;
 
+        if(IsSnow)
+        {
+            Sx = Math::ClampDiag(Sx, 1-2.5e-2f, 1+4.5e-3f);
+            Jp *= Math::DiagProductRelative(S,Sx);
+        }
+        PushConst.m_ParticlePlasticity.Store(ThreadId.x, Jp);
+        FScalar J = Math::DiagProduct(Sx,1e-6f);
         
         if(IsFluid)
         {
@@ -82,6 +90,10 @@ namespace MPM{
     #else
             ParticleDeformGrad = GetIdentitySpatialTransform() * sqrt(J);
     #endif
+        }
+        if(IsSnow)
+        {
+            ParticleDeformGrad = mul(U, mul(Sx, Math::Transpose(V)));
         }
         PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, ParticleDeformGrad);
 
@@ -93,7 +105,8 @@ namespace MPM{
         {
             Mu = 0.0f;
         }
-        
+        Mu *= Hardening;
+        Lambda *= Hardening;
 
         FSpatialTransform PFT = 0.0f;
         PFT = FixedCortotatedStressFT(ParticleDeformGrad, J, Mu,Lambda);

@@ -28,7 +28,8 @@ namespace Ifrit::Runtime::Siro
     enum class MPMSimulatorParticleType : u8
     {
         Jelly = 0,
-        Fluid = 1
+        Fluid = 1,
+        Snow  = 2
     };
 
     struct MPMSimulatorConfig
@@ -48,8 +49,8 @@ namespace Ifrit::Runtime::Siro
         f32                          m_DefaultYoungsModulus = 10.0f;
         f32                          m_DefaultPoissonRatio  = 0.2f;
         u32                          m_DefaultNumParticles  = 9000;
-        u32                          m_Substeps             = 10;
-        MPMSimulatorParticleType     m_DefaultParticleType  = MPMSimulatorParticleType::Fluid;
+        u32                          m_Substeps             = 20;
+        MPMSimulatorParticleType     m_DefaultParticleType  = MPMSimulatorParticleType::Snow;
     };
 
     class IFRIT_RUNTIME_API MPMSimulator : public ISiroSolver
