@@ -49,3 +49,12 @@
 [submodule "dependencies/openvdb"]
 	path = dependencies/openvdb
 	url = git@github.com:Aeroraven/openvdb.git
+[submodule "dependencies/tbb"]
+	path = dependencies/tbb
+	url = git@github.com:uxlfoundation/oneTBB.git
+[submodule "dependencies/blosc"]
+	path = dependencies/blosc
+	url = git@github.com:Blosc/c-blosc.git
+[submodule "dependencies/zlib"]
+	path = dependencies/zlib
+	url = git@github.com:madler/zlib.git
