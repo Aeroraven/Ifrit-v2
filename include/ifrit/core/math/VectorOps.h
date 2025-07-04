@@ -406,4 +406,17 @@ namespace Ifrit::Math
     COMPARE_SCALAR_VECTOR_OP(>=);
 #undef COMPARE_SCALAR_VECTOR_OP
 
+    template <typename T, typename U> inline IF_CONSTEXPR CoreVec2<U> TypeCast(const CoreVec2<T>& a)
+    {
+        return CoreVec2<U>{ static_cast<U>(a.x), static_cast<U>(a.y) };
+    }
+    template <typename T, typename U> inline IF_CONSTEXPR CoreVec3<U> TypeCast(const CoreVec3<T>& a)
+    {
+        return CoreVec3<U>{ static_cast<U>(a.x), static_cast<U>(a.y), static_cast<U>(a.z) };
+    }
+    template <typename T, typename U> inline IF_CONSTEXPR CoreVec4<U> TypeCast(const CoreVec4<T>& a)
+    {
+        return CoreVec4<U>{ static_cast<U>(a.x), static_cast<U>(a.y), static_cast<U>(a.z), static_cast<U>(a.w) };
+    }
+
 } // namespace Ifrit::Math

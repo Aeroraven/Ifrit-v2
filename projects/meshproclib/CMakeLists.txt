@@ -58,6 +58,9 @@ include_directories(${IFRIT_PROJECT_SUBDIR})
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/metis/include)
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/meshoptimizer/include)
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/tetgen)
+include_directories(${IFRIT_PROJECT_DIR}/dependencies/openvdb)
+include_directories(${IFRIT_PROJECT_DIR}/build/openvdb/openvdb/openvdb/openvdb)
+include_directories(${IFRIT_PROJECT_DIR}/build/dependencies/openvdb/openvdb/openvdb/openvdb)
 
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.MeshProcLib")
 add_definitions(-DIFRIT_MODULE_MESHPROC)
@@ -69,4 +72,5 @@ target_link_libraries(ifrit.meshproclib PUBLIC
     GKlib
     ifrit.core
     tet
+    openvdb_shared
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})     

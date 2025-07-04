@@ -6,3 +6,4 @@ build_mingw
 /bin
 buildmsvc
 misc/agentTemp
+build_thirdparty

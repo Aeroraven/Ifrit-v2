@@ -150,6 +150,7 @@ Following dependencies should be manually configured. Other dependencies will be
 > To run soft renderer demo, checkout another branch.
 
 ```shell
+bash InstallPrerequisite.sh # Use Cygwin/MinGW/Git Bash for Windows
 cmake -S . -B ./build 
 cmake --build ./build --config RelWithDebInfo # Or open Visual Studio manually
 ```

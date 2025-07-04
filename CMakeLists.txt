@@ -29,11 +29,15 @@ endfunction()
 set(IFRIT_GLOBAL_LLVM_DIR_LINUX "/usr/local/llvm-10/")
 set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "C:/llvm-project/")
 set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/")
-  
+
+set(IFRIT_BASE_PATH ${CMAKE_CURRENT_LIST_DIR})
+message(STATUS "[Ifrit.Build.Dependencies] Using Ifrit base path: ${CMAKE_CURRENT_LIST_DIR}")
+set(IFRIT_THIRDPARTH_INSTALL_DIR ${IFRIT_BASE_PATH}/build_thirdparty/)
+
 # Set global flags
 set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
 set(IFRIT_GLOBAL_DISABLE_LLVM 1)
-
+set(CMAKE_WARN_DEPRECATED CACHE BOOL "Disable deprecated warnings" FORCE)
 # some global checks
 include(projects/buildinfra/SIMDCheck.cmake)
  
@@ -94,6 +98,15 @@ set(GLFW_INSTALL OFF CACHE BOOL "Disable GLFW install" FORCE)
 # tetgen
 set(TETGEN_SKIP_INSTALL ON CACHE BOOL "Disable Tetgen install" FORCE)
 
+# openvdb
+set(OPENVDB_BUILD_BINARIES  OFF CACHE BOOL "Disable OpenVDB tools" FORCE)
+set(OPENVDB_USE_DELAYED_LOADING OFF CACHE BOOL "Disable OpenVDB tools" FORCE)
+set(OPENVDB_BUILD_VDB_VIEW ON CACHE BOOL "Enable OpenVDB VDB viewer" FORCE)
+set(USE_BLOSC ON CACHE BOOL "Disable OpenVDB Blosc support" FORCE)
+set(TBB_ROOT "${IFRIT_THIRDPARTH_INSTALL_DIR}/tbb" CACHE PATH "TBB root directory" FORCE)
+message(STATUS "[Ifrit.Build.Dependencies] Using TBB root directory: ${TBB_ROOT}")
+set(BLOSC_ROOT "${IFRIT_THIRDPARTH_INSTALL_DIR}/blosc" CACHE PATH "Blosc root directory" FORCE)
+set(ZLIB_ROOT "${IFRIT_THIRDPARTH_INSTALL_DIR}/zlib" CACHE PATH "Zlib root directory" FORCE)
 # ifrit
 set(IFRIT_DEMO_LIST CACHE INTERNAL "List of demo stages" FORCE)
 
@@ -106,6 +119,7 @@ ifrit_add_dependency(metis)
 ifrit_add_dependency(ktxsoftware)
 ifrit_add_dependency(slang)
 ifrit_add_dependency(tetgen)
+ifrit_add_dependency(openvdb)
 
 ifrit_add_core_component(core)
 ifrit_add_core_component(shadercompile)
@@ -124,7 +138,8 @@ set(IFRIT_GROUP_ENGINE "Project Ifrit/Engine")
 set(IFRIT_GROUP_DEPENDENCIES "Project Ifrit/ThirdParty")
 set(IFRIT_GROUP_DEMO "Project Ifrit/Demo")
 
-
+# openvdb targets
+include(projects/buildinfra/OpenVDBBuildPostprocess.cmake)
 
 # slang targets
 include(projects/buildinfra/SlangBuildPostprocess.cmake)
@@ -184,6 +199,7 @@ endforeach()
 add_dependencies(ifrit.core 
     spdlog)
 add_dependencies(ifrit.meshproclib 
+    openvdb_shared
     meshoptimizer 
     metis
     ifrit.core)
