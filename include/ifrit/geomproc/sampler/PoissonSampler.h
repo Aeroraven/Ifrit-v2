@@ -1,11 +1,11 @@
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/math/VectorOps.h"
-#include "ifrit/meshproc/engine/base/MeshProcBase.h"
+#include "ifrit/geomproc/base/MeshProcBase.h"
 #include "ifrit/core/math/VectorGenerics.h"
 #include <any>
 
-namespace Ifrit::MeshProcLib::Sampler
+namespace Ifrit::GeometryProc::Sampler
 {
     // References:
     // https://github.com/zenustech/zpc/blob/master/include/zensim/geometry/PoissonDisk.hpp
@@ -37,7 +37,7 @@ namespace Ifrit::MeshProcLib::Sampler
     };
 
     template <typename T, u32 Dim IF_REQUIRES(std::is_floating_point_v<T>&& Dim >= 2 && Dim <= 3)>
-    IFRIT_MESHPROC_API Vec<TGenericVector<T, Dim>> PoissonSample(const PoissonSamplerArgs<T, Dim>& args,
+    IFRIT_GEOMPROC_API Vec<TGenericVector<T, Dim>> PoissonSample(const PoissonSamplerArgs<T, Dim>& args,
         const PoissonSamplerReferences<T, Dim>& refs, Fn<bool(TGenericVector<T, Dim>)> predicate);
 
-} // namespace Ifrit::MeshProcLib::Sampler
+} // namespace Ifrit::GeometryProc::Sampler

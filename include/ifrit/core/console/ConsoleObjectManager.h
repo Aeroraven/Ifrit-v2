@@ -24,21 +24,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit
 {
-    enum ConsoleVariableFlag : u8
+    enum EConsoleVariableFlag : u8
     {
         CVF_Default          = 0x00,
         CVF_RenderThreadSafe = 0x01, // not used now
     };
 
-    class IFRIT_CORE_API IConsoleVariableRegistryEntry
+    class IFRIT_CORE_API IFConsoleVariableRegistryEntry
     {
     };
 
     template <typename T IF_REQUIRES(TypeIsAnyOf_v<T, i32, u32, f32, String>)>
-    class IFRIT_CORE_API ConsoleVariableRegistryEntry : public IConsoleVariableRegistryEntry
+    class IFRIT_CORE_API FConsoleVariableRegistryEntry : public IFConsoleVariableRegistryEntry
     {
     public:
-        ConsoleVariableRegistryEntry(T value, const char* description, u8 flags = CVF_Default)
+        FConsoleVariableRegistryEntry(T value, const char* description, u8 flags = CVF_Default)
             : Value(value), Description(description), Flags(flags)
         {
         }
@@ -53,31 +53,31 @@ namespace Ifrit
         u8     Flags;
     };
 
-    template class IFRIT_CORE_API ConsoleVariableRegistryEntry<i32>;
-    template class IFRIT_CORE_API ConsoleVariableRegistryEntry<u32>;
-    template class IFRIT_CORE_API ConsoleVariableRegistryEntry<f32>;
-    template class IFRIT_CORE_API ConsoleVariableRegistryEntry<String>;
+    template class IFRIT_CORE_API FConsoleVariableRegistryEntry<i32>;
+    template class IFRIT_CORE_API FConsoleVariableRegistryEntry<u32>;
+    template class IFRIT_CORE_API FConsoleVariableRegistryEntry<f32>;
+    template class IFRIT_CORE_API FConsoleVariableRegistryEntry<String>;
 
-    struct ConsoleVariableRegistryData;
-    class IFRIT_CORE_API ConsoleVariableRegistry
+    struct FConsoleVariableRegistryData;
+    class IFRIT_CORE_API FConsoleVariableRegistry
     {
     private:
-        ConsoleVariableRegistryData* m_Data;
+        FConsoleVariableRegistryData* m_Data;
 
     public:
-        ~ConsoleVariableRegistry();
-        ConsoleVariableRegistry();
+        ~FConsoleVariableRegistry();
+        FConsoleVariableRegistry();
 
-        void                           RegisterVariable(const char* name, Owner<IConsoleVariableRegistryEntry>& ptr);
-        void                           UnregisterVariable(const char* name);
-        IConsoleVariableRegistryEntry* FindVariableGeneric(const char* name) const;
+        void                            RegisterVariable(const char* name, Owner<IFConsoleVariableRegistryEntry>& ptr);
+        void                            UnregisterVariable(const char* name);
+        IFConsoleVariableRegistryEntry* FindVariableGeneric(const char* name) const;
 
-        template <typename T> ConsoleVariableRegistryEntry<T>* FindVariable(const char* name) const
+        template <typename T> FConsoleVariableRegistryEntry<T>* FindVariable(const char* name) const
         {
-            return CheckedCast<ConsoleVariableRegistryEntry<T>>(FindVariableGeneric(name));
+            return CheckedCast<FConsoleVariableRegistryEntry<T>>(FindVariableGeneric(name));
         }
     };
 
-    IFRIT_CORE_API ConsoleVariableRegistry* GetConsoleVariableRegistry();
+    IFRIT_CORE_API FConsoleVariableRegistry* GetFConsoleVariableRegistry();
 
 } // namespace Ifrit

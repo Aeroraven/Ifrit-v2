@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "RhiBaseTypes.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
     struct IFRIT_APIDECL RhiRenderPassContext
     {
@@ -90,4 +90,4 @@ namespace Ifrit::Graphics::Rhi
         virtual void _polymorphismPlaceHolder() {}
     };
 
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

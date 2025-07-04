@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit
 {
 
-    enum class RThreadSafePagedVectorFillingPolicy
+    enum class EThreadSafePagedVectorFillingPolicy
     {
         None,
         IncrementBase1,
@@ -42,7 +42,7 @@ namespace Ifrit
     // /src/engine/tilerastercuda/TileRasterInvocationCuda.cu
     template <typename T, u32 TPageNums = 4096, u32 TPageSize = 16384>
         requires std::is_integral_v<T> || std::is_floating_point_v<T>
-    class RThreadSafePagedVector
+    class TThreadSafePagedVector
     {
     private:
         Atomic<volatile T*> m_Pages[TPageNums];
@@ -52,7 +52,7 @@ namespace Ifrit
         Atomic<u32>         m_CurrentSize  = 0;
 
     public:
-        RThreadSafePagedVector()
+        TThreadSafePagedVector()
         {
             for (u32 i = 0; i < TPageNums; ++i)
             {
@@ -63,7 +63,7 @@ namespace Ifrit
             m_CurrentFront.store(0, std::memory_order::release);
             m_CurrentSize.store(0, std::memory_order::release);
         }
-        ~RThreadSafePagedVector()
+        ~TThreadSafePagedVector()
         {
             for (u32 i = 0; i < TPageNums; ++i)
             {
@@ -129,7 +129,7 @@ namespace Ifrit
         }
     };
 
-    struct RIndexedPtr
+    struct FIndexedPtr
     {
         using Underlying = IntPtr;
 
@@ -139,8 +139,8 @@ namespace Ifrit
         operator u32() const { return static_cast<u32>(m_Ptr); }
 
         IntPtr& Ptr() { return m_Ptr; }
-        bool    operator==(const RIndexedPtr& other) const { return m_Ptr == other.m_Ptr; }
-        bool    operator!=(const RIndexedPtr& other) const { return m_Ptr != other.m_Ptr; }
+        bool    operator==(const FIndexedPtr& other) const { return m_Ptr == other.m_Ptr; }
+        bool    operator!=(const FIndexedPtr& other) const { return m_Ptr != other.m_Ptr; }
 
         // Check if is nullptr
         bool    operator==(decltype(nullptr) x) const { return m_Ptr == 0; }
@@ -148,12 +148,12 @@ namespace Ifrit
     };
 
     template <typename T, typename Alloc = std::allocator<T>, typename AtomicAlloc = std::allocator<Atomic<u64>>>
-    class RObjectPool : public NonCopyable
+    class TObjectPool : public NonCopyable
     {
     private:
         Vec<T*>                     m_Memory;
         Vec<u64>                    m_MemorySize; // Relative to sizeof(T)
-        RThreadSafePagedVector<u64> m_VacantList;
+        TThreadSafePagedVector<u64> m_VacantList;
 
         Alloc                       m_Allocator;
         Vec<T*>                     m_IdToPtr;
@@ -170,14 +170,14 @@ namespace Ifrit
         std::mutex                  m_Mutex;
 
     public:
-        // Definitions of the RObjectRef
-        class IFRIT_APIDECL RObjectRef
+        // Definitions of the TObjectRef
+        class IFRIT_APIDECL TObjectRef
         {
         private:
-            RIndexedPtr  m_Index;
+            FIndexedPtr  m_Index;
             T*           m_Ref;
             Atomic<u64>* m_RefCount;
-            RObjectPool* m_Pool;
+            TObjectPool* m_Pool;
 
         private:
             void Release()
@@ -196,15 +196,15 @@ namespace Ifrit
             }
 
         public:
-            RObjectRef(nullptr_t) : m_Index(0), m_Ref(nullptr), m_RefCount(nullptr), m_Pool(nullptr) {}
-            RObjectRef() : m_Index(0), m_Ref(nullptr), m_RefCount(nullptr), m_Pool(nullptr) {}
-            explicit RObjectRef(RIndexedPtr idx, T* ref, Atomic<u64>* refCount, RObjectPool* pool)
+            TObjectRef(nullptr_t) : m_Index(0), m_Ref(nullptr), m_RefCount(nullptr), m_Pool(nullptr) {}
+            TObjectRef() : m_Index(0), m_Ref(nullptr), m_RefCount(nullptr), m_Pool(nullptr) {}
+            explicit TObjectRef(FIndexedPtr idx, T* ref, Atomic<u64>* refCount, TObjectPool* pool)
                 : m_Index(idx), m_Ref(ref), m_RefCount(refCount), m_Pool(pool)
             {
                 m_RefCount->store(1, std::memory_order::release);
             }
 
-            RObjectRef(const RObjectRef& other)
+            TObjectRef(const TObjectRef& other)
                 : m_Index(other.m_Index), m_Ref(other.m_Ref), m_RefCount(other.m_RefCount), m_Pool(other.m_Pool)
             {
                 if (m_RefCount)
@@ -213,8 +213,7 @@ namespace Ifrit
                 }
             }
 
-            
-            RObjectRef(RObjectRef&& other) IF_NOEXCEPT :
+            TObjectRef(TObjectRef&& other) IF_NOEXCEPT :
                 m_Index(other.m_Index),
                 m_Ref(other.m_Ref),
                 m_RefCount(other.m_RefCount),
@@ -226,7 +225,7 @@ namespace Ifrit
                 other.m_Pool     = nullptr;
             }
 
-            RObjectRef& operator=(const RObjectRef& other)
+            TObjectRef& operator=(const TObjectRef& other)
             {
                 if (this != &other)
                 {
@@ -243,7 +242,7 @@ namespace Ifrit
                 return *this;
             }
 
-            RObjectRef& operator=(RObjectRef&& other)
+            TObjectRef& operator=(TObjectRef&& other)
             {
                 if (this != &other)
                 {
@@ -260,17 +259,17 @@ namespace Ifrit
                 return *this;
             }
 
-            RIndexedPtr GetIndex() const { return m_Index; }
+            FIndexedPtr GetIndex() const { return m_Index; }
 
-            ~RObjectRef() { Release(); }
+            ~TObjectRef() { Release(); }
 
             T*   operator->() const { return m_Ref; }
             T&   operator*() const { return *m_Ref; }
 
             T*   Get() const { return m_Ref; }
 
-            bool operator==(const RObjectRef& other) const { return m_Ref == other.m_Ref; }
-            bool operator!=(const RObjectRef& other) const { return m_Ref != other.m_Ref; }
+            bool operator==(const TObjectRef& other) const { return m_Ref == other.m_Ref; }
+            bool operator!=(const TObjectRef& other) const { return m_Ref != other.m_Ref; }
         };
 
     private:
@@ -287,7 +286,7 @@ namespace Ifrit
             }
             for (u64 i = 0; i < memSize; ++i)
             {
-                VacantPlaceBack(RIndexedPtr(curCandidates + i));
+                VacantPlaceBack(FIndexedPtr(curCandidates + i));
             }
         }
 
@@ -309,18 +308,18 @@ namespace Ifrit
             return { objPtr, obj };
         }
 
-        void        VacantPlaceBack(RIndexedPtr index) { m_VacantList.PushBack(index.Ptr()); }
+        void        VacantPlaceBack(FIndexedPtr index) { m_VacantList.PushBack(index.Ptr()); }
 
-        RIndexedPtr VacantPopBack() { return RIndexedPtr(m_VacantList.PopFront()); }
+        FIndexedPtr VacantPopBack() { return FIndexedPtr(m_VacantList.PopFront()); }
 
     public:
-        // Definitions of RObjectPool
+        // Definitions of TObjectPool
 
-        RObjectPool()
+        TObjectPool()
         {
             m_IdToPtr.push_back(nullptr); // 0 is reserved for nullptr
         }
-        ~RObjectPool()
+        ~TObjectPool()
         {
             for (int i = 0; i < m_Memory.size(); ++i)
             {
@@ -332,19 +331,19 @@ namespace Ifrit
 
         // This interface is aimed to alleviate the ABA problem for some concurrent
         // algorithms. It is not recommended to use this interface in normal cases.
-        template <typename... Args> RIndexedPtr AllocateIndexed(Args&&... args)
+        template <typename... Args> FIndexedPtr AllocateIndexed(Args&&... args)
         {
             auto obj = AllocateInternal(std::forward<Args>(args)...);
-            return RIndexedPtr{ obj.second };
+            return FIndexedPtr{ obj.second };
         }
 
-        T* GetPtrFromIndex(RIndexedPtr index)
+        T* GetPtrFromIndex(FIndexedPtr index)
         {
             if (index == nullptr)
             {
                 return nullptr;
             }
-            if (index.m_Ptr >= SizeCast<IntPtr>( m_IdToPtr.size()))
+            if (index.m_Ptr >= SizeCast<IntPtr>(m_IdToPtr.size()))
             {
                 iError("RObjectQueue: Invalid index: {}. Max size: {}", index.m_Ptr, m_IdToPtr.size());
                 std::abort();
@@ -352,7 +351,7 @@ namespace Ifrit
             return m_IdToPtr[index.m_Ptr];
         }
 
-        IF_FORCEINLINE void DeallocateIndexed(RIndexedPtr index)
+        IF_FORCEINLINE void DeallocateIndexed(FIndexedPtr index)
         {
             if (index == nullptr)
             {
@@ -397,13 +396,13 @@ namespace Ifrit
         IF_FORCEINLINE u64 GetNextMemAllocSize() { return 16384; }
 
     public:
-        template <typename... Args> RObjectRef Create(Args&&... args)
+        template <typename... Args> TObjectRef Create(Args&&... args)
         {
             auto obj = AllocateIndexed(std::forward<Args>(args)...);
 
             auto ref      = GetPtrFromIndex(obj);
             auto refCount = AllocateAtomic();
-            return RObjectRef(obj, ref, refCount, this);
+            return TObjectRef(obj, ref, refCount, this);
         }
     };
 

@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime::FrameGraphUtils
 {
-    using namespace Ifrit::Graphics::Rhi;
+    using namespace Ifrit::RHI;
 
     Vec<u8> PtrToVector(const void* ptr, u32 size)
     {
@@ -75,7 +75,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
         pass.SetExecutionFunction([onCall, workGroups, args](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
             onCall(ctx);
-            if (args.m_CullMode != Graphics::Rhi::RhiCullMode::None)
+            if (args.m_CullMode != RHI::RhiCullMode::None)
                 cmd->SetCullMode(args.m_CullMode);
             cmd->DrawMeshTasks(workGroups.x, workGroups.y, workGroups.z);
         });
@@ -94,7 +94,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
         pass.SetExecutionFunction([onCall, &indirectArgs, indexBuffer, offset, args](const FrameGraphPassContext& ctx) {
             auto cmd = ctx.m_CmdList;
             onCall(ctx);
-            if (args.m_CullMode != Graphics::Rhi::RhiCullMode::None)
+            if (args.m_CullMode != RHI::RhiCullMode::None)
                 cmd->SetCullMode(args.m_CullMode);
             cmd->AttachIndexBuffer(indexBuffer.GetBuffer());
             cmd->DrawIndexedIndirect(indirectArgs.GetBuffer(), 0);
@@ -155,8 +155,8 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return pass;
     }
 
-    IFRIT_APIDECL PassNode& AddClearUAVTexturePass(FrameGraphBuilder& builder, const String& name,
-        ResourceNode& texture, Graphics::Rhi::RhiClearColorValue clearValue)
+    IFRIT_APIDECL PassNode& AddClearUAVTexturePass(
+        FrameGraphBuilder& builder, const String& name, ResourceNode& texture, RHI::RhiClearColorValue clearValue)
     {
         auto& pass = builder.AddPass(name, FrameGraphPassType::Transfer).AddWriteResource(texture);
         if (texture.GetType() != FrameGraphResourceType::ResourceTexture)

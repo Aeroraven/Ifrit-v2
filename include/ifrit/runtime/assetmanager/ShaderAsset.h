@@ -25,8 +25,8 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL ShaderAsset : public Asset
     {
     private:
-        using ShaderRef        = Graphics::Rhi::RhiShader;
-        using ShaderCollection = Graphics::Rhi::RhiShaderCollection;
+        using ShaderRef        = RHI::RhiShader;
+        using ShaderCollection = RHI::RhiShaderCollection;
 
         Ref<ShaderCollection> m_selfData;
         bool                  m_loaded = false;

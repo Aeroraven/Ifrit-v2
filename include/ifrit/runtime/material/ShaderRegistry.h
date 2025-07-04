@@ -28,8 +28,8 @@ namespace Ifrit::Runtime
     struct ShaderRegistryData;
     class IFRIT_APIDECL ShaderRegistry
     {
-        using ShaderTp   = Graphics::Rhi::RhiShader;
-        using ShaderType = Graphics::Rhi::RhiShaderStage;
+        using ShaderTp   = RHI::RhiShader;
+        using ShaderType = RHI::RhiShaderStage;
         ShaderRegistryData* m_Data;
 
     public:

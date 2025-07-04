@@ -37,8 +37,8 @@ namespace Ifrit::Runtime
 
     struct GLTFInternalData
     {
-        tinygltf::Model              model;
-        Graphics::Rhi::RhiSamplerRef defaultSampler;
+        tinygltf::Model    model;
+        RHI::RhiSamplerRef defaultSampler;
     };
 
     // Mesh class
@@ -454,7 +454,7 @@ namespace Ifrit::Runtime
         {
             for (auto& nodeId : scene.nodes)
             {
-                traverseNode(nodeId, Math::Identity<f32,4>());
+                traverseNode(nodeId, Math::Identity<f32, 4>());
             }
         }
     }

@@ -26,11 +26,11 @@ namespace Ifrit::Runtime
 {
     class IFRIT_APIDECL AmbientOcclusionPass
     {
-        using ComputePass   = Graphics::Rhi::RhiComputePass;
-        using CommandBuffer = Graphics::Rhi::RhiCommandList;
-        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
-        using CBVDesc       = Graphics::Rhi::RhiCBVDesc;
-        using GPUShader     = Graphics::Rhi::RhiShader;
+        using ComputePass   = RHI::RhiComputePass;
+        using CommandBuffer = RHI::RhiCommandList;
+        using SRVDesc       = RHI::RhiSRVDesc;
+        using CBVDesc       = RHI::RhiCBVDesc;
+        using GPUShader     = RHI::RhiShader;
 
     private:
         IApplication* m_app;

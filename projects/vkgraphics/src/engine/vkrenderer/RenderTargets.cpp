@@ -20,12 +20,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit;
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
-    Rhi::RhiImageFormat toRhiFormat(VkFormat rawFormat) { return static_cast<Rhi::RhiImageFormat>(rawFormat); }
+    RHI::RhiImageFormat toRhiFormat(VkFormat rawFormat) { return static_cast<RHI::RhiImageFormat>(rawFormat); }
 
-    IFRIT_APIDECL void  RenderTargets::SetColorAttachments(const Vec<Rhi::RhiColorAttachment*>& attachments)
+    IFRIT_APIDECL void  RenderTargets::SetColorAttachments(const Vec<RHI::RhiColorAttachment*>& attachments)
     {
         m_colorAttachments.clear();
         for (auto attachment : attachments)
@@ -34,12 +34,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void RenderTargets::SetDepthStencilAttachment(Rhi::RhiDepthStencilAttachment* attachment)
+    IFRIT_APIDECL void RenderTargets::SetDepthStencilAttachment(RHI::RhiDepthStencilAttachment* attachment)
     {
         m_depthStencilAttachment = static_cast<DepthStencilAttachment*>(attachment);
     }
 
-    IFRIT_APIDECL void RenderTargets::BeginRendering(const Rhi::RhiCommandList* commandBuffer) const
+    IFRIT_APIDECL void RenderTargets::BeginRendering(const RHI::RhiCommandList* commandBuffer) const
     {
         auto cmd    = CheckedCast<CommandBuffer>(commandBuffer);
         auto cmdraw = cmd->GetCommandBuffer();
@@ -49,22 +49,22 @@ namespace Ifrit::Graphics::VulkanGraphics
         if (m_depthStencilAttachment != nullptr)
         {
             auto depthSrcLayout =
-                (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear
-                    || m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore)
-                ? Rhi::RhiResourceState::Undefined
-                : Rhi::RhiResourceState::DepthStencilRT;
+                (m_depthStencilAttachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::Clear
+                    || m_depthStencilAttachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::ClearNoStore)
+                ? RHI::RhiResourceState::Undefined
+                : RHI::RhiResourceState::DepthStencilRT;
             cmd->AddImageBarrier(m_depthStencilAttachment->GetRenderTarget(), depthSrcLayout,
-                Rhi::RhiResourceState::DepthStencilRT, { 0, 0, 1, 1 });
+                RHI::RhiResourceState::DepthStencilRT, { 0, 0, 1, 1 });
         }
 
         for (auto attachment : m_colorAttachments)
         {
-            auto srcLayout = (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear
-                                 || attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore)
-                ? Rhi::RhiResourceState::Undefined
-                : Rhi::RhiResourceState::ColorRT;
+            auto srcLayout = (attachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::Clear
+                                 || attachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::ClearNoStore)
+                ? RHI::RhiResourceState::Undefined
+                : RHI::RhiResourceState::ColorRT;
             cmd->AddImageBarrier(
-                attachment->GetRenderTarget(), srcLayout, Rhi::RhiResourceState::ColorRT, { 0, 0, 1, 1 });
+                attachment->GetRenderTarget(), srcLayout, RHI::RhiResourceState::ColorRT, { 0, 0, 1, 1 });
         }
         auto                              exfunc = m_context->GetExtensionFunction();
 
@@ -78,12 +78,12 @@ namespace Ifrit::Graphics::VulkanGraphics
             clearValue.depthStencil.stencil = m_depthStencilAttachment->GetClearValue().m_DepthStencil.m_Stencil;
 
             VkAttachmentLoadOp loadOp;
-            if (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear
-                || m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore)
+            if (m_depthStencilAttachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::Clear
+                || m_depthStencilAttachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::ClearNoStore)
             {
                 loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             }
-            else if (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::DontCare)
+            else if (m_depthStencilAttachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::DontCare)
             {
                 loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             }
@@ -95,9 +95,9 @@ namespace Ifrit::Graphics::VulkanGraphics
             depthAttachmentInfo.sType      = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
             depthAttachmentInfo.clearValue = clearValue;
             depthAttachmentInfo.loadOp     = loadOp;
-            if (m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore
-                || m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::LoadNoStore
-                || m_depthStencilAttachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::DontCare)
+            if (m_depthStencilAttachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::ClearNoStore
+                || m_depthStencilAttachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::LoadNoStore
+                || m_depthStencilAttachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::DontCare)
             {
                 depthAttachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             }
@@ -118,12 +118,12 @@ namespace Ifrit::Graphics::VulkanGraphics
             memcpy(&clearValue.color.float32[0], attachment->GetClearValue().m_Color.m_ValueF32, sizeof(float) * 4);
 
             VkAttachmentLoadOp loadOp;
-            if (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::Clear
-                || attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore)
+            if (attachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::Clear
+                || attachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::ClearNoStore)
             {
                 loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
             }
-            else if (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::DontCare)
+            else if (attachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::DontCare)
             {
                 loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             }
@@ -138,9 +138,9 @@ namespace Ifrit::Graphics::VulkanGraphics
             attachmentInfo.sType      = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR;
             attachmentInfo.clearValue = clearValue;
             attachmentInfo.loadOp     = loadOp;
-            if (attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::ClearNoStore
-                || attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::LoadNoStore
-                || attachment->GetLoadOp() == Rhi::RhiRenderTargetLoadOp::DontCare)
+            if (attachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::ClearNoStore
+                || attachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::LoadNoStore
+                || attachment->GetLoadOp() == RHI::RhiRenderTargetLoadOp::DontCare)
             {
                 attachmentInfo.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             }
@@ -229,9 +229,9 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto extf = m_context->GetExtensionFunction();
 
             extf.p_vkCmdSetDepthTestEnable(cmdraw, VK_TRUE);
-            if (m_depthStencilAttachment->GetLoadOp() != Rhi::RhiRenderTargetLoadOp::ClearNoStore
-                && m_depthStencilAttachment->GetLoadOp() != Rhi::RhiRenderTargetLoadOp::DontCare
-                && m_depthStencilAttachment->GetLoadOp() != Rhi::RhiRenderTargetLoadOp::LoadNoStore)
+            if (m_depthStencilAttachment->GetLoadOp() != RHI::RhiRenderTargetLoadOp::ClearNoStore
+                && m_depthStencilAttachment->GetLoadOp() != RHI::RhiRenderTargetLoadOp::DontCare
+                && m_depthStencilAttachment->GetLoadOp() != RHI::RhiRenderTargetLoadOp::LoadNoStore)
             {
                 extf.p_vkCmdSetDepthWriteEnable(cmdraw, VK_TRUE);
             }
@@ -250,23 +250,23 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void RenderTargets::EndRendering(const Rhi::RhiCommandList* commandBuffer) const
+    IFRIT_APIDECL void RenderTargets::EndRendering(const RHI::RhiCommandList* commandBuffer) const
     {
         auto cmd    = CheckedCast<CommandBuffer>(commandBuffer);
         auto cmdraw = cmd->GetCommandBuffer();
         vkCmdEndRendering(cmdraw);
     }
 
-    IFRIT_APIDECL Rhi::RhiRenderTargetsFormat RenderTargets::GetFormat() const
+    IFRIT_APIDECL RHI::RhiRenderTargetsFormat RenderTargets::GetFormat() const
     {
-        Rhi::RhiRenderTargetsFormat format;
+        RHI::RhiRenderTargetsFormat format;
         if (m_depthStencilAttachment)
         {
             format.m_depthFormat = toRhiFormat(m_depthStencilAttachment->GetRenderTargetInternal()->GetFormat());
         }
         else
         {
-            format.m_depthFormat = Rhi::RhiImageFormat::RhiImgFmt_UNDEFINED;
+            format.m_depthFormat = RHI::RhiImageFormat::RhiImgFmt_UNDEFINED;
         }
         for (auto attachment : m_colorAttachments)
         {
@@ -275,6 +275,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         return format;
     }
 
-    IFRIT_APIDECL Rhi::RhiScissor RenderTargets::GetRenderArea() const { return m_renderArea; }
+    IFRIT_APIDECL RHI::RhiScissor RenderTargets::GetRenderArea() const { return m_renderArea; }
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

@@ -22,14 +22,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
-    class IFRIT_APIDECL StagedSingleBuffer : public Rhi::RhiStagedSingleBuffer
+    class IFRIT_APIDECL StagedSingleBuffer : public RHI::RhiStagedSingleBuffer
     {
     protected:
-        Rhi::RhiBufferRef m_bufferUnique;
+        RHI::RhiBufferRef m_bufferUnique;
         SingleBuffer*     m_buffer;
-        Rhi::RhiBufferRef m_stagingBuffer;
+        RHI::RhiBufferRef m_stagingBuffer;
         EngineContext*    m_context;
 
     public:
@@ -39,15 +39,15 @@ namespace Ifrit::Graphics::VulkanGraphics
         StagedSingleBuffer& operator=(const StagedSingleBuffer& p) = delete;
 
         virtual ~StagedSingleBuffer() {}
-        void CmdCopyToDevice(const Rhi::RhiCommandList* cmd, const void* data, u32 size, u32 localOffset) override;
+        void CmdCopyToDevice(const RHI::RhiCommandList* cmd, const void* data, u32 size, u32 localOffset) override;
     };
 
     class IFRIT_APIDECL StagedSingleImage
     {
     protected:
-        Rhi::RhiTextureRef m_imageUnique;
+        RHI::RhiTextureRef m_imageUnique;
         SingleDeviceImage* m_image;
-        Rhi::RhiBufferRef  m_stagingBuffer;
+        RHI::RhiBufferRef  m_stagingBuffer;
         EngineContext*     m_context;
 
     public:
@@ -61,4 +61,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         void CmdCopyToDevice(CommandBuffer* cmd, const void* data, VkImageLayout srcLayout, VkImageLayout dstlayout,
             VkPipelineStageFlags dstStage, VkAccessFlags dstAccess);
     };
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

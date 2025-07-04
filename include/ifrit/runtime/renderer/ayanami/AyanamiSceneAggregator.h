@@ -29,9 +29,9 @@ namespace Ifrit::Runtime::Ayanami
     class IFRIT_APIDECL AyanamiSceneAggregator : public NonCopyable
     {
     private:
-        Graphics::Rhi::RhiBackend* m_rhi;
-        SharedRenderResource*      m_SharedRenderResource = nullptr;
-        AyanamiSceneResources*     m_sceneResources       = nullptr;
+        RHI::RhiBackend*       m_rhi;
+        SharedRenderResource*  m_SharedRenderResource = nullptr;
+        AyanamiSceneResources* m_sceneResources       = nullptr;
 
     public:
         struct AggregatedLights
@@ -44,7 +44,7 @@ namespace Ifrit::Runtime::Ayanami
         void Destroy();
 
     public:
-        AyanamiSceneAggregator(Graphics::Rhi::RhiBackend* rhi, SharedRenderResource* sharedRes)
+        AyanamiSceneAggregator(RHI::RhiBackend* rhi, SharedRenderResource* sharedRes)
             : m_rhi(rhi), m_SharedRenderResource(sharedRes)
         {
             Init();

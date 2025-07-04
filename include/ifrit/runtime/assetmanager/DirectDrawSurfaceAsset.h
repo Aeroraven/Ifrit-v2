@@ -26,13 +26,13 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL DirectDrawSurfaceAsset : public TextureAsset
     {
     private:
-        bool                         m_loaded = false;
-        IApplication*                m_app;
-        Graphics::Rhi::RhiTextureRef m_texture = nullptr;
+        bool               m_loaded = false;
+        IApplication*      m_app;
+        RHI::RhiTextureRef m_texture = nullptr;
 
     public:
         DirectDrawSurfaceAsset(AssetMetadata metadata, std::filesystem::path path, IApplication* app);
-        Graphics::Rhi::RhiTextureRef GetTexture() override;
+        RHI::RhiTextureRef GetTexture() override;
     };
     class IFRIT_APIDECL DirectDrawSurfaceAssetImporter : public AssetImporter
     {

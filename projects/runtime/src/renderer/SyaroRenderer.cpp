@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include "ifrit/rhi/common/RhiStructHelper.h"
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using Ifrit::SizeCast;
 using Ifrit::Math::DivRoundUp;
 
@@ -189,7 +189,7 @@ namespace Ifrit::Runtime
         {
             auto tex     = rhi->CreateTexture2D("Syaro_PostprocTex", width, height, rtFmt, kbImUsage_UAV_SRV_RT, true);
             auto colorRT = rhi->CreateRenderTarget(
-                tex.get(), Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Load, 0, 0);
+                tex.get(), RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Load, 0, 0);
             auto rts = rhi->CreateRenderTargets();
 
             m_postprocTex[{ width, height }][i]     = tex;
@@ -584,11 +584,11 @@ namespace Ifrit::Runtime
             passFsr2Dispatch.SetExecutionFunction([&](const FrameGraphPassContext& data) {
                 auto commandList = data.m_CmdList;
                 commandList->BeginScope("Syaro: FSR2 Dispatch");
-                auto                                     color  = m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get();
-                auto                                     depth  = primaryView.m_visibilityDepth_Combined.get();
-                auto                                     motion = perframeData.m_motionVector.get();
-                auto                                     mainView = GetPrimaryView(perframeData);
-                Graphics::Rhi::FSR2::RhiFSR2DispatchArgs args;
+                auto                           color    = m_postprocTex[{ mainRtWidth, mainRtHeight }][0].get();
+                auto                           depth    = primaryView.m_visibilityDepth_Combined.get();
+                auto                           motion   = perframeData.m_motionVector.get();
+                auto                           mainView = GetPrimaryView(perframeData);
+                RHI::FSR2::RhiFSR2DispatchArgs args;
                 args.camFar  = mainView.m_viewData.m_cameraFar;
                 args.camNear = mainView.m_viewData.m_cameraNear;
                 args.camFovY = mainView.m_viewData.m_cameraFovY;
@@ -1070,8 +1070,8 @@ namespace Ifrit::Runtime
             pc.m_CurFrameDataCBV  = rhi->GetUAVDescriptor(primaryView.m_viewBuffer->GetActiveBuffer());
             pc.m_LastFrameDataCBV = rhi->GetUAVDescriptor(primaryView.m_viewBufferLast->GetActiveBuffer());
 
-            ctx->m_cmd->ClearUAVTexture(perframeData.m_motionVector.get(), { 0, 0, 1, 1 },
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)));
+            ctx->m_cmd->ClearUAVTexture(
+                perframeData.m_motionVector.get(), { 0, 0, 1, 1 }, RHI::CreateRhiClearColorValue(Vector4f(0.0f)));
             ctx->m_cmd->SetPushConst(&pc, 0, sizeof(PushConstant));
 
             u32 wgX = DivRoundUp(pc.m_Width, cEmitDepthGroupSizeX);
@@ -1580,14 +1580,14 @@ namespace Ifrit::Runtime
                 // first pass rts
                 perView.m_visPassDepth_HW  = visDepthHW;
                 perView.m_visDepthIdSRV_HW = rhi->GetSRVDescriptor(perView.m_visPassDepth_HW.get());
-                perView.m_visDepthRT_HW    = rhi->CreateRenderTargetDepthStencil(visDepthHW.get(),
-                       Graphics::Rhi::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Clear);
+                perView.m_visDepthRT_HW    = rhi->CreateRenderTargetDepthStencil(
+                    visDepthHW.get(), RHI::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Clear);
 
                 perView.m_visRTs_HW = rhi->CreateRenderTargets();
                 if (perView.m_viewType == PerFrameData::ViewType::Primary)
                 {
                     perView.m_visColorRT_HW = rhi->CreateRenderTarget(visBufferHW.get(),
-                        Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
+                        RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
                     perView.m_visRTs_HW->SetColorAttachments({ perView.m_visColorRT_HW.get() });
                 }
                 else
@@ -1605,13 +1605,13 @@ namespace Ifrit::Runtime
                 }
 
                 // second pass rts
-                perView.m_visDepthRT2_HW = rhi->CreateRenderTargetDepthStencil(visDepthHW.get(),
-                    Graphics::Rhi::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Load);
-                perView.m_visRTs2_HW     = rhi->CreateRenderTargets();
+                perView.m_visDepthRT2_HW = rhi->CreateRenderTargetDepthStencil(
+                    visDepthHW.get(), RHI::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Load);
+                perView.m_visRTs2_HW = rhi->CreateRenderTargets();
                 if (perView.m_viewType == PerFrameData::ViewType::Primary)
                 {
                     perView.m_visColorRT2_HW = rhi->CreateRenderTarget(visBufferHW.get(),
-                        Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Load, 0, 0);
+                        RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Load, 0, 0);
                     perView.m_visRTs2_HW->SetColorAttachments({ perView.m_visColorRT2_HW.get() });
                 }
                 else
@@ -1683,15 +1683,15 @@ namespace Ifrit::Runtime
 
             // Clear gbuffer textures
             ctx->m_cmd->ClearUAVTexture(perframeData.m_gbuffer.m_albedo_materialFlags.get(), { 0, 0, 1, 1 },
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)));
+                RHI::CreateRhiClearColorValue(Vector4f(0.0f)));
             ctx->m_cmd->ClearUAVTexture(perframeData.m_gbuffer.m_normal_smoothness.get(), { 0, 0, 1, 1 },
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)));
-            ctx->m_cmd->ClearUAVTexture(perframeData.m_gbuffer.m_emissive.get(), { 0, 0, 1, 1 },
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)));
+                RHI::CreateRhiClearColorValue(Vector4f(0.0f)));
+            ctx->m_cmd->ClearUAVTexture(
+                perframeData.m_gbuffer.m_emissive.get(), { 0, 0, 1, 1 }, RHI::CreateRhiClearColorValue(Vector4f(0.0f)));
             ctx->m_cmd->ClearUAVTexture(perframeData.m_gbuffer.m_specular_occlusion.get(), { 0, 0, 1, 1 },
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)));
+                RHI::CreateRhiClearColorValue(Vector4f(0.0f)));
             ctx->m_cmd->ClearUAVTexture(perframeData.m_gbuffer.m_shadowMask.get(), { 0, 0, 1, 1 },
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)));
+                RHI::CreateRhiClearColorValue(Vector4f(0.0f)));
             ctx->m_cmd->AddResourceBarrier(perframeData.m_gbuffer.m_gbufferBarrier);
 
             // For each material, make
@@ -1769,9 +1769,9 @@ namespace Ifrit::Runtime
             auto rhi = m_app->GetRhi();
             cmd->GlobalMemoryBarrier();
             auto colorRT1 = rhi->CreateRenderTarget(perframeData.m_gbuffer.m_specular_occlusion_intermediate.get(),
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
+                RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
             auto colorRT2 = rhi->CreateRenderTarget(perframeData.m_gbuffer.m_specular_occlusion.get(),
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
+                RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
             auto rt1      = rhi->CreateRenderTargets();
             rt1->SetColorAttachments({ colorRT1.get() });
             rt1->SetRenderArea(getSupersampleDownsampledArea(renderTargets, *m_config));
@@ -1947,7 +1947,7 @@ namespace Ifrit::Runtime
                 "Syaro_DeferShadow", mainRtWidth, mainRtHeight, kbImFmt_RGBA32F, kbImUsage_UAV_SRV_RT, true);
 
             perframeData.m_deferShadowMaskRT  = rhi->CreateRenderTarget(perframeData.m_deferShadowMask.get(),
-                 Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
+                 RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
             perframeData.m_deferShadowMaskRTs = rhi->CreateRenderTargets();
             perframeData.m_deferShadowMaskRTs->SetColorAttachments({ perframeData.m_deferShadowMaskRT.get() });
             perframeData.m_deferShadowMaskRTs->SetRenderArea({ 0, 0, u32(mainRtWidth), u32(mainRtHeight) });
@@ -1976,7 +1976,7 @@ namespace Ifrit::Runtime
 
         if (m_config->m_AntiAliasingType == AntiAliasingType::FSR2)
         {
-            Graphics::Rhi::FSR2::RhiFSR2InitialzeArgs args;
+            RHI::FSR2::RhiFSR2InitialzeArgs args;
             args.displayHeight   = outputRth;
             args.displayWidth    = outputRtw;
             args.maxRenderWidth  = actualRtw;
@@ -2028,7 +2028,7 @@ namespace Ifrit::Runtime
 
             // TODO: clear values
             perframeData.m_taaHistory[i].m_colorRTRef = rhi->CreateRenderTarget(perframeData.m_taaUnresolved.get(),
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
+                RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
 
             RhiAttachmentBlendInfo blendInfo;
             blendInfo.m_blendEnable         = false;

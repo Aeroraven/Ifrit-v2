@@ -20,12 +20,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/common/Pch.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
     // Referenced from: https://pavelsmejkal.net/Posts/GPUTimingBasics
 
-    class IFRIT_APIDECL DeviceTimer : public Ifrit::Graphics::Rhi::RhiDeviceTimer
+    class IFRIT_APIDECL DeviceTimer : public Ifrit::RHI::RhiDeviceTimer
     {
     private:
         u32              m_numFrameInFlight;
@@ -39,10 +39,10 @@ namespace Ifrit::Graphics::VulkanGraphics
     public:
         DeviceTimer(EngineContext* ctx, u32 numFrameInFlight);
         virtual ~DeviceTimer();
-        virtual void  Start(const Rhi::RhiCommandList* cmd) override;
-        virtual void  Stop(const Rhi::RhiCommandList* cmd) override;
+        virtual void  Start(const RHI::RhiCommandList* cmd) override;
+        virtual void  Stop(const RHI::RhiCommandList* cmd) override;
         virtual float GetElapsedMs() override;
         virtual void  FrameProceed();
     };
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

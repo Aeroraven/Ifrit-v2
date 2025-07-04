@@ -27,8 +27,8 @@ namespace Ifrit::Runtime
 
     struct ShaderRegistryData
     {
-        using ShaderTp           = Graphics::Rhi::RhiShader;
-        using ShaderCollectionTp = Graphics::Rhi::RhiShaderCollection;
+        using ShaderTp           = RHI::RhiShader;
+        using ShaderCollectionTp = RHI::RhiShaderCollection;
 
         enum class ShaderStatus : u32
         {
@@ -91,12 +91,12 @@ namespace Ifrit::Runtime
             m_Data->m_CompilingShaders.fetch_add(1, std::memory_order::acq_rel);
             m_Data->m_ShaderMap[sName].m_Status = ShaderRegistryData::ShaderStatus::Uncompiled;
 
-            auto taskExecutor                       = GetTaskScheduler();
+            auto taskExecutor                       = GetFTaskScheduler();
             m_Data->m_ShaderMap[sName].m_TaskHandle = taskExecutor->EnqueueTask(
                 [sPath, sName, sEntry, stage, this](Task* task, void* data) {
                     auto   fileExtension = sPath.substr(sPath.find_last_of('.') + 1);
                     String shaderPath;
-                    auto   shaderType = Graphics::Rhi::RhiShaderSourceType::GLSLCode;
+                    auto   shaderType = RHI::RhiShaderSourceType::GLSLCode;
                     if (fileExtension == "glsl")
                     {
                         shaderPath = String(IFRIT_RUNTIME_SHARED_SHADER_PATH) + "/" + sPath;
@@ -104,7 +104,7 @@ namespace Ifrit::Runtime
                     else if (fileExtension == "slang")
                     {
                         shaderPath = String(IFRIT_RUNTIME_SHARED_SHADER_NEXT_PATH) + "/" + sPath;
-                        shaderType = Graphics::Rhi::RhiShaderSourceType::SlangCode;
+                        shaderType = RHI::RhiShaderSourceType::SlangCode;
                     }
                     else
                     {

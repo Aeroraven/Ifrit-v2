@@ -18,16 +18,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/math/linalg/LinalgOps.h"
-#include "ifrit/core/serialization/MathTypeSerialization.h"
-#include "ifrit/core/serialization/SerialInterface.h"
-#include "ifrit/core/platform/ApiConv.h"
-#include "ifrit/meshproc/engine/base/MeshDesc.h"
-#include "ifrit/meshproc/engine/base/MeshProcBase.h"
 
-namespace Ifrit::MeshProcLib::Tetrahedralization
+namespace Ifrit::GeometryProc
 {
+    struct MeshDescriptor
+    {
+        i8* vertexData;
+        i8* indexData;
+        i8* normalData;
+        i32 vertexCount;
+        i32 indexCount;
+        i32 vertexStride;
+        i32 positionOffset;
+        i32 normalStride;
+    };
 
-    IFRIT_MESHPROC_API FTetrahedralMeshData TetrahedralizeMesh(const MeshDescriptor& mesh);
-
-} // namespace Ifrit::MeshProcLib::Tetrahedralization
+    struct FTetrahedralMeshData
+    {
+        Vec<Vector3f> m_Vertices;
+        Vec<u32>      m_Indices;
+    };
+} // namespace Ifrit::GeometryProc

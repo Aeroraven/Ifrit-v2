@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/utility/Logger.h"
 #include <numeric>
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
     IFRIT_APIDECL HwRaytracingContext::HwRaytracingContext(EngineContext* ctx)
@@ -52,7 +52,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL      BottomLevelAS::BottomLevelAS(EngineContext* ctx) { m_context = ctx; }
     IFRIT_APIDECL void BottomLevelAS::PrepareGeometryData(
-        const Vec<Rhi::RhiRTGeometryReference>& geometry, CommandBuffer* cmd)
+        const Vec<RHI::RhiRTGeometryReference>& geometry, CommandBuffer* cmd)
     {
         // TODO
         Vec<VkAccelerationStructureGeometryKHR>        geometries;
@@ -150,11 +150,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_deviceAddress = pfns.p_vkGetAccelerationStructureDeviceAddressKHR(m_context->GetDevice(), &addressInfo);
     }
 
-    IFRIT_APIDECL Rhi::RhiDeviceAddr BottomLevelAS::GetDeviceAddress() const { return m_deviceAddress; }
+    IFRIT_APIDECL RHI::RhiDeviceAddr BottomLevelAS::GetDeviceAddress() const { return m_deviceAddress; }
 
     IFRIT_APIDECL                    TopLevelAS::TopLevelAS(EngineContext* ctx) { m_context = ctx; }
 
-    IFRIT_APIDECL void TopLevelAS::PrepareInstanceData(const Vec<Rhi::RhiRTInstance>& instances, CommandBuffer* cmd)
+    IFRIT_APIDECL void TopLevelAS::PrepareInstanceData(const Vec<RHI::RhiRTInstance>& instances, CommandBuffer* cmd)
     {
         // TODO
         VkTransformMatrixKHR transformMatrix = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
@@ -250,7 +250,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_deviceAddress = pfns.p_vkGetAccelerationStructureDeviceAddressKHR(m_context->GetDevice(), &addressInfo);
     }
 
-    IFRIT_APIDECL Rhi::RhiDeviceAddr TopLevelAS::GetDeviceAddress() const { return m_deviceAddress; }
+    IFRIT_APIDECL RHI::RhiDeviceAddr TopLevelAS::GetDeviceAddress() const { return m_deviceAddress; }
 
     IFRIT_APIDECL
     ShaderBindingTable::ShaderBindingTable(EngineContext* ctx, HwRaytracingContext* rtContext)
@@ -258,7 +258,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
     }
 
-    IFRIT_APIDECL void ShaderBindingTable::appendShaderBindingTable(const Vec<Rhi::RhiRTShaderGroup>& groups)
+    IFRIT_APIDECL void ShaderBindingTable::appendShaderBindingTable(const Vec<RHI::RhiRTShaderGroup>& groups)
     {
 
         auto             numShaders = SizeCast<u32>(groups.size());
@@ -279,11 +279,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         sbtBuffer->MapMemory();
     }
 
-    IFRIT_APIDECL void ShaderBindingTable::PrepareShaderBindingTable(const Vec<Vec<Rhi::RhiRTShaderGroup>>& groups)
+    IFRIT_APIDECL void ShaderBindingTable::PrepareShaderBindingTable(const Vec<Vec<RHI::RhiRTShaderGroup>>& groups)
     {
-        std::unordered_map<const Rhi::RhiShader*, u32> shaderMap;
+        std::unordered_map<const RHI::RhiShader*, u32> shaderMap;
 
-        auto                                           insertShader = [&](const Rhi::RhiShader* shader) {
+        auto                                           insertShader = [&](const RHI::RhiShader* shader) {
             if (shader == nullptr)
             {
                 return;
@@ -318,7 +318,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
 
         // Create group CIs
-        auto lookupShaderIndex = [&](const Rhi::RhiShader* shader) -> u32 {
+        auto lookupShaderIndex = [&](const RHI::RhiShader* shader) -> u32 {
             if (shader == nullptr)
             {
                 return VK_SHADER_UNUSED_KHR;
@@ -359,7 +359,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL Vec<const Rhi::RhiShader*> ShaderBindingTable::GetShaders() const { return m_shaders; }
+    IFRIT_APIDECL Vec<const RHI::RhiShader*> ShaderBindingTable::GetShaders() const { return m_shaders; }
 
     IFRIT_APIDECL Vec<VkRayTracingShaderGroupCreateInfoKHR> ShaderBindingTable::GetShaderGroupsCI() const
     {
@@ -564,7 +564,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void RaytracingPass::SetPushConstSize(u32 size) { m_pushConstSize = size; }
 
-    IFRIT_APIDECL void RaytracingPass::SetShaderGroups(Rhi::RhiRTShaderBindingTable* sbt) { m_sbt = sbt; }
+    IFRIT_APIDECL void RaytracingPass::SetShaderGroups(RHI::RhiRTShaderBindingTable* sbt) { m_sbt = sbt; }
 
     IFRIT_APIDECL void RaytracingPass::SetTraceRegion(u32 width, u32 height, u32 depth)
     {
@@ -573,7 +573,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_regionDepth  = depth;
     }
 
-    IFRIT_APIDECL void RaytracingPass::SetRecordFunction(std::function<void(Rhi::RhiRenderPassContext*)> func)
+    IFRIT_APIDECL void RaytracingPass::SetRecordFunction(std::function<void(RHI::RhiRenderPassContext*)> func)
     {
         m_recordFunc = func;
     }
@@ -601,7 +601,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_pipeline = m_pipelineCache->GetRaytracingPipeline(ci);
     }
 
-    IFRIT_APIDECL void RaytracingPass::Run(const Rhi::RhiCommandList* cmd)
+    IFRIT_APIDECL void RaytracingPass::Run(const RHI::RhiCommandList* cmd)
     {
         auto pfns = m_context->GetExtensionFunction();
         if (m_pipeline == nullptr)
@@ -615,7 +615,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkCmdBindDescriptorSets(
             cmdx, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline->GetLayout(), 0, 1, &bindlessSet, 0, nullptr);
         vkCmdBindPipeline(cmdx, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, m_pipeline->GetPipeline());
-        Rhi::RhiRenderPassContext m_passContext;
+        RHI::RhiRenderPassContext m_passContext;
         m_passContext.m_cmd   = cmdraw;
         m_passContext.m_frame = 0;
         if (m_recordFunc)
@@ -644,4 +644,4 @@ namespace Ifrit::Graphics::VulkanGraphics
             m_regionHeight, m_regionDepth);
     }
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

@@ -18,7 +18,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/typing/CountRef.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
 
     class RhiBackend;
@@ -461,16 +461,16 @@ namespace Ifrit::Graphics::Rhi
 
     using RhiDeviceAddr = u64;
 
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
-    using RhiTextureRef = RCountRef<RhiTexture>;
-    using RhiSamplerRef = RCountRef<RhiSampler>;
-    using RhiBufferRef  = RCountRef<RhiBuffer>;
+    using RhiTextureRef = TCountRef<RhiTexture>;
+    using RhiSamplerRef = TCountRef<RhiSampler>;
+    using RhiBufferRef  = TCountRef<RhiBuffer>;
 
     using RhiSamplerDesc = u32;
     using RhiCBVDesc     = u32;
     using RhiSRVDesc     = u32;
     using RhiUAVDesc     = u32;
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

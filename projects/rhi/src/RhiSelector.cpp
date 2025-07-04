@@ -18,22 +18,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/rhi/platform/RhiSelector.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
-    extern IFRIT_APIDECL_IMPORT void GetRhiBackendBuilder_Vulkan(Owner<Rhi::RhiBackendFactory>& ptr);
-} // namespace Ifrit::Graphics::VulkanGraphics
+    extern IFRIT_APIDECL_IMPORT void GetRhiBackendBuilder_Vulkan(Owner<RHI::RhiBackendFactory>& ptr);
+} // namespace Ifrit::RHI::VulkanAdapter
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
     IFRIT_APIDECL Owner<RhiBackend> RhiSelector::CreateBackend(RhiBackendType type, const RhiInitializeArguments& args)
     {
         Owner<RhiBackendFactory> factory;
         if (type == RhiBackendType::Vulkan)
         {
-            VulkanGraphics::GetRhiBackendBuilder_Vulkan(factory);
+            VulkanAdapter::GetRhiBackendBuilder_Vulkan(factory);
             return factory->CreateBackend(args);
         }
         printf("RhiSelector: Backend not found\n");
         return nullptr;
     }
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

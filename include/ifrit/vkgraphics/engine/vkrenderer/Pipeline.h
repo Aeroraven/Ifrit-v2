@@ -21,20 +21,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Shader.h"
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
     struct GraphicsPipelineCreateInfo
     {
         u32                            viewportCount;
         u32                            scissorCount;
-        Rhi::RhiRasterizerTopology     topology;
+        RHI::RhiRasterizerTopology     topology;
         Vec<VkFormat>                  colorAttachmentFormats;
         VkFormat                       depthAttachmentFormat;
         VkFormat                       stencilAttachmentFormat;
         Vec<ShaderModule*>             shaderModules;
         Vec<VkDescriptorSetLayout>     descriptorSetLayouts;
-        Rhi::RhiGeometryGenerationType geomGenType   = Rhi::RhiGeometryGenerationType::Conventional;
+        RHI::RhiGeometryGenerationType geomGenType   = RHI::RhiGeometryGenerationType::Conventional;
         u32                            pushConstSize = 0;
         u32                            msaaSamples   = 1;
     };
@@ -120,4 +120,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         ComputePipeline*  GetComputePipeline(const ComputePipelineCreateInfo& ci);
     };
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

@@ -33,18 +33,18 @@ namespace Ifrit::Runtime::RenderingUtil
     // "RenderFeature" and "RenderPass" designs might be better, the current design
     // is intended to simplify the codebase.
 
-    IFRIT_APIDECL Graphics::Rhi::RhiComputePass* CreateComputePassInternal(
+    IFRIT_APIDECL RHI::RhiComputePass* CreateComputePassInternal(
         IApplication* app, const ShaderVariantDesc& desc, u32 numBindlessDescs, u32 numPushConsts);
 
-    IFRIT_APIDECL Graphics::Rhi::RhiGraphicsPass* CreateGraphicsPassInternal(IApplication* app,
-        const ShaderVariantDesc& vsDesc, const ShaderVariantDesc& fsDesc, u32 numBindlessDescs, u32 numPushConsts,
-        const Graphics::Rhi::RhiRenderTargetsFormat& vFmts);
+    IFRIT_APIDECL RHI::RhiGraphicsPass* CreateGraphicsPassInternal(IApplication* app, const ShaderVariantDesc& vsDesc,
+        const ShaderVariantDesc& fsDesc, u32 numBindlessDescs, u32 numPushConsts,
+        const RHI::RhiRenderTargetsFormat& vFmts);
 
-    IFRIT_APIDECL void EnqueueFullScreenPass(const Graphics::Rhi::RhiCommandList* cmd, Graphics::Rhi::RhiBackend* rhi,
-        Graphics::Rhi::RhiGraphicsPass* pass, Graphics::Rhi::RhiRenderTargets* rt,
-        const Vec<Graphics::Rhi::RhiBindlessDescriptorRef*>& vBindlessDescs, const void* pPushConst, u32 numPushConsts);
+    IFRIT_APIDECL void                  EnqueueFullScreenPass(const RHI::RhiCommandList* cmd, RHI::RhiBackend* rhi,
+                         RHI::RhiGraphicsPass* pass, RHI::RhiRenderTargets* rt,
+                         const Vec<RHI::RhiBindlessDescriptorRef*>& vBindlessDescs, const void* pPushConst, u32 numPushConsts);
 
-    IFRIT_APIDECL void WarpRenderTargets(Graphics::Rhi::RhiBackend* rhi, Graphics::Rhi::RhiTexture* vTex,
-        Ref<Graphics::Rhi::RhiColorAttachment>& vCA, Ref<Graphics::Rhi::RhiRenderTargets>& vRT);
+    IFRIT_APIDECL void WarpRenderTargets(RHI::RhiBackend* rhi, RHI::RhiTexture* vTex, Ref<RHI::RhiColorAttachment>& vCA,
+        Ref<RHI::RhiRenderTargets>& vRT);
 
 } // namespace Ifrit::Runtime::RenderingUtil

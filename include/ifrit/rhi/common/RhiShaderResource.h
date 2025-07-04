@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "RhiBaseTypes.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
 
     class IFRIT_APIDECL RhiShader
@@ -50,4 +50,4 @@ namespace Ifrit::Graphics::Rhi
         RhiShader* m_intersectionShader = nullptr;
     };
 
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

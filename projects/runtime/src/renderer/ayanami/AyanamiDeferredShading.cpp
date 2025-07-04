@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using namespace Ifrit::Math;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 
@@ -49,7 +49,7 @@ namespace Ifrit::Runtime::Ayanami
         RhiTextureRef           m_IndirectLightingTex[2];
         RhiTextureRef           m_FinalLightingTex[kHistoryFrames];
     };
-    AyanamiDeferredShading::AyanamiDeferredShading(Graphics::Rhi::RhiBackend* rhi, AyanamiSharedContext* sharedContext)
+    AyanamiDeferredShading::AyanamiDeferredShading(RHI::RhiBackend* rhi, AyanamiSharedContext* sharedContext)
         : m_Private(new AyanamiDeferredShadingPrivate()), m_Rhi(rhi), m_SharedContext(sharedContext)
     {
     }
@@ -87,14 +87,12 @@ namespace Ifrit::Runtime::Ayanami
         }
 
         m_Private->m_DeferredShadowTexture = &builder.DeclareTexture("Ayanami.RDG.FinalLighting.DirectShadow",
-            FrameGraphTextureDesc(rtWidth, rtHeight, 1, Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8_UNORM,
-                Graphics::Rhi::RhiImageUsage::RhiImgUsage_RenderTarget
-                    | Graphics::Rhi::RhiImageUsage::RhiImgUsage_ShaderRead));
+            FrameGraphTextureDesc(rtWidth, rtHeight, 1, RHI::RhiImageFormat::RhiImgFmt_R8_UNORM,
+                RHI::RhiImageUsage::RhiImgUsage_RenderTarget | RHI::RhiImageUsage::RhiImgUsage_ShaderRead));
 
         m_Private->m_DeferredDirectLightingTexture = &builder.DeclareTexture("Ayanami.RDG.FinalLighting.DirectLighting",
-            FrameGraphTextureDesc(rtWidth, rtHeight, 1, Graphics::Rhi::RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
-                Graphics::Rhi::RhiImageUsage::RhiImgUsage_RenderTarget
-                    | Graphics::Rhi::RhiImageUsage::RhiImgUsage_ShaderRead));
+            FrameGraphTextureDesc(rtWidth, rtHeight, 1, RHI::RhiImageFormat::RhiImgFmt_R16G16B16A16_SFLOAT,
+                RHI::RhiImageUsage::RhiImgUsage_RenderTarget | RHI::RhiImageUsage::RhiImgUsage_ShaderRead));
 
         m_Private->m_CurFrameFinalLightingTex = &builder.ImportTexture(
             "Ayanami.RDG.FinalLighting.CurFrame", m_Private->m_FinalLightingTex[m_Private->m_FrameIdx].get());

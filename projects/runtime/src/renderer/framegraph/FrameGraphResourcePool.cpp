@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime
 {
-    FrameGraphResourcePool::FrameGraphResourcePool(Graphics::Rhi::RhiBackend* rhi) : m_Rhi(rhi) {}
+    FrameGraphResourcePool::FrameGraphResourcePool(RHI::RhiBackend* rhi) : m_Rhi(rhi) {}
 
     IFRIT_APIDECL FrameGraphPoolBufAllocResult FrameGraphResourcePool::CreateBuffer(
         const FrameGraphBufferDesc& desc, const String& name)
@@ -66,7 +66,7 @@ namespace Ifrit::Runtime
         auto                         debugName = "RDGManaged." + name;
         if (hset.empty())
         {
-            auto isStorage = (desc.m_Usage & Graphics::Rhi::RhiImgUsage_UnorderedAccess) != 0;
+            auto isStorage = (desc.m_Usage & RHI::RhiImgUsage_UnorderedAccess) != 0;
             auto texture   = m_Rhi->CreateTexture3D(
                 debugName, desc.m_Width, desc.m_Height, desc.m_Depth, desc.m_Format, desc.m_Usage, isStorage);
 
@@ -99,7 +99,7 @@ namespace Ifrit::Runtime
         return alloc;
     }
 
-    IFRIT_APIDECL void FrameGraphResourcePool::ReleaseBuffer(RIndexedPtr id)
+    IFRIT_APIDECL void FrameGraphResourcePool::ReleaseBuffer(FIndexedPtr id)
     {
         auto ptr                   = m_BufferPool.GetPtrFromIndex(id);
         ptr->m_Active              = false;
@@ -107,7 +107,7 @@ namespace Ifrit::Runtime
         m_AvailableBuffers[ptr->m_Desc].push(id);
     }
 
-    IFRIT_APIDECL void FrameGraphResourcePool::ReleaseTexture(RIndexedPtr id)
+    IFRIT_APIDECL void FrameGraphResourcePool::ReleaseTexture(FIndexedPtr id)
     {
         auto ptr                   = m_TexturePool.GetPtrFromIndex(id);
         ptr->m_Active              = false;

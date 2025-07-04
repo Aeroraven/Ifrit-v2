@@ -7,11 +7,11 @@
 #include <stb/stb_image.h>
 #undef STB_IMAGE_IMPLEMENTATION
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 
 namespace Ifrit::Runtime::RenderingUtil
 {
-    IFRIT_APIDECL RhiTextureRef loadBlueNoise(Graphics::Rhi::RhiBackend* rhi)
+    IFRIT_APIDECL RhiTextureRef loadBlueNoise(RHI::RhiBackend* rhi)
     {
         auto path = IFRIT_RUNTIME_SHARED_ASSET_PATH "/NoiseTexture/BlueNoiseRGBA.png";
         i32  width, height, channels;
@@ -21,33 +21,31 @@ namespace Ifrit::Runtime::RenderingUtil
             iError("Failed to load blue noise texture");
             return nullptr;
         }
-        auto tex = rhi->CreateTexture2D("Noise_Tex2D", width, height,
-            Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
-            Graphics::Rhi::RhiImageUsage::RhiImgUsage_ShaderRead | Graphics::Rhi::RhiImageUsage::RhiImgUsage_CopyDst,
-            false);
+        auto tex = rhi->CreateTexture2D("Noise_Tex2D", width, height, RHI::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,
+            RHI::RhiImageUsage::RhiImgUsage_ShaderRead | RHI::RhiImageUsage::RhiImgUsage_CopyDst, false);
         auto buf = rhi->CreateBuffer(
-            "Noise_Buffer", width * height * 4, Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
+            "Noise_Buffer", width * height * 4, RHI::RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
         buf->MapMemory();
         buf->WriteBuffer(data, width * height * 4, 0);
         buf->FlushBuffer();
         buf->UnmapMemory();
-        auto tq = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RhiQueue_Transfer);
-        tq->RunSyncCommand([&](const Graphics::Rhi::RhiCommandList* cmd) {
-            Graphics::Rhi::RhiTransitionBarrier barrier;
+        auto tq = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Transfer);
+        tq->RunSyncCommand([&](const RHI::RhiCommandList* cmd) {
+            RHI::RhiTransitionBarrier barrier;
             barrier.m_texture     = tex.get();
-            barrier.m_type        = Graphics::Rhi::RhiResourceType::Texture;
-            barrier.m_dstState    = Graphics::Rhi::RhiResourceState::CopyDst;
-            barrier.m_srcState    = Graphics::Rhi::RhiResourceState::AutoTraced;
+            barrier.m_type        = RHI::RhiResourceType::Texture;
+            barrier.m_dstState    = RHI::RhiResourceState::CopyDst;
+            barrier.m_srcState    = RHI::RhiResourceState::AutoTraced;
             barrier.m_subResource = { 0, 0, 1, 1 };
 
-            Graphics::Rhi::RhiResourceBarrier barrier2;
-            barrier2.m_type       = Graphics::Rhi::RhiBarrierType::Transition;
+            RHI::RhiResourceBarrier barrier2;
+            barrier2.m_type       = RHI::RhiBarrierType::Transition;
             barrier2.m_transition = barrier;
 
             cmd->AddResourceBarrier({ barrier2 });
             cmd->CopyBufferToImage(buf.get(), tex.get(), { 0, 0, 1, 1 });
 
-            barrier2.m_transition.m_dstState = Graphics::Rhi::RhiResourceState::ShaderRead;
+            barrier2.m_transition.m_dstState = RHI::RhiResourceState::ShaderRead;
             cmd->AddResourceBarrier({ barrier2 });
         });
         return tex;

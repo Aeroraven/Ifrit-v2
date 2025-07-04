@@ -118,7 +118,7 @@ namespace Ifrit::Runtime
         // create textures
         auto rhi                = m_app->GetRhi();
         auto createPbrAtmoTex2D = [&](u32 width, u32 height) {
-            using namespace Graphics::Rhi;
+            using namespace RHI;
             auto tex =
                 rhi->CreateTexture2D("PbrAtmo_Tex2D", width, height, RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
                     RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead
@@ -127,7 +127,7 @@ namespace Ifrit::Runtime
             return tex;
         };
         auto createPbrAtmoTex3D = [&](u32 width, u32 height, u32 depth) {
-            using namespace Graphics::Rhi;
+            using namespace RHI;
             auto tex = rhi->CreateTexture3D("PbrAtmo_Tex3D", width, height, depth,
                 RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
                 RhiImageUsage::RhiImgUsage_UnorderedAccess | RhiImageUsage::RhiImgUsage_ShaderRead
@@ -168,18 +168,17 @@ namespace Ifrit::Runtime
         data->m_deltaMultipleScatteringCombSamplerId = data->m_deltaRayleighScatteringCombSamplerId;
 
         // Copy atmo params to GPU
-        data->m_atmosphereParamsBuffer = rhi->CreateBufferDevice("PbrAtmo_Params",
-            sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter),
-            Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopyDst | Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO,
-            true);
-        auto stagingBuffer             = rhi->CreateStagedSingleBuffer(data->m_atmosphereParamsBuffer.get());
-        auto tq                        = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RhiQueue_Transfer);
-        tq->RunSyncCommand([&](const Graphics::Rhi::RhiCommandList* cmd) {
+        data->m_atmosphereParamsBuffer =
+            rhi->CreateBufferDevice("PbrAtmo_Params", sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter),
+                RHI::RhiBufferUsage::RhiBufferUsage_CopyDst | RHI::RhiBufferUsage::RhiBufferUsage_SSBO, true);
+        auto stagingBuffer = rhi->CreateStagedSingleBuffer(data->m_atmosphereParamsBuffer.get());
+        auto tq            = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Transfer);
+        tq->RunSyncCommand([&](const RHI::RhiCommandList* cmd) {
             stagingBuffer->CmdCopyToDevice(
                 cmd, &data->m_atmosphereParams, sizeof(PbrAtmospherePerframe::PbrAtmosphereParameter), 0);
         });
         // Last, a matrix to convert radiance to luminance
-        data->luminanceFromRad = Math::Identity<f32,4>();
+        data->luminanceFromRad = Math::Identity<f32, 4>();
     }
 
     IFRIT_APIDECL PbrAtmosphereRenderer::GPUShader* PbrAtmosphereRenderer::GetInternalShader(const char* name)
@@ -252,7 +251,7 @@ namespace Ifrit::Runtime
         PerFrameData& perframe, const Vec<GPUCommandSubmission*>& cmdToWait)
     {
         using namespace Ifrit::Math;
-        using namespace Graphics::Rhi;
+        using namespace RHI;
 
         PreparePerframeData(perframe);
         // Step1. precompute transmittance
@@ -316,7 +315,7 @@ namespace Ifrit::Runtime
             u32        transmittanceSampler;
         } pSingleScattering;
 
-        pSingleScattering.lumFromRad           = Math::Identity<f32,4>();
+        pSingleScattering.lumFromRad           = Math::Identity<f32, 4>();
         pSingleScattering.atmoData             = data->m_atmosphereParamsBuffer->GetDescId();
         pSingleScattering.deltaRayleigh        = data->m_deltaRayleighScattering->GetDescId();
         pSingleScattering.deltaMie             = data->m_deltaMieScattering->GetDescId();
@@ -387,7 +386,7 @@ namespace Ifrit::Runtime
             pScatteringDensity.scatterDensity               = data->m_deltaScatteringDensity->GetDescId();
             pScatteringDensity.scatterOrder                 = order;
 
-            pIndirectIrradiance.lumFromRad                   = Math::Identity<f32,4>();
+            pIndirectIrradiance.lumFromRad                   = Math::Identity<f32, 4>();
             pIndirectIrradiance.atmoData                     = data->m_atmosphereParamsBuffer->GetDescId();
             pIndirectIrradiance.deltaIrradiance              = data->m_deltaIrradiance->GetDescId();
             pIndirectIrradiance.irradiance                   = data->m_irradiance->GetDescId();
@@ -396,7 +395,7 @@ namespace Ifrit::Runtime
             pIndirectIrradiance.multipleScatteringSamp       = data->m_deltaMultipleScatteringCombSamplerId;
             pIndirectIrradiance.scatteringOrder              = order - 1;
 
-            pMultipleScattering.lumFromRad              = Math::Identity<f32,4>();
+            pMultipleScattering.lumFromRad              = Math::Identity<f32, 4>();
             pMultipleScattering.atmoData                = data->m_atmosphereParamsBuffer->GetDescId();
             pMultipleScattering.deltaMultipleScattering = data->m_deltaMultipleScattering->GetDescId();
             pMultipleScattering.scattering              = data->m_scattering->GetDescId();
@@ -448,7 +447,7 @@ namespace Ifrit::Runtime
         };
 
         // Final, run
-        auto cq = m_app->GetRhi()->GetQueue(Graphics::Rhi::RhiQueueCapability::RhiQueue_Compute);
+        auto cq = m_app->GetRhi()->GetQueue(RHI::RhiQueueCapability::RhiQueue_Compute);
 
         auto toGeneralLayout = [&](const RhiCommandList* cmd, RhiTexture* tex) {
             RhiTransitionBarrier tBarrier;

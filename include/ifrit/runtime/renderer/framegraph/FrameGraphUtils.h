@@ -25,7 +25,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
 {
     struct GraphicsPassArgs
     {
-        Graphics::Rhi::RhiCullMode m_CullMode = Graphics::Rhi::RhiCullMode::Back;
+        RHI::RhiCullMode m_CullMode = RHI::RhiCullMode::Back;
     };
 
     template <typename T> u32 GetPushConstSize() { return sizeof(T) / sizeof(u32); }
@@ -56,8 +56,8 @@ namespace Ifrit::Runtime::FrameGraphUtils
     IFRIT_RUNTIME_API PassNode&         AddClearUAVPass(
                 FrameGraphBuilder& builder, const String& name, ResourceNode& buffer, u32 clearValue);
 
-    IFRIT_RUNTIME_API PassNode& AddClearUAVTexturePass(FrameGraphBuilder& builder, const String& name,
-        ResourceNode& texture, Graphics::Rhi::RhiClearColorValue clearValue);
+    IFRIT_RUNTIME_API PassNode& AddClearUAVTexturePass(
+        FrameGraphBuilder& builder, const String& name, ResourceNode& texture, RHI::RhiClearColorValue clearValue);
     // Templated Version
 
     template <typename PassData> using FnPassFunctionWithData = Fn<void(PassData, const FrameGraphPassContext&)>;
@@ -126,7 +126,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
     PassNode& AddClearUAVTexturePass(
         FrameGraphBuilder& builder, const String& name, ResourceNode& texture, ClearValueTp clearValue)
     {
-        return AddClearUAVTexturePass(builder, name, texture, Graphics::Rhi::CreateRhiClearColorValue(clearValue));
+        return AddClearUAVTexturePass(builder, name, texture, RHI::CreateRhiClearColorValue(clearValue));
     }
 
     // Other Utilities

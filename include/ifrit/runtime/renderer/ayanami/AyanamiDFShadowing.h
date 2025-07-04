@@ -28,11 +28,11 @@ namespace Ifrit::Runtime::Ayanami
     class IFRIT_APIDECL AyanamiDistanceFieldLighting
     {
     private:
-        Graphics::Rhi::RhiBackend*           m_Rhi = nullptr;
+        RHI::RhiBackend*                     m_Rhi = nullptr;
         AyanamiDistanceFieldLightingPrivate* m_Ctx = nullptr;
 
     public:
-        AyanamiDistanceFieldLighting(Graphics::Rhi::RhiBackend* rhi);
+        AyanamiDistanceFieldLighting(RHI::RhiBackend* rhi);
         ~AyanamiDistanceFieldLighting();
 
         void              InitContext(FrameGraphBuilder& builder, u32 tileSize);

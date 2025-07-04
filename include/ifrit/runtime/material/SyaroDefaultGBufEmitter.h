@@ -33,9 +33,9 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL SyaroDefaultGBufEmitter : public Material
     {
     private:
-        SyaroDefaultGBufEmitterData      m_materialData;
-        static Graphics::Rhi::RhiShader* m_shader;
-        static ShaderEffect              m_shaderEffect;
+        SyaroDefaultGBufEmitterData m_materialData;
+        static RHI::RhiShader*      m_shader;
+        static ShaderEffect         m_shaderEffect;
 
     public:
         SyaroDefaultGBufEmitter(IApplication* app);

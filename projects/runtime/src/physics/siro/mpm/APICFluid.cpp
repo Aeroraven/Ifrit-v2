@@ -5,7 +5,7 @@
 #include "ifrit.shader.neo/Siro/APIC/APICFluid.Utility.hlsli"
 
 using namespace Ifrit::Runtime;
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using namespace Ifrit::Math;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 using namespace Ifrit::Runtime::Internal;

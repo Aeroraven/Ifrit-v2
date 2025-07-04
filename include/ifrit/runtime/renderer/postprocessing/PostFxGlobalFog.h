@@ -24,9 +24,9 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     class IFRIT_APIDECL PostFxGlobalFog : public PostprocessPass
     {
-        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
-        using CBVDesc       = Graphics::Rhi::RhiCBVDesc;
-        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
+        using SRVDesc       = RHI::RhiSRVDesc;
+        using CBVDesc       = RHI::RhiCBVDesc;
+        using RenderTargets = RHI::RhiRenderTargets;
 
     public:
         PostFxGlobalFog(IApplication* app);

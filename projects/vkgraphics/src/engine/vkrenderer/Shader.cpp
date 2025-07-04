@@ -26,51 +26,51 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/shadercompile/helper/ShaderCompileHelper.h"
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
     IFRIT_APIDECL ShaderModule::ShaderModule(EngineContext* ctx, const ShaderModuleCI& ci)
     {
         m_context = ctx;
         VkShaderModuleCreateInfo moduleCI{};
-        if (ci.stage == Rhi::RhiShaderStage::Vertex)
+        if (ci.stage == RHI::RhiShaderStage::Vertex)
         {
             m_stageCI.stage = VK_SHADER_STAGE_VERTEX_BIT;
         }
-        else if (ci.stage == Rhi::RhiShaderStage::Fragment)
+        else if (ci.stage == RHI::RhiShaderStage::Fragment)
         {
             m_stageCI.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         }
-        else if (ci.stage == Rhi::RhiShaderStage::Compute)
+        else if (ci.stage == RHI::RhiShaderStage::Compute)
         {
             m_stageCI.stage = VK_SHADER_STAGE_COMPUTE_BIT;
         }
-        else if (ci.stage == Rhi::RhiShaderStage::Mesh)
+        else if (ci.stage == RHI::RhiShaderStage::Mesh)
         {
             m_stageCI.stage = VK_SHADER_STAGE_MESH_BIT_EXT;
         }
-        else if (ci.stage == Rhi::RhiShaderStage::Task)
+        else if (ci.stage == RHI::RhiShaderStage::Task)
         {
             m_stageCI.stage = VK_SHADER_STAGE_TASK_BIT_EXT;
         }
         // Raytracing
-        else if (ci.stage == Rhi::RhiShaderStage::RTRayGen)
+        else if (ci.stage == RHI::RhiShaderStage::RTRayGen)
         {
             m_stageCI.stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
         }
-        else if (ci.stage == Rhi::RhiShaderStage::RTClosestHit)
+        else if (ci.stage == RHI::RhiShaderStage::RTClosestHit)
         {
             m_stageCI.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
         }
-        else if (ci.stage == Rhi::RhiShaderStage::RTMiss)
+        else if (ci.stage == RHI::RhiShaderStage::RTMiss)
         {
             m_stageCI.stage = VK_SHADER_STAGE_MISS_BIT_KHR;
         }
-        else if (ci.stage == Rhi::RhiShaderStage::RTAnyHit)
+        else if (ci.stage == RHI::RhiShaderStage::RTAnyHit)
         {
             m_stageCI.stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
         }
-        else if (ci.stage == Rhi::RhiShaderStage::RTIntersection)
+        else if (ci.stage == RHI::RhiShaderStage::RTIntersection)
         {
             m_stageCI.stage = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
         }
@@ -201,18 +201,18 @@ namespace Ifrit::Graphics::VulkanGraphics
             defines.push_back(m_DefineNames[trailingBit]);
         }
 
-        auto stageTranslate = [](Rhi::RhiShaderStage stage) -> ShaderCompile::ShaderCompileStage {
+        auto stageTranslate = [](RHI::RhiShaderStage stage) -> ShaderCompile::ShaderCompileStage {
             switch (stage)
             {
-                case Rhi::RhiShaderStage::Vertex:
+                case RHI::RhiShaderStage::Vertex:
                     return ShaderCompile::ShaderCompileStage::VertexShader;
-                case Rhi::RhiShaderStage::Fragment:
+                case RHI::RhiShaderStage::Fragment:
                     return ShaderCompile::ShaderCompileStage::FragmentShader;
-                case Rhi::RhiShaderStage::Compute:
+                case RHI::RhiShaderStage::Compute:
                     return ShaderCompile::ShaderCompileStage::ComputeShader;
-                case Rhi::RhiShaderStage::Mesh:
+                case RHI::RhiShaderStage::Mesh:
                     return ShaderCompile::ShaderCompileStage::MeshShader;
-                case Rhi::RhiShaderStage::Task:
+                case RHI::RhiShaderStage::Task:
                     return ShaderCompile::ShaderCompileStage::AmplificationShader;
                 default:
                     iError("Unsupported shader stage: {}", static_cast<u32>(stage));
@@ -221,14 +221,14 @@ namespace Ifrit::Graphics::VulkanGraphics
             }
         };
 
-        auto sourceTypeConvert = [](Rhi::RhiShaderSourceType sourceType) -> ShaderCompile::ShaderSourceFormat {
+        auto sourceTypeConvert = [](RHI::RhiShaderSourceType sourceType) -> ShaderCompile::ShaderSourceFormat {
             switch (sourceType)
             {
-                case Rhi::RhiShaderSourceType::GLSLCode:
+                case RHI::RhiShaderSourceType::GLSLCode:
                     return ShaderCompile::ShaderSourceFormat::GLSL;
-                case Rhi::RhiShaderSourceType::SlangCode:
+                case RHI::RhiShaderSourceType::SlangCode:
                     return ShaderCompile::ShaderSourceFormat::Slang;
-                case Rhi::RhiShaderSourceType::HLSLCode:
+                case RHI::RhiShaderSourceType::HLSLCode:
                     return ShaderCompile::ShaderSourceFormat::HLSL; // Fallback
                 default:
                     iError("Unsupported shader source type: {}", static_cast<u32>(sourceType));
@@ -300,7 +300,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         PrecompileMultiCompileShadersImpl(curVariantTag + 1, retainedId);
     }
 
-    IFRIT_APIDECL Rhi::RhiShader* ShaderCollection::GetVariant(const Vec<String>& defines)
+    IFRIT_APIDECL RHI::RhiShader* ShaderCollection::GetVariant(const Vec<String>& defines)
     {
         u64 permId = 0;
         for (const auto& define : defines)
@@ -333,4 +333,4 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
     IFRIT_APIDECL bool ShaderCollection::MultiCompileReady() { return m_MultiCompileReady; }
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

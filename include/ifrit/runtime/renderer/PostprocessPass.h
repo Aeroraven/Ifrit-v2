@@ -35,12 +35,12 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL PostprocessPass
     {
     protected:
-        using DrawPass       = Graphics::Rhi::RhiGraphicsPass;
-        using ComputePass    = Graphics::Rhi::RhiComputePass;
-        using RenderTargets  = Graphics::Rhi::RhiRenderTargets;
-        using GPUShader      = Graphics::Rhi::RhiShader;
-        using GPUCmdBuffer   = Graphics::Rhi::RhiCommandList;
-        using GPUBindlessRef = Graphics::Rhi::RhiBindlessDescriptorRef;
+        using DrawPass       = RHI::RhiGraphicsPass;
+        using ComputePass    = RHI::RhiComputePass;
+        using RenderTargets  = RHI::RhiRenderTargets;
+        using GPUShader      = RHI::RhiShader;
+        using GPUCmdBuffer   = RHI::RhiCommandList;
+        using GPUBindlessRef = RHI::RhiBindlessDescriptorRef;
 
     protected:
         using PipeConfig = PipelineAttachmentConfigs;

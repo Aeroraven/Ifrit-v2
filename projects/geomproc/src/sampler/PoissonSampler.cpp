@@ -1,6 +1,6 @@
-#include "ifrit/meshproc/engine/sampler/PoissonSampler.h"
+#include "ifrit/geomproc/sampler/PoissonSampler.h"
 using namespace Ifrit::Math;
-namespace Ifrit::MeshProcLib::Sampler
+namespace Ifrit::GeometryProc::Sampler
 {
     template <typename T, u32 Dim IF_REQUIRES(std::is_floating_point_v<T>&& Dim >= 2 && Dim <= 3)>
     IFRIT_APIDECL Vec<TGenericVector<T, Dim>> PoissonSample(const PoissonSamplerArgs<T, Dim>& args,
@@ -31,4 +31,4 @@ namespace Ifrit::MeshProcLib::Sampler
     INSTANTIATE_POISSON_SAMPLER(double, 3)
 #undef INSTANTIATE_POISSON_SAMPLER
 
-} // namespace Ifrit::MeshProcLib::Sampler
+} // namespace Ifrit::GeometryProc::Sampler

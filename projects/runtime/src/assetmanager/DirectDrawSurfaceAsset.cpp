@@ -79,7 +79,7 @@ namespace Ifrit::Runtime
         ATI2,
     };
 
-    Graphics::Rhi::RhiTextureRef parseDDS(std ::filesystem::path path, IApplication* app)
+    RHI::RhiTextureRef parseDDS(std ::filesystem::path path, IApplication* app)
     {
         std::ifstream ifs;
         ifs.open(path, std::ios::binary);
@@ -96,7 +96,7 @@ namespace Ifrit::Runtime
         ifs.close();
 
         // Check magic
-        using namespace Ifrit::Graphics::Rhi;
+        using namespace Ifrit::RHI;
         u32 bodyOffset = 4;
         u32 magic      = *reinterpret_cast<u32*>(data.data());
         if (magic != 0x20534444)
@@ -239,7 +239,7 @@ namespace Ifrit::Runtime
         // Pass
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef DirectDrawSurfaceAsset::GetTexture()
+    IFRIT_APIDECL RHI::RhiTextureRef DirectDrawSurfaceAsset::GetTexture()
     {
         if (m_texture == nullptr)
         {

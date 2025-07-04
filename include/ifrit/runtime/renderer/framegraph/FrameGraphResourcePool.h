@@ -51,11 +51,11 @@ namespace Ifrit::Runtime
 
     struct FrameGraphTextureDesc
     {
-        u32                           m_Width;
-        u32                           m_Height;
-        u32                           m_Depth;
-        Graphics::Rhi::RhiImageFormat m_Format;
-        u32                           m_Usage;
+        u32                 m_Width;
+        u32                 m_Height;
+        u32                 m_Depth;
+        RHI::RhiImageFormat m_Format;
+        u32                 m_Usage;
 
         struct Hash
         {
@@ -77,29 +77,25 @@ namespace Ifrit::Runtime
                 && m_Format == other.m_Format && m_Usage == other.m_Usage;
         }
 
-        FrameGraphTextureDesc(u32 width, u32 height, u32 depth, Graphics::Rhi::RhiImageFormat format, u32 usage)
+        FrameGraphTextureDesc(u32 width, u32 height, u32 depth, RHI::RhiImageFormat format, u32 usage)
             : m_Width(width), m_Height(height), m_Depth(depth), m_Format(format), m_Usage(usage)
         {
         }
         FrameGraphTextureDesc()
-            : m_Width(0)
-            , m_Height(0)
-            , m_Depth(0)
-            , m_Format(Graphics::Rhi::RhiImageFormat::RhiImgFmt_UNDEFINED)
-            , m_Usage(0)
+            : m_Width(0), m_Height(0), m_Depth(0), m_Format(RHI::RhiImageFormat::RhiImgFmt_UNDEFINED), m_Usage(0)
         {
         }
     };
 
     struct FrameGraphManagedBuffer
     {
-        FrameGraphBufferDesc        m_Desc;
-        Graphics::Rhi::RhiBufferRef m_Buffer;
-        u32                         m_AutoReleaseLifetime = 0;
-        bool                        m_Active              = false;
-        RIndexedPtr                 m_PooledResId;
+        FrameGraphBufferDesc m_Desc;
+        RHI::RhiBufferRef    m_Buffer;
+        u32                  m_AutoReleaseLifetime = 0;
+        bool                 m_Active              = false;
+        FIndexedPtr          m_PooledResId;
 
-        inline bool                 CompatibleWithDesc(const FrameGraphBufferDesc& desc) const
+        inline bool          CompatibleWithDesc(const FrameGraphBufferDesc& desc) const
         {
             return m_Desc.m_Size == desc.m_Size && m_Desc.m_Usage == desc.m_Usage;
         }
@@ -107,56 +103,56 @@ namespace Ifrit::Runtime
 
     struct FrameGraphManagedTexture
     {
-        FrameGraphTextureDesc        m_Desc;
-        Graphics::Rhi::RhiTextureRef m_Texture;
-        u32                          m_AutoReleaseLifetime = 0;
-        bool                         m_Active              = false;
-        RIndexedPtr                  m_PooledResId;
+        FrameGraphTextureDesc m_Desc;
+        RHI::RhiTextureRef    m_Texture;
+        u32                   m_AutoReleaseLifetime = 0;
+        bool                  m_Active              = false;
+        FIndexedPtr           m_PooledResId;
 
-        inline bool                  CompatibleWithDesc(const FrameGraphTextureDesc& desc) const
+        inline bool           CompatibleWithDesc(const FrameGraphTextureDesc& desc) const
         {
             return m_Desc.m_Width == desc.m_Width && m_Desc.m_Height == desc.m_Height && m_Desc.m_Depth == desc.m_Depth
                 && m_Desc.m_Format == desc.m_Format && m_Desc.m_Usage == desc.m_Usage;
         }
     };
 
-    using FGManagedTextureRef = Graphics::Rhi::RhiTexture*;
-    using FGManagedBufferRef  = Graphics::Rhi::RhiBuffer*;
+    using FGManagedTextureRef = RHI::RhiTexture*;
+    using FGManagedBufferRef  = RHI::RhiBuffer*;
 
     struct FrameGraphPoolTexAllocResult
     {
         FGManagedTextureRef m_Texture = nullptr;
-        RIndexedPtr         m_PooledResId;
+        FIndexedPtr         m_PooledResId;
     };
 
     struct FrameGraphPoolBufAllocResult
     {
         FGManagedBufferRef m_Buffer = nullptr;
-        RIndexedPtr        m_PooledResId;
+        FIndexedPtr        m_PooledResId;
     };
 
     class IFRIT_RUNTIME_API FrameGraphResourcePool
     {
     private:
-        Graphics::Rhi::RhiBackend*                                                            m_Rhi = nullptr;
+        RHI::RhiBackend*                                                                      m_Rhi = nullptr;
 
-        RObjectPool<FrameGraphManagedBuffer>                                                  m_BufferPool;
-        RObjectPool<FrameGraphManagedTexture>                                                 m_TexturePool;
+        TObjectPool<FrameGraphManagedBuffer>                                                  m_BufferPool;
+        TObjectPool<FrameGraphManagedTexture>                                                 m_TexturePool;
 
-        Vec<RIndexedPtr>                                                                      m_ManagedBuffers;
-        Vec<RIndexedPtr>                                                                      m_ManagedTextures;
+        Vec<FIndexedPtr>                                                                      m_ManagedBuffers;
+        Vec<FIndexedPtr>                                                                      m_ManagedTextures;
 
-        CustomHashMap<FrameGraphBufferDesc, Queue<RIndexedPtr>, FrameGraphBufferDesc::Hash>   m_AvailableBuffers;
-        CustomHashMap<FrameGraphTextureDesc, Queue<RIndexedPtr>, FrameGraphTextureDesc::Hash> m_AvailableTextures;
+        CustomHashMap<FrameGraphBufferDesc, Queue<FIndexedPtr>, FrameGraphBufferDesc::Hash>   m_AvailableBuffers;
+        CustomHashMap<FrameGraphTextureDesc, Queue<FIndexedPtr>, FrameGraphTextureDesc::Hash> m_AvailableTextures;
 
     public:
-        FrameGraphResourcePool(Graphics::Rhi::RhiBackend* rhi);
+        FrameGraphResourcePool(RHI::RhiBackend* rhi);
         ~FrameGraphResourcePool();
 
         FrameGraphPoolBufAllocResult CreateBuffer(const FrameGraphBufferDesc& desc, const String& name);
         FrameGraphPoolTexAllocResult CreateTexture(const FrameGraphTextureDesc& desc, const String& name);
 
-        void                         ReleaseBuffer(RIndexedPtr buffer);
-        void                         ReleaseTexture(RIndexedPtr texture);
+        void                         ReleaseBuffer(FIndexedPtr buffer);
+        void                         ReleaseTexture(FIndexedPtr texture);
     };
 } // namespace Ifrit::Runtime

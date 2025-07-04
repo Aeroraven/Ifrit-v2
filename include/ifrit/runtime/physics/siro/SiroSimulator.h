@@ -34,8 +34,8 @@ namespace Ifrit::Runtime::Siro
         SiroSimulator(IApplication* app);
         virtual ~SiroSimulator();
 
-        Owner<Graphics::Rhi::RhiTaskSubmission> Update(f32 deltaTime, Vec<Graphics::Rhi::RhiTaskSubmission*> waitFor);
+        Owner<RHI::RhiTaskSubmission> Update(f32 deltaTime, Vec<RHI::RhiTaskSubmission*> waitFor);
 
-        void                                    RegisterSolver(ISiroSolver* solver);
+        void                          RegisterSolver(ISiroSolver* solver);
     };
 } // namespace Ifrit::Runtime::Siro

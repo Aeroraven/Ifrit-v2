@@ -20,9 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/utility/Logger.h"
 
 using namespace Ifrit;
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
-    inline VkFormat toVkFormat(Rhi::RhiImageFormat format) { return static_cast<VkFormat>(format); }
+    inline VkFormat toVkFormat(RHI::RhiImageFormat format) { return static_cast<VkFormat>(format); }
 
     template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
     {
@@ -64,7 +64,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     // Class : RenderGraphPass
 
-    IFRIT_APIDECL void RenderGraphPass::setPassDescriptorLayout_base(const std::vector<Rhi::RhiDescriptorType>& layout)
+    IFRIT_APIDECL void RenderGraphPass::setPassDescriptorLayout_base(const std::vector<RHI::RhiDescriptorType>& layout)
     {
         m_passDescriptorLayout = layout;
     }
@@ -133,12 +133,12 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL void RenderGraphPass::SetRecordFunction_base(
-        std::function<void(Rhi::RhiRenderPassContext*)> executeFunction)
+        std::function<void(RHI::RhiRenderPassContext*)> executeFunction)
     {
         m_recordFunction = executeFunction;
     }
 
-    IFRIT_APIDECL void RenderGraphPass::SetExecutionFunction_base(std::function<void(Rhi::RhiRenderPassContext*)> func)
+    IFRIT_APIDECL void RenderGraphPass::SetExecutionFunction_base(std::function<void(RHI::RhiRenderPassContext*)> func)
     {
         m_executeFunction = func;
     }
@@ -169,17 +169,17 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
     }
 
-    IFRIT_APIDECL void GraphicsPass::SetRenderTargetFormat(const Rhi::RhiRenderTargetsFormat& format)
+    IFRIT_APIDECL void GraphicsPass::SetRenderTargetFormat(const RHI::RhiRenderTargetsFormat& format)
     {
         m_renderTargetFormat = format;
     }
 
-    IFRIT_APIDECL void GraphicsPass::SetVertexShader(Rhi::RhiShader* shader)
+    IFRIT_APIDECL void GraphicsPass::SetVertexShader(RHI::RhiShader* shader)
     {
         m_vertexShader = CheckedCast<ShaderModule>(shader);
     }
 
-    IFRIT_APIDECL void GraphicsPass::SetPixelShader(Rhi::RhiShader* shader)
+    IFRIT_APIDECL void GraphicsPass::SetPixelShader(RHI::RhiShader* shader)
     {
         m_fragmentShader = CheckedCast<ShaderModule>(shader);
     }
@@ -190,12 +190,12 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL void GraphicsPass::setTessEvalShader(ShaderModule* shader) { m_tessEvalShader = shader; }
 
-    IFRIT_APIDECL void GraphicsPass::SetTaskShader(Rhi::RhiShader* shader)
+    IFRIT_APIDECL void GraphicsPass::SetTaskShader(RHI::RhiShader* shader)
     {
         m_taskShader = CheckedCast<ShaderModule>(shader);
     }
 
-    IFRIT_APIDECL void GraphicsPass::SetMeshShader(Rhi::RhiShader* shader)
+    IFRIT_APIDECL void GraphicsPass::SetMeshShader(RHI::RhiShader* shader)
     {
         m_meshShader = CheckedCast<ShaderModule>(shader);
     }
@@ -279,34 +279,34 @@ namespace Ifrit::Graphics::VulkanGraphics
     IFRIT_APIDECL void GraphicsPass::SetDepthWrite(bool write) { m_depthWrite = write; }
 
     IFRIT_APIDECL void GraphicsPass::SetDepthTestEnable(bool enable) { m_depthTestEnable = enable; }
-    IFRIT_APIDECL void GraphicsPass::SetDepthCompareOp(Rhi::RhiCompareOp compareOp)
+    IFRIT_APIDECL void GraphicsPass::SetDepthCompareOp(RHI::RhiCompareOp compareOp)
     {
         VkCompareOp vkcmp;
         switch (compareOp)
         {
-            case Rhi::RhiCompareOp::Never:
+            case RHI::RhiCompareOp::Never:
                 vkcmp = VK_COMPARE_OP_NEVER;
                 break;
-            case Rhi::RhiCompareOp::Less:
+            case RHI::RhiCompareOp::Less:
 
                 vkcmp = VK_COMPARE_OP_LESS;
                 break;
-            case Rhi::RhiCompareOp::Equal:
+            case RHI::RhiCompareOp::Equal:
                 vkcmp = VK_COMPARE_OP_EQUAL;
                 break;
-            case Rhi::RhiCompareOp::LessOrEqual:
+            case RHI::RhiCompareOp::LessOrEqual:
                 vkcmp = VK_COMPARE_OP_LESS_OR_EQUAL;
                 break;
-            case Rhi::RhiCompareOp::Greater:
+            case RHI::RhiCompareOp::Greater:
                 vkcmp = VK_COMPARE_OP_GREATER;
                 break;
-            case Rhi::RhiCompareOp::NotEqual:
+            case RHI::RhiCompareOp::NotEqual:
                 vkcmp = VK_COMPARE_OP_NOT_EQUAL;
                 break;
-            case Rhi::RhiCompareOp::GreaterOrEqual:
+            case RHI::RhiCompareOp::GreaterOrEqual:
                 vkcmp = VK_COMPARE_OP_GREATER_OR_EQUAL;
                 break;
-            case Rhi::RhiCompareOp::Always:
+            case RHI::RhiCompareOp::Always:
                 vkcmp = VK_COMPARE_OP_ALWAYS;
                 break;
             default:
@@ -315,7 +315,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
         m_depthCompareOp = vkcmp;
     }
-    IFRIT_APIDECL void GraphicsPass::SetRasterizerTopology(Rhi::RhiRasterizerTopology topology)
+    IFRIT_APIDECL void GraphicsPass::SetRasterizerTopology(RHI::RhiRasterizerTopology topology)
     {
         m_topology = topology;
     }
@@ -354,7 +354,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         if (m_vertexShader != nullptr)
         {
             ci.shaderModules.push_back(m_vertexShader);
-            ci.geomGenType = Rhi::RhiGeometryGenerationType::Conventional;
+            ci.geomGenType = RHI::RhiGeometryGenerationType::Conventional;
         }
         if (m_fragmentShader != nullptr)
         {
@@ -379,7 +379,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         if (m_meshShader != nullptr)
         {
             ci.shaderModules.push_back(m_meshShader);
-            ci.geomGenType = Rhi::RhiGeometryGenerationType::Mesh;
+            ci.geomGenType = RHI::RhiGeometryGenerationType::Mesh;
             vkrAssert(m_vertexShader == nullptr, "Vertex shader should be null");
         }
         ci.viewportCount           = 1;
@@ -405,7 +405,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL uint32_t GraphicsPass::getRequiredQueueCapability() { return VK_QUEUE_GRAPHICS_BIT; }
 
-    IFRIT_APIDECL void     ComputePass::Run(const Rhi::RhiCommandList* cmd, uint32_t frameId)
+    IFRIT_APIDECL void     ComputePass::Run(const RHI::RhiCommandList* cmd, uint32_t frameId)
     {
         if (m_passBuilt == false)
         {
@@ -433,7 +433,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         setBuilt();
     }
 
-    IFRIT_APIDECL void ComputePass::SetComputeShader(Rhi::RhiShader* shader)
+    IFRIT_APIDECL void ComputePass::SetComputeShader(RHI::RhiShader* shader)
     {
         auto p         = CheckedCast<ShaderModule>(shader);
         m_shaderModule = p;
@@ -462,7 +462,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL void GraphicsPass::Run(
-        const Rhi::RhiCommandList* cmd, Rhi::RhiRenderTargets* renderTargets, uint32_t frameId)
+        const RHI::RhiCommandList* cmd, RHI::RhiRenderTargets* renderTargets, uint32_t frameId)
     {
         if (m_passBuilt == false)
         {
@@ -661,4 +661,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         return nullptr;
     }
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

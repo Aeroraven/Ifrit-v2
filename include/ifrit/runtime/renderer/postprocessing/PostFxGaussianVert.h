@@ -25,8 +25,8 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     class IFRIT_APIDECL PostFxGaussianVert : public PostprocessPass
     {
-        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
-        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
+        using SRVDesc       = RHI::RhiSRVDesc;
+        using RenderTargets = RHI::RhiRenderTargets;
 
     public:
         PostFxGaussianVert(IApplication* app);

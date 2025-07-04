@@ -31,7 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/ayanami/AyanamiSharedContext.h"
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime
@@ -39,9 +39,9 @@ namespace Ifrit::Runtime
     using namespace Ifrit;
     using namespace Ifrit::Runtime::RenderingUtil;
     using namespace Ifrit::Runtime::Ayanami;
-    using namespace Ifrit::Graphics::Rhi;
+    using namespace Ifrit::RHI;
 
-    static ConsoleVariable<i32> cvAyanamiDebugOption(
+    static TConsoleVariable<i32> cvAyanamiDebugOption(
         "cv.Ayanami.DebugOption", 114514, "Ayanami Debug Option", CVF_Default);
 
     struct AyanamiRendererResources
@@ -84,8 +84,8 @@ namespace Ifrit::Runtime
         return pass;
     }
 
-    static void PrepareHierarchicalZForSSGI(const Graphics::Rhi::RhiCommandList* cmd, SinglePassHiZPass* spHiz,
-        PerFrameData& perFrame, RhiRenderTargets* rts)
+    static void PrepareHierarchicalZForSSGI(
+        const RHI::RhiCommandList* cmd, SinglePassHiZPass* spHiz, PerFrameData& perFrame, RhiRenderTargets* rts)
     {
         // Single-pass downsampler HiZ is managed by Syaro so, prep step is intentionally left empty
         auto rtsArea  = rts->GetRenderArea();

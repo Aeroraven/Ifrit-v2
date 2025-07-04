@@ -22,10 +22,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/serialization/MathTypeSerialization.h"
 #include "ifrit/core/serialization/SerialInterface.h"
 #include "ifrit/core/platform/ApiConv.h"
-#include "ifrit/meshproc/engine/base/MeshDesc.h"
-#include "ifrit/meshproc/engine/base/MeshProcBase.h"
+#include "ifrit/geomproc/base/MeshDesc.h"
+#include "ifrit/geomproc/base/MeshProcBase.h"
 
-namespace Ifrit::MeshProcLib::MeshSDFProcess
+namespace Ifrit::GeometryProc::MeshSDFProcess
 {
     enum class SDFGenerateMethod
     {
@@ -69,9 +69,9 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         IFRIT_STRUCT_SERIALIZE(width, height, depth, bboxMin, bboxMax, m_SdfMin, m_SdfMax);
     };
 
-    IFRIT_MESHPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
+    IFRIT_GEOMPROC_API void ConvertMeshToSDF(const MeshDescriptor& meshDesc, SignedDistanceField& sdf, u32 sdfWidth,
         u32 sdfHeight, u32 sdfDepth, SDFGenerateMethod method, bool twoSided);
 
-    IFRIT_MESHPROC_API void CompactSDF(const SignedDistanceField& sdf, CompactSignedDistanceField& compactSdf);
+    IFRIT_GEOMPROC_API void CompactSDF(const SignedDistanceField& sdf, CompactSignedDistanceField& compactSdf);
 
-} // namespace Ifrit::MeshProcLib::MeshSDFProcess
+} // namespace Ifrit::GeometryProc::MeshSDFProcess

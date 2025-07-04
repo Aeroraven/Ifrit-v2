@@ -16,7 +16,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/meshproc/engine/mesh/MeshClusterLodProc.h"
+#include "ifrit/geomproc/mesh/MeshClusterLodProc.h"
 #include "ifrit/core/base/IfritBase.h"
 
 #if IFRIT_FEATURE_SIMD
@@ -49,7 +49,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit::Math::SIMD;
 
-namespace Ifrit::MeshProcLib::MeshProcess
+namespace Ifrit::GeometryProc::MeshProcess
 {
     IF_CONSTEXPR int   CLUSTER_GROUP_SIZE       = 4;
     IF_CONSTEXPR int   TRIANGLES_PER_MESHLET    = 128;
@@ -1108,4 +1108,4 @@ namespace Ifrit::MeshProcLib::MeshProcess
         return p;
     }
 
-} // namespace Ifrit::MeshProcLib::MeshProcess
+} // namespace Ifrit::GeometryProc::MeshProcess

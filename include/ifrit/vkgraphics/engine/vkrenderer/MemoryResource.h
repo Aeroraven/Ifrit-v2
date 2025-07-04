@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/common/Pch.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
     enum class BufferMemoryType
     {
@@ -35,7 +35,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         bool    hostVisible = false;
     };
 
-    class IFRIT_APIDECL SingleBuffer : public Rhi::RhiBuffer
+    class IFRIT_APIDECL SingleBuffer : public RHI::RhiBuffer
     {
     protected:
         VkBuffer          m_buffer;
@@ -52,7 +52,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     public:
         SingleBuffer(EngineContext* ctx, const BufferCreateInfo& ci)
-            : Rhi::RhiBuffer(ctx->GetDeleteQueue()), m_context(ctx), m_createInfo(ci), m_created(true)
+            : RHI::RhiBuffer(ctx->GetDeleteQueue()), m_context(ctx), m_createInfo(ci), m_created(true)
         {
             Init();
         }
@@ -67,15 +67,15 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline u32                 GetSize() const { return m_createInfo.size; }
         inline BufferCreateInfo    GetCreateInfo() const { return m_createInfo; }
 
-        virtual Rhi::RhiDeviceAddr GetDeviceAddress() const;
+        virtual RHI::RhiDeviceAddr GetDeviceAddress() const;
 
         virtual void               SetDebugName(const String& name) override;
     };
 
-    class IFRIT_APIDECL MultiBuffer : public Rhi::RhiMultiBuffer
+    class IFRIT_APIDECL MultiBuffer : public RHI::RhiMultiBuffer
     {
     protected:
-        Vec<Rhi::RhiBufferRef> m_buffersOwning;
+        Vec<RHI::RhiBufferRef> m_buffersOwning;
         Vec<SingleBuffer*>     m_buffers;
         BufferCreateInfo       m_createInfo;
         EngineContext*         m_context;
@@ -86,7 +86,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         MultiBuffer(const MultiBuffer& p)                      = delete;
         MultiBuffer&           operator=(const MultiBuffer& p) = delete;
         SingleBuffer*          GetBuffer(u32 index);
-        inline Rhi::RhiBuffer* GetActiveBuffer() override { return m_buffers[m_activeFrame]; }
+        inline RHI::RhiBuffer* GetActiveBuffer() override { return m_buffers[m_activeFrame]; }
         inline void            AdvanceFrame()
         {
             m_activeFrame++;
@@ -99,11 +99,11 @@ namespace Ifrit::Graphics::VulkanGraphics
             using namespace Ifrit;
             return SizeCast<int>(m_buffers.size());
         }
-        inline Rhi::RhiBuffer* GetActiveBufferRelative(u32 deltaFrame) override
+        inline RHI::RhiBuffer* GetActiveBufferRelative(u32 deltaFrame) override
         {
             return m_buffers[(m_activeFrame + deltaFrame) % m_buffers.size()];
         }
-        inline Rhi::RhiBufferRef GetRhiBuffer(u32 index) override
+        inline RHI::RhiBufferRef GetRhiBuffer(u32 index) override
         {
             if (index < m_buffersOwning.size())
             {
@@ -141,7 +141,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         bool              hostVisible = false;
     };
 
-    class IFRIT_APIDECL SingleDeviceImage : public Rhi::RhiTexture
+    class IFRIT_APIDECL SingleDeviceImage : public RHI::RhiTexture
     {
     protected:
         EngineContext*                       m_context;
@@ -158,7 +158,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     public:
         virtual ~SingleDeviceImage();
-        explicit SingleDeviceImage(nullptr_t v) : Rhi::RhiTexture(nullptr) {}
+        explicit SingleDeviceImage(nullptr_t v) : RHI::RhiTexture(nullptr) {}
         SingleDeviceImage(EngineContext* ctx, const ImageCreateInfo& ci);
 
         virtual VkFormat          GetFormat() const;
@@ -192,9 +192,9 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline bool  IsDepthTexture() const override { return m_createInfo.aspect == ImageAspect::Depth; }
         inline void* GetNativeHandle() const override { return m_image; }
 
-        virtual Rhi::RhiImageFormat GetImageFormat() const override
+        virtual RHI::RhiImageFormat GetImageFormat() const override
         {
-            return static_cast<Rhi::RhiImageFormat>(m_format);
+            return static_cast<RHI::RhiImageFormat>(m_format);
         }
         virtual u32  GetUsage() const override { return m_createInfo.usage; }
         virtual void SetDebugName(const String& name) override;
@@ -219,7 +219,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkBool32             unNormalizedCoordinates = VK_FALSE;
     };
 
-    class IFRIT_APIDECL Sampler : public Rhi::RhiSampler
+    class IFRIT_APIDECL Sampler : public RHI::RhiSampler
     {
     protected:
         EngineContext*    m_context;
@@ -256,23 +256,23 @@ namespace Ifrit::Graphics::VulkanGraphics
         // Previous design is TOO UGLY, it saves UNUSED buffer and image
         // for new interfaces, following methods will be used to create mem resources
         // TODO: refactor the code
-        Rhi::RhiTextureRef CreateSimpleImageUnmanaged(const ImageCreateInfo& ci);
-        Rhi::RhiBufferRef  CreateSimpleBufferUnmanaged(const BufferCreateInfo& ci);
-        Rhi::RhiTextureRef CreateDepthAttachment(
+        RHI::RhiTextureRef CreateSimpleImageUnmanaged(const ImageCreateInfo& ci);
+        RHI::RhiBufferRef  CreateSimpleBufferUnmanaged(const BufferCreateInfo& ci);
+        RHI::RhiTextureRef CreateDepthAttachment(
             u32 width, u32 height, VkFormat format = VK_FORMAT_D32_SFLOAT, VkImageUsageFlags extraUsage = 0);
 
-        Rhi::RhiTextureRef CreateTexture2DDeviceUnmanaged(
+        RHI::RhiTextureRef CreateTexture2DDeviceUnmanaged(
             u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage = 0, u32 samples = 1);
 
-        Rhi::RhiTextureRef CreateRenderTargetTexture(
+        RHI::RhiTextureRef CreateRenderTargetTexture(
             u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage = 0);
-        Rhi::RhiTextureRef CreateTexture3D(
+        RHI::RhiTextureRef CreateTexture3D(
             u32 width, u32 height, u32 depth, VkFormat format, VkImageUsageFlags extraUsage = 0);
-        Rhi::RhiTextureRef createMipTexture(
+        RHI::RhiTextureRef createMipTexture(
             u32 width, u32 height, u32 mips, VkFormat format, VkImageUsageFlags extraUsage = 0);
-        Rhi::RhiSamplerRef CreateTrivialRenderTargetSampler();
-        Rhi::RhiSamplerRef CreateTrivialBilinearSampler(bool repeat);
-        Rhi::RhiSamplerRef CreateTrivialNearestSampler(bool repeat);
+        RHI::RhiSamplerRef CreateTrivialRenderTargetSampler();
+        RHI::RhiSamplerRef CreateTrivialBilinearSampler(bool repeat);
+        RHI::RhiSamplerRef CreateTrivialNearestSampler(bool repeat);
     };
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

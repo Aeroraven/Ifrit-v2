@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit;
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
     IFRIT_APIDECL void Swapchain::Init()
     {
@@ -268,7 +268,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL Swapchain::Swapchain(Rhi::RhiDevice* context) : m_context(CheckedCast<EngineContext>(context))
+    IFRIT_APIDECL Swapchain::Swapchain(RHI::RhiDevice* context) : m_context(CheckedCast<EngineContext>(context))
     {
         Init();
     }
@@ -299,4 +299,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkQueuePresentKHR(m_presentQueue, &presentInfo);
         m_currentFrame = (m_currentFrame + 1) % m_backbufferCount;
     }
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

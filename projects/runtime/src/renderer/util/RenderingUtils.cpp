@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Runtime::RenderingUtil
 {
 
-    IFRIT_APIDECL Graphics::Rhi::RhiComputePass* CreateComputePassInternal(
+    IFRIT_APIDECL RHI::RhiComputePass* CreateComputePassInternal(
         IApplication* app, const ShaderVariantDesc& desc, u32 numBindlessDescs, u32 numPushConsts)
     {
         auto rhi       = app->GetRhi();
@@ -38,9 +38,9 @@ namespace Ifrit::Runtime::RenderingUtil
         return pass;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiGraphicsPass* CreateGraphicsPassInternal(IApplication* app,
-        const ShaderVariantDesc& vsDesc, const ShaderVariantDesc& fsDesc, u32 numBindlessDescs, u32 numPushConsts,
-        const Graphics::Rhi::RhiRenderTargetsFormat& vFmts)
+    IFRIT_APIDECL RHI::RhiGraphicsPass* CreateGraphicsPassInternal(IApplication* app, const ShaderVariantDesc& vsDesc,
+        const ShaderVariantDesc& fsDesc, u32 numBindlessDescs, u32 numPushConsts,
+        const RHI::RhiRenderTargetsFormat& vFmts)
     {
         auto registry = app->GetShaderRegistry();
         auto vs       = registry->GetShader(vsDesc);
@@ -56,12 +56,12 @@ namespace Ifrit::Runtime::RenderingUtil
         return pass;
     }
 
-    IFRIT_APIDECL void EnqueueFullScreenPass(const Graphics::Rhi::RhiCommandList* cmd, Graphics::Rhi::RhiBackend* rhi,
-        Graphics::Rhi::RhiGraphicsPass* pass, Graphics::Rhi::RhiRenderTargets* rt,
-        const Vec<Graphics::Rhi::RhiBindlessDescriptorRef*>& vBindlessDescs, const void* pPushConst, u32 numPushConsts)
+    IFRIT_APIDECL void EnqueueFullScreenPass(const RHI::RhiCommandList* cmd, RHI::RhiBackend* rhi,
+        RHI::RhiGraphicsPass* pass, RHI::RhiRenderTargets* rt,
+        const Vec<RHI::RhiBindlessDescriptorRef*>& vBindlessDescs, const void* pPushConst, u32 numPushConsts)
     {
 
-        pass->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
+        pass->SetRecordFunction([&](const RHI::RhiRenderPassContext* ctx) {
             for (auto i = 1; auto& desc : vBindlessDescs)
             {
                 ctx->m_cmd->AttachUniformRef(i++, desc);
@@ -77,11 +77,11 @@ namespace Ifrit::Runtime::RenderingUtil
 
         pass->Run(cmd, rt, 0);
     }
-    IFRIT_APIDECL void WarpRenderTargets(Graphics::Rhi::RhiBackend* rhi, Graphics::Rhi::RhiTexture* vTex,
-        Ref<Graphics::Rhi::RhiColorAttachment>& vCA, Ref<Graphics::Rhi::RhiRenderTargets>& vRT)
+    IFRIT_APIDECL void WarpRenderTargets(
+        RHI::RhiBackend* rhi, RHI::RhiTexture* vTex, Ref<RHI::RhiColorAttachment>& vCA, Ref<RHI::RhiRenderTargets>& vRT)
     {
-        vCA = rhi->CreateRenderTarget(vTex, Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)),
-            Graphics::Rhi::RhiRenderTargetLoadOp::Clear, 0, 0);
+        vCA = rhi->CreateRenderTarget(
+            vTex, RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RHI::RhiRenderTargetLoadOp::Clear, 0, 0);
         vRT = rhi->CreateRenderTargets();
         vRT->SetColorAttachments({ vCA.get() });
         vRT->SetRenderArea({ 0, 0, vTex->GetWidth(), vTex->GetHeight() });

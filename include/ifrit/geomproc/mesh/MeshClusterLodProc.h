@@ -27,9 +27,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <meshoptimizer/src/meshoptimizer.h>
 #include <vector>
 
-#include "ifrit/meshproc/engine/base/MeshProcBase.h"
+#include "ifrit/geomproc/base/MeshProcBase.h"
 
-namespace Ifrit::MeshProcLib::MeshProcess
+namespace Ifrit::GeometryProc::MeshProcess
 {
 
 // This option disables DAG culling for cluster groups
@@ -77,11 +77,11 @@ namespace Ifrit::MeshProcLib::MeshProcess
             meshletCull, selfErrorSphereW, clusterGroups, meshletsInClusterGroups, numClustersEachLod);
     };
 
-    class IFRIT_MESHPROC_API MeshClusterLodProc
+    class IFRIT_GEOMPROC_API MeshClusterLodProc
     {
     public:
         i32 ClusterLodHierachy(const MeshDescriptor& mesh, CombinedClusterLodBuffer& meshletData,
             Vec<ClusterGroup>& clusterGroupData, Vec<FlattenedBVHNode>& flattenedNodes, i32 maxLod);
     };
 
-} // namespace Ifrit::MeshProcLib::MeshProcess
+} // namespace Ifrit::GeometryProc::MeshProcess

@@ -38,16 +38,16 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL AyanamiRenderer : public RendererBase
     {
 
-        using RenderTargets        = Graphics::Rhi::RhiRenderTargets;
-        using GPUCommandSubmission = Graphics::Rhi::RhiTaskSubmission;
-        using GPUBuffer            = Graphics::Rhi::RhiBuffer;
-        using GPUBindId            = Graphics::Rhi::RhiDescHandleLegacy;
-        using GPUDescRef           = Graphics::Rhi::RhiBindlessDescriptorRef;
-        using ComputePass          = Graphics::Rhi::RhiComputePass;
-        using DrawPass             = Graphics::Rhi::RhiGraphicsPass;
-        using GPUShader            = Graphics::Rhi::RhiShader;
-        using GPUTexture           = Graphics::Rhi::RhiTexture;
-        using GPUCmdBuffer         = Graphics::Rhi::RhiCommandList;
+        using RenderTargets        = RHI::RhiRenderTargets;
+        using GPUCommandSubmission = RHI::RhiTaskSubmission;
+        using GPUBuffer            = RHI::RhiBuffer;
+        using GPUBindId            = RHI::RhiDescHandleLegacy;
+        using GPUDescRef           = RHI::RhiBindlessDescriptorRef;
+        using ComputePass          = RHI::RhiComputePass;
+        using DrawPass             = RHI::RhiGraphicsPass;
+        using GPUShader            = RHI::RhiShader;
+        using GPUTexture           = RHI::RhiTexture;
+        using GPUCmdBuffer         = RHI::RhiCommandList;
 
     private:
         Owner<SyaroRenderer>            m_VGRenderer;

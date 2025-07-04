@@ -26,7 +26,7 @@ namespace Ifrit::Runtime
     {
     public:
         TextureAsset(AssetMetadata metadata, std::filesystem::path path) : Asset(metadata, path) {}
-        virtual Graphics::Rhi::RhiTextureRef GetTexture() = 0;
+        virtual RHI::RhiTextureRef GetTexture() = 0;
     };
 
 } // namespace Ifrit::Runtime

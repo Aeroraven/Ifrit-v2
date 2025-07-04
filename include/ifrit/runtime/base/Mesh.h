@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Component.h"
 #include "Material.h"
 #include "ifrit/runtime/common/Pch.h"
-#include "ifrit/meshproc/engine/mesh/MeshClusterBase.h"
+#include "ifrit/geomproc/mesh/MeshClusterBase.h"
 
 namespace Ifrit::Runtime
 {
@@ -53,37 +53,37 @@ namespace Ifrit::Runtime
             Vector4f boundSphere;
             Vector4f selfErrorSphere;
         };
-        String                                          identifier;
-        MeshType                                        m_MeshType = MeshType::VirtualGeometry;
+        String                                           identifier;
+        MeshType                                         m_MeshType = MeshType::VirtualGeometry;
 
-        Vec<Vector3f>                                   m_vertices;
-        Vec<Vector4f>                                   m_verticesAligned;
-        Vec<Vector3f>                                   m_normals;
-        Vec<Vector4f>                                   m_normalsAligned;
-        Vec<Vector2f>                                   m_uvs;
-        Vec<Vector4f>                                   m_tangents;
-        Vec<u32>                                        m_indices;
+        Vec<Vector3f>                                    m_vertices;
+        Vec<Vector4f>                                    m_verticesAligned;
+        Vec<Vector3f>                                    m_normals;
+        Vec<Vector4f>                                    m_normalsAligned;
+        Vec<Vector2f>                                    m_uvs;
+        Vec<Vector4f>                                    m_tangents;
+        Vec<u32>                                         m_indices;
 
         // Cluster data
-        Vec<MeshletData>                                m_meshlets;
-        Vec<Vector4f>                                   m_normalsCone;
-        Vec<Vector4f>                                   m_normalsConeApex;
-        Vec<Vector4f>                                   m_boundSphere;
-        Vec<u32>                                        m_meshletTriangles;
-        Vec<u32>                                        m_meshletVertices;
-        Vec<u32>                                        m_meshletInClusterGroup;
-        Vec<MeshProcLib::MeshProcess::MeshletCullData>  m_meshCullData;
-        Vec<MeshProcLib::MeshProcess::FlattenedBVHNode> m_bvhNodes; // seems not suitable to be here
-        Vec<MeshProcLib::MeshProcess::ClusterGroup>     m_clusterGroups;
+        Vec<MeshletData>                                 m_meshlets;
+        Vec<Vector4f>                                    m_normalsCone;
+        Vec<Vector4f>                                    m_normalsConeApex;
+        Vec<Vector4f>                                    m_boundSphere;
+        Vec<u32>                                         m_meshletTriangles;
+        Vec<u32>                                         m_meshletVertices;
+        Vec<u32>                                         m_meshletInClusterGroup;
+        Vec<GeometryProc::MeshProcess::MeshletCullData>  m_meshCullData;
+        Vec<GeometryProc::MeshProcess::FlattenedBVHNode> m_bvhNodes; // seems not suitable to be here
+        Vec<GeometryProc::MeshProcess::ClusterGroup>     m_clusterGroups;
 
         // Num meshlets in each lod
-        Vec<u32>                                        m_numMeshletsEachLod;
-        GPUCPCounter                                    m_cpCounter;
-        u32                                             m_maxLod;
+        Vec<u32>                                         m_numMeshletsEachLod;
+        GPUCPCounter                                     m_cpCounter;
+        u32                                              m_maxLod;
 
         // Some static data
-        Vector3f                                        m_BoundingBoxMin;
-        Vector3f                                        m_BoundingBoxMax;
+        Vector3f                                         m_BoundingBoxMin;
+        Vector3f                                         m_BoundingBoxMax;
 
         IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
     };
@@ -97,8 +97,8 @@ namespace Ifrit::Runtime
 
     class IFRIT_APIDECL Mesh : public AssetReferenceContainer, public IAssetCompatible
     {
-        using GPUBuffer = Graphics::Rhi::RhiBufferRef;
-        using GPUBindId = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUBuffer = RHI::RhiBufferRef;
+        using GPUBindId = RHI::RhiDescHandleLegacy;
 
     public:
         struct GPUObjectBuffer
@@ -217,8 +217,8 @@ namespace Ifrit::Runtime
     // Migrating this into persistent culling pass's buffer might be an alternative
     class IFRIT_APIDECL MeshInstance
     {
-        using GPUBuffer = Graphics::Rhi::RhiBufferRef;
-        using GPUBindId = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUBuffer = RHI::RhiBufferRef;
+        using GPUBindId = RHI::RhiDescHandleLegacy;
 
     public:
         struct GPUObjectBuffer

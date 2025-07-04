@@ -21,21 +21,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader/SamplerUtils.SharedConst.h"
 
 #include "ifrit/runtime/base/Base.h"
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 
 namespace Ifrit::Runtime
 {
     struct SharedRenderResourceData
     {
-        RhiSamplerRef              m_LinearClampSampler   = nullptr;
-        RhiSamplerRef              m_NearestClampSampler  = nullptr;
-        RhiSamplerRef              m_LinearRepeatSampler  = nullptr;
-        RhiSamplerRef              m_NearestRepeatSampler = nullptr;
+        RhiSamplerRef    m_LinearClampSampler   = nullptr;
+        RhiSamplerRef    m_NearestClampSampler  = nullptr;
+        RhiSamplerRef    m_LinearRepeatSampler  = nullptr;
+        RhiSamplerRef    m_NearestRepeatSampler = nullptr;
 
-        Graphics::Rhi::RhiBackend* m_RhiBackend = nullptr;
+        RHI::RhiBackend* m_RhiBackend = nullptr;
     };
 
-    IFRIT_APIDECL SharedRenderResource::SharedRenderResource(Graphics::Rhi::RhiBackend* rhi)
+    IFRIT_APIDECL SharedRenderResource::SharedRenderResource(RHI::RhiBackend* rhi)
     {
         m_Data                        = new SharedRenderResourceData();
         m_Data->m_RhiBackend          = rhi;
@@ -61,43 +61,43 @@ namespace Ifrit::Runtime
         m_Data = nullptr;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiSamplerDesc SharedRenderResource::GetLinearClampSamplerDesc()
+    IFRIT_APIDECL RHI::RhiSamplerDesc SharedRenderResource::GetLinearClampSamplerDesc()
     {
         return m_Data->m_LinearClampSampler->GetDescId();
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiSamplerDesc SharedRenderResource::GetNearestClampSamplerDesc()
+    IFRIT_APIDECL RHI::RhiSamplerDesc SharedRenderResource::GetNearestClampSamplerDesc()
     {
         return m_Data->m_NearestClampSampler->GetDescId();
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiSamplerDesc SharedRenderResource::GetLinearRepeatSamplerDesc()
+    IFRIT_APIDECL RHI::RhiSamplerDesc SharedRenderResource::GetLinearRepeatSamplerDesc()
     {
         return m_Data->m_LinearRepeatSampler->GetDescId();
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiSamplerDesc SharedRenderResource::GetNearestRepeatSamplerDesc()
+    IFRIT_APIDECL RHI::RhiSamplerDesc SharedRenderResource::GetNearestRepeatSamplerDesc()
     {
         return m_Data->m_NearestRepeatSampler->GetDescId();
     }
 
     // Only for refactoring,
-    IFRIT_APIDECL Graphics::Rhi::RhiSamplerRef SharedRenderResource::GetLinearClampSampler()
+    IFRIT_APIDECL RHI::RhiSamplerRef SharedRenderResource::GetLinearClampSampler()
     {
         return m_Data->m_LinearClampSampler;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiSamplerRef SharedRenderResource::GetNearestClampSampler()
+    IFRIT_APIDECL RHI::RhiSamplerRef SharedRenderResource::GetNearestClampSampler()
     {
         return m_Data->m_NearestClampSampler;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiSamplerRef SharedRenderResource::GetLinearRepeatSampler()
+    IFRIT_APIDECL RHI::RhiSamplerRef SharedRenderResource::GetLinearRepeatSampler()
     {
         return m_Data->m_LinearRepeatSampler;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiSamplerRef SharedRenderResource::GetNearestRepeatSampler()
+    IFRIT_APIDECL RHI::RhiSamplerRef SharedRenderResource::GetNearestRepeatSampler()
     {
         return m_Data->m_NearestRepeatSampler;
     }

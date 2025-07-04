@@ -38,8 +38,8 @@ namespace Ifrit::Runtime
     };
     struct PbrAtmospherePerframe
     {
-        using GPUTexture = Graphics::Rhi::RhiTextureRef;
-        using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
+        using GPUTexture = RHI::RhiTextureRef;
+        using GPUBuffer  = RHI::RhiBufferRef;
 
         struct PbrAtmosphereDensiyProfileLayer
         {
@@ -83,7 +83,7 @@ namespace Ifrit::Runtime
             vec3                        absorptionExtinction;
             vec3                        groundAlbedo;
         };
-        using SRVDesc = Graphics::Rhi::RhiSRVDesc;
+        using SRVDesc = RHI::RhiSRVDesc;
 
         PbrAtmosphereParameter m_atmosphereParams;
         GPUBuffer              m_atmosphereParamsBuffer;
@@ -113,10 +113,10 @@ namespace Ifrit::Runtime
 
     class IFRIT_APIDECL PbrAtmosphereRenderer : public RendererBase
     {
-        using GPUCommandSubmission = Graphics::Rhi::RhiTaskSubmission;
-        using RenderTargets        = Graphics::Rhi::RhiRenderTargets;
-        using GPUShader            = Graphics::Rhi::RhiShader;
-        using ComputePass          = Graphics::Rhi::RhiComputePass;
+        using GPUCommandSubmission = RHI::RhiTaskSubmission;
+        using RenderTargets        = RHI::RhiRenderTargets;
+        using GPUShader            = RHI::RhiShader;
+        using ComputePass          = RHI::RhiComputePass;
 
     private:
         ComputePass* m_transmittancePrecomputePass;

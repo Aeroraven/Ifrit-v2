@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "RhiBaseTypes.h"
 #include "RhiResource.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
     struct RhiUAVBarrier
     {
@@ -58,4 +58,4 @@ namespace Ifrit::Graphics::Rhi
         };
         RhiResourceBarrier() { m_uav = {}; }
     };
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

@@ -32,7 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 // So this file only encapsulates 'GraphicsPass' and 'ComputePass'
 // Some redundant code is planned to be removed
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
     class CommandExecutor;
@@ -77,7 +77,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         virtual VkImage     GetImage() const override;
         virtual VkImageView GetImageView() override;
         virtual VkImageView GetImageViewMipLayer(u32 mip, u32 layer, u32 mipRange, u32 layerRange) override;
-        inline void         ForceResetState() { m_state = Rhi::RhiResourceState::Undefined; }
+        inline void         ForceResetState() { m_state = RHI::RhiResourceState::Undefined; }
     };
 
     struct RenderPassResourceTransition
@@ -267,21 +267,21 @@ namespace Ifrit::Graphics::VulkanGraphics
         Vec<RegisteredResource*>             m_outputResources;
         Vec<RenderPassResourceTransition>    m_inputTransition;
         Vec<RenderPassResourceTransition>    m_outputTransition;
-        Rhi::RhiRenderPassContext            m_passContext;
+        RHI::RhiRenderPassContext            m_passContext;
         bool                                 m_operateOnSwapchain = false;
         bool                                 m_passBuilt          = false;
 
         HashMap<u32, Vec<u32>>               m_resourceDescriptorHandle;
-        Vec<Rhi::RhiDescriptorType>          m_passDescriptorLayout;
+        Vec<RHI::RhiDescriptorType>          m_passDescriptorLayout;
         Vec<DescriptorBindRange>             m_descriptorBindRange;
-        Fn<void(Rhi::RhiRenderPassContext*)> m_recordFunction     = nullptr;
-        Fn<void(Rhi::RhiRenderPassContext*)> m_recordPostFunction = nullptr;
-        Fn<void(Rhi::RhiRenderPassContext*)> m_executeFunction    = nullptr;
+        Fn<void(RHI::RhiRenderPassContext*)> m_recordFunction     = nullptr;
+        Fn<void(RHI::RhiRenderPassContext*)> m_recordPostFunction = nullptr;
+        Fn<void(RHI::RhiRenderPassContext*)> m_executeFunction    = nullptr;
         const CommandBuffer*                 m_commandBuffer      = nullptr;
 
         // SSBOs
         Vec<RegisteredBufferHandle*>         m_ssbos;
-        Vec<Rhi::RhiResourceAccessType>      m_ssboAccess;
+        Vec<RHI::RhiResourceAccessType>      m_ssboAccess;
 
         u32                                  m_activeFrame         = 0;
         u32                                  m_defaultMultibuffers = UINT_MAX;
@@ -304,7 +304,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
         }
         virtual ~RenderGraphPass() {}
-        void                setPassDescriptorLayout_base(const Vec<Rhi::RhiDescriptorType>& layout);
+        void                setPassDescriptorLayout_base(const Vec<RHI::RhiDescriptorType>& layout);
 
         inline void         SetActiveFrame(u32 frame) { m_activeFrame = frame; }
         virtual u32         getRequiredQueueCapability() = 0;
@@ -314,15 +314,15 @@ namespace Ifrit::Graphics::VulkanGraphics
         // void         AddCombinedImageSampler(RegisteredImageHandle* image, RegisteredSamplerHandle* sampler, u32
         // position);
         void                AddSampledImage(RegisteredImageHandle* image, u32 position);
-        // void AddStorageBuffer_base(RegisteredBufferHandle* buffer, u32 position, Rhi::RhiResourceAccessType access);
+        // void AddStorageBuffer_base(RegisteredBufferHandle* buffer, u32 position, RHI::RhiResourceAccessType access);
 
         inline void         SetDefaultNumMultiBuffers(u32 x) { m_defaultMultibuffers = x; }
 
         inline bool         getOperatesOnSwapchain() { return m_operateOnSwapchain; }
         inline bool         isBuilt() const { return m_passBuilt; }
 
-        void                SetRecordFunction_base(Fn<void(Rhi::RhiRenderPassContext*)> func);
-        void                SetExecutionFunction_base(Fn<void(Rhi::RhiRenderPassContext*)> func);
+        void                SetRecordFunction_base(Fn<void(RHI::RhiRenderPassContext*)> func);
+        void                SetExecutionFunction_base(Fn<void(RHI::RhiRenderPassContext*)> func);
 
         virtual void        build(u32 numMultiBuffers) = 0;
         virtual void        record() {}
@@ -332,12 +332,12 @@ namespace Ifrit::Graphics::VulkanGraphics
     };
 
     // Graphics Pass performs rendering operations
-    class IFRIT_APIDECL GraphicsPass : public RenderGraphPass, public Rhi::RhiGraphicsPass
+    class IFRIT_APIDECL GraphicsPass : public RenderGraphPass, public RHI::RhiGraphicsPass
     {
     protected:
         // RenderPassAttachment m_depthAttachment;
         // Vec<RenderPassAttachment> m_colorAttachments;
-        Rhi::RhiRenderTargetsFormat  m_renderTargetFormat;
+        RHI::RhiRenderTargetsFormat  m_renderTargetFormat;
 
         PipelineCache*               m_pipelineCache;
 
@@ -373,7 +373,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         RegisteredBufferHandle*      m_indexBuffer = nullptr;
         VkIndexType                  m_indexType;
-        Rhi::RhiRasterizerTopology   m_topology = Rhi::RhiRasterizerTopology::TriangleList;
+        RHI::RhiRasterizerTopology   m_topology = RHI::RhiRasterizerTopology::TriangleList;
 
         u32                          m_MsaaSamples = 1;
 
@@ -382,25 +382,25 @@ namespace Ifrit::Graphics::VulkanGraphics
             RegisteredResourceMapper* mapper);
         virtual ~GraphicsPass() {}
 
-        void record(Ifrit::Graphics::VulkanGraphics::RenderTargets* renderTarget);
+        void record(Ifrit::RHI::VulkanAdapter::RenderTargets* renderTarget);
 
-        void SetRenderTargetFormat(const Rhi::RhiRenderTargetsFormat& format) override;
+        void SetRenderTargetFormat(const RHI::RhiRenderTargetsFormat& format) override;
 
-        void SetVertexShader(Rhi::RhiShader* shader) override;
-        void SetPixelShader(Rhi::RhiShader* shader) override;
+        void SetVertexShader(RHI::RhiShader* shader) override;
+        void SetPixelShader(RHI::RhiShader* shader) override;
         void setGeometryShader(ShaderModule* shader);
         void setTessControlShader(ShaderModule* shader);
         void setTessEvalShader(ShaderModule* shader);
 
-        void SetTaskShader(Rhi::RhiShader* shader) override;
-        void SetMeshShader(Rhi::RhiShader* shader) override;
+        void SetTaskShader(RHI::RhiShader* shader) override;
+        void SetMeshShader(RHI::RhiShader* shader) override;
 
         void SetRenderArea(u32 x, u32 y, u32 width, u32 height) override;
         void SetDepthWrite(bool write) override;
         void setColorWrite(const Vec<u32>& write);
         void SetDepthTestEnable(bool enable) override;
-        void SetDepthCompareOp(Rhi::RhiCompareOp compareOp) override;
-        void SetRasterizerTopology(Rhi::RhiRasterizerTopology topology) override;
+        void SetDepthCompareOp(RHI::RhiCompareOp compareOp) override;
+        void SetRasterizerTopology(RHI::RhiRasterizerTopology topology) override;
 
         void SetMsaaSamples(u32 samples) override;
 
@@ -413,12 +413,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         virtual void build(u32 numMultiBuffers) override;
 
         // Rhi compat
-        inline void  SetShaderBindingLayout(const Vec<Rhi::RhiDescriptorType>& layout) override
+        inline void  SetShaderBindingLayout(const Vec<RHI::RhiDescriptorType>& layout) override
         {
             setPassDescriptorLayout_base(layout);
         }
         inline void AddShaderStorageBuffer(
-            Rhi::RhiBuffer* buffer, u32 position, Rhi::RhiResourceAccessType access) override
+            RHI::RhiBuffer* buffer, u32 position, RHI::RhiResourceAccessType access) override
         {
             using namespace Ifrit;
             auto buf              = CheckedCast<SingleBuffer>(buffer);
@@ -427,7 +427,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             std::abort();
             // AddStorageBuffer_base(registered, position, access);
         }
-        inline void AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 position)
+        inline void AddUniformBuffer(RHI::RhiMultiBuffer* buffer, u32 position)
         {
             using namespace Ifrit;
             auto buf              = CheckedCast<MultiBuffer>(buffer);
@@ -435,26 +435,26 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto registered       = CheckedCast<RegisteredBufferHandle>(registeredBuffer);
             // AddUniformBuffer_base(registered, position);
         }
-        inline void SetExecutionFunction(Fn<void(Rhi::RhiRenderPassContext*)> func) override
+        inline void SetExecutionFunction(Fn<void(RHI::RhiRenderPassContext*)> func) override
         {
             SetExecutionFunction_base(func);
         }
-        inline void SetRecordFunction(Fn<void(Rhi::RhiRenderPassContext*)> func) override
+        inline void SetRecordFunction(Fn<void(RHI::RhiRenderPassContext*)> func) override
         {
             SetRecordFunction_base(func);
         }
-        inline void SetRecordFunctionPostRenderPass(Fn<void(Rhi::RhiRenderPassContext*)> func) override
+        inline void SetRecordFunctionPostRenderPass(Fn<void(RHI::RhiRenderPassContext*)> func) override
         {
             m_recordPostFunction = func;
         }
         inline VkPipelineLayout GetPipelineLayout() { return m_pipeline->GetLayout(); }
 
-        void Run(const Rhi::RhiCommandList* cmd, Rhi::RhiRenderTargets* renderTargets, u32 frameId) override;
+        void Run(const RHI::RhiCommandList* cmd, RHI::RhiRenderTargets* renderTargets, u32 frameId) override;
 
         inline virtual void SetNumBindlessDescriptorSets(u32 num) override { SetNumBindlessDescriptorSets_base(num); }
     };
 
-    class IFRIT_APIDECL ComputePass : public RenderGraphPass, public Rhi::RhiComputePass
+    class IFRIT_APIDECL ComputePass : public RenderGraphPass, public RHI::RhiComputePass
     {
     protected:
         ComputePipeline* m_pipeline;
@@ -472,17 +472,17 @@ namespace Ifrit::Graphics::VulkanGraphics
         void record() override;
         virtual ~ComputePass() {}
         u32         getRequiredQueueCapability() override;
-        void        SetComputeShader(Rhi::RhiShader* shader) override;
+        void        SetComputeShader(RHI::RhiShader* shader) override;
         void        build(u32 numMultiBuffers) override;
         inline void SetPushConstSize(u32 size) override { m_pushConstSize = size; }
 
         // Rhi compat
-        inline void SetShaderBindingLayout(const Vec<Rhi::RhiDescriptorType>& layout) override
+        inline void SetShaderBindingLayout(const Vec<RHI::RhiDescriptorType>& layout) override
         {
             setPassDescriptorLayout_base(layout);
         }
         inline void AddShaderStorageBuffer(
-            Rhi::RhiBuffer* buffer, u32 position, Rhi::RhiResourceAccessType access) override
+            RHI::RhiBuffer* buffer, u32 position, RHI::RhiResourceAccessType access) override
         {
             using namespace Ifrit;
             auto buf              = CheckedCast<SingleBuffer>(buffer);
@@ -491,7 +491,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             std::abort();
             // AddStorageBuffer_base(registered, position, access);
         }
-        inline void AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 position)
+        inline void AddUniformBuffer(RHI::RhiMultiBuffer* buffer, u32 position)
         {
             using namespace Ifrit;
             auto buf              = CheckedCast<MultiBuffer>(buffer);
@@ -499,15 +499,15 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto registered       = CheckedCast<RegisteredBufferHandle>(registeredBuffer);
             // AddUniformBuffer_base(registered, position);
         }
-        inline void SetExecutionFunction(Fn<void(Rhi::RhiRenderPassContext*)> func) override
+        inline void SetExecutionFunction(Fn<void(RHI::RhiRenderPassContext*)> func) override
         {
             SetExecutionFunction_base(func);
         }
-        inline void SetRecordFunction(Fn<void(Rhi::RhiRenderPassContext*)> func) override
+        inline void SetRecordFunction(Fn<void(RHI::RhiRenderPassContext*)> func) override
         {
             SetRecordFunction_base(func);
         }
-        void                    Run(const Rhi::RhiCommandList* cmd, u32 frameId) override;
+        void                    Run(const RHI::RhiCommandList* cmd, u32 frameId) override;
         inline VkPipelineLayout GetPipelineLayout() { return m_pipeline->GetLayout(); }
         inline virtual void SetNumBindlessDescriptorSets(u32 num) override { SetNumBindlessDescriptorSets_base(num); }
     };
@@ -561,4 +561,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         void                    QueueCollectionFrameAdvance();
     };
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

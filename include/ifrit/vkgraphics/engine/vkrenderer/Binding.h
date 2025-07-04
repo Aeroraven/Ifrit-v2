@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/MemoryResource.h"
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
     struct DescriptorTypeDetails
@@ -31,7 +31,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     };
 
     IF_CONSTEXPR u32 cMaxDescriptorType =
-        static_cast<typename std::underlying_type<Rhi::RhiDescriptorType>::type>(Rhi::RhiDescriptorType::MaxEnum);
+        static_cast<typename std::underlying_type<RHI::RhiDescriptorType>::type>(RHI::RhiDescriptorType::MaxEnum);
 
     IF_CONSTEXPR Array<DescriptorTypeDetails, cMaxDescriptorType> cDescriptorTypeDetails = {
         { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 15 }, { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 40000 },
@@ -65,7 +65,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     struct DescriptorImageView
     {
         VkImageView              m_Image;
-        Rhi::RhiImageSubResource m_SubResource;
+        RHI::RhiImageSubResource m_SubResource;
 
         bool                     operator==(const DescriptorImageView& other) const
         {
@@ -139,8 +139,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         u32                    RegisterCombinedImageSampler(SingleDeviceImage* image, Sampler* sampler);
         u32                    RegisterStorageBuffer(SingleBuffer* buffer);
 
-        u32                    RegisterStorageImage(SingleDeviceImage* image, Rhi::RhiImageSubResource subResource);
-        u32                    RegisterSampledImage(SingleDeviceImage* image, Rhi::RhiImageSubResource subResource);
+        u32                    RegisterStorageImage(SingleDeviceImage* image, RHI::RhiImageSubResource subResource);
+        u32                    RegisterSampledImage(SingleDeviceImage* image, RHI::RhiImageSubResource subResource);
         u32                    RegisterSamplers(Sampler* sampler);
 
         DescriptorBindRange    RegisterBindlessParameterRaw(const char* data, u32 size);
@@ -163,7 +163,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline VkDescriptorSetLayout GetParameterDescriptorSetLayout() { return m_layoutShared; }
     };
 
-    class IFRIT_APIDECL DescriptorBindlessIndices : public Rhi::RhiBindlessDescriptorRef
+    class IFRIT_APIDECL DescriptorBindlessIndices : public RHI::RhiBindlessDescriptorRef
     {
     private:
         EngineContext*           m_context;
@@ -182,11 +182,11 @@ namespace Ifrit::Graphics::VulkanGraphics
             m_indices.resize(copies);
         }
 
-        virtual void AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc) override;
-        virtual void AddStorageBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc) override;
-        virtual void AddStorageBuffer(Rhi::RhiBuffer* buffer, u32 loc) override;
-        virtual void AddSRVImage(Rhi::RhiTexture* texture, u32 loc) override;
-        virtual void AddUAVImage(Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, u32 loc) override;
+        virtual void AddUniformBuffer(RHI::RhiMultiBuffer* buffer, u32 loc) override;
+        virtual void AddStorageBuffer(RHI::RhiMultiBuffer* buffer, u32 loc) override;
+        virtual void AddStorageBuffer(RHI::RhiBuffer* buffer, u32 loc) override;
+        virtual void AddSRVImage(RHI::RhiTexture* texture, u32 loc) override;
+        virtual void AddUAVImage(RHI::RhiTexture* texture, RHI::RhiImageSubResource subResource, u32 loc) override;
         void         BuildRanges();
 
         inline virtual VkDescriptorSet GetRangeSet(u32 frame)
@@ -206,4 +206,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline VkDescriptorSet GetActiveRangeSet() { return GetRangeSet(activeFrame); }
     };
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

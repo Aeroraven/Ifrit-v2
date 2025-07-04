@@ -32,12 +32,12 @@ namespace Ifrit::Runtime::Ayanami
     {
     private:
         AyanamiDeferredShadingPrivate* m_Private = nullptr;
-        Graphics::Rhi::RhiBackend*     m_Rhi     = nullptr;
+        RHI::RhiBackend*               m_Rhi     = nullptr;
 
         AyanamiSharedContext*          m_SharedContext = nullptr;
 
     public:
-        AyanamiDeferredShading(Graphics::Rhi::RhiBackend* rhi, AyanamiSharedContext* sharedContext);
+        AyanamiDeferredShading(RHI::RhiBackend* rhi, AyanamiSharedContext* sharedContext);
         virtual ~AyanamiDeferredShading();
 
         void InitContext(FrameGraphBuilder& builder, u32 rtWidth, u32 rtHeight);

@@ -74,38 +74,24 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 #### 1.2.1 Syaro: Virtual-Geometry-based Deferred Renderer
 
 - Reproduced some features mentioned in Nanite's report: Two-pass occlusion culling, Mesh LoDs, Compute-shader-based SW rasterization, Simple material classify pass.
-- Some extra features supported:
+- Some extra features supported: Horizon-Based Ambient Occlusion / Cascaded Shadow Mapping / Temporal Anti-aliasing / Convolution Bloom
 
-  - Horizon-Based Ambient Occlusion
-  - Cascaded Shadow Mapping
-  - Temporal Anti-aliasing
-  - Convolution Bloom
 
 #### 1.2.2 Ayanami: Maybe Something about Global Illumination
 
-- Implementation reports, check [here](./include/ifrit.shader/Ayanami/Readme.md)
-
 - It's planning to implement some GI algorithms.
 
-- Fully driven by the render graph.
-
 - Currently, it covers:
-  - Distance Field Generation*
-    - Distance Field Shadow Culling
-    - Distance Field Soft Shadow (DFSS)
-    - BC4 Compression
+  - Distance Field Generation: Distance Field Shadow Culling / Distance Field Soft Shadow (DFSS) /BC4 Compression
     
-  - Surface Cache*
-    - Object Grids (Global Distance Field Attribute Lookup)
+  - Surface Cache*: Object Grids (Global Distance Field Attribute Lookup)
     
-  - Lighting Probes*
-    - Adaptive Screen Space Probe Placement
+  - Lighting Probes*: Adaptive Screen Space Probe Placement / Screen  Probe Tracing 
     
-    - Screen  Probe Tracing 
-      - Screen Space Tracing (SSGI+HiZ)
-      - Mesh/Global Distance Field Tracing (Grid Cull+Ray Marching)
-      
-      
+    - Screen Space Tracing (SSGI+HiZ)
+    - Mesh/Global Distance Field Tracing (Grid Cull+Ray Marching)
+    
+    
 
 *. These features might be severely unstable and time-consuming. For problems and details, refer to [CHANGELOG.md](./CHANGELOG.md)
 
@@ -181,7 +167,7 @@ The source files can be decomposed into following parts.
 | ifrit.external      | External dependencies building <br/>Contains FSR2            |
 | ifrit.ircompile     | Backend for JIT runtime<br/>Based on LLVM                    |
 | ifrit.imaging       | Utilities for image processing<br/>Including some texture compression utilities. |
-| ifrit.meshproc      | Algorithms for mesh processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh tetrahedralization, mesh auto-lod and mesh-level signed distance field generation |
+| ifrit.geomproc      | Algorithms for geometry processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh tetrahedralization, mesh auto-lod and mesh-level signed distance field generation |
 | ifrit.rhi           | Backend-agnostic render hardware interface.                  |
 | ifrit.shadercompile | Backend for shader compilation<br/>Contains glslc and slang backend |
 | ifrit.softgraphics  | Implementation of soft renderer, with both MT-CPU and CUDA version |

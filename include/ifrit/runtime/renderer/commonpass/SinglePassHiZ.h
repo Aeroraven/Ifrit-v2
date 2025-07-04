@@ -10,10 +10,10 @@ namespace Ifrit::Runtime
 
     class IFRIT_APIDECL SinglePassHiZPass
     {
-        using ComputePass  = Graphics::Rhi::RhiComputePass;
-        using GPUCmdBuffer = Graphics::Rhi::RhiCommandList;
-        using GPUTexture   = Graphics::Rhi::RhiTexture;
-        using GPUSampler   = Graphics::Rhi::RhiSampler;
+        using ComputePass  = RHI::RhiComputePass;
+        using GPUCmdBuffer = RHI::RhiCommandList;
+        using GPUTexture   = RHI::RhiTexture;
+        using GPUSampler   = RHI::RhiSampler;
 
     protected:
         ComputePass*  m_SinglePassHiZPassMin = nullptr;

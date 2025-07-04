@@ -26,5 +26,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime::RenderingUtil
 {
-    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef loadBlueNoise(Graphics::Rhi::RhiBackend* rhi);
+    IFRIT_APIDECL RHI::RhiTextureRef loadBlueNoise(RHI::RhiBackend* rhi);
 } // namespace Ifrit::Runtime::RenderingUtil

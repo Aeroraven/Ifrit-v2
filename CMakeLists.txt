@@ -127,7 +127,7 @@ ifrit_add_core_component(imaging)
 ifrit_add_core_component(display)
 ifrit_add_core_component(ircompile)
 ifrit_add_core_component(softgraphics)
-ifrit_add_core_component(meshproclib)
+ifrit_add_core_component(geomproc)
 ifrit_add_core_component(vkgraphics)
 ifrit_add_core_component(external/fsr2)
 ifrit_add_core_component(runtime)
@@ -183,7 +183,7 @@ set_target_properties(ifrit.imaging PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.display PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.ircompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.softgraphics PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.meshproclib PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.vkgraphics PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
@@ -198,7 +198,7 @@ endforeach()
 
 add_dependencies(ifrit.core 
     spdlog)
-add_dependencies(ifrit.meshproclib 
+add_dependencies(ifrit.geomproc 
     openvdb_shared
     meshoptimizer 
     metis
@@ -215,7 +215,7 @@ add_dependencies(ifrit.imaging
 add_dependencies(ifrit.runtime 
     ifrit.rhi 
     ifrit.display 
-    ifrit.meshproclib 
+    ifrit.geomproc 
     ifrit.core 
     ${FSR2_API_LIBRARIES})
 
@@ -226,7 +226,7 @@ add_dependencies(ifrit.vkgraphics
 
 set(DEMO_DEPENDENCIES 
     ifrit.vkgraphics 
-    ifrit.meshproclib 
+    ifrit.geomproc 
     ifrit.softgraphics 
     ifrit.display 
     ifrit.runtime 

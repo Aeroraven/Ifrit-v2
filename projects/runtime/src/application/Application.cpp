@@ -49,7 +49,7 @@ namespace Ifrit::Runtime
         m_windowProvider->Setup(m_info.m_width, m_info.m_height);
 
         // Setup RHI
-        Graphics::Rhi::RhiInitializeArguments rhiArgs;
+        RHI::RhiInitializeArguments rhiArgs;
         rhiArgs.m_surfaceWidth                = m_info.m_width;
         rhiArgs.m_surfaceHeight               = m_info.m_height;
         rhiArgs.m_expectedComputeQueueCount   = m_info.m_rhiComputeQueueCount;
@@ -70,12 +70,12 @@ namespace Ifrit::Runtime
                 return m_windowProvider->GetVkRequiredInstanceExtensions(count);
             };
 
-        Graphics::Rhi::RhiSelector    rhiSelector;
-        Graphics::Rhi::RhiBackendType rhiType;
+        RHI::RhiSelector    rhiSelector;
+        RHI::RhiBackendType rhiType;
         switch (m_info.m_rhiType)
         {
             case AppRhiType::Vulkan:
-                rhiType = Graphics::Rhi::RhiBackendType::Vulkan;
+                rhiType = RHI::RhiBackendType::Vulkan;
                 break;
             default:
                 throw std::runtime_error("RHI not supported");

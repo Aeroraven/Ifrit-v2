@@ -253,8 +253,8 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL Transform : public Component, public AttributeOwner<TransformAttribute>
     {
     private:
-        using GPUUniformBuffer                     = Ifrit::Graphics::Rhi::RhiMultiBuffer;
-        using GPUBindId                            = Ifrit::Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUUniformBuffer                     = Ifrit::RHI::RhiMultiBuffer;
+        using GPUBindId                            = Ifrit::RHI::RhiDescHandleLegacy;
         Ref<GPUUniformBuffer> m_gpuBuffer          = nullptr;
         Ref<GPUUniformBuffer> m_gpuBufferLast      = nullptr;
         Ref<GPUBindId>        m_gpuBindlessRef     = nullptr;

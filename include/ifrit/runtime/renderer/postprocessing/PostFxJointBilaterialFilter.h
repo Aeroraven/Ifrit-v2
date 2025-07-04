@@ -26,8 +26,8 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     class IFRIT_APIDECL PostFxJointBilaterialFilter : public PostprocessPass
     {
-        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
-        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
+        using SRVDesc       = RHI::RhiSRVDesc;
+        using RenderTargets = RHI::RhiRenderTargets;
 
     public:
         PostFxJointBilaterialFilter(IApplication* app);

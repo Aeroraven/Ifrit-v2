@@ -65,35 +65,35 @@ namespace Ifrit::Runtime
 
     struct PerShaderEffectData
     {
-        Vec<Material*>                           m_materials;
-        Vec<Mesh*>                               m_meshes;
-        Vec<Transform*>                          m_transforms;
-        Vec<MeshInstance*>                       m_instances;
+        Vec<Material*>                 m_materials;
+        Vec<Mesh*>                     m_meshes;
+        Vec<Transform*>                m_transforms;
+        Vec<MeshInstance*>             m_instances;
 
         // Data to GPUs
-        u32                                      m_lastObjectCount = ~0u;
-        Vec<PerObjectData>                       m_objectData;
-        Ref<Graphics::Rhi::RhiMultiBuffer>       m_batchedObjectData = nullptr;
-        Graphics::Rhi::RhiBindlessDescriptorRef* m_batchedObjBufRef  = nullptr;
+        u32                            m_lastObjectCount = ~0u;
+        Vec<PerObjectData>             m_objectData;
+        Ref<RHI::RhiMultiBuffer>       m_batchedObjectData = nullptr;
+        RHI::RhiBindlessDescriptorRef* m_batchedObjBufRef  = nullptr;
     };
 
     struct PerFrameRenderTargets
     {
-        Graphics::Rhi::RhiTextureRef                  m_colorRT;
-        Graphics::Rhi::RhiSRVDesc                     m_colorRTIdSRV;
-        Graphics::Rhi::RhiTexture*                    m_depthRT;
+        RHI::RhiTextureRef                  m_colorRT;
+        RHI::RhiSRVDesc                     m_colorRTIdSRV;
+        RHI::RhiTexture*                    m_depthRT;
 
-        Ref<Graphics::Rhi::RhiColorAttachment>        m_colorRTRef;
-        Ref<Graphics::Rhi::RhiDepthStencilAttachment> m_depthRTRef;
-        Ref<Graphics::Rhi::RhiRenderTargets>          m_rts;
-        u32                                           m_width = 0, m_height = 0;
+        Ref<RHI::RhiColorAttachment>        m_colorRTRef;
+        Ref<RHI::RhiDepthStencilAttachment> m_depthRTRef;
+        Ref<RHI::RhiRenderTargets>          m_rts;
+        u32                                 m_width = 0, m_height = 0;
     };
 
     struct ShadowMappingData
     {
-        using GPUBuffer        = Graphics::Rhi::RhiBuffer;
-        using GPUUniformBuffer = Graphics::Rhi::RhiMultiBuffer;
-        using GPUBindId        = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUBuffer        = RHI::RhiBuffer;
+        using GPUUniformBuffer = RHI::RhiMultiBuffer;
+        using GPUBindId        = RHI::RhiDescHandleLegacy;
 
         struct SingleShadowView
         {
@@ -116,20 +116,20 @@ namespace Ifrit::Runtime
 
     struct PerFrameData
     {
-        using GPUUniformBuffer = Graphics::Rhi::RhiMultiBuffer;
-        using GPUBuffer        = Graphics::Rhi::RhiBufferRef;
-        using GPUBindlessRef   = Graphics::Rhi::RhiBindlessDescriptorRef;
-        using GPUBindId        = Graphics::Rhi::RhiDescHandleLegacy;
-        using GPUTexture       = Graphics::Rhi::RhiTextureRef;
-        using GPUColorRT       = Graphics::Rhi::RhiColorAttachment;
-        using GPUDepthRT       = Graphics::Rhi::RhiDepthStencilAttachment;
-        using GPURTs           = Graphics::Rhi::RhiRenderTargets;
-        using GPUSampler       = Graphics::Rhi::RhiSampler;
-        using GPUBarrier       = Graphics::Rhi::RhiResourceBarrier;
+        using GPUUniformBuffer = RHI::RhiMultiBuffer;
+        using GPUBuffer        = RHI::RhiBufferRef;
+        using GPUBindlessRef   = RHI::RhiBindlessDescriptorRef;
+        using GPUBindId        = RHI::RhiDescHandleLegacy;
+        using GPUTexture       = RHI::RhiTextureRef;
+        using GPUColorRT       = RHI::RhiColorAttachment;
+        using GPUDepthRT       = RHI::RhiDepthStencilAttachment;
+        using GPURTs           = RHI::RhiRenderTargets;
+        using GPUSampler       = RHI::RhiSampler;
+        using GPUBarrier       = RHI::RhiResourceBarrier;
 
-        using SRVDesc = Graphics::Rhi::RhiSRVDesc;
-        using UAVDesc = Graphics::Rhi::RhiUAVDesc;
-        using CBVDesc = Graphics::Rhi::RhiCBVDesc;
+        using SRVDesc = RHI::RhiSRVDesc;
+        using UAVDesc = RHI::RhiUAVDesc;
+        using CBVDesc = RHI::RhiCBVDesc;
 
         enum class ViewType
         {
@@ -272,8 +272,7 @@ namespace Ifrit::Runtime
             u32        m_fsrFrameId      = 0;
         };
 
-        IF_CONSTEXPR static Graphics::Rhi::RhiImageFormat c_visibilityFormat =
-            Graphics::Rhi::RhiImageFormat::RhiImgFmt_R32_UINT;
+        IF_CONSTEXPR static RHI::RhiImageFormat            c_visibilityFormat = RHI::RhiImageFormat::RhiImgFmt_R32_UINT;
 
         HashSet<u32>                                       m_enabledEffects;
         Vec<PerShaderEffectData>                           m_shaderEffectData;

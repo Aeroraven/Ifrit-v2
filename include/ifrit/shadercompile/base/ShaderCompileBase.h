@@ -62,7 +62,7 @@ namespace Ifrit::ShaderCompile
     struct ShaderIR
     {
         ShaderIRFormat m_Format;
-        RSizedBuffer   m_Data;
+        TSizedBuffer   m_Data;
     };
 
     struct ShaderCompileJob

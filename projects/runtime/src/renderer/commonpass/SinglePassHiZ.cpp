@@ -7,7 +7,7 @@
 namespace Ifrit::Runtime
 {
     using namespace RenderingUtil;
-    using namespace Graphics::Rhi;
+    using namespace RHI;
     using namespace Math;
 
     IF_CONSTEXPR auto kbImUsage_UAV_SRV = RhiImgUsage_UnorderedAccess | RhiImgUsage_ShaderRead;
@@ -113,7 +113,7 @@ namespace Ifrit::Runtime
             pass = m_SinglePassHiZPassMax;
 
         pass->SetRecordFunction([&](const RhiRenderPassContext* ctx) {
-            using namespace Graphics::Rhi;
+            using namespace RHI;
 
             Vec<RhiResourceBarrier> barriers;
             for (u32 i = 0; i < data.m_hizIters; i++)

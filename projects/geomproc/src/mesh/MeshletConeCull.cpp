@@ -16,10 +16,10 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/meshproc/engine/mesh/MeshletConeCull.h"
+#include "ifrit/geomproc/mesh/MeshletConeCull.h"
 #include "ifrit/core/math/simd/SimdVectors.h"
 #include <stdexcept>
-namespace Ifrit::MeshProcLib::MeshProcess
+namespace Ifrit::GeometryProc::MeshProcess
 {
 
     void MeshletConeCullProc::CreateNormalCones(const MeshDescriptor& meshDesc, const Vec<Vector4i>& meshlets,
@@ -54,4 +54,4 @@ namespace Ifrit::MeshProcLib::MeshProcess
         }
     }
 
-} // namespace Ifrit::MeshProcLib::MeshProcess
+} // namespace Ifrit::GeometryProc::MeshProcess

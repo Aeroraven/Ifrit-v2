@@ -32,9 +32,9 @@ namespace Ifrit::Runtime::Ayanami
             u32      sdfId;
             u32      m_IsTwoSided;
         };
-        using GPUTexture = Graphics::Rhi::RhiTextureRef;
-        using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
-        using SRVDesc    = Graphics::Rhi::RhiSRVDesc;
+        using GPUTexture = RHI::RhiTextureRef;
+        using GPUBuffer  = RHI::RhiBufferRef;
+        using SRVDesc    = RHI::RhiSRVDesc;
 
         GPUTexture sdfTexture;
         SRVDesc    sdfTextureBindId;
@@ -73,7 +73,7 @@ namespace Ifrit::Runtime::Ayanami
 
     public:
         void            BuildMeshDF(const std::string_view& cachePath, Vector3u sdfSize = Vector3u(~0u, ~0u, ~0u));
-        void            BuildGPUResource(Graphics::Rhi::RhiBackend* rhi);
+        void            BuildGPUResource(RHI::RhiBackend* rhi);
         inline u32      GetMetaBufferId() const { return m_gpuResource->sdfMetaBuffer->GetDescId(); }
         inline Vector3f GetBoxMin() const { return m_sdBoxMin; }
         inline Vector3f GetBoxMax() const { return m_sdBoxMax; }

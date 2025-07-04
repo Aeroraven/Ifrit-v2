@@ -17,11 +17,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/meshproc/engine/tetrahedralization/MeshTetrahedralizer.h"
+#include "ifrit/geomproc/tetrahedralization/MeshTetrahedralizer.h"
 #include "tetgen.h"
 #include "ifrit/core/logging/Logging.h"
 
-namespace Ifrit::MeshProcLib::Tetrahedralization
+namespace Ifrit::GeometryProc::Tetrahedralization
 {
 
     IFRIT_APIDECL FTetrahedralMeshData TetrahedralizeMesh(const MeshDescriptor& mesh)
@@ -90,4 +90,4 @@ namespace Ifrit::MeshProcLib::Tetrahedralization
         return tetrahedralMeshData;
     }
 
-} // namespace Ifrit::MeshProcLib::Tetrahedralization
+} // namespace Ifrit::GeometryProc::Tetrahedralization

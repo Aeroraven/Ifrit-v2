@@ -38,16 +38,15 @@ namespace Ifrit::Runtime
         SyaroV2RendererResources* m_Res = nullptr;
 
     private:
-        void SetupAndRunFrameGraph(Scene* scene, PerFrameData& perframe, Graphics::Rhi::RhiRenderTargets* renderTargets,
-            const Graphics::Rhi::RhiCommandList* cmd);
+        void SetupAndRunFrameGraph(
+            Scene* scene, PerFrameData& perframe, RHI::RhiRenderTargets* renderTargets, const RHI::RhiCommandList* cmd);
 
     public:
         SyaroV2Renderer(IApplication* app);
         virtual ~SyaroV2Renderer();
 
-        void                                            SetRenderRole(u32 role);
-        virtual Owner<Graphics::Rhi::RhiTaskSubmission> Render(Scene* scene, Camera* camera,
-            Graphics::Rhi::RhiRenderTargets* renderTargets, const RendererConfig& config,
-            const Vec<Graphics::Rhi::RhiTaskSubmission*>& cmdToWait) override;
+        void                                  SetRenderRole(u32 role);
+        virtual Owner<RHI::RhiTaskSubmission> Render(Scene* scene, Camera* camera, RHI::RhiRenderTargets* renderTargets,
+            const RendererConfig& config, const Vec<RHI::RhiTaskSubmission*>& cmdToWait) override;
     };
 } // namespace Ifrit::Runtime

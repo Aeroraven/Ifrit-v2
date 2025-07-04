@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "RhiForwardingTypes.h"
 #include "ifrit/core/platform/ApiConv.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
     enum class RhiTypeFlags : u8
     {
@@ -239,4 +239,4 @@ namespace Ifrit::Graphics::Rhi
         inline u32                   GetId() const { return m_index; }
     };
 
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

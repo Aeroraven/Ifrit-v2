@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
     IFRIT_APIDECL i32 ResourceDeleteQueue::ProcessDeleteQueue()
     {
@@ -255,7 +255,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         iDebug("EngineContext: Extension functions loaded");
     }
     IFRIT_APIDECL
-    EngineContext::EngineContext(const Rhi::RhiInitializeArguments& args) : m_args(args) { Init(); }
+    EngineContext::EngineContext(const RHI::RhiInitializeArguments& args) : m_args(args) { Init(); }
     IFRIT_APIDECL void EngineContext::WaitIdle() { vkDeviceWaitIdle(m_device); }
     IFRIT_APIDECL void EngineContext::Init()
     {
@@ -691,4 +691,4 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     EngineContext::~EngineContext() { Destructor(); }
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

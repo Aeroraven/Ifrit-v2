@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/Mesh.h"
 
 #define IFRIT_MESHPROC_IMPORT
-#include "ifrit/meshproc/engine/base/MeshDesc.h"
-#include "ifrit/meshproc/engine/meshsdf/MeshSDFConverter.h"
+#include "ifrit/geomproc/base/MeshDesc.h"
+#include "ifrit/geomproc/meshsdf/MeshSDFConverter.h"
 #undef IFRIT_MESHPROC_IMPORT
 
 #include "ifrit/core/file/FileOps.h"
@@ -48,8 +48,8 @@ namespace Ifrit::Runtime::Ayanami
         auto meshData      = meshContainer->GetBaseMesh();
 
         {
-            using namespace Ifrit::MeshProcLib::MeshSDFProcess;
-            using namespace Ifrit::MeshProcLib;
+            using namespace Ifrit::GeometryProc::MeshSDFProcess;
+            using namespace Ifrit::GeometryProc;
             using namespace Ifrit::Imaging::Compress;
 
             MeshDescriptor meshDesc;
@@ -130,7 +130,7 @@ namespace Ifrit::Runtime::Ayanami
 
             SignedDistanceField        sdf;
             CompactSignedDistanceField compactSdf;
-            RSizedBuffer               bc4CompressedSdf;
+            TSizedBuffer               bc4CompressedSdf;
 
             if (hasCachedCompactDF)
             {
@@ -149,7 +149,7 @@ namespace Ifrit::Runtime::Ayanami
                 iInfo("Building mesh distance field for {}", meshData->identifier);
 
                 ConvertMeshToSDF(meshDesc, sdf, sdfSize.x, sdfSize.y, sdfSize.z,
-                    MeshProcLib::MeshSDFProcess::SDFGenerateMethod::RayTracing, false);
+                    GeometryProc::MeshSDFProcess::SDFGenerateMethod::RayTracing, false);
 
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 if (shouldGenCachedDF)
@@ -173,7 +173,7 @@ namespace Ifrit::Runtime::Ayanami
                 // TODO:
                 iInfo("Building BC4 compact mesh distance field for {}", meshData->identifier);
                 auto         serialCompactMeshDFPath = cacheBC4CompactPathStr;
-                RSizedBuffer bufferIn(compactSdf.sdfData);
+                TSizedBuffer bufferIn(compactSdf.sdfData);
                 WriteTex2DToBlockCompressedFile(bufferIn, cacheBC4CompactPathStr, TextureFormat::R8_UNORM,
                     compactSdf.width, compactSdf.height, compactSdf.depth, CompressionAlgo::BC4);
             }
@@ -209,7 +209,7 @@ namespace Ifrit::Runtime::Ayanami
         }
     }
 
-    IFRIT_APIDECL void AyanamiMeshDF::BuildGPUResource(Graphics::Rhi::RhiBackend* rhi)
+    IFRIT_APIDECL void AyanamiMeshDF::BuildGPUResource(RHI::RhiBackend* rhi)
     {
         if (m_gpuResource == nullptr)
         {
@@ -219,7 +219,7 @@ namespace Ifrit::Runtime::Ayanami
                 std::abort();
             }
             m_gpuResource = MakeOwner<AyanamiMeshDFResource>();
-            using namespace Ifrit::Graphics::Rhi;
+            using namespace Ifrit::RHI;
             auto volumeSize   = SizeCast<u32>(m_CompactSDFData.size());
             auto deviceVolume = rhi->CreateBuffer("Ayanami_DFVolume", volumeSize,
                 RhiBufferUsage::RhiBufferUsage_CopyDst | RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);

@@ -15,7 +15,7 @@ GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-#include "ifrit/meshproc/engine/meshsdf/MeshSDFConverter.h"
+#include "ifrit/geomproc/meshsdf/MeshSDFConverter.h"
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/math/simd/SimdVectors.h"
 #include "ifrit/core/algo/Parallel.h"
@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 // Reference: https://www2.imm.dtu.dk/pubdb/edoc/imm1289.pdf
 
 using namespace Ifrit::Math::SIMD;
-namespace Ifrit::MeshProcLib::MeshSDFProcess
+namespace Ifrit::GeometryProc::MeshSDFProcess
 {
 
     IF_CONSTEXPR u32 cMinBvhChilds = 32;
@@ -683,4 +683,4 @@ namespace Ifrit::MeshProcLib::MeshSDFProcess
         }
         iInfo("Compact SDF: minDist: {}, maxDist: {}", minDist, maxDist);
     }
-} // namespace Ifrit::MeshProcLib::MeshSDFProcess
+} // namespace Ifrit::GeometryProc::MeshSDFProcess

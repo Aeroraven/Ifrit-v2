@@ -2,7 +2,7 @@
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 namespace Ifrit::Runtime
 {
     IFRIT_APIDECL PostprocessPass::GPUShader* PostprocessPass::CreateInternalShader(const char* name)

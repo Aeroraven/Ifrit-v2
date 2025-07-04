@@ -38,8 +38,8 @@ namespace Ifrit::Runtime
 
     struct ImmutableRendererResources
     {
-        using GPUTexture = Graphics::Rhi::RhiTextureRef;
-        using SRVDesc    = Graphics::Rhi::RhiSRVDesc;
+        using GPUTexture = RHI::RhiTextureRef;
+        using SRVDesc    = RHI::RhiSRVDesc;
         std::mutex m_mutex;
         bool       m_initialized = false;
         GPUTexture m_blueNoise;
@@ -93,8 +93,8 @@ namespace Ifrit::Runtime
     // TODO: move render graph to here
     class IFRIT_APIDECL RendererBase
     {
-        using RenderTargets        = Graphics::Rhi::RhiRenderTargets;
-        using GPUCommandSubmission = Graphics::Rhi::RhiTaskSubmission;
+        using RenderTargets        = RHI::RhiRenderTargets;
+        using GPUCommandSubmission = RHI::RhiTaskSubmission;
 
     protected:
         IApplication*              m_app;

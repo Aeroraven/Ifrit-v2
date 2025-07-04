@@ -28,14 +28,14 @@ namespace Ifrit::Runtime::Ayanami
     class IFRIT_RUNTIME_API AyanamiDebugger
     {
     private:
-        using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
-        using GPUTexture = Graphics::Rhi::RhiTextureRef;
+        using GPUBuffer  = RHI::RhiBufferRef;
+        using GPUTexture = RHI::RhiTextureRef;
 
-        AyanamiDebuggerPrivate*    m_Private = nullptr;
-        Graphics::Rhi::RhiBackend* m_Rhi     = nullptr;
+        AyanamiDebuggerPrivate* m_Private = nullptr;
+        RHI::RhiBackend*        m_Rhi     = nullptr;
 
     public:
-        AyanamiDebugger(Graphics::Rhi::RhiBackend* rhi);
+        AyanamiDebugger(RHI::RhiBackend* rhi);
         ~AyanamiDebugger();
 
         void RenderSceneFromCacheSurface(FrameGraphBuilder& builder, FGTextureNodeRef outputTexture,

@@ -29,7 +29,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
     IFRIT_APIDECL PostFxFFTConv2d::PostFxFFTConv2d(IApplication* app)
         : PostprocessPass(app, { Internal::kIntShaderTable.Postprocess.FFTBloomCS, 17, 1, true })
     {
-        using namespace Ifrit::Graphics::Rhi;
+        using namespace Ifrit::RHI;
         auto rhi           = app->GetRhi();
         m_upsamplePipeline = rhi->CreateComputePass();
 
@@ -84,7 +84,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         if (m_resMap.count({ p2Width, p2Height }) == 0)
         {
             firstTime = true;
-            using namespace Ifrit::Graphics::Rhi;
+            using namespace Ifrit::RHI;
             auto res           = MakeOwner<PostFxFFTConv2dResourceCollection>();
             auto rhi           = m_app->GetRhi();
             auto linearSampler = m_app->GetSharedRenderResource()->GetLinearRepeatSampler();
@@ -173,7 +173,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             if (firstTime)
             {
                 cmd->BeginScope("Postprocess: FFTConv2D, GaussianBlur");
-                m_gaussianPipeline->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
+                m_gaussianPipeline->SetRecordFunction([&](const RHI::RhiRenderPassContext* ctx) {
                     cmd->SetPushConst(&pcb, 0, 4 * sizeof(u32));
                     ctx->m_cmd->Dispatch(Ifrit::Math::DivRoundUp(p2Width, 8), Ifrit::Math::DivRoundUp(p2Height, 8), 1);
                 });
@@ -208,7 +208,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
                     continue;
             }
             cmd->BeginScope(scopeNames[i]);
-            m_computePipeline->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
+            m_computePipeline->SetRecordFunction([&](const RHI::RhiRenderPassContext* ctx) {
                 pc.fftStep = i;
                 cmd->SetPushConst(&pc, 0, 16 * sizeof(u32));
                 ctx->m_cmd->Dispatch(wgX, wgY, 1);
@@ -221,7 +221,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         cmd->BeginScope("Postprocess: FFTConv2D, Upsample");
         auto dwgX = Ifrit::Math::DivRoundUp(srcWidth, 8);
         auto dwgY = Ifrit::Math::DivRoundUp(srcHeight, 8);
-        m_upsamplePipeline->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
+        m_upsamplePipeline->SetRecordFunction([&](const RHI::RhiRenderPassContext* ctx) {
             pc.tempImage = m_resMap[{ p2Width, p2Height }].m_texTemp->GetDescId();
             cmd->SetPushConst(&pc, 0, 17 * sizeof(u32));
             ctx->m_cmd->Dispatch(dwgX, dwgY, 1);

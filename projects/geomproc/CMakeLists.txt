@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Ifrit-v2-MeshProcLib LANGUAGES CXX C)
+project(Ifrit-v2-GeometryProc LANGUAGES CXX C)
 
 set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
 string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
@@ -62,11 +62,11 @@ include_directories(${IFRIT_PROJECT_DIR}/dependencies/openvdb)
 include_directories(${IFRIT_PROJECT_DIR}/build/openvdb/openvdb/openvdb/openvdb)
 include_directories(${IFRIT_PROJECT_DIR}/build/dependencies/openvdb/openvdb/openvdb/openvdb)
 
-add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.MeshProcLib")
-add_definitions(-DIFRIT_MODULE_MESHPROC)
+add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.GeometryProcess")
+add_definitions(-DIFRIT_MODULE_GEOMPROC)
 
-add_library(ifrit.meshproclib SHARED ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B})
-target_link_libraries(ifrit.meshproclib PUBLIC 
+add_library(ifrit.geomproc SHARED ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B})
+target_link_libraries(ifrit.geomproc PUBLIC 
     metis 
     meshoptimizer 
     GKlib

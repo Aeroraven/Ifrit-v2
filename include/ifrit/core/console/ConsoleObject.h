@@ -24,18 +24,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit
 {
-    template <typename T> class ConsoleVariable
+    template <typename T> class TConsoleVariable
     {
     private:
-        ConsoleVariableRegistryEntry<T>* m_Entry;
+        FConsoleVariableRegistryEntry<T>* m_Entry;
 
     public:
-        ConsoleVariable(const char* name, T value, const char* description, u8 flags = CVF_Default)
+        TConsoleVariable(const char* name, T value, const char* description, u8 flags = CVF_Default)
         {
-            Owner<IConsoleVariableRegistryEntry> entry =
-                MakeOwner<ConsoleVariableRegistryEntry<T>>(value, description, flags);
-            m_Entry = static_cast<ConsoleVariableRegistryEntry<T>*>(entry.get());
-            GetConsoleVariableRegistry()->RegisterVariable(name, entry);
+            Owner<IFConsoleVariableRegistryEntry> entry =
+                MakeOwner<FConsoleVariableRegistryEntry<T>>(value, description, flags);
+            m_Entry = static_cast<FConsoleVariableRegistryEntry<T>*>(entry.get());
+            GetFConsoleVariableRegistry()->RegisterVariable(name, entry);
         }
 
         T    GetValue() const { return m_Entry->GetValue(); }

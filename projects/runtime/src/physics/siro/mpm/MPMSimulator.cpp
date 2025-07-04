@@ -4,7 +4,7 @@
 #include "ifrit/core/math/linalg/LinalgOps.h"
 
 using namespace Ifrit::Math;
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime::Siro

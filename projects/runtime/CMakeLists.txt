@@ -40,7 +40,7 @@ target_precompile_headers(ifrit.runtime
 target_link_libraries(ifrit.runtime 
 	ifrit.rhi 
 	ifrit.display 
-	ifrit.meshproclib 
+	ifrit.geomproc 
 	ifrit.core 
 	ifrit.imaging
 	${FSR2_API_LIBRARIES}

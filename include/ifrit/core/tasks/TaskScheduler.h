@@ -27,7 +27,7 @@ namespace Ifrit
 {
     IF_CONSTEXPR u32 cTaskMaxContinuationCount = 16;
 
-    enum class TaskState : u32
+    enum class ETaskState : u32
     {
         Idle,
         Scheduling,
@@ -36,14 +36,14 @@ namespace Ifrit
         Failed,
     };
 
-    enum class TaskWorkerState : u32
+    enum class EFTaskWorkerState : u32
     {
         Alive,
         Terminating,
         Terminated,
     };
 
-    class TaskScheduler;
+    class FTaskScheduler;
 
     class IFRIT_APIDECL Task
     {
@@ -66,12 +66,12 @@ namespace Ifrit
         Atomic<i32>                             m_ChildJobs   = 0;
         Atomic<i32>                             m_ParentJobs  = 0;
 
-        RSpinLock                               m_ContinuationLock = 0;
-        Atomic<TaskState>                       m_State            = TaskState::Idle;
+        FSpinLock                               m_ContinuationLock = 0;
+        Atomic<ETaskState>                      m_State            = ETaskState::Idle;
         Array<Task*, cTaskMaxContinuationCount> m_Continuations;
         Array<Task*, cTaskMaxContinuationCount> m_Parents;
-        RIndexedPtr                             m_PooledIdx = RIndexedPtr(0);
-        TaskScheduler*                          m_Scheduler = nullptr;
+        FIndexedPtr                             m_PooledIdx = FIndexedPtr(0);
+        FTaskScheduler*                         m_Scheduler = nullptr;
 
         void*                                   m_Payload;
 
@@ -82,61 +82,61 @@ namespace Ifrit
 
         inline IntPtr GetId() { return m_PooledIdx.Ptr(); }
 
-        friend TaskScheduler;
+        friend FTaskScheduler;
     };
 
-    struct TaskWorkerAttributes;
-    class IFRIT_APIDECL TaskWorker : public NonCopyable
+    struct FTaskWorkerAttributes;
+    class IFRIT_APIDECL FTaskWorker : public NonCopyable
     {
-        using TaskRef = RObjectPool<Task>::RObjectRef;
+        using TaskRef = TObjectPool<Task>::TObjectRef;
 
     private:
-        std::thread           m_Thread;
-        TaskWorkerAttributes* m_Attributes = nullptr;
+        std::thread            m_Thread;
+        FTaskWorkerAttributes* m_Attributes = nullptr;
 
     private:
         void    EnqueueTask(TaskRef task);
         TaskRef FetchTask();
 
     public:
-        TaskWorker(TaskScheduler* scheduler, u32 id);
-        ~TaskWorker();
+        FTaskWorker(FTaskScheduler* scheduler, u32 id);
+        ~FTaskWorker();
 
         void Launch();
         void Run();
 
-        friend class TaskScheduler;
+        friend class FTaskScheduler;
     };
-    using TaskHandle = RObjectPool<Task>::RObjectRef;
+    using TaskHandle = TObjectPool<Task>::TObjectRef;
 
-    struct TaskSchedulerAttributes;
-    class IFRIT_APIDECL TaskScheduler : public NonCopyable
+    struct FTaskSchedulerAttributes;
+    class IFRIT_APIDECL FTaskScheduler : public NonCopyable
     {
     private:
         // I don't want the use of dangled pointer
-        using TaskRef = RObjectPool<Task>::RObjectRef;
+        using TaskRef = TObjectPool<Task>::TObjectRef;
 
     private:
-        TaskSchedulerAttributes* m_Attributes  = nullptr;
-        bool                     m_IsSingleton = false;
+        FTaskSchedulerAttributes* m_Attributes  = nullptr;
+        bool                      m_IsSingleton = false;
 
     private:
-        void        RegisterDependency(Task* parent, Task* child);
-        void        ScheduleTask(TaskRef task);
-        void        ScheduleTaskFromId(RIndexedPtr taskId);
-        TaskWorker* FetchRandomWorker();
-        void        DereferenceTask(RIndexedPtr taskId);
+        void         RegisterDependency(Task* parent, Task* child);
+        void         ScheduleTask(TaskRef task);
+        void         ScheduleTaskFromId(FIndexedPtr taskId);
+        FTaskWorker* FetchRandomWorker();
+        void         DereferenceTask(FIndexedPtr taskId);
 
     public:
-        TaskScheduler(u32 numWorkers, bool isSingleton = false);
-        ~TaskScheduler();
+        FTaskScheduler(u32 numWorkers, bool isSingleton = false);
+        ~FTaskScheduler();
         TaskRef EnqueueTask(Fn<void(Task*, void*)> fn, Vec<TaskRef> dependencies, void* payload);
         void    WaitForTask(TaskRef task);
 
-        friend class TaskWorker;
+        friend class FTaskWorker;
         friend class Task;
     };
 
-    IFRIT_CORE_API TaskScheduler* GetTaskScheduler();
+    IFRIT_CORE_API FTaskScheduler* GetFTaskScheduler();
 
 } // namespace Ifrit

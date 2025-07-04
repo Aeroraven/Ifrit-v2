@@ -27,16 +27,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Runtime
 {
 
-    Graphics::Rhi::RhiTextureRef ParseTex(std ::filesystem::path path, IApplication* app, const String& uuid)
+    RHI::RhiTextureRef ParseTex(std ::filesystem::path path, IApplication* app, const String& uuid)
     {
         // read image use stb
         i32          width, height, channels;
         u32          texSize;
         u8*          dataRaw = nullptr;
-        RSizedBuffer data;
+        TSizedBuffer data;
         bool         endsWithPng = path.extension() == ".png";
         bool         isNormalMap = path.string().ends_with("Normal.png");
-        auto         defaultFmt  = Graphics::Rhi::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM;
+        auto         defaultFmt  = RHI::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM;
         if (endsWithPng)
         {
             using namespace Ifrit::Imaging::Compress;
@@ -44,7 +44,7 @@ namespace Ifrit::Runtime
             if (isNormalMap)
             {
                 cacheFile  = app->GetCacheDir() + "/asset.bc5." + uuid + ".cache";
-                defaultFmt = Graphics::Rhi::RhiImageFormat::RhiImgFmt_BC5_UNORM_BLOCK;
+                defaultFmt = RHI::RhiImageFormat::RhiImgFmt_BC5_UNORM_BLOCK;
             }
             bool fileExists          = std::filesystem::exists(cacheFile);
             bool shouldGenCompressed = false;
@@ -66,8 +66,8 @@ namespace Ifrit::Runtime
 
                 if (isNormalMap)
                 {
-                    RSizedBuffer inputData(dataRaw, width * height * 4);
-                    RSizedBuffer normalRG;
+                    TSizedBuffer inputData(dataRaw, width * height * 4);
+                    TSizedBuffer normalRG;
                     DiscardBAChannel(inputData, normalRG, width, height, 1, 4, sizeof(u8));
                     WriteTex2DToBlockCompressedFile(
                         normalRG, cacheFile, TextureFormat::RG8_UNORM, width, height, 1, CompressionAlgo::BC5);
@@ -75,7 +75,7 @@ namespace Ifrit::Runtime
                 }
                 else
                 {
-                    RSizedBuffer inputData(dataRaw, width * height * 4);
+                    TSizedBuffer inputData(dataRaw, width * height * 4);
                     WriteTex2DToBlockCompressedFile(
                         inputData, cacheFile, TextureFormat::RGBA8_UNORM, width, height, 1, CompressionAlgo::BC7);
                     iInfo("Compressed image to BC7 format: {}", cacheFile);
@@ -83,10 +83,10 @@ namespace Ifrit::Runtime
                 stbi_image_free(dataRaw);
             }
 
-            defaultFmt = Graphics::Rhi::RhiImageFormat::RhiImgFmt_BC7_UNORM_BLOCK;
+            defaultFmt = RHI::RhiImageFormat::RhiImgFmt_BC7_UNORM_BLOCK;
             if (isNormalMap)
             {
-                defaultFmt = Graphics::Rhi::RhiImageFormat::RhiImgFmt_BC5_UNORM_BLOCK;
+                defaultFmt = RHI::RhiImageFormat::RhiImgFmt_BC5_UNORM_BLOCK;
             }
             // TextureFormat fmt;
             u32 baseWidth, baseHeight, baseDepth;
@@ -109,17 +109,16 @@ namespace Ifrit::Runtime
             stbi_image_free(dataRaw);
         }
 
-        auto rhi = app->GetRhi();
-        auto tex = rhi->CreateTexture2D("", width, height, defaultFmt, Graphics::Rhi::RhiImgUsage_CopyDst, false);
-        auto tq  = rhi->GetQueue(Graphics::Rhi::RhiQueueCapability::RhiQueue_Transfer);
-        auto buffer =
-            rhi->CreateBuffer("", texSize, Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
+        auto rhi    = app->GetRhi();
+        auto tex    = rhi->CreateTexture2D("", width, height, defaultFmt, RHI::RhiImgUsage_CopyDst, false);
+        auto tq     = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Transfer);
+        auto buffer = rhi->CreateBuffer("", texSize, RHI::RhiBufferUsage::RhiBufferUsage_CopySrc, true, false);
         buffer->MapMemory();
         buffer->WriteBuffer(data.GetData(), texSize, 0);
         buffer->FlushBuffer();
         buffer->UnmapMemory();
 
-        using namespace Graphics::Rhi;
+        using namespace RHI;
         auto imageBarrier = [&](const RhiCommandList* cmd, RhiTexture* tex, RhiResourceState src, RhiResourceState dst,
                                 RhiImageSubResource sub) {
             RhiTransitionBarrier barrier;
@@ -150,7 +149,7 @@ namespace Ifrit::Runtime
         // Pass
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiTextureRef TrivialImageAsset::GetTexture()
+    IFRIT_APIDECL RHI::RhiTextureRef TrivialImageAsset::GetTexture()
     {
         if (m_texture == nullptr)
         {

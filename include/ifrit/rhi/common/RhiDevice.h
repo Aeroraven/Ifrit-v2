@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "RhiBaseTypes.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
 
     struct RhiCapabilityList
@@ -50,4 +50,4 @@ namespace Ifrit::Graphics::Rhi
         virtual u32  GetCurrentFrameIndex() const = 0;
         virtual u32  GetCurrentImageIndex() const = 0;
     };
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

@@ -19,117 +19,117 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/vkgraphics/common/Pch.h"
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
     struct RhiVulkanBackendImplDetails;
-    class IFRIT_APIDECL RhiVulkanBackend : public Rhi::RhiBackend
+    class IFRIT_APIDECL RhiVulkanBackend : public RHI::RhiBackend
     {
     protected:
         // Note that Destructor order matters here
         // https://isocpp.org/wiki/faq/dtors#order-dtors-for-members
-        Owner<Rhi::RhiDevice>        m_device;
-        Owner<Rhi::RhiSwapchain>     m_swapChain;
+        Owner<RHI::RhiDevice>        m_device;
+        Owner<RHI::RhiSwapchain>     m_swapChain;
         RhiVulkanBackendImplDetails* m_implDetails;
-        Rhi::RhiCapabilityList       m_Capability = {};
+        RHI::RhiCapabilityList       m_Capability = {};
 
     public:
-        RhiVulkanBackend(const Rhi::RhiInitializeArguments& args);
+        RhiVulkanBackend(const RHI::RhiInitializeArguments& args);
         ~RhiVulkanBackend();
 
         void                     WaitDeviceIdle() override;
-        Rhi::RhiCapabilityList   GetCapabilities() const override;
-        Ref<Rhi::RhiDeviceTimer> CreateDeviceTimer() override;
-        Rhi::RhiBufferRef        CreateBuffer(
+        RHI::RhiCapabilityList   GetCapabilities() const override;
+        Ref<RHI::RhiDeviceTimer> CreateDeviceTimer() override;
+        RHI::RhiBufferRef        CreateBuffer(
                    const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const override;
-        Rhi::RhiBufferRef CreateBufferDevice(const String& name, u32 size, u32 usage, bool addUAV) const override;
-        Ref<Rhi::RhiMultiBuffer>        CreateBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
-        Ref<Rhi::RhiStagedSingleBuffer> CreateStagedSingleBuffer(Rhi::RhiBuffer* target) override;
-        Rhi::RhiBufferRef               GetFullScreenQuadVertexBuffer() const override;
+        RHI::RhiBufferRef CreateBufferDevice(const String& name, u32 size, u32 usage, bool addUAV) const override;
+        Ref<RHI::RhiMultiBuffer>        CreateBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const override;
+        Ref<RHI::RhiStagedSingleBuffer> CreateStagedSingleBuffer(RHI::RhiBuffer* target) override;
+        RHI::RhiBufferRef               GetFullScreenQuadVertexBuffer() const override;
 
         // Command execution
-        Rhi::RhiQueue*                  GetQueue(Rhi::RhiQueueCapability req) override;
+        RHI::RhiQueue*                  GetQueue(RHI::RhiQueueCapability req) override;
 
         // Shader
-        Ref<Rhi::RhiShaderCollection>   CreateShader(const String& name, const Vec<char>& code, const String& entry,
-              Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType) override;
+        Ref<RHI::RhiShaderCollection>   CreateShader(const String& name, const Vec<char>& code, const String& entry,
+              RHI::RhiShaderStage stage, RHI::RhiShaderSourceType sourceType) override;
 
         // Texture
-        Rhi::RhiTextureRef CreateTexture2D(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format,
+        RHI::RhiTextureRef CreateTexture2D(const String& name, u32 width, u32 height, RHI::RhiImageFormat format,
             u32 extraFlags, bool addUAV) override;
-        Rhi::RhiTextureRef CreateTexture2DMsaa(const String& name, u32 width, u32 height, Rhi::RhiImageFormat format,
+        RHI::RhiTextureRef CreateTexture2DMsaa(const String& name, u32 width, u32 height, RHI::RhiImageFormat format,
             u32 extraFlags, u32 samples) override;
-        Rhi::RhiTextureRef CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) override;
-        Rhi::RhiTextureRef CreateTexture3D(const String& name, u32 width, u32 height, u32 depth,
-            Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+        RHI::RhiTextureRef CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) override;
+        RHI::RhiTextureRef CreateTexture3D(const String& name, u32 width, u32 height, u32 depth,
+            RHI::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
 
-        Rhi::RhiTextureRef CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips,
-            Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
+        RHI::RhiTextureRef CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips,
+            RHI::RhiImageFormat format, u32 extraFlags, bool addUAV) override;
 
-        Rhi::RhiSamplerRef CreateSampler(
-            Rhi::RhiSamplerFilter filter, Rhi::RhiSamplerWrapMode addressMode, bool addBinding) override;
+        RHI::RhiSamplerRef CreateSampler(
+            RHI::RhiSamplerFilter filter, RHI::RhiSamplerWrapMode addressMode, bool addBinding) override;
 
         // Pass
-        Rhi::RhiComputePass*                   CreateComputePass() override;
-        Rhi::RhiGraphicsPass*                  CreateGraphicsPass() override;
+        RHI::RhiComputePass*                   CreateComputePass() override;
+        RHI::RhiGraphicsPass*                  CreateGraphicsPass() override;
 
-        Owner<Rhi::RhiComputePass>             CreateComputePass2() override;
-        Owner<Rhi::RhiGraphicsPass>            CreateGraphicsPass2() override;
+        Owner<RHI::RhiComputePass>             CreateComputePass2() override;
+        Owner<RHI::RhiGraphicsPass>            CreateGraphicsPass2() override;
 
         // Swapchain
-        Rhi::RhiTexture*                       GetSwapchainImage() override;
+        RHI::RhiTexture*                       GetSwapchainImage() override;
         void                                   BeginFrame() override;
         void                                   EndFrame() override;
-        Owner<Rhi::RhiTaskSubmission>          GetSwapchainFrameReadyEventHandler() override;
-        Owner<Rhi::RhiTaskSubmission>          GetSwapchainRenderDoneEventHandler() override;
+        Owner<RHI::RhiTaskSubmission>          GetSwapchainFrameReadyEventHandler() override;
+        Owner<RHI::RhiTaskSubmission>          GetSwapchainRenderDoneEventHandler() override;
 
         // Descriptor
-        virtual Rhi::RhiBindlessDescriptorRef* CreateBindlessDescriptorRef() override;
-        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer) override;
-        virtual Ref<Rhi::RhiDescHandleLegacy>  RegisterStorageBufferShared(Rhi::RhiMultiBuffer* buffer) override;
+        virtual RHI::RhiBindlessDescriptorRef* CreateBindlessDescriptorRef() override;
+        virtual Ref<RHI::RhiDescHandleLegacy>  RegisterUniformBuffer(RHI::RhiMultiBuffer* buffer) override;
+        virtual Ref<RHI::RhiDescHandleLegacy>  RegisterStorageBufferShared(RHI::RhiMultiBuffer* buffer) override;
         // Descriptor, refactored
-        virtual Rhi::RhiSRVDesc                GetSRVDescriptor(
-                           Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
-        virtual Rhi::RhiUAVDesc GetUAVDescriptor(
-            Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource) override;
-        virtual Rhi::RhiSRVDesc                     GetSRVDescriptor(Rhi::RhiTexture* texture) override;
-        virtual Rhi::RhiUAVDesc                     GetUAVDescriptor(Rhi::RhiTexture* texture) override;
-        virtual Rhi::RhiSRVDesc                     GetSRVDescriptor(Rhi::RhiBuffer* buffer) override;
-        virtual Rhi::RhiUAVDesc                     GetUAVDescriptor(Rhi::RhiBuffer* buffer) override;
+        virtual RHI::RhiSRVDesc                GetSRVDescriptor(
+                           RHI::RhiTexture* texture, RHI::RhiImageSubResource subResource) override;
+        virtual RHI::RhiUAVDesc GetUAVDescriptor(
+            RHI::RhiTexture* texture, RHI::RhiImageSubResource subResource) override;
+        virtual RHI::RhiSRVDesc                     GetSRVDescriptor(RHI::RhiTexture* texture) override;
+        virtual RHI::RhiUAVDesc                     GetUAVDescriptor(RHI::RhiTexture* texture) override;
+        virtual RHI::RhiSRVDesc                     GetSRVDescriptor(RHI::RhiBuffer* buffer) override;
+        virtual RHI::RhiUAVDesc                     GetUAVDescriptor(RHI::RhiBuffer* buffer) override;
 
-        virtual Rhi::RhiCBVDesc                     GetCBVDescriptor(Rhi::RhiBuffer* buffer) override;
+        virtual RHI::RhiCBVDesc                     GetCBVDescriptor(RHI::RhiBuffer* buffer) override;
 
         // Render targets
-        virtual Ref<Rhi::RhiColorAttachment>        CreateRenderTarget(Rhi::RhiTexture* renderTarget,
-                   Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers) override;
+        virtual Ref<RHI::RhiColorAttachment>        CreateRenderTarget(RHI::RhiTexture* renderTarget,
+                   RHI::RhiClearValue2 clearValue, RHI::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers) override;
 
-        virtual Ref<Rhi::RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
-            Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp) override;
+        virtual Ref<RHI::RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
+            RHI::RhiTexture* renderTarget, RHI::RhiClearValue2 clearValue, RHI::RhiRenderTargetLoadOp loadOp) override;
 
-        virtual Ref<Rhi::RhiRenderTargets>          CreateRenderTargets() override;
+        virtual Ref<RHI::RhiRenderTargets>          CreateRenderTargets() override;
 
         // Vertex buffer
-        virtual Ref<Rhi::RhiVertexBufferView>       CreateVertexBufferView() override;
-        virtual Ref<Rhi::RhiVertexBufferView>       GetFullScreenQuadVertexBufferView() const override;
+        virtual Ref<RHI::RhiVertexBufferView>       CreateVertexBufferView() override;
+        virtual Ref<RHI::RhiVertexBufferView>       GetFullScreenQuadVertexBufferView() const override;
 
         // Cache
         virtual void                                SetCacheDirectory(const String& dir) override;
         virtual String                              GetCacheDir() const override;
 
         // Extension
-        virtual Owner<Rhi::FSR2::RhiFsr2Processor>  CreateFsr2Processor() override;
+        virtual Owner<RHI::FSR2::RhiFsr2Processor>  CreateFsr2Processor() override;
 
         // Raytracing
-        virtual Owner<Rhi::RhiRTInstance>           CreateTLAS() { return nullptr; }
-        virtual Owner<Rhi::RhiRTScene>              CreateBLAS() { return nullptr; }
-        virtual Owner<Rhi::RhiRTShaderBindingTable> CreateShaderBindingTable() { return nullptr; }
+        virtual Owner<RHI::RhiRTInstance>           CreateTLAS() { return nullptr; }
+        virtual Owner<RHI::RhiRTScene>              CreateBLAS() { return nullptr; }
+        virtual Owner<RHI::RhiRTShaderBindingTable> CreateShaderBindingTable() { return nullptr; }
 
-        virtual Owner<Rhi::RhiRTPass>               CreateRaytracingPass() { return nullptr; }
+        virtual Owner<RHI::RhiRTPass>               CreateRaytracingPass() { return nullptr; }
     };
 
-    class IFRIT_APIDECL RhiVulkanBackendBuilder : public Rhi::RhiBackendFactory, public NonCopyable
+    class IFRIT_APIDECL RhiVulkanBackendBuilder : public RHI::RhiBackendFactory, public NonCopyable
     {
     public:
-        Owner<Rhi::RhiBackend> CreateBackend(const Rhi::RhiInitializeArguments& args) override;
+        Owner<RHI::RhiBackend> CreateBackend(const RHI::RhiInitializeArguments& args) override;
     };
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

@@ -81,31 +81,27 @@ namespace Ifrit::Runtime
     }
 
     // Specialized nodes
-    IFRIT_APIDECL GraphicsPassNode::GraphicsPassNode(Owner<Graphics::Rhi::RhiGraphicsPass>&& pass)
-        : m_pass(std::move(pass))
-    {
-    }
+    IFRIT_APIDECL GraphicsPassNode::GraphicsPassNode(Owner<RHI::RhiGraphicsPass>&& pass) : m_pass(std::move(pass)) {}
 
     IFRIT_APIDECL void GraphicsPassNode::Execute(const FrameGraphPassContext& ctx)
     {
 
-        m_pass->SetRecordFunction(
-            [this, &ctx](const Graphics::Rhi::RhiRenderPassContext* ct) { this->passFunction(ctx); });
+        m_pass->SetRecordFunction([this, &ctx](const RHI::RhiRenderPassContext* ct) { this->passFunction(ctx); });
         ctx.m_CmdList->BeginScope(String("Ifrit.RDG.Draw: ") + name);
         m_pass->Run(ctx.m_CmdList, this->m_RhiRTs.get(), 0);
         ctx.m_CmdList->EndScope();
     }
 
-    IFRIT_APIDECL void GraphicsPassNode::ComposeRenderTargets(Graphics::Rhi::RhiBackend* rhiBackend)
+    IFRIT_APIDECL void GraphicsPassNode::ComposeRenderTargets(RHI::RhiBackend* rhiBackend)
     {
         if (m_RTComposed)
             return;
         m_RhiRTs = rhiBackend->CreateRenderTargets();
-        Vec<Graphics::Rhi::RhiColorAttachment*> crts;
+        Vec<RHI::RhiColorAttachment*> crts;
         for (u32 i = 0; i < m_RenderTarget.size(); i++)
         {
-            auto                          res = m_RenderTarget[i];
-            Graphics::Rhi::RhiClearValue2 clearValue(Graphics::Rhi::CreateRhiClearColorValue(m_ColorClearValue[i]));
+            auto                res = m_RenderTarget[i];
+            RHI::RhiClearValue2 clearValue(RHI::CreateRhiClearColorValue(m_ColorClearValue[i]));
             auto rt = rhiBackend->CreateRenderTarget(res->GetTexture(), clearValue, m_ColorLoadOp[i], 0, 0);
             crts.push_back(rt.get());
             m_RhiColorRTs.push_back(rt);
@@ -116,9 +112,8 @@ namespace Ifrit::Runtime
         m_RhiRTs->SetColorAttachments(crts);
         if (m_DepthTarget != nullptr)
         {
-            Graphics::Rhi::RhiClearValue2 clearValue(
-                Graphics::Rhi::CreateRhiClearDepthStencilValue(m_DepthClearValue, 0));
-            auto rt =
+            RHI::RhiClearValue2 clearValue(RHI::CreateRhiClearDepthStencilValue(m_DepthClearValue, 0));
+            auto                rt =
                 rhiBackend->CreateRenderTargetDepthStencil(m_DepthTarget->GetTexture(), clearValue, m_DepthLoadOp);
             m_RhiDepthRT = rt;
             m_RhiRTs->SetDepthStencilAttachment(rt.get());
@@ -180,15 +175,11 @@ namespace Ifrit::Runtime
         return *this;
     }
 
-    IFRIT_APIDECL ComputePassNode::ComputePassNode(Owner<Graphics::Rhi::RhiComputePass>&& pass)
-        : m_pass(std::move(pass))
-    {
-    }
+    IFRIT_APIDECL      ComputePassNode::ComputePassNode(Owner<RHI::RhiComputePass>&& pass) : m_pass(std::move(pass)) {}
 
     IFRIT_APIDECL void ComputePassNode::Execute(const FrameGraphPassContext& ctx)
     {
-        m_pass->SetRecordFunction(
-            [this, &ctx](const Graphics::Rhi::RhiRenderPassContext* ct) { this->passFunction(ctx); });
+        m_pass->SetRecordFunction([this, &ctx](const RHI::RhiRenderPassContext* ct) { this->passFunction(ctx); });
         ctx.m_CmdList->BeginScope(String("Ifrit.RDG.Compute: ") + name);
         m_pass->Run(ctx.m_CmdList, 0);
         ctx.m_CmdList->EndScope();
@@ -246,7 +237,7 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL GraphicsPassNode& FrameGraphBuilder::AddGraphicsPass(const String& name, const ShaderVariantDesc& vs,
-        const ShaderVariantDesc& fs, u32 pushConsts, Graphics::Rhi::RhiRasterizerTopology topology)
+        const ShaderVariantDesc& fs, u32 pushConsts, RHI::RhiRasterizerTopology topology)
     {
         auto gp = m_Rhi->CreateGraphicsPass2();
         gp->SetVertexShader(m_ShaderRegistry->GetShader(vs));
@@ -315,7 +306,7 @@ namespace Ifrit::Runtime
         return node;
     }
 
-    Graphics::Rhi::RhiUAVDesc FrameGraphBuilder::GetUAV(const ResourceNode& res) const
+    RHI::RhiUAVDesc FrameGraphBuilder::GetUAV(const ResourceNode& res) const
     {
         if (res.isImported)
         {
@@ -345,7 +336,7 @@ namespace Ifrit::Runtime
         return 0;
     }
 
-    Graphics::Rhi::RhiSRVDesc FrameGraphBuilder::GetSRV(const ResourceNode& res) const
+    RHI::RhiSRVDesc FrameGraphBuilder::GetSRV(const ResourceNode& res) const
     {
         if (res.isImported)
         {
@@ -375,7 +366,7 @@ namespace Ifrit::Runtime
         return 0;
     }
 
-    Graphics::Rhi::RhiCBVDesc FrameGraphBuilder::GetCBV(const ResourceNode& res) const
+    RHI::RhiCBVDesc FrameGraphBuilder::GetCBV(const ResourceNode& res) const
     {
         if (res.isImported)
         {
@@ -397,49 +388,49 @@ namespace Ifrit::Runtime
 
     // Frame Graph compiler
 
-    Graphics::Rhi::RhiResourceState GetInputResourceState(FrameGraphPassType passType, FrameGraphResourceType resType)
+    RHI::RhiResourceState GetInputResourceState(FrameGraphPassType passType, FrameGraphResourceType resType)
     {
         if (resType == FrameGraphResourceType::ResourceBuffer)
         {
             if (passType == FrameGraphPassType::Transfer)
             {
-                return Graphics::Rhi::RhiResourceState::CopySrc;
+                return RHI::RhiResourceState::CopySrc;
             }
             else
             {
-                return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+                return RHI::RhiResourceState::UnorderedAccess;
             }
         }
         else if (resType == FrameGraphResourceType::ResourceTexture)
         {
             if (passType == FrameGraphPassType::Graphics)
             {
-                return Graphics::Rhi::RhiResourceState::ShaderRead;
+                return RHI::RhiResourceState::ShaderRead;
             }
             else if (passType == FrameGraphPassType::Compute)
             {
-                return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+                return RHI::RhiResourceState::UnorderedAccess;
             }
             else if (passType == FrameGraphPassType::Transfer)
             {
-                return Graphics::Rhi::RhiResourceState::CopySrc;
+                return RHI::RhiResourceState::CopySrc;
             }
         }
-        return Graphics::Rhi::RhiResourceState::Undefined;
+        return RHI::RhiResourceState::Undefined;
     }
 
-    Graphics::Rhi::RhiResourceState GetDesiredOutputLayout(
+    RHI::RhiResourceState GetDesiredOutputLayout(
         FrameGraphPassType passType, FrameGraphResourceType resType, ResourceNode* image)
     {
         if (resType == FrameGraphResourceType::ResourceBuffer)
         {
             if (passType == FrameGraphPassType::Transfer)
             {
-                return Graphics::Rhi::RhiResourceState::CopyDst;
+                return RHI::RhiResourceState::CopyDst;
             }
             else
             {
-                return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+                return RHI::RhiResourceState::UnorderedAccess;
             }
         }
         else if (resType == FrameGraphResourceType::ResourceTexture)
@@ -450,41 +441,41 @@ namespace Ifrit::Runtime
                 {
                     if (image->GetTexture()->IsDepthTexture())
                     {
-                        return Graphics::Rhi::RhiResourceState::DepthStencilRT;
+                        return RHI::RhiResourceState::DepthStencilRT;
                     }
                     else
                     {
-                        return Graphics::Rhi::RhiResourceState::ColorRT;
+                        return RHI::RhiResourceState::ColorRT;
                     }
                 }
                 else
                 {
                     auto desc = image->GetManagedTextureDesc();
-                    if (desc.m_Format == Graphics::Rhi::RhiImageFormat::RhiImgFmt_D32_SFLOAT)
+                    if (desc.m_Format == RHI::RhiImageFormat::RhiImgFmt_D32_SFLOAT)
                     {
-                        return Graphics::Rhi::RhiResourceState::DepthStencilRT;
+                        return RHI::RhiResourceState::DepthStencilRT;
                     }
                     else
                     {
-                        return Graphics::Rhi::RhiResourceState::ColorRT;
+                        return RHI::RhiResourceState::ColorRT;
                     }
                 }
             }
             else if (passType == FrameGraphPassType::Compute)
             {
-                return Graphics::Rhi::RhiResourceState::UnorderedAccess;
+                return RHI::RhiResourceState::UnorderedAccess;
             }
             else if (passType == FrameGraphPassType::Transfer)
             {
-                return Graphics::Rhi::RhiResourceState::CopyDst;
+                return RHI::RhiResourceState::CopyDst;
             }
         }
-        return Graphics::Rhi::RhiResourceState::Undefined;
+        return RHI::RhiResourceState::Undefined;
     }
 
     IFRIT_APIDECL CompiledFrameGraph FrameGraphCompiler::Compile(const FrameGraphBuilder& graph)
     {
-        using namespace Ifrit::Graphics::Rhi;
+        using namespace Ifrit::RHI;
 
         CompiledFrameGraph compiledGraph = {};
         compiledGraph.m_inputBarriers    = {};
@@ -566,12 +557,12 @@ namespace Ifrit::Runtime
                     }
                     if (rawResourceState.find(resPtr) == rawResourceState.end())
                     {
-                        rawResourceState[resPtr]     = Graphics::Rhi::RhiResourceState::Undefined;
+                        rawResourceState[resPtr]     = RHI::RhiResourceState::Undefined;
                         rawResourceIsWriting[resPtr] = false;
                     }
                 }
 
-                Graphics::Rhi::RhiResourceState rawResState;
+                RHI::RhiResourceState rawResState;
                 if (res->isImported)
                 {
                     rawResState = rawResourceState[resPtr];
@@ -584,7 +575,7 @@ namespace Ifrit::Runtime
                 // Check if input state meets the desired state
                 if (desiredLayout != rawResState)
                 {
-                    if (desiredLayout == Graphics::Rhi::RhiResourceState::Undefined
+                    if (desiredLayout == RHI::RhiResourceState::Undefined
                         && graph.m_resourceInitState == FrameGraphResourceInitState::Uninitialized)
                     {
                         // If the layout is managed by user, then we don't need to do anything
@@ -592,18 +583,18 @@ namespace Ifrit::Runtime
                         CompiledFrameGraph::ResourceBarrier aliasBarrier;
                         aliasBarrier.m_ResId                 = resId;
                         aliasBarrier.enableTransitionBarrier = true;
-                        aliasBarrier.srcState = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
-                        aliasBarrier.dstState = desiredLayout;
+                        aliasBarrier.srcState                = RHI::RhiResourceState::AutoTraced; // rawResState;
+                        aliasBarrier.dstState                = desiredLayout;
                         compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                     }
-                    else if (desiredLayout != Graphics::Rhi::RhiResourceState::Undefined)
+                    else if (desiredLayout != RHI::RhiResourceState::Undefined)
                     {
                         // Here we need to make a transition barrier
                         CompiledFrameGraph::ResourceBarrier aliasBarrier;
                         aliasBarrier.m_ResId                 = resId;
                         aliasBarrier.enableTransitionBarrier = true;
-                        aliasBarrier.srcState = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
-                        aliasBarrier.dstState = desiredLayout;
+                        aliasBarrier.srcState                = RHI::RhiResourceState::AutoTraced; // rawResState;
+                        aliasBarrier.dstState                = desiredLayout;
                         compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                     }
                 }
@@ -658,12 +649,12 @@ namespace Ifrit::Runtime
                     }
                     if (rawResourceState.find(resPtr) == rawResourceState.end())
                     {
-                        rawResourceState[resPtr]     = Graphics::Rhi::RhiResourceState::Undefined;
+                        rawResourceState[resPtr]     = RHI::RhiResourceState::Undefined;
                         rawResourceIsWriting[resPtr] = true;
                     }
                 }
 
-                Graphics::Rhi::RhiResourceState rawResState;
+                RHI::RhiResourceState rawResState;
                 if (res->isImported)
                 {
                     rawResState = rawResourceState[resPtr];
@@ -675,7 +666,7 @@ namespace Ifrit::Runtime
                 // Check if input state meets the desired state
                 if (desiredLayout != rawResState)
                 {
-                    if (desiredLayout == Graphics::Rhi::RhiResourceState::Undefined
+                    if (desiredLayout == RHI::RhiResourceState::Undefined
                         && graph.m_resourceInitState == FrameGraphResourceInitState::Uninitialized)
                     {
                         // If the layout is managed by user, then we don't need to do anything
@@ -683,18 +674,18 @@ namespace Ifrit::Runtime
                         CompiledFrameGraph::ResourceBarrier aliasBarrier;
                         aliasBarrier.m_ResId                 = resId;
                         aliasBarrier.enableTransitionBarrier = true;
-                        aliasBarrier.srcState = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
-                        aliasBarrier.dstState = desiredLayout;
+                        aliasBarrier.srcState                = RHI::RhiResourceState::AutoTraced; // rawResState;
+                        aliasBarrier.dstState                = desiredLayout;
                         compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                     }
-                    else if (desiredLayout != Graphics::Rhi::RhiResourceState::Undefined)
+                    else if (desiredLayout != RHI::RhiResourceState::Undefined)
                     {
                         // Here we need to make a transition barrier
                         CompiledFrameGraph::ResourceBarrier aliasBarrier;
                         aliasBarrier.m_ResId                 = resId;
                         aliasBarrier.enableTransitionBarrier = true;
-                        aliasBarrier.srcState = Graphics::Rhi::RhiResourceState::AutoTraced; // rawResState;
-                        aliasBarrier.dstState = desiredLayout;
+                        aliasBarrier.srcState                = RHI::RhiResourceState::AutoTraced; // rawResState;
+                        aliasBarrier.dstState                = desiredLayout;
 
                         compiledGraph.m_inputBarriers.back().push_back(aliasBarrier);
                     }
@@ -714,17 +705,17 @@ namespace Ifrit::Runtime
         return compiledGraph;
     }
 
-    Graphics::Rhi::RhiResourceBarrier FrameGraphExecutor::ToRhiResBarrier(
+    RHI::RhiResourceBarrier FrameGraphExecutor::ToRhiResBarrier(
         const CompiledFrameGraph::ResourceBarrier& barrier, const ResourceNode& res, bool& valid)
     {
-        Graphics::Rhi::RhiResourceBarrier resBarrier;
+        RHI::RhiResourceBarrier resBarrier;
         valid = false;
         if (barrier.enableTransitionBarrier)
         {
-            resBarrier.m_type              = Graphics::Rhi::RhiBarrierType::Transition;
+            resBarrier.m_type              = RHI::RhiBarrierType::Transition;
             resBarrier.m_transition.m_type = res.type == FrameGraphResourceType::ResourceBuffer
-                ? Graphics::Rhi::RhiResourceType::Buffer
-                : Graphics::Rhi::RhiResourceType::Texture;
+                ? RHI::RhiResourceType::Buffer
+                : RHI::RhiResourceType::Texture;
             if (res.isImported)
             {
                 if (res.type == FrameGraphResourceType::ResourceBuffer)
@@ -756,16 +747,16 @@ namespace Ifrit::Runtime
                 }
             }
 
-            resBarrier.m_transition.m_srcState = Graphics::Rhi::RhiResourceState::AutoTraced; // barrier.srcState;
+            resBarrier.m_transition.m_srcState = RHI::RhiResourceState::AutoTraced; // barrier.srcState;
             resBarrier.m_transition.m_dstState = barrier.dstState;
             valid                              = true;
         }
         else if (barrier.enableUAVBarrier)
         {
-            resBarrier.m_type       = Graphics::Rhi::RhiBarrierType::UAVAccess;
+            resBarrier.m_type       = RHI::RhiBarrierType::UAVAccess;
             resBarrier.m_uav.m_type = res.type == FrameGraphResourceType::ResourceBuffer
-                ? Graphics::Rhi::RhiResourceType::Buffer
-                : Graphics::Rhi::RhiResourceType::Texture;
+                ? RHI::RhiResourceType::Buffer
+                : RHI::RhiResourceType::Texture;
             if (res.isImported)
             {
                 if (res.type == FrameGraphResourceType::ResourceBuffer)
@@ -803,10 +794,10 @@ namespace Ifrit::Runtime
 
     // Execute the compiled frame graph
     IFRIT_APIDECL void FrameGraphExecutor::ExecuteInSingleCmd(
-        const Graphics::Rhi::RhiCommandList* cmd, const CompiledFrameGraph& compiledGraph)
+        const RHI::RhiCommandList* cmd, const CompiledFrameGraph& compiledGraph)
     {
         cmd->BeginScope("Ifrit.RDG: Execute Render Graph");
-        using namespace Ifrit::Graphics::Rhi;
+        using namespace Ifrit::RHI;
         for (auto& pass : compiledGraph.m_graph->m_passes)
         {
             if (pass->name == "Ayanami.Debug.VisualizeScreenProbeAdaptive")
@@ -866,13 +857,13 @@ namespace Ifrit::Runtime
                 {
                     res->selfBuffer = nullptr;
                     compiledGraph.m_graph->m_ResourcePool->ReleaseBuffer(res->m_PooledResId);
-                    res->m_PooledResId = RIndexedPtr(0);
+                    res->m_PooledResId = FIndexedPtr(0);
                 }
                 else if (res->type == FrameGraphResourceType::ResourceTexture)
                 {
                     res->selfTexture = nullptr;
                     compiledGraph.m_graph->m_ResourcePool->ReleaseTexture(res->m_PooledResId);
-                    res->m_PooledResId = RIndexedPtr(0);
+                    res->m_PooledResId = FIndexedPtr(0);
                 }
             }
         }

@@ -305,7 +305,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void RendererBase::BuildPipelines(
         PerFrameData& perframeData, GraphicsShaderPassType passType, RenderTargets* renderTargets)
     {
-        using namespace Ifrit::Graphics::Rhi;
+        using namespace Ifrit::RHI;
         for (auto& shaderEffectId : perframeData.m_enabledEffects)
         {
             auto& shaderEffect = perframeData.m_shaderEffectData[shaderEffectId];
@@ -381,7 +381,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void RendererBase::RecreateGBuffers(PerFrameData& perframeData, RenderTargets* renderTargets)
     {
-        using namespace Ifrit::Graphics::Rhi;
+        using namespace Ifrit::RHI;
         auto rhi           = m_app->GetRhi();
         auto rtArea        = renderTargets->GetRenderArea();
         auto needRecreate  = (perframeData.m_gbuffer.m_rtCreated == 0);
@@ -512,7 +512,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void RendererBase::PrepareDeviceResources(PerFrameData& perframeData, RenderTargets* renderTargets)
     {
-        using namespace Ifrit::Graphics::Rhi;
+        using namespace Ifrit::RHI;
         auto rhi        = m_app->GetRhi();
         auto renderArea = renderTargets->GetRenderArea();
 
@@ -701,11 +701,11 @@ namespace Ifrit::Runtime
                     {
                         meshResource.bvhNodeBuffer          = rhi->CreateBufferDevice("Mesh_BVHNode",
                                      SizeCast<u32>(
-                                meshDataRef->m_bvhNodes.size() * sizeof(MeshProcLib::MeshProcess::FlattenedBVHNode)),
+                                meshDataRef->m_bvhNodes.size() * sizeof(GeometryProc::MeshProcess::FlattenedBVHNode)),
                                      tmpUsage, true);
                         meshResource.clusterGroupBuffer     = rhi->CreateBufferDevice("Mesh_ClusterGroup",
                                 SizeCast<u32>(
-                                meshDataRef->m_clusterGroups.size() * sizeof(MeshProcLib::MeshProcess::ClusterGroup)),
+                                meshDataRef->m_clusterGroups.size() * sizeof(GeometryProc::MeshProcess::ClusterGroup)),
                                 tmpUsage, true);
                         meshResource.meshletBuffer          = rhi->CreateBufferDevice("Mesh_Cluster",
                                      SizeCast<u32>(meshDataRef->m_meshlets.size() * sizeof(MeshData::MeshletData)), tmpUsage,
@@ -925,20 +925,19 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void RendererBase::EndFrame(const std::vector<GPUCommandSubmission*>& cmdToWait)
     {
         auto rhi = m_app->GetRhi();
-        using namespace Ifrit::Graphics;
-        auto drawq           = rhi->GetQueue(Rhi::RhiQueueCapability::RhiQueue_Graphics);
+        auto drawq           = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Graphics);
         auto swapchainImg    = rhi->GetSwapchainImage();
         auto sRenderComplete = rhi->GetSwapchainRenderDoneEventHandler();
         auto cmd             = drawq->RunAsyncCommand(
-            [&](const Rhi::RhiCommandList* cmd) {
-                Rhi::RhiTransitionBarrier barrier;
+            [&](const RHI::RhiCommandList* cmd) {
+                RHI::RhiTransitionBarrier barrier;
                 barrier.m_texture     = swapchainImg;
-                barrier.m_type        = Rhi::RhiResourceType::Texture;
-                barrier.m_dstState    = Rhi::RhiResourceState::Present;
+                barrier.m_type        = RHI::RhiResourceType::Texture;
+                barrier.m_dstState    = RHI::RhiResourceState::Present;
                 barrier.m_subResource = { 0, 0, 1, 1 };
 
-                Rhi::RhiResourceBarrier barrier2;
-                barrier2.m_type       = Rhi::RhiBarrierType::Transition;
+                RHI::RhiResourceBarrier barrier2;
+                barrier2.m_type       = RHI::RhiBarrierType::Transition;
                 barrier2.m_transition = barrier;
 
                 cmd->AddResourceBarrier({ barrier2 });

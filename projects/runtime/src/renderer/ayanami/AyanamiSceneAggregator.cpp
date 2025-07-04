@@ -25,10 +25,10 @@ namespace Ifrit::Runtime::Ayanami
 
     struct AyanamiSceneResources
     {
-        using GPUTexture     = Graphics::Rhi::RhiTexture;
-        using GPUBuffer      = Graphics::Rhi::RhiBuffer;
-        using GPUMultiBuffer = Graphics::Rhi::RhiMultiBuffer;
-        using GPUBindId      = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUTexture     = RHI::RhiTexture;
+        using GPUBuffer      = RHI::RhiBuffer;
+        using GPUMultiBuffer = RHI::RhiMultiBuffer;
+        using GPUBindId      = RHI::RhiDescHandleLegacy;
 
         struct MDFDescriptor
         {
@@ -78,7 +78,7 @@ namespace Ifrit::Runtime::Ayanami
                 AyanamiSceneResources::MDFDescriptor desc;
                 desc.m_mdfMetaId = metaId;
                 {
-                    using namespace Ifrit::Graphics::Rhi;
+                    using namespace Ifrit::RHI;
                     Ref<RhiMultiBuffer>      transformBuf, transformBufLast;
                     Ref<RhiDescHandleLegacy> transformBindId, transformBindIdLast;
                     transform->GetGPUResource(transformBuf, transformBufLast, transformBindId, transformBindIdLast);
@@ -139,8 +139,7 @@ namespace Ifrit::Runtime::Ayanami
             m_sceneResources->m_m_mdfAllInstancesAllocSize = SizeCast<u32>(m_sceneResources->m_meshMetaIds.size());
             m_sceneResources->m_mdfAllInstances            = m_rhi->CreateBufferCoherent(
                 sizeof(AyanamiSceneResources::MDFDescriptor) * m_sceneResources->m_m_mdfAllInstancesAllocSize,
-                Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_CopyDst
-                    | Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO);
+                RHI::RhiBufferUsage::RhiBufferUsage_CopyDst | RHI::RhiBufferUsage::RhiBufferUsage_SSBO);
         }
 
         // update the buffer

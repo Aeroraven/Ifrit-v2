@@ -40,22 +40,22 @@ namespace Ifrit::Runtime
 
     class IFRIT_APIDECL SyaroRenderer : public RendererBase
     {
-        using RenderTargets        = Graphics::Rhi::RhiRenderTargets;
-        using GPUCommandSubmission = Graphics::Rhi::RhiTaskSubmission;
-        using GPUBuffer            = Graphics::Rhi::RhiBufferRef;
-        using GPUBindId            = Graphics::Rhi::RhiDescHandleLegacy;
-        using GPUDescRef           = Graphics::Rhi::RhiBindlessDescriptorRef;
-        using ComputePass          = Graphics::Rhi::RhiComputePass;
-        using DrawPass             = Graphics::Rhi::RhiGraphicsPass;
-        using GPUShader            = Graphics::Rhi::RhiShader;
-        using GPUTexture           = Graphics::Rhi::RhiTextureRef;
-        using GPUColorRT           = Graphics::Rhi::RhiColorAttachment;
-        using GPURTs               = Graphics::Rhi::RhiRenderTargets;
-        using GPUCmdBuffer         = Graphics::Rhi::RhiCommandList;
+        using RenderTargets        = RHI::RhiRenderTargets;
+        using GPUCommandSubmission = RHI::RhiTaskSubmission;
+        using GPUBuffer            = RHI::RhiBufferRef;
+        using GPUBindId            = RHI::RhiDescHandleLegacy;
+        using GPUDescRef           = RHI::RhiBindlessDescriptorRef;
+        using ComputePass          = RHI::RhiComputePass;
+        using DrawPass             = RHI::RhiGraphicsPass;
+        using GPUShader            = RHI::RhiShader;
+        using GPUTexture           = RHI::RhiTextureRef;
+        using GPUColorRT           = RHI::RhiColorAttachment;
+        using GPURTs               = RHI::RhiRenderTargets;
+        using GPUCmdBuffer         = RHI::RhiCommandList;
 
-        using SRVDesc = Graphics::Rhi::RhiSRVDesc;
-        using UAVDesc = Graphics::Rhi::RhiUAVDesc;
-        using CBVDesc = Graphics::Rhi::RhiCBVDesc;
+        using SRVDesc = RHI::RhiSRVDesc;
+        using UAVDesc = RHI::RhiUAVDesc;
+        using CBVDesc = RHI::RhiCBVDesc;
 
         enum class CullingPass
         {
@@ -69,50 +69,49 @@ namespace Ifrit::Runtime
         using PerViewData = PerFrameData::PerViewData;
 
         // Renderer Role
-        u32                                               m_renderRole = SyaroRenderRole::FullProcess;
+        u32                                          m_renderRole = SyaroRenderRole::FullProcess;
 
         // Base
-        ComputePass*                                      m_persistentCullingPass = nullptr;
-        GPUBuffer                                         m_indirectDrawBuffer    = nullptr;
-        GPUDescRef*                                       m_persistCullDesc       = nullptr;
+        ComputePass*                                 m_persistentCullingPass = nullptr;
+        GPUBuffer                                    m_indirectDrawBuffer    = nullptr;
+        GPUDescRef*                                  m_persistCullDesc       = nullptr;
 
-        DrawPass*                                         m_visibilityPassHW          = nullptr;
-        DrawPass*                                         m_depthOnlyVisibilityPassHW = nullptr;
-        ComputePass*                                      m_visibilityPassSW          = nullptr;
-        ComputePass*                                      m_visibilityCombinePass     = nullptr;
+        DrawPass*                                    m_visibilityPassHW          = nullptr;
+        DrawPass*                                    m_depthOnlyVisibilityPassHW = nullptr;
+        ComputePass*                                 m_visibilityPassSW          = nullptr;
+        ComputePass*                                 m_visibilityCombinePass     = nullptr;
 
         // Instance culling
-        ComputePass*                                      m_instanceCullingPass = nullptr;
+        ComputePass*                                 m_instanceCullingPass = nullptr;
 
         // Single pass HiZ
-        Ref<SinglePassHiZPass>                            m_singlePassHiZProc = nullptr;
+        Ref<SinglePassHiZPass>                       m_singlePassHiZProc = nullptr;
 
-        IF_CONSTEXPR static u32                           cSPHiZGroupSizeX = 256;
-        IF_CONSTEXPR static u32                           cSPHiZTileSize   = 64;
+        IF_CONSTEXPR static u32                      cSPHiZGroupSizeX = 256;
+        IF_CONSTEXPR static u32                      cSPHiZTileSize   = 64;
 
         // Emit depth targets
-        ComputePass*                                      m_emitDepthTargetsPass = nullptr;
-        IF_CONSTEXPR static u32                           cEmitDepthGroupSizeX   = 16;
-        IF_CONSTEXPR static u32                           cEmitDepthGroupSizeY   = 16;
+        ComputePass*                                 m_emitDepthTargetsPass = nullptr;
+        IF_CONSTEXPR static u32                      cEmitDepthGroupSizeX   = 16;
+        IF_CONSTEXPR static u32                      cEmitDepthGroupSizeY   = 16;
 
         // Material classify
-        ComputePass*                                      m_matclassCountPass             = nullptr;
-        ComputePass*                                      m_matclassReservePass           = nullptr;
-        ComputePass*                                      m_matclassScatterPass           = nullptr;
-        IF_CONSTEXPR static u32                           cMatClassQuadSize               = 2;
-        IF_CONSTEXPR static u32                           cMatClassGroupSizeCountScatterX = 8;
-        IF_CONSTEXPR static u32                           cMatClassGroupSizeCountScatterY = 8;
-        IF_CONSTEXPR static u32                           cMatClassGroupSizeReserveX      = 128;
-        IF_CONSTEXPR static u32                           cMatClassCounterBufferSizeBase  = 2 * sizeof(u32);
-        IF_CONSTEXPR static u32                           cMatClassCounterBufferSizeMult  = 2 * sizeof(u32);
+        ComputePass*                                 m_matclassCountPass             = nullptr;
+        ComputePass*                                 m_matclassReservePass           = nullptr;
+        ComputePass*                                 m_matclassScatterPass           = nullptr;
+        IF_CONSTEXPR static u32                      cMatClassQuadSize               = 2;
+        IF_CONSTEXPR static u32                      cMatClassGroupSizeCountScatterX = 8;
+        IF_CONSTEXPR static u32                      cMatClassGroupSizeCountScatterY = 8;
+        IF_CONSTEXPR static u32                      cMatClassGroupSizeReserveX      = 128;
+        IF_CONSTEXPR static u32                      cMatClassCounterBufferSizeBase  = 2 * sizeof(u32);
+        IF_CONSTEXPR static u32                      cMatClassCounterBufferSizeMult  = 2 * sizeof(u32);
 
         // Emit GBuffer, pass here is for default / debugging
-        ComputePass*                                      m_defaultEmitGBufferPass = nullptr;
+        ComputePass*                                 m_defaultEmitGBufferPass = nullptr;
 
         // TAA
-        ComputePass*                                      m_taaHistoryPass = nullptr;
-        IF_CONSTEXPR static Graphics::Rhi::RhiImageFormat cTAAFormat =
-            Graphics::Rhi::RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT;
+        ComputePass*                                 m_taaHistoryPass = nullptr;
+        IF_CONSTEXPR static RHI::RhiImageFormat      cTAAFormat = RHI::RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT;
 
         // Finally, deferred pass
         CustomHashMap<PipeConf, DrawPass*, PipeHash> m_deferredShadingPass;
@@ -120,15 +119,15 @@ namespace Ifrit::Runtime
         CustomHashMap<PipeConf, DrawPass*, PipeHash> m_taaPass;
 
         // FSR2
-        Owner<Graphics::Rhi::FSR2::RhiFsr2Processor> m_fsr2proc;
+        Owner<RHI::FSR2::RhiFsr2Processor>           m_fsr2proc;
 
         // Atmosphere
         ComputePass*                                 m_atmospherePass = nullptr;
         Ref<PbrAtmosphereRenderer>                   m_atmosphereRenderer;
 
         // Timer
-        Ref<Graphics::Rhi::RhiDeviceTimer>           m_timer;
-        Ref<Graphics::Rhi::RhiDeviceTimer>           m_timerDefer;
+        Ref<RHI::RhiDeviceTimer>                     m_timer;
+        Ref<RHI::RhiDeviceTimer>                     m_timerDefer;
 
         // AO
         Ref<AmbientOcclusionPass>                    m_aoPass;

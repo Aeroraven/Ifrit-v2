@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include <functional>
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
 
     class RhiTaskSubmission
@@ -94,4 +94,4 @@ namespace Ifrit::Graphics::Rhi
         // Host sync
         virtual void                     HostWaitEvent(RhiTaskSubmission* event) = 0;
     };
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using namespace Ifrit::Math;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 
@@ -32,7 +32,7 @@ namespace Ifrit::Runtime::Ayanami
         RhiTextureRef m_RenderAtomicDepthAtlas = nullptr;
     };
 
-    IFRIT_APIDECL AyanamiDebugger::AyanamiDebugger(Graphics::Rhi::RhiBackend* rhi) : m_Rhi(rhi)
+    IFRIT_APIDECL AyanamiDebugger::AyanamiDebugger(RHI::RhiBackend* rhi) : m_Rhi(rhi)
     {
         m_Private = new AyanamiDebuggerPrivate();
     }
@@ -222,7 +222,7 @@ namespace Ifrit::Runtime::Ayanami
 
         i32              tgX = voxelsPerWidth;
         GraphicsPassArgs args;
-        args.m_CullMode = Graphics::Rhi::RhiCullMode::None;
+        args.m_CullMode = RHI::RhiCullMode::None;
 
         AddMeshDrawPass<PushConst>(builder, "Ayanami.Debug.ValidObjectGrids",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgVisObjGridsMS, {}),

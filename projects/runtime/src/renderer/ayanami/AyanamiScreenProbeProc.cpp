@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/core/math/sampling/LowDiscrepancy.h"
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using namespace Ifrit::Math;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 using namespace Ifrit::Runtime::Ayanami::Config;
@@ -31,53 +31,53 @@ namespace Ifrit::Runtime::Ayanami
 {
     struct AyanamiScreenProbeProcessorPrivate
     {
-        f32                         m_AdaptiveProbesRatio      = 0.0f;
-        u32                         m_MaxRTWidth               = 0;
-        u32                         m_MaxRTHeight              = 0;
-        u32                         m_MaxUniformTilesPerWidth  = 0;
-        u32                         m_MaxUniformTilesPerHeight = 0;
-        u32                         m_MaxUniformProbes         = 0;
-        u32                         m_MaxAdaptiveProbesCount   = 0;
+        f32               m_AdaptiveProbesRatio      = 0.0f;
+        u32               m_MaxRTWidth               = 0;
+        u32               m_MaxRTHeight              = 0;
+        u32               m_MaxUniformTilesPerWidth  = 0;
+        u32               m_MaxUniformTilesPerHeight = 0;
+        u32               m_MaxUniformProbes         = 0;
+        u32               m_MaxAdaptiveProbesCount   = 0;
 
-        FGTextureNodeRef            m_RadianceAtlas         = nullptr;
-        FGTextureNodeRef            m_RadianceAtlasFixed    = nullptr;
-        FGBufferNodeRef             m_AdaptiveProbesList    = nullptr;
-        FGBufferNodeRef             m_AdaptiveProbesCounter = nullptr;
+        FGTextureNodeRef  m_RadianceAtlas         = nullptr;
+        FGTextureNodeRef  m_RadianceAtlasFixed    = nullptr;
+        FGBufferNodeRef   m_AdaptiveProbesList    = nullptr;
+        FGBufferNodeRef   m_AdaptiveProbesCounter = nullptr;
 
-        FGBufferNodeRef             m_MeshDFTracingRayList         = nullptr;
-        FGBufferNodeRef             m_MeshDFTracingRayIndirectArgs = nullptr;
-        FGBufferNodeRef             m_CubeIndex                    = nullptr;
-        FGTextureNodeRef            m_MeshDFCullingDepth           = nullptr;
-        FGTextureNodeRef            m_MeshDFCullingDummy           = nullptr;
-        FGBufferNodeRef             m_MeshDFCullingMatrix          = nullptr;
-        FGBufferNodeRef             m_MeshDFCullingListCounter     = nullptr;
-        FGBufferNodeRef             m_MeshDFCullingList            = nullptr;
-        FGBufferNodeRef             m_MeshDFCullingIndirectArgs    = nullptr;
+        FGBufferNodeRef   m_MeshDFTracingRayList         = nullptr;
+        FGBufferNodeRef   m_MeshDFTracingRayIndirectArgs = nullptr;
+        FGBufferNodeRef   m_CubeIndex                    = nullptr;
+        FGTextureNodeRef  m_MeshDFCullingDepth           = nullptr;
+        FGTextureNodeRef  m_MeshDFCullingDummy           = nullptr;
+        FGBufferNodeRef   m_MeshDFCullingMatrix          = nullptr;
+        FGBufferNodeRef   m_MeshDFCullingListCounter     = nullptr;
+        FGBufferNodeRef   m_MeshDFCullingList            = nullptr;
+        FGBufferNodeRef   m_MeshDFCullingIndirectArgs    = nullptr;
 
-        FGBufferNodeRef             m_GlobalDFTracingList         = nullptr;
-        FGBufferNodeRef             m_GlobalDFTracingIndirectArgs = nullptr;
+        FGBufferNodeRef   m_GlobalDFTracingList         = nullptr;
+        FGBufferNodeRef   m_GlobalDFTracingIndirectArgs = nullptr;
 
-        FGBufferNodeRef             m_IntegratedSH = nullptr;
+        FGBufferNodeRef   m_IntegratedSH = nullptr;
 
-        FGTextureNodeRef            m_ActiveGBufferAlbedo = nullptr;
+        FGTextureNodeRef  m_ActiveGBufferAlbedo = nullptr;
 
-        u32                         m_ActiveRTWidth  = 0;
-        u32                         m_ActiveRTHeight = 0;
-        Vector4f                    m_ActiveWorldBoundMin;
-        Vector4f                    m_ActiveWorldBoundMax;
-        u32                         m_ActiveMDFCounts = 0;
+        u32               m_ActiveRTWidth  = 0;
+        u32               m_ActiveRTHeight = 0;
+        Vector4f          m_ActiveWorldBoundMin;
+        Vector4f          m_ActiveWorldBoundMax;
+        u32               m_ActiveMDFCounts = 0;
 
-        u32                         m_MDFCullGridSizeXY   = 16;
-        u32                         m_MDFCullGridSizeZ    = 1;
-        u32                         m_MDFMaxCullObjInGrid = 512;
+        u32               m_MDFCullGridSizeXY   = 16;
+        u32               m_MDFCullGridSizeZ    = 1;
+        u32               m_MDFMaxCullObjInGrid = 512;
 
         // Persistent Resources
-        Graphics::Rhi::RhiBufferRef m_CubeIndexRHI = nullptr;
-        Vector2f                    m_RayJitter    = Vector2f(0.0f, 0.0f);
+        RHI::RhiBufferRef m_CubeIndexRHI = nullptr;
+        Vector2f          m_RayJitter    = Vector2f(0.0f, 0.0f);
     };
 
     IFRIT_APIDECL AyanamiScreenProbeProcessor::AyanamiScreenProbeProcessor(
-        Graphics::Rhi::RhiBackend* rhi, AyanamiSharedContext* sharedContext)
+        RHI::RhiBackend* rhi, AyanamiSharedContext* sharedContext)
         : m_Rhi(rhi), m_SharedContext(sharedContext)
     {
         m_Private = new AyanamiScreenProbeProcessorPrivate();

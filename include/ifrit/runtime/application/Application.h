@@ -33,7 +33,7 @@ namespace Ifrit::Runtime
 
     class IFRIT_APIDECL Application : public IApplication
     {
-        using RhiBackend     = Graphics::Rhi::RhiBackend;
+        using RhiBackend     = RHI::RhiBackend;
         using WindowProvider = Display::Window::WindowProvider;
 
     protected:

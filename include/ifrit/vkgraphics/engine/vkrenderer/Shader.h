@@ -22,18 +22,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "spirv_reflect/spirv_reflect.h"
 #include <vulkan/vulkan.h>
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
     struct ShaderModuleCI
     {
         String              m_IRCode;
-        Rhi::RhiShaderStage stage;
+        RHI::RhiShaderStage stage;
         String              m_ShaderName;
         String              m_EntryPoint;
     };
 
-    class IFRIT_APIDECL ShaderModule : public Rhi::RhiShader
+    class IFRIT_APIDECL ShaderModule : public RHI::RhiShader
     {
     private:
         VkShaderModule                  m_module;
@@ -56,7 +56,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             std::abort();
             return 0;
         }
-        virtual Rhi::RhiShaderStage GetStage() const override { return m_ci.stage; }
+        virtual RHI::RhiShaderStage GetStage() const override { return m_ci.stage; }
 
         void                        CacheReflectionData();
         void                        RecoverReflectionData();
@@ -69,12 +69,12 @@ namespace Ifrit::Graphics::VulkanGraphics
     {
         Vec<char>                m_Code;
         String                   m_EntryPoint;
-        Rhi::RhiShaderStage      m_Stage;
-        Rhi::RhiShaderSourceType m_SourceType;
+        RHI::RhiShaderStage      m_Stage;
+        RHI::RhiShaderSourceType m_SourceType;
         String                   m_FileName;
     };
 
-    class IFRIT_APIDECL ShaderCollection : public Rhi::RhiShaderCollection, public NonCopyable
+    class IFRIT_APIDECL ShaderCollection : public RHI::RhiShaderCollection, public NonCopyable
     {
     private:
         Vec<String>                     m_DefineNames;
@@ -94,7 +94,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     public:
         ShaderCollection(EngineContext* ctx, const ShaderCollectionCI& ci);
         virtual ~ShaderCollection() = default;
-        virtual Rhi::RhiShader* GetVariant(const Vec<String>& defines) override;
+        virtual RHI::RhiShader* GetVariant(const Vec<String>& defines) override;
         virtual bool            MultiCompileReady() override;
     };
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

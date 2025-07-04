@@ -30,17 +30,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/math/sampling/LowDiscrepancy.h"
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using Ifrit::Math::DivRoundUp;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime::Ayanami
 {
-    static ConsoleVariable<u32> cvLowDiscrepancySeqLen("cv.Ayanami.SurfaceCache.LowDiscrepancySeqLen", 16,
+    static TConsoleVariable<u32> cvLowDiscrepancySeqLen("cv.Ayanami.SurfaceCache.LowDiscrepancySeqLen", 16,
         "Length of low discrepancy sequence for surface cache generation", CVF_Default);
-    static ConsoleVariable<u32> cvSurfaceCacheTemporalAccumMaxHistory("cv.Ayanami.SurfaceCache.TemporalAccumMaxHistory",
-        32, "Maximum history length for temporal accumulation in surface cache", CVF_Default);
-    static ConsoleVariable<u32> cvSurfaceCacheResolution(
+    static TConsoleVariable<u32> cvSurfaceCacheTemporalAccumMaxHistory(
+        "cv.Ayanami.SurfaceCache.TemporalAccumMaxHistory", 32,
+        "Maximum history length for temporal accumulation in surface cache", CVF_Default);
+    static TConsoleVariable<u32> cvSurfaceCacheResolution(
         "cv.Ayanami.SurfaceCache.Resolution", 4096, "Resolution of the surface cache atlas", CVF_Default);
 
     static constexpr Array<Vector3f, 6> kCardDirections = { Vector3f(1.0f, 0.0f, 0.0f), Vector3f(-1.0f, 0.0f, 0.0f),
@@ -96,7 +97,7 @@ namespace Ifrit::Runtime::Ayanami
 
     struct AyanamiTrivialSurfaceCacheManagerResource
     {
-        using GPUBindId = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUBindId = RHI::RhiDescHandleLegacy;
 
         bool                                m_Inited             = false;
         bool                                m_RequireGpuDataSync = false;
@@ -427,7 +428,7 @@ namespace Ifrit::Runtime::Ayanami
                     cmd->SetCullMode(RhiCullMode::None);
                 }
 
-                auto vioPass = const_cast<Graphics::Rhi::RhiGraphicsPass*>(ctx.m_GraphicsPass);
+                auto vioPass = const_cast<RHI::RhiGraphicsPass*>(ctx.m_GraphicsPass);
                 cmd->SetPushConst(&pc, 0, sizeof(PushConst));
                 cmd->DrawIndexed(card.m_IndexCounts, 1, 0, 0, 0);
             }
@@ -957,7 +958,7 @@ namespace Ifrit::Runtime::Ayanami
         return *m_Resources->m_RDGSceneCacheFinalLightingAtlas;
     }
 
-    IFRIT_APIDECL Graphics::Rhi::RhiBufferRef AyanamiTrivialSurfaceCacheManager::GetCardDataBuffer()
+    IFRIT_APIDECL RHI::RhiBufferRef AyanamiTrivialSurfaceCacheManager::GetCardDataBuffer()
     {
         return m_Resources->m_ObserveDeviceData;
     }

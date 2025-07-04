@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/core/math/linalg/GeometryFunctions.h"
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using namespace Ifrit::Math;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 
@@ -98,13 +98,13 @@ namespace Ifrit::Runtime::Ayanami
         FrameGraphUtils::AddClearUAVPass(builder, "Ayanami.DFShadowCullCleanup", *m_Ctx->m_ResAtomic, 0);
 
         FrameGraphUtils::GraphicsPassArgs args;
-        args.m_CullMode = Graphics::Rhi::RhiCullMode::Front;
+        args.m_CullMode = RHI::RhiCullMode::Front;
 
         auto& pass = AddMeshDrawPass<PushConst>(builder, "Ayanami.DFShadowTileCull",
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.DFShadowTileCullingMS, {}),
             ShaderVariantDesc(Internal::kIntShaderTableAyanami.DFShadowTileCullingFS, {}),
             Vector3i{ (i32)totalMeshDfs, 1, 1 }, args, pc, [this](PushConst data, const FrameGraphPassContext& ctx) {
-                ctx.m_CmdList->SetCullMode(Graphics::Rhi::RhiCullMode::Front);
+                ctx.m_CmdList->SetCullMode(RHI::RhiCullMode::Front);
                 data.m_TileAtomics   = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResAtomic);
                 data.m_ScatterOutput = ctx.m_FgDesc->GetUAV(*m_Ctx->m_ResScatterOutput);
                 SetRootConstant<PushConst>(data, ctx);
@@ -225,7 +225,7 @@ namespace Ifrit::Runtime::Ayanami
         return pass;
     }
 
-    IFRIT_APIDECL AyanamiDistanceFieldLighting::AyanamiDistanceFieldLighting(Graphics::Rhi::RhiBackend* rhi)
+    IFRIT_APIDECL AyanamiDistanceFieldLighting::AyanamiDistanceFieldLighting(RHI::RhiBackend* rhi)
         : m_Rhi(rhi), m_Ctx(new AyanamiDistanceFieldLightingPrivate())
     {
     }

@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <queue>
 #include <cstddef>
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
 
     // UPD 250325: Resource removal algo before destroys the resource that still in use on device side
@@ -205,4 +205,4 @@ namespace Ifrit::Graphics::Rhi
         virtual void AddUAVImage(RhiTexture* texture, RhiImageSubResource subResource, u32 loc) = 0;
     };
 
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

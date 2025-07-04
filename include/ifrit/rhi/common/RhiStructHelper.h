@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "RhiBaseTypes.h"
 #include "ifrit/core/math/VectorDefs.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
     // Clear value creator
 
@@ -74,4 +74,4 @@ namespace Ifrit::Graphics::Rhi
         return value;
     }
 
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

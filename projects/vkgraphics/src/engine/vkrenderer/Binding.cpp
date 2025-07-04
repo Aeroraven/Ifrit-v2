@@ -29,7 +29,7 @@ using namespace Ifrit;
 // Buffers reallocated might share the same ID as the previous one, and the new buffer.
 // This makes a invalid referencing.
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
     template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
     {
@@ -159,7 +159,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkWriteDescriptorSet write{};
         write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.dstSet          = m_bindlessSet;
-        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::UniformBuffer);
+        write.dstBinding      = getUnderlying(RHI::RhiDescriptorType::UniformBuffer);
         write.dstArrayElement = handleId;
         write.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         write.descriptorCount = 1;
@@ -190,7 +190,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkWriteDescriptorSet write{};
         write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.dstSet          = m_bindlessSet;
-        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::RWStorageBuffer);
+        write.dstBinding      = getUnderlying(RHI::RhiDescriptorType::RWStorageBuffer);
         write.dstArrayElement = SizeCast<u32>(handleId);
         write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         write.descriptorCount = 1;
@@ -201,7 +201,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL u32 DescriptorManager::RegisterSampledImage(
-        SingleDeviceImage* image, Rhi::RhiImageSubResource subResource)
+        SingleDeviceImage* image, RHI::RhiImageSubResource subResource)
     {
         auto imageViewHandle = image->GetImageViewMipLayer(
             subResource.mipLevel, subResource.arrayLayer, subResource.mipCount, subResource.layerCount);
@@ -223,7 +223,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkWriteDescriptorSet write{};
         write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.dstSet          = m_bindlessSet;
-        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::SampledImage);
+        write.dstBinding      = getUnderlying(RHI::RhiDescriptorType::SampledImage);
         write.dstArrayElement = SizeCast<u32>(handleId);
         write.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         write.descriptorCount = 1;
@@ -251,7 +251,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkWriteDescriptorSet write{};
         write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.dstSet          = m_bindlessSet;
-        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::Sampler);
+        write.dstBinding      = getUnderlying(RHI::RhiDescriptorType::Sampler);
         write.dstArrayElement = SizeCast<u32>(handleId);
         write.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER;
         write.descriptorCount = 1;
@@ -262,7 +262,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL
-    u32 DescriptorManager::RegisterStorageImage(SingleDeviceImage* image, Rhi::RhiImageSubResource subResource)
+    u32 DescriptorManager::RegisterStorageImage(SingleDeviceImage* image, RHI::RhiImageSubResource subResource)
     {
         auto imageViewHandle = image->GetImageViewMipLayer(
             subResource.mipLevel, subResource.arrayLayer, subResource.mipCount, subResource.layerCount);
@@ -283,7 +283,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkWriteDescriptorSet write{};
         write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.dstSet          = m_bindlessSet;
-        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::StorageImage);
+        write.dstBinding      = getUnderlying(RHI::RhiDescriptorType::StorageImage);
         write.dstArrayElement = SizeCast<u32>(handle);
         ;
         write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -317,7 +317,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         VkWriteDescriptorSet write{};
         write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write.dstSet          = m_bindlessSet;
-        write.dstBinding      = getUnderlying(Rhi::RhiDescriptorType::CombinedImageSampler);
+        write.dstBinding      = getUnderlying(RHI::RhiDescriptorType::CombinedImageSampler);
         write.dstArrayElement = SizeCast<u32>(handleId);
         write.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         write.descriptorCount = 1;
@@ -417,7 +417,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         m_currentBindRange = MakeOwner<DescriptorBindRangeData>();
     }
 
-    IFRIT_APIDECL void DescriptorBindlessIndices::AddUniformBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc)
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddUniformBuffer(RHI::RhiMultiBuffer* buffer, u32 loc)
     {
         auto buf = Ifrit::CheckedCast<MultiBuffer>(buffer);
         for (u32 i = 0; i < numCopies; i++)
@@ -427,7 +427,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void DescriptorBindlessIndices::AddStorageBuffer(Rhi::RhiMultiBuffer* buffer, u32 loc)
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddStorageBuffer(RHI::RhiMultiBuffer* buffer, u32 loc)
     {
         auto buf = Ifrit::CheckedCast<MultiBuffer>(buffer);
         for (u32 i = 0; i < numCopies; i++)
@@ -437,7 +437,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void DescriptorBindlessIndices::AddStorageBuffer(Rhi::RhiBuffer* buffer, u32 loc)
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddStorageBuffer(RHI::RhiBuffer* buffer, u32 loc)
     {
         auto buf = Ifrit::CheckedCast<SingleBuffer>(buffer);
         for (u32 i = 0; i < numCopies; i++)
@@ -447,7 +447,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void DescriptorBindlessIndices::AddSRVImage(Rhi::RhiTexture* texture, u32 loc)
+    IFRIT_APIDECL void DescriptorBindlessIndices::AddSRVImage(RHI::RhiTexture* texture, u32 loc)
     {
         auto tex = Ifrit::CheckedCast<SingleDeviceImage>(texture);
         for (u32 i = 0; i < numCopies; i++)
@@ -458,7 +458,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL void DescriptorBindlessIndices::AddUAVImage(
-        Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource, u32 loc)
+        RHI::RhiTexture* texture, RHI::RhiImageSubResource subResource, u32 loc)
     {
         auto tex = Ifrit::CheckedCast<SingleDeviceImage>(texture);
         for (u32 i = 0; i < numCopies; i++)
@@ -490,4 +490,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

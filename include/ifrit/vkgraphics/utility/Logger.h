@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/common/Pch.h"
 #include <stdexcept>
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
     inline void vkrAssert(bool condition, const char* message)
     {
@@ -99,4 +99,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         iError("Error:{}", message);
         throw std::runtime_error(message);
     }
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

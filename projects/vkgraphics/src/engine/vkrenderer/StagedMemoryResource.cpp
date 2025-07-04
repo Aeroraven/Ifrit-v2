@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/vkgraphics/engine/vkrenderer/StagedMemoryResource.h"
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
     IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext* ctx, SingleBuffer* buffer)
@@ -30,7 +30,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         stagingCI.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         stagingCI.hostVisible = true;
         auto stagePtr         = new SingleBuffer(ctx, stagingCI);
-        m_stagingBuffer       = MakeCountRef<Rhi::RhiBuffer>(stagePtr);
+        m_stagingBuffer       = MakeCountRef<RHI::RhiBuffer>(stagePtr);
     }
     IFRIT_APIDECL StagedSingleBuffer::StagedSingleBuffer(EngineContext* ctx, const BufferCreateInfo& ci)
         : m_context(ctx)
@@ -40,18 +40,18 @@ namespace Ifrit::Graphics::VulkanGraphics
         BufferCreateInfo ci2 = ci;
         ci2.usage |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         auto stagePtr  = new SingleBuffer(ctx, ci2);
-        m_bufferUnique = MakeCountRef<Rhi::RhiBuffer>(stagePtr);
+        m_bufferUnique = MakeCountRef<RHI::RhiBuffer>(stagePtr);
         m_buffer       = CheckedCast<SingleBuffer>(m_bufferUnique.get());
 
         BufferCreateInfo stagingCI = ci;
         stagingCI.usage            = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         stagingCI.hostVisible      = true;
         auto stagePtr2             = new SingleBuffer(ctx, stagingCI);
-        m_stagingBuffer            = MakeCountRef<Rhi::RhiBuffer>(stagePtr2);
+        m_stagingBuffer            = MakeCountRef<RHI::RhiBuffer>(stagePtr2);
     }
 
     IFRIT_APIDECL void StagedSingleBuffer::CmdCopyToDevice(
-        const Rhi::RhiCommandList* cmd, const void* data, u32 size, u32 localOffset)
+        const RHI::RhiCommandList* cmd, const void* data, u32 size, u32 localOffset)
     {
         m_stagingBuffer->MapMemory();
         m_stagingBuffer->WriteBuffer((void*)data, size, 0);
@@ -68,7 +68,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         stagingCI.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         stagingCI.hostVisible = true;
         auto stagePtr         = new SingleBuffer(ctx, stagingCI);
-        m_stagingBuffer       = MakeCountRef<Rhi::RhiBuffer>(stagePtr);
+        m_stagingBuffer       = MakeCountRef<RHI::RhiBuffer>(stagePtr);
     }
 
     IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext* ctx, const ImageCreateInfo& ci) : m_context(ctx)
@@ -77,7 +77,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ImageCreateInfo ci2 = ci;
         ci2.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         auto stagePtr = new SingleDeviceImage(ctx, ci2);
-        m_imageUnique = MakeCountRef<Rhi::RhiTexture>(stagePtr);
+        m_imageUnique = MakeCountRef<RHI::RhiTexture>(stagePtr);
         m_image       = CheckedCast<SingleDeviceImage>(m_imageUnique.get());
 
         BufferCreateInfo stagingCI{};
@@ -85,7 +85,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         stagingCI.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
         stagingCI.hostVisible = true;
         auto stagePtr2        = new SingleBuffer(ctx, stagingCI);
-        m_stagingBuffer       = MakeCountRef<Rhi::RhiBuffer>(stagePtr2);
+        m_stagingBuffer       = MakeCountRef<RHI::RhiBuffer>(stagePtr2);
     }
 
     IFRIT_APIDECL void StagedSingleImage::CmdCopyToDevice(CommandBuffer* cmd, const void* data, VkImageLayout srcLayout,
@@ -124,4 +124,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         cmd->AddPipelineBarrier(barrier2);
     }
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

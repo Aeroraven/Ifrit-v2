@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #include <Windows.h>
 #endif
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
 
     // Structs
@@ -166,4 +166,4 @@ namespace Ifrit::Graphics::Rhi
         virtual Owner<RhiRTPass>               CreateRaytracingPass()     = 0;
     };
 
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

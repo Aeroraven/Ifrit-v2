@@ -34,9 +34,9 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL BaseForwardRenderer : public RendererBase
     {
 
-        using RenderTargets        = Graphics::Rhi::RhiRenderTargets;
-        using GPUCommandSubmission = Graphics::Rhi::RhiTaskSubmission;
-        using GPUCmdBuffer         = Graphics::Rhi::RhiCommandList;
+        using RenderTargets        = RHI::RhiRenderTargets;
+        using GPUCommandSubmission = RHI::RhiTaskSubmission;
+        using GPUCmdBuffer         = RHI::RhiCommandList;
 
     private:
         BaseForwardRendererResources* m_Resources = nullptr;

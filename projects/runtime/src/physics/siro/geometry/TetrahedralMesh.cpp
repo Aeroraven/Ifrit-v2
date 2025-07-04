@@ -16,11 +16,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "ifrit/runtime/physics/siro/geometry/TetrahedralMesh.h"
-#include "ifrit/meshproc/engine/tetrahedralization/MeshTetrahedralizer.h"
+#include "ifrit/geomproc/tetrahedralization/MeshTetrahedralizer.h"
 #include "ifrit/core/algo/OrderedPairs.h"
 
-using namespace Ifrit::MeshProcLib::Tetrahedralization;
-using namespace Ifrit::MeshProcLib;
+using namespace Ifrit::GeometryProc::Tetrahedralization;
+using namespace Ifrit::GeometryProc;
 using namespace Ifrit::Math;
 
 namespace Ifrit::Runtime::Siro

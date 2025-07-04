@@ -21,9 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/core/serialization/MathTypeSerialization.h"
 #include "ifrit/core/serialization/SerialInterface.h"
-#include "ifrit/meshproc/engine/base/MeshDesc.h"
+#include "ifrit/geomproc/base/MeshDesc.h"
 
-namespace Ifrit::MeshProcLib::MeshProcess
+namespace Ifrit::GeometryProc::MeshProcess
 {
     IF_CONSTEXPR int BVH_CHILDREN = 8; // or 4
     struct MeshletCullData
@@ -65,4 +65,4 @@ namespace Ifrit::MeshProcLib::MeshProcess
             boundSphere, numChildNodes, clusterGroupStart, clusterGroupSize, subTreeSize, childNodes, maxClusterError);
     };
 
-} // namespace Ifrit::MeshProcLib::MeshProcess
+} // namespace Ifrit::GeometryProc::MeshProcess

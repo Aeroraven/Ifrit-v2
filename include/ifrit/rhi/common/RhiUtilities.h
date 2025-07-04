@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "RhiBaseTypes.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
     class IFRIT_APIDECL RhiDeviceTimer
     {
@@ -29,4 +29,4 @@ namespace Ifrit::Graphics::Rhi
         virtual void Stop(const RhiCommandList* cmd)  = 0;
         virtual f32  GetElapsedMs()                   = 0;
     };
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

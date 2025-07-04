@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit;
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
     template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type getUnderlying(E e) noexcept
     {
@@ -43,7 +43,7 @@ namespace Ifrit::Graphics::VulkanGraphics
             VK_DYNAMIC_STATE_LOGIC_OP_EXT, VK_DYNAMIC_STATE_BLEND_CONSTANTS, VK_DYNAMIC_STATE_COLOR_BLEND_EQUATION_EXT,
             VK_DYNAMIC_STATE_COLOR_WRITE_MASK_EXT };
 
-        if (m_createInfo.geomGenType == Rhi::RhiGeometryGenerationType::Conventional)
+        if (m_createInfo.geomGenType == RHI::RhiGeometryGenerationType::Conventional)
         {
             dynamicStates.push_back(VK_DYNAMIC_STATE_VERTEX_INPUT_EXT);
         }
@@ -56,15 +56,15 @@ namespace Ifrit::Graphics::VulkanGraphics
         // Input assembly
         VkPipelineInputAssemblyStateCreateInfo inputAssemblyCI{};
         inputAssemblyCI.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        if (m_createInfo.topology == Rhi::RhiRasterizerTopology::TriangleList)
+        if (m_createInfo.topology == RHI::RhiRasterizerTopology::TriangleList)
         {
             inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         }
-        else if (m_createInfo.topology == Rhi::RhiRasterizerTopology::Line)
+        else if (m_createInfo.topology == RHI::RhiRasterizerTopology::Line)
         {
             inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
         }
-        else if (m_createInfo.topology == Rhi::RhiRasterizerTopology::Point)
+        else if (m_createInfo.topology == RHI::RhiRasterizerTopology::Point)
         {
             inputAssemblyCI.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
         }
@@ -560,4 +560,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         return m_computePipelines.back().get();
     }
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

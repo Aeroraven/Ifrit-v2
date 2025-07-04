@@ -26,18 +26,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #endif
 #include <functional>
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
 
-    class IFRIT_APIDECL ResourceDeleteQueue : public Rhi::IRhiDeviceResourceDeleteQueue
+    class IFRIT_APIDECL ResourceDeleteQueue : public RHI::IRhiDeviceResourceDeleteQueue
     {
     private:
         u64                            m_CurrentFrameStep = 0;
-        Queue<Rhi::RhiDeviceResource*> m_DeleteQueue;
+        Queue<RHI::RhiDeviceResource*> m_DeleteQueue;
         Queue<u64>                     m_FrameIdToDelete;
 
     public:
-        virtual void AddResourceToDeleteQueue(Rhi::RhiDeviceResource* resource)
+        virtual void AddResourceToDeleteQueue(RHI::RhiDeviceResource* resource)
         {
             m_DeleteQueue.push(resource);
             m_FrameIdToDelete.push(m_CurrentFrameStep + 2);
@@ -105,11 +105,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         PFN_vkSetDebugUtilsObjectTagEXT                p_vkSetDebugUtilsObjectTagEXT;
     };
 
-    class IFRIT_APIDECL EngineContext : public Rhi::RhiDevice
+    class IFRIT_APIDECL EngineContext : public RHI::RhiDevice
     {
     private:
         IF_CONSTEXPR static const char* s_validationLayerName = "VK_LAYER_KHRONOS_validation";
-        Rhi::RhiInitializeArguments     m_args;
+        RHI::RhiInitializeArguments     m_args;
         VkInstance                      m_instance;
         VkDebugUtilsMessengerEXT        m_debugMessenger;
         VkPhysicalDevice                m_physicalDevice = VK_NULL_HANDLE;
@@ -122,7 +122,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
         Owner<ResourceDeleteQueue>      m_DeleteQueue;
 
-        Rhi::RhiCapabilityList          m_Capability   = {};
+        RHI::RhiCapabilityList          m_Capability   = {};
         std::string                     cacheDirectory = "";
 
     private:
@@ -131,7 +131,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void Destructor();
 
     public:
-        EngineContext(const Rhi::RhiInitializeArguments& args);
+        EngineContext(const RHI::RhiInitializeArguments& args);
         ~EngineContext();
 
         EngineContext(const EngineContext&)            = delete;
@@ -142,7 +142,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline VkPhysicalDevice                   GetPhysicalDevice() const { return m_physicalDevice; }
         inline VkDevice                           GetDevice() const { return m_device; }
         inline const DeviceQueueInfo&             GetQueueInfo() const { return m_queueInfo; }
-        inline const Rhi::RhiInitializeArguments& GetArgs() const { return m_args; }
+        inline const RHI::RhiInitializeArguments& GetArgs() const { return m_args; }
         const Vec<const char*>                    GetDeviceExtensions() const;
         inline const VmaAllocator&                GetAllocator() const { return m_allocator; }
         void                                      WaitIdle();
@@ -153,6 +153,6 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline bool                               IsDebugMode() { return m_args.m_enableValidationLayer; }
 
         inline ResourceDeleteQueue*               GetDeleteQueue() { return m_DeleteQueue.get(); }
-        inline Rhi::RhiCapabilityList             GetCapabilities() const { return m_Capability; }
+        inline RHI::RhiCapabilityList             GetCapabilities() const { return m_Capability; }
     };
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

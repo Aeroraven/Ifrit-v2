@@ -26,10 +26,10 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     class IFRIT_APIDECL PostFxStockhamDFT2 : public PostprocessPass
     {
-        using GPUBindId     = Graphics::Rhi::RhiDescHandleLegacy;
-        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
-        using GPUTexture    = Graphics::Rhi::RhiTextureRef;
-        using ComputePass   = Graphics::Rhi::RhiComputePass;
+        using GPUBindId     = RHI::RhiDescHandleLegacy;
+        using RenderTargets = RHI::RhiRenderTargets;
+        using GPUTexture    = RHI::RhiTextureRef;
+        using ComputePass   = RHI::RhiComputePass;
 
         // I know this is UGLY
         CustomHashMap<Pair<u32, u32>, GPUTexture, PairwiseHash<u32, u32>> m_tex1;

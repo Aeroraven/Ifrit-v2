@@ -33,8 +33,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #define WINDOW_HEIGHT 1080
 
 using namespace Ifrit;
-using namespace Ifrit::Graphics::Rhi;
-using namespace Ifrit::MeshProcLib::MeshProcess;
+using namespace Ifrit::RHI;
+using namespace Ifrit::GeometryProc::MeshProcess;
 using namespace Ifrit::Math;
 using namespace Ifrit::Runtime;
 using namespace Ifrit;
@@ -261,10 +261,10 @@ namespace Ifrit
             depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
             swapchainImg    = rt->GetSwapchainImage();
             renderTargets   = rt->CreateRenderTargets();
-            colorAttachment = rt->CreateRenderTarget(swapchainImg,
-                Graphics::Rhi::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
-            depthAttachment = rt->CreateRenderTargetDepthStencil(depthImage.get(),
-                Graphics::Rhi::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Clear);
+            colorAttachment = rt->CreateRenderTarget(
+                swapchainImg, RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
+            depthAttachment = rt->CreateRenderTargetDepthStencil(
+                depthImage.get(), RHI::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Clear);
             renderTargets->SetColorAttachments({ colorAttachment.get() });
             renderTargets->SetDepthStencilAttachment(depthAttachment.get());
             renderTargets->SetRenderArea(scissor);

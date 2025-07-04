@@ -29,11 +29,11 @@ namespace Ifrit::Runtime::Ayanami
     {
     private:
         AyanamiScreenProbeProcessorPrivate* m_Private       = nullptr;
-        Graphics::Rhi::RhiBackend*          m_Rhi           = nullptr;
+        RHI::RhiBackend*                    m_Rhi           = nullptr;
         AyanamiSharedContext*               m_SharedContext = nullptr;
 
     public:
-        AyanamiScreenProbeProcessor(Graphics::Rhi::RhiBackend* rhi, AyanamiSharedContext* sharedContext);
+        AyanamiScreenProbeProcessor(RHI::RhiBackend* rhi, AyanamiSharedContext* sharedContext);
         virtual ~AyanamiScreenProbeProcessor();
 
         void InitContext(FrameGraphBuilder& builder, u32 maxRtWidth, u32 maxRtHeight, f32 adaptiveProbesRatio);

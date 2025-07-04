@@ -1,9 +1,9 @@
-#include "ifrit/meshproc/engine/vdb/VdbBase.h"
+#include "ifrit/geomproc/vdb/VdbBase.h"
 #include <sstream>
 #include "openvdb/openvdb/openvdb.h"
 #include "openvdb/io/Stream.h"
 
-namespace Ifrit::MeshProcLib::VDB
+namespace Ifrit::GeometryProc::VDB
 {
     static void OpenVDBInit()
     {
@@ -27,4 +27,4 @@ namespace Ifrit::MeshProcLib::VDB
         return desc;
     }
 
-} // namespace Ifrit::MeshProcLib::VDB
+} // namespace Ifrit::GeometryProc::VDB

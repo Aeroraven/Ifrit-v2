@@ -29,18 +29,18 @@ namespace Ifrit::Runtime
         SharedRenderResourceData* m_Data = nullptr;
 
     public:
-        SharedRenderResource(Graphics::Rhi::RhiBackend* rhi);
+        SharedRenderResource(RHI::RhiBackend* rhi);
         virtual ~SharedRenderResource();
 
-        Graphics::Rhi::RhiSamplerDesc GetLinearClampSamplerDesc();
-        Graphics::Rhi::RhiSamplerDesc GetNearestClampSamplerDesc();
-        Graphics::Rhi::RhiSamplerDesc GetLinearRepeatSamplerDesc();
-        Graphics::Rhi::RhiSamplerDesc GetNearestRepeatSamplerDesc();
+        RHI::RhiSamplerDesc GetLinearClampSamplerDesc();
+        RHI::RhiSamplerDesc GetNearestClampSamplerDesc();
+        RHI::RhiSamplerDesc GetLinearRepeatSamplerDesc();
+        RHI::RhiSamplerDesc GetNearestRepeatSamplerDesc();
 
         // Only for refactoring,
-        Graphics::Rhi::RhiSamplerRef  GetLinearClampSampler();
-        Graphics::Rhi::RhiSamplerRef  GetNearestClampSampler();
-        Graphics::Rhi::RhiSamplerRef  GetLinearRepeatSampler();
-        Graphics::Rhi::RhiSamplerRef  GetNearestRepeatSampler();
+        RHI::RhiSamplerRef  GetLinearClampSampler();
+        RHI::RhiSamplerRef  GetNearestClampSampler();
+        RHI::RhiSamplerRef  GetLinearRepeatSampler();
+        RHI::RhiSamplerRef  GetNearestRepeatSampler();
     };
 } // namespace Ifrit::Runtime

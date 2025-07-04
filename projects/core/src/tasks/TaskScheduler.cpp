@@ -24,7 +24,7 @@ namespace Ifrit
     // Task
     IFRIT_APIDECL void Task::Execute()
     {
-        m_State = TaskState::Running;
+        m_State = ETaskState::Running;
         m_Execute(this, m_Payload);
         Complete();
     }
@@ -33,9 +33,9 @@ namespace Ifrit
     {
         // Complete Self
         {
-            RSpinLockGuard lock(m_ContinuationLock);
+            FSpinLockGuard lock(m_ContinuationLock);
             auto           jobsRemain = m_PendingJobs.fetch_sub(1, std::memory_order_acq_rel) - 1;
-            m_State                   = TaskState::Completed;
+            m_State                   = ETaskState::Completed;
             if (jobsRemain == 0)
             {
                 auto jobsRemain = m_PendingJobs.load(std::memory_order_acquire);
@@ -66,30 +66,30 @@ namespace Ifrit
     }
 
     // Workers
-    struct TaskWorkerAttributes
+    struct FTaskWorkerAttributes
     {
-        using TaskRef                               = RObjectPool<Task>::RObjectRef;
-        TaskScheduler*                  m_Scheduler = nullptr;
+        using TaskRef                               = TObjectPool<Task>::TObjectRef;
+        FTaskScheduler*                 m_Scheduler = nullptr;
         u32                             m_ThreadId  = 0;
-        Atomic<TaskWorkerState>         m_State     = TaskWorkerState::Alive;
-        RPooledConcurrentQueue<TaskRef> m_JobQueue;
+        Atomic<EFTaskWorkerState>       m_State     = EFTaskWorkerState::Alive;
+        TPooledConcurrentQueue<TaskRef> m_JobQueue;
     };
 
-    IFRIT_APIDECL TaskWorker::TaskWorker(TaskScheduler* scheduler, u32 threadId)
+    IFRIT_APIDECL FTaskWorker::FTaskWorker(FTaskScheduler* scheduler, u32 threadId)
     {
-        m_Attributes              = new TaskWorkerAttributes();
+        m_Attributes              = new FTaskWorkerAttributes();
         m_Attributes->m_Scheduler = scheduler;
         m_Attributes->m_ThreadId  = threadId;
-        m_Attributes->m_State     = TaskWorkerState::Alive;
+        m_Attributes->m_State     = EFTaskWorkerState::Alive;
     }
-    IFRIT_APIDECL      TaskWorker::~TaskWorker() { delete m_Attributes; }
+    IFRIT_APIDECL      FTaskWorker::~FTaskWorker() { delete m_Attributes; }
 
-    IFRIT_APIDECL void TaskWorker::Run()
+    IFRIT_APIDECL void FTaskWorker::Run()
     {
         while (true)
         {
             auto state = m_Attributes->m_State.load();
-            if (state == TaskWorkerState::Terminating)
+            if (state == EFTaskWorkerState::Terminating)
             {
                 break;
             }
@@ -103,22 +103,22 @@ namespace Ifrit
             }
             std::this_thread::yield();
         }
-        m_Attributes->m_State = TaskWorkerState::Terminated;
+        m_Attributes->m_State = EFTaskWorkerState::Terminated;
     }
 
-    IFRIT_APIDECL void TaskWorker::Launch()
+    IFRIT_APIDECL void FTaskWorker::Launch()
     {
         m_Thread = std::thread([this]() { Run(); });
         m_Thread.detach();
     }
 
-    IFRIT_APIDECL void TaskWorker::EnqueueTask(TaskRef task)
+    IFRIT_APIDECL void FTaskWorker::EnqueueTask(TaskRef task)
     {
         // Enqueue!
         m_Attributes->m_JobQueue.Enqueue(task);
     }
 
-    IFRIT_APIDECL TaskWorker::TaskRef TaskWorker::FetchTask()
+    IFRIT_APIDECL FTaskWorker::TaskRef FTaskWorker::FetchTask()
     {
         auto thisQueueTask = m_Attributes->m_JobQueue.Dequeue();
         if (thisQueueTask.Get() == nullptr)
@@ -141,50 +141,50 @@ namespace Ifrit
     }
     // Scheduler
 
-    struct TaskSchedulerAttributes
+    struct FTaskSchedulerAttributes
     {
-        using TaskRef = RObjectPool<Task>::RObjectRef;
+        using TaskRef = TObjectPool<Task>::TObjectRef;
         // Hold this to ensure the object's reference count is not 0
-        HashMap<RIndexedPtr::Underlying, TaskRef> m_JobAlive;
-        Vec<Ref<TaskWorker>>                      m_Workers;
-        RObjectPool<Task>                         m_TaskPool;
+        HashMap<FIndexedPtr::Underlying, TaskRef> m_JobAlive;
+        Vec<Ref<FTaskWorker>>                     m_Workers;
+        TObjectPool<Task>                         m_TaskPool;
     };
 
-    IFRIT_APIDECL TaskScheduler::TaskScheduler(u32 numThreads, bool isSingleton)
-        : m_Attributes(new TaskSchedulerAttributes()), m_IsSingleton(isSingleton)
+    IFRIT_APIDECL FTaskScheduler::FTaskScheduler(u32 numThreads, bool isSingleton)
+        : m_Attributes(new FTaskSchedulerAttributes()), m_IsSingleton(isSingleton)
     {
         m_Attributes->m_Workers.reserve(numThreads);
         for (u32 i = 0; i < numThreads; ++i)
         {
-            auto workerRef = MakeRef<TaskWorker>(this, i);
+            auto workerRef = MakeRef<FTaskWorker>(this, i);
             m_Attributes->m_Workers.emplace_back(workerRef);
             m_Attributes->m_Workers[i]->Launch();
         }
-        iInfo("TaskScheduler: Created {} worker threads.", numThreads);
+        iInfo("FTaskScheduler: Created {} worker threads.", numThreads);
     }
 
-    IFRIT_APIDECL void TaskScheduler::DereferenceTask(RIndexedPtr taskId)
+    IFRIT_APIDECL void FTaskScheduler::DereferenceTask(FIndexedPtr taskId)
     {
         auto task = m_Attributes->m_JobAlive[taskId.Ptr()];
         if (task.Get() == nullptr)
         {
-            iError("TaskScheduler: Task not found in alive task list.");
+            iError("FTaskScheduler: Task not found in alive task list.");
             std::abort();
         }
         m_Attributes->m_JobAlive.erase(taskId.Ptr());
     }
 
-    IFRIT_APIDECL void TaskScheduler::RegisterDependency(Task* parent, Task* child)
+    IFRIT_APIDECL void FTaskScheduler::RegisterDependency(Task* parent, Task* child)
     {
         // We do not need lock itself. The dependency is created upon creating.
         // No need to fear the deadlock
-        RSpinLockGuard lockParent(parent->m_ContinuationLock);
-        if (parent->m_State.load() == TaskState::Idle)
+        FSpinLockGuard lockParent(parent->m_ContinuationLock);
+        if (parent->m_State.load() == ETaskState::Idle)
         {
-            iError("TaskScheduler: To prevent circular dependency, the task is not allowed to be idle.");
+            iError("FTaskScheduler: To prevent circular dependency, the task is not allowed to be idle.");
             std::abort();
         }
-        if (parent->m_State.load() != TaskState::Completed || parent->m_State.load() != TaskState::Failed)
+        if (parent->m_State.load() != ETaskState::Completed || parent->m_State.load() != ETaskState::Failed)
         {
             auto parentContPos = parent->m_ChildJobs.fetch_add(1);
             // parent->m_PendingJobs.fetch_add(1);
@@ -196,41 +196,41 @@ namespace Ifrit
         }
     }
 
-    IFRIT_APIDECL void TaskScheduler::ScheduleTask(TaskRef task)
+    IFRIT_APIDECL void FTaskScheduler::ScheduleTask(TaskRef task)
     {
         auto taskId       = task.GetIndex();
         auto randomWorker = rand() % m_Attributes->m_Workers.size();
         auto worker       = m_Attributes->m_Workers[randomWorker];
 
-        if (worker->m_Attributes->m_State.load() == TaskWorkerState::Alive)
+        if (worker->m_Attributes->m_State.load() == EFTaskWorkerState::Alive)
         {
             worker->EnqueueTask(task);
         }
         else
         {
-            iError("TaskScheduler: Worker is not alive.");
+            iError("FTaskScheduler: Worker is not alive.");
             std::abort();
         }
     }
 
-    IFRIT_APIDECL void TaskScheduler::ScheduleTaskFromId(RIndexedPtr taskId)
+    IFRIT_APIDECL void FTaskScheduler::ScheduleTaskFromId(FIndexedPtr taskId)
     {
         auto task = m_Attributes->m_JobAlive[taskId.Ptr()];
         if (task.Get() == nullptr)
         {
-            iError("TaskScheduler: Task not found in alive task list.");
+            iError("FTaskScheduler: Task not found in alive task list.");
             std::abort();
         }
         ScheduleTask(task);
     }
 
-    IFRIT_APIDECL TaskWorker* TaskScheduler::FetchRandomWorker()
+    IFRIT_APIDECL FTaskWorker* FTaskScheduler::FetchRandomWorker()
     {
         auto randomWorker = rand() % m_Attributes->m_Workers.size();
         return m_Attributes->m_Workers[randomWorker].get();
     }
 
-    IFRIT_APIDECL TaskScheduler::TaskRef TaskScheduler::EnqueueTask(
+    IFRIT_APIDECL FTaskScheduler::TaskRef FTaskScheduler::EnqueueTask(
         Fn<void(Task*, void*)> fn, Vec<TaskRef> dependencies, void* payload)
     {
         auto task         = m_Attributes->m_TaskPool.Create();
@@ -250,15 +250,15 @@ namespace Ifrit
         return task;
     }
 
-    IFRIT_APIDECL void TaskScheduler::WaitForTask(TaskRef task)
+    IFRIT_APIDECL void FTaskScheduler::WaitForTask(TaskRef task)
     {
-        while (task->m_State.load() != TaskState::Completed && task->m_State.load() != TaskState::Failed)
+        while (task->m_State.load() != ETaskState::Completed && task->m_State.load() != ETaskState::Failed)
         {
             std::this_thread::yield();
         }
     }
 
-    IFRIT_APIDECL TaskScheduler::~TaskScheduler()
+    IFRIT_APIDECL FTaskScheduler::~FTaskScheduler()
     {
         if (m_IsSingleton)
         {
@@ -266,22 +266,22 @@ namespace Ifrit
         }
         for (auto& worker : m_Attributes->m_Workers)
         {
-            worker->m_Attributes->m_State = TaskWorkerState::Terminating;
+            worker->m_Attributes->m_State = EFTaskWorkerState::Terminating;
         }
-        iInfo("TaskScheduler: Waiting for all workers to finish...");
+        iInfo("FTaskScheduler: Waiting for all workers to finish...");
         for (auto& worker : m_Attributes->m_Workers)
         {
-            while (worker->m_Attributes->m_State.load() != TaskWorkerState::Terminated)
+            while (worker->m_Attributes->m_State.load() != EFTaskWorkerState::Terminated)
             {
                 std::this_thread::yield();
             }
         }
-        iInfo("TaskScheduler: All workers finished.");
+        iInfo("FTaskScheduler: All workers finished.");
     }
 
-    IFRIT_APIDECL TaskScheduler* GetTaskScheduler()
+    IFRIT_APIDECL FTaskScheduler* GetFTaskScheduler()
     {
-        static TaskScheduler scheduler(8, true);
+        static FTaskScheduler scheduler(8, true);
         return &scheduler;
     }
 

@@ -21,25 +21,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit
 {
-    struct ConsoleVariableRegistryData
+    struct FConsoleVariableRegistryData
     {
-        HashMap<String, Owner<IConsoleVariableRegistryEntry>> m_CVars;
+        HashMap<String, Owner<IFConsoleVariableRegistryEntry>> m_CVars;
     };
 
-    IFRIT_APIDECL      ConsoleVariableRegistry::~ConsoleVariableRegistry() { delete m_Data; }
+    IFRIT_APIDECL FConsoleVariableRegistry::~FConsoleVariableRegistry() { delete m_Data; }
 
-    IFRIT_APIDECL      ConsoleVariableRegistry::ConsoleVariableRegistry() : m_Data(new ConsoleVariableRegistryData()) {}
+    IFRIT_APIDECL FConsoleVariableRegistry::FConsoleVariableRegistry() : m_Data(new FConsoleVariableRegistryData()) {}
 
-    IFRIT_APIDECL void ConsoleVariableRegistry::RegisterVariable(
-        const char* name, Owner<IConsoleVariableRegistryEntry>& ptr)
+    IFRIT_APIDECL void FConsoleVariableRegistry::RegisterVariable(
+        const char* name, Owner<IFConsoleVariableRegistryEntry>& ptr)
     {
         m_Data->m_CVars[name] = std::move(ptr);
         iDebug("ConsoleVariableRegistry: Registered console variable: {}", name);
     }
 
-    IFRIT_APIDECL void ConsoleVariableRegistry::UnregisterVariable(const char* name) { m_Data->m_CVars.erase(name); }
+    IFRIT_APIDECL void FConsoleVariableRegistry::UnregisterVariable(const char* name) { m_Data->m_CVars.erase(name); }
 
-    IFRIT_APIDECL IConsoleVariableRegistryEntry* ConsoleVariableRegistry::FindVariableGeneric(const char* name) const
+    IFRIT_APIDECL IFConsoleVariableRegistryEntry* FConsoleVariableRegistry::FindVariableGeneric(const char* name) const
     {
         auto it = m_Data->m_CVars.find(name);
         if (it != m_Data->m_CVars.end())
@@ -49,9 +49,9 @@ namespace Ifrit
         return nullptr;
     }
 
-    IFRIT_APIDECL ConsoleVariableRegistry* GetConsoleVariableRegistry()
+    IFRIT_APIDECL FConsoleVariableRegistry* GetFConsoleVariableRegistry()
     {
-        static ConsoleVariableRegistry registry;
+        static FConsoleVariableRegistry registry;
         return &registry;
     }
 } // namespace Ifrit

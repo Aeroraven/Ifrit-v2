@@ -10,7 +10,7 @@
 #include "ifrit.external/fsr2/vk/ffx_fsr2_vk.h"
 #undef FFX_IMPORTS
 
-namespace Ifrit::Graphics::VulkanGraphics::FSR2
+namespace Ifrit::RHI::VulkanAdapter::FSR2
 {
 
     using Ifrit::CheckedCast;
@@ -58,7 +58,7 @@ namespace Ifrit::Graphics::VulkanGraphics::FSR2
         }
     }
 
-    IFRIT_APIDECL void FSR2Processor::Init(const Rhi::FSR2::RhiFSR2InitialzeArgs& args)
+    IFRIT_APIDECL void FSR2Processor::Init(const RHI::FSR2::RhiFSR2InitialzeArgs& args)
     {
         m_context->initContext.device               = ffxGetDeviceVK(m_engineContext->GetDevice());
         m_context->initContext.maxRenderSize.width  = args.maxRenderWidth;
@@ -80,7 +80,7 @@ namespace Ifrit::Graphics::VulkanGraphics::FSR2
     }
 
     IFRIT_APIDECL void FSR2Processor::Dispatch(
-        const Rhi::RhiCommandList* cmd, const Rhi::FSR2::RhiFSR2DispatchArgs& args)
+        const RHI::RhiCommandList* cmd, const RHI::FSR2::RhiFSR2DispatchArgs& args)
     {
         FfxFsr2DispatchDescription dispatchParams = {};
         auto                       cmdVk          = CheckedCast<CommandBuffer>(cmd)->GetCommandBuffer();
@@ -158,7 +158,7 @@ namespace Ifrit::Graphics::VulkanGraphics::FSR2
         dispatchParams.jitterOffset.y      = args.jitterY;
         dispatchParams.frameTimeDelta      = args.deltaTime * 5.0f;
         dispatchParams.motionVectorScale.x = 1.0f * m_context->initContext.maxRenderSize.width;
-        dispatchParams.motionVectorScale.y = 1.0f* m_context->initContext.maxRenderSize.height;
+        dispatchParams.motionVectorScale.y = 1.0f * m_context->initContext.maxRenderSize.height;
 
         dispatchParams.cameraNear              = args.camNear;
         dispatchParams.cameraFar               = args.camFar;
@@ -214,4 +214,4 @@ namespace Ifrit::Graphics::VulkanGraphics::FSR2
         delete m_context;
     }
 
-} // namespace Ifrit::Graphics::VulkanGraphics::FSR2
+} // namespace Ifrit::RHI::VulkanAdapter::FSR2

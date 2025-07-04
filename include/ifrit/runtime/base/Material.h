@@ -43,10 +43,10 @@ namespace Ifrit::Runtime
 
     struct PipelineAttachmentConfigs
     {
-        Graphics::Rhi::RhiImageFormat      m_depthFormat;
-        Vec<Graphics::Rhi::RhiImageFormat> m_colorFormats;
+        RHI::RhiImageFormat      m_depthFormat;
+        Vec<RHI::RhiImageFormat> m_colorFormats;
 
-        inline bool                        operator==(const PipelineAttachmentConfigs& other) const
+        inline bool              operator==(const PipelineAttachmentConfigs& other) const
         {
             auto res = m_depthFormat == other.m_depthFormat;
             res &= (m_colorFormats == other.m_colorFormats);
@@ -73,9 +73,9 @@ namespace Ifrit::Runtime
 
     class ShaderEffect
     {
-        using DrawPass    = Ifrit::Graphics::Rhi::RhiGraphicsPass;
-        using ComputePass = Ifrit::Graphics::Rhi::RhiComputePass;
-        using Shader      = Ifrit::Graphics::Rhi::RhiShader;
+        using DrawPass    = Ifrit::RHI::RhiGraphicsPass;
+        using ComputePass = Ifrit::RHI::RhiComputePass;
+        using Shader      = Ifrit::RHI::RhiShader;
 
     public:
         ShaderEffectType                                     m_type = ShaderEffectType::Graphics;

@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/runtime/physics/siro/SiroSimulator.h"
 
 using namespace Ifrit::Math;
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 
 namespace Ifrit::Runtime::Siro
 {
@@ -47,8 +47,7 @@ namespace Ifrit::Runtime::Siro
         }
     }
 
-    Owner<Graphics::Rhi::RhiTaskSubmission> SiroSimulator::Update(
-        f32 deltaTime, Vec<Graphics::Rhi::RhiTaskSubmission*> waitFor)
+    Owner<RHI::RhiTaskSubmission> SiroSimulator::Update(f32 deltaTime, Vec<RHI::RhiTaskSubmission*> waitFor)
     {
         auto rhi   = m_App->GetRhi();
         auto queue = rhi->GetQueue(RhiQueueCapability::RhiQueue_Graphics);

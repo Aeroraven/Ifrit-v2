@@ -14,8 +14,8 @@ namespace Ifrit::Runtime
             auto              path           = shaderBasePath + "/Syaro/Syaro.EmitGBuffer.Default.comp.glsl";
             auto              shaderCode     = ReadTextFile(path);
             std::vector<char> shaderCodeVec(shaderCode.begin(), shaderCode.end());
-            m_shader = rhi->CreateShader(path, shaderCodeVec, "main", Graphics::Rhi::RhiShaderStage::Compute,
-                              Graphics::Rhi::RhiShaderSourceType::GLSLCode)
+            m_shader = rhi->CreateShader(path, shaderCodeVec, "main", RHI::RhiShaderStage::Compute,
+                              RHI::RhiShaderSourceType::GLSLCode)
                            ->GetVariant({});
             m_shaderEffect.m_shaders.push_back(m_shader);
             m_shaderEffect.m_type = ShaderEffectType::Compute;
@@ -35,7 +35,7 @@ namespace Ifrit::Runtime
         this->m_effectTemplates[GraphicsShaderPassType::Opaque] = m_shaderEffect;
     }
 
-    Graphics::Rhi::RhiShader* SyaroDefaultGBufEmitter::m_shader       = nullptr;
-    ShaderEffect              SyaroDefaultGBufEmitter::m_shaderEffect = {};
+    RHI::RhiShader* SyaroDefaultGBufEmitter::m_shader       = nullptr;
+    ShaderEffect    SyaroDefaultGBufEmitter::m_shaderEffect = {};
 
 } // namespace Ifrit::Runtime

@@ -33,7 +33,7 @@ namespace Ifrit::Runtime
         virtual void                             OnUpdate() = 0;
         virtual void                             OnEnd()    = 0;
 
-        virtual Graphics::Rhi::RhiBackend*       GetRhi()                   = 0;
+        virtual RHI::RhiBackend*                 GetRhi()                   = 0;
         virtual Display::Window::WindowProvider* GetDisplay()               = 0;
         virtual String                           GetCacheDir() const        = 0;
         virtual TimingRecorder*                  GetTimeRecorder()          = 0;

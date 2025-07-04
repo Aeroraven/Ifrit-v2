@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/EngineContext.h"
 #include <vector>
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
     struct SwapChainSupportDetails
     {
@@ -36,7 +36,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         Vec<VkPresentModeKHR>    presentModes;
     };
 
-    class IFRIT_APIDECL Swapchain : public Rhi::RhiSwapchain
+    class IFRIT_APIDECL Swapchain : public RHI::RhiSwapchain
     {
     private:
         EngineContext*          m_context = nullptr;
@@ -67,7 +67,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         void Destructor();
 
     public:
-        Swapchain(Rhi::RhiDevice* context);
+        Swapchain(RHI::RhiDevice* context);
         ~Swapchain();
         u32                AcquireNextImage() override;
         void               Present() override;
@@ -96,4 +96,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         inline u32         GetWidth() const { return m_extent.width; }
         inline u32         GetHeight() const { return m_extent.height; }
     };
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

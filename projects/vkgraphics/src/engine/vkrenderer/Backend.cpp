@@ -27,9 +27,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/algo/ConcurrentVector.h"
 using namespace Ifrit;
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
-    inline VkFormat toVkFormat(Rhi::RhiImageFormat format) { return static_cast<VkFormat>(format); }
+    inline VkFormat toVkFormat(RHI::RhiImageFormat format) { return static_cast<VkFormat>(format); }
 
     struct RhiVulkanBackendImplDetails : public NonCopyable
     {
@@ -47,20 +47,20 @@ namespace Ifrit::Graphics::VulkanGraphics
         Vec<Owner<DescriptorBindlessIndices>>          m_bindlessIndices;
 
         // managed descriptors
-        Vec<Ref<Rhi::RhiDescHandleLegacy>>             m_bindlessIdRefs;
+        Vec<Ref<RHI::RhiDescHandleLegacy>>             m_bindlessIdRefs;
 
         // some utility buffers
-        Rhi::RhiBufferRef                              m_fullScreenQuadVertexBuffer;
+        RHI::RhiBufferRef                              m_fullScreenQuadVertexBuffer;
         Ref<VertexBufferDescriptor>                    m_fullScreenQuadVertexBufferDescriptor;
 
         // timers
         Vec<Ref<DeviceTimer>>                          m_deviceTimers;
 
-        RConcurrentGrowthVector<Ref<ShaderCollection>> m_shaderModule;
+        TConcurrentGrowthVector<Ref<ShaderCollection>> m_shaderModule;
     };
 
     IFRIT_APIDECL
-    RhiVulkanBackend::RhiVulkanBackend(const Rhi::RhiInitializeArguments& args)
+    RhiVulkanBackend::RhiVulkanBackend(const RHI::RhiInitializeArguments& args)
     {
         m_device                           = MakeOwner<EngineContext>(args);
         auto engineContext                 = CheckedCast<EngineContext>(m_device.get());
@@ -88,7 +88,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         StagedSingleBuffer stagedQuadBuffer(engineContext, singleBufferPtr);
 
         auto               transferQueue = m_implDetails->m_commandExecutor->GetQueue(QueueRequirement::Transfer);
-        transferQueue->RunSyncCommand([&](const Rhi::RhiCommandList* cmd) {
+        transferQueue->RunSyncCommand([&](const RHI::RhiCommandList* cmd) {
             float data[] = {
                 0.0f, 0.0f, //
                 4.0f, 0.0f, //
@@ -98,7 +98,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         });
         m_implDetails->m_fullScreenQuadVertexBufferDescriptor = MakeRef<VertexBufferDescriptor>();
         m_implDetails->m_fullScreenQuadVertexBufferDescriptor->AddBinding(
-            { 0 }, { Rhi::RhiImageFormat::RhiImgFmt_R32G32_SFLOAT }, { 0 }, 2 * sizeof(float));
+            { 0 }, { RHI::RhiImageFormat::RhiImgFmt_R32G32_SFLOAT }, { 0 }, 2 * sizeof(float));
     }
 
     IFRIT_APIDECL void RhiVulkanBackend::WaitDeviceIdle()
@@ -107,13 +107,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         p->WaitIdle();
     }
 
-    IFRIT_APIDECL Rhi::RhiCapabilityList RhiVulkanBackend::GetCapabilities() const
+    IFRIT_APIDECL RHI::RhiCapabilityList RhiVulkanBackend::GetCapabilities() const
     {
         auto ctx = CheckedCast<EngineContext>(m_device.get());
         return ctx->GetCapabilities();
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiDeviceTimer> RhiVulkanBackend::CreateDeviceTimer()
+    IFRIT_APIDECL Ref<RHI::RhiDeviceTimer> RhiVulkanBackend::CreateDeviceTimer()
     {
         auto swapchain        = CheckedCast<Swapchain>(m_swapChain.get());
         auto numFrameInFlight = swapchain->GetNumBackbuffers();
@@ -122,7 +122,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::CreateBuffer(
+    IFRIT_APIDECL RHI::RhiBufferRef RhiVulkanBackend::CreateBuffer(
         const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const
     {
         BufferCreateInfo ci{};
@@ -137,17 +137,17 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto buffer            = CheckedCast<SingleBuffer>(p.get());
             auto descriptorManager = (m_implDetails->m_descriptorManager.get());
             auto id                = descriptorManager->RegisterStorageBuffer(buffer);
-            p->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageBuffer, id));
+            p->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::StorageBuffer, id));
         }
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::GetFullScreenQuadVertexBuffer() const
+    IFRIT_APIDECL RHI::RhiBufferRef RhiVulkanBackend::GetFullScreenQuadVertexBuffer() const
     {
         return m_implDetails->m_fullScreenQuadVertexBuffer;
     }
 
-    IFRIT_APIDECL Rhi::RhiBufferRef RhiVulkanBackend::CreateBufferDevice(
+    IFRIT_APIDECL RHI::RhiBufferRef RhiVulkanBackend::CreateBufferDevice(
         const String& name, u32 size, u32 usage, bool addUAV) const
     {
         BufferCreateInfo ci{};
@@ -161,11 +161,11 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto buffer            = CheckedCast<SingleBuffer>(p.get());
             auto descriptorManager = (m_implDetails->m_descriptorManager.get());
             auto id                = descriptorManager->RegisterStorageBuffer(buffer);
-            p->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageBuffer, id));
+            p->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::StorageBuffer, id));
         }
         return p;
     }
-    IFRIT_APIDECL Ref<Rhi::RhiMultiBuffer> RhiVulkanBackend::CreateBufferCoherent(
+    IFRIT_APIDECL Ref<RHI::RhiMultiBuffer> RhiVulkanBackend::CreateBufferCoherent(
         u32 size, u32 usage, u32 numCopies) const
     {
         BufferCreateInfo ci{};
@@ -181,7 +181,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return m_implDetails->m_resourceManager->CreateTracedMultipleBuffer(ci, numCopies);
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiStagedSingleBuffer> RhiVulkanBackend::CreateStagedSingleBuffer(Rhi::RhiBuffer* target)
+    IFRIT_APIDECL Ref<RHI::RhiStagedSingleBuffer> RhiVulkanBackend::CreateStagedSingleBuffer(RHI::RhiBuffer* target)
     {
         // TODO: release memory, (not managed)
         auto buffer        = CheckedCast<SingleBuffer>(target);
@@ -190,36 +190,36 @@ namespace Ifrit::Graphics::VulkanGraphics
         return ptr;
     }
 
-    IFRIT_APIDECL Rhi::RhiQueue* RhiVulkanBackend::GetQueue(Rhi::RhiQueueCapability req)
+    IFRIT_APIDECL RHI::RhiQueue* RhiVulkanBackend::GetQueue(RHI::RhiQueueCapability req)
     {
         QueueRequirement reqs;
-        if (req == Rhi::RhiQueueCapability::RhiQueue_Graphics)
+        if (req == RHI::RhiQueueCapability::RhiQueue_Graphics)
         {
             reqs = QueueRequirement::Graphics;
         }
-        else if (req == Rhi::RhiQueueCapability::RhiQueue_Compute)
+        else if (req == RHI::RhiQueueCapability::RhiQueue_Compute)
         {
             reqs = QueueRequirement::Compute;
         }
-        else if (req == Rhi::RhiQueueCapability::RhiQueue_Transfer)
+        else if (req == RHI::RhiQueueCapability::RhiQueue_Transfer)
         {
             reqs = QueueRequirement::Transfer;
         }
-        else if (req == (Rhi::RhiQueueCapability::RhiQueue_Graphics | Rhi::RhiQueueCapability::RhiQueue_Compute))
+        else if (req == (RHI::RhiQueueCapability::RhiQueue_Graphics | RHI::RhiQueueCapability::RhiQueue_Compute))
         {
             reqs = QueueRequirement::Graphics_Compute;
         }
-        else if (req == (Rhi::RhiQueueCapability::RhiQueue_Graphics | Rhi::RhiQueueCapability::RhiQueue_Transfer))
+        else if (req == (RHI::RhiQueueCapability::RhiQueue_Graphics | RHI::RhiQueueCapability::RhiQueue_Transfer))
         {
             reqs = QueueRequirement::Graphics_Transfer;
         }
-        else if (req == (Rhi::RhiQueueCapability::RhiQueue_Compute | Rhi::RhiQueueCapability::RhiQueue_Transfer))
+        else if (req == (RHI::RhiQueueCapability::RhiQueue_Compute | RHI::RhiQueueCapability::RhiQueue_Transfer))
         {
             reqs = QueueRequirement::Compute_Transfer;
         }
         else if (req
-            == (Rhi::RhiQueueCapability::RhiQueue_Graphics | Rhi::RhiQueueCapability::RhiQueue_Compute
-                | Rhi::RhiQueueCapability::RhiQueue_Transfer))
+            == (RHI::RhiQueueCapability::RhiQueue_Graphics | RHI::RhiQueueCapability::RhiQueue_Compute
+                | RHI::RhiQueueCapability::RhiQueue_Transfer))
         {
             reqs = QueueRequirement::Universal;
         }
@@ -231,8 +231,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return s;
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiShaderCollection> RhiVulkanBackend::CreateShader(const String& name,
-        const Vec<char>& code, const String& entry, Rhi::RhiShaderStage stage, Rhi::RhiShaderSourceType sourceType)
+    IFRIT_APIDECL Ref<RHI::RhiShaderCollection> RhiVulkanBackend::CreateShader(const String& name,
+        const Vec<char>& code, const String& entry, RHI::RhiShaderStage stage, RHI::RhiShaderSourceType sourceType)
     {
         ShaderCollectionCI ci{};
         ci.m_Code             = code;
@@ -245,8 +245,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         return shaderCollection;
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateTexture2D(
-        const String& name, u32 width, u32 height, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV)
+    IFRIT_APIDECL RHI::RhiTextureRef RhiVulkanBackend::CreateTexture2D(
+        const String& name, u32 width, u32 height, RHI::RhiImageFormat format, u32 extraFlags, bool addUAV)
     {
         auto p = m_implDetails->m_resourceManager->CreateTexture2DDeviceUnmanaged(
             width, height, toVkFormat(format), extraFlags);
@@ -256,13 +256,13 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto texture           = CheckedCast<SingleDeviceImage>(p.get());
             auto descriptorManager = (m_implDetails->m_descriptorManager.get());
             auto id                = descriptorManager->RegisterStorageImage(texture, { 0, 0, 1, 1 });
-            p->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, id));
+            p->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::StorageImage, id));
         }
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateTexture2DMsaa(
-        const String& name, u32 width, u32 height, Rhi::RhiImageFormat format, u32 extraFlags, u32 samples)
+    IFRIT_APIDECL RHI::RhiTextureRef RhiVulkanBackend::CreateTexture2DMsaa(
+        const String& name, u32 width, u32 height, RHI::RhiImageFormat format, u32 extraFlags, u32 samples)
     {
         auto p = m_implDetails->m_resourceManager->CreateTexture2DDeviceUnmanaged(
             width, height, toVkFormat(format), extraFlags, samples);
@@ -270,7 +270,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateDepthTexture(
+    IFRIT_APIDECL RHI::RhiTextureRef RhiVulkanBackend::CreateDepthTexture(
         const String& name, u32 width, u32 height, bool addUAV)
     {
         auto p = m_implDetails->m_resourceManager->CreateDepthAttachment(width, height);
@@ -280,13 +280,13 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto texture           = CheckedCast<SingleDeviceImage>(p.get());
             auto descriptorManager = (m_implDetails->m_descriptorManager.get());
             auto id                = descriptorManager->RegisterStorageImage(texture, { 0, 0, 1, 1 });
-            p->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, id));
+            p->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::StorageImage, id));
         }
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateTexture3D(
-        const String& name, u32 width, u32 height, u32 depth, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV)
+    IFRIT_APIDECL RHI::RhiTextureRef RhiVulkanBackend::CreateTexture3D(
+        const String& name, u32 width, u32 height, u32 depth, RHI::RhiImageFormat format, u32 extraFlags, bool addUAV)
     {
         auto p =
             m_implDetails->m_resourceManager->CreateTexture3D(width, height, depth, toVkFormat(format), extraFlags);
@@ -296,13 +296,13 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto texture           = CheckedCast<SingleDeviceImage>(p.get());
             auto descriptorManager = (m_implDetails->m_descriptorManager.get());
             auto id                = descriptorManager->RegisterStorageImage(texture, { 0, 0, 1, 1 });
-            p->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, id));
+            p->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::StorageImage, id));
         }
         return p;
     };
 
-    IFRIT_APIDECL Rhi::RhiTextureRef RhiVulkanBackend::CreateMipMapTexture(
-        const String& name, u32 width, u32 height, u32 mips, Rhi::RhiImageFormat format, u32 extraFlags, bool addUAV)
+    IFRIT_APIDECL RHI::RhiTextureRef RhiVulkanBackend::CreateMipMapTexture(
+        const String& name, u32 width, u32 height, u32 mips, RHI::RhiImageFormat format, u32 extraFlags, bool addUAV)
     {
         auto p =
             m_implDetails->m_resourceManager->createMipTexture(width, height, mips, toVkFormat(format), extraFlags);
@@ -312,33 +312,33 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto texture           = CheckedCast<SingleDeviceImage>(p.get());
             auto descriptorManager = (m_implDetails->m_descriptorManager.get());
             auto id                = descriptorManager->RegisterStorageImage(texture, { 0, 0, 1, 1 });
-            p->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, id));
+            p->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::StorageImage, id));
         }
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiSamplerRef RhiVulkanBackend::CreateSampler(
-        Rhi::RhiSamplerFilter filter, Rhi::RhiSamplerWrapMode addressMode, bool addBinding)
+    IFRIT_APIDECL RHI::RhiSamplerRef RhiVulkanBackend::CreateSampler(
+        RHI::RhiSamplerFilter filter, RHI::RhiSamplerWrapMode addressMode, bool addBinding)
     {
-        Rhi::RhiSamplerRef sampler = nullptr;
-        if (filter == Rhi::RhiSamplerFilter::Linear)
+        RHI::RhiSamplerRef sampler = nullptr;
+        if (filter == RHI::RhiSamplerFilter::Linear)
         {
-            if (addressMode == Rhi::RhiSamplerWrapMode::Clamp)
+            if (addressMode == RHI::RhiSamplerWrapMode::Clamp)
             {
                 sampler = m_implDetails->m_resourceManager->CreateTrivialBilinearSampler(false);
             }
-            else if (addressMode == Rhi::RhiSamplerWrapMode::Repeat)
+            else if (addressMode == RHI::RhiSamplerWrapMode::Repeat)
             {
                 sampler = m_implDetails->m_resourceManager->CreateTrivialBilinearSampler(true);
             }
         }
-        else if (filter == Rhi::RhiSamplerFilter::Nearest)
+        else if (filter == RHI::RhiSamplerFilter::Nearest)
         {
-            if (addressMode == Rhi::RhiSamplerWrapMode::Clamp)
+            if (addressMode == RHI::RhiSamplerWrapMode::Clamp)
             {
                 sampler = m_implDetails->m_resourceManager->CreateTrivialNearestSampler(false);
             }
-            else if (addressMode == Rhi::RhiSamplerWrapMode::Repeat)
+            else if (addressMode == RHI::RhiSamplerWrapMode::Repeat)
             {
                 sampler = m_implDetails->m_resourceManager->CreateTrivialNearestSampler(true);
             }
@@ -352,13 +352,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         {
             auto samplerPtr = CheckedCast<Sampler>(sampler.get());
             auto id         = m_implDetails->m_descriptorManager->RegisterSamplers(samplerPtr);
-            sampler->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::Sampler, id));
+            sampler->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::Sampler, id));
         }
         return sampler;
     }
 
     // Deprecating
-    IFRIT_APIDECL Rhi::RhiComputePass* RhiVulkanBackend::CreateComputePass()
+    IFRIT_APIDECL RHI::RhiComputePass* RhiVulkanBackend::CreateComputePass()
     {
         auto pass =
             MakeOwner<ComputePass>(CheckedCast<EngineContext>(m_device.get()), m_implDetails->m_pipelineCache.get(),
@@ -370,7 +370,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     // Deprecating
-    IFRIT_APIDECL Rhi::RhiGraphicsPass* RhiVulkanBackend::CreateGraphicsPass()
+    IFRIT_APIDECL RHI::RhiGraphicsPass* RhiVulkanBackend::CreateGraphicsPass()
     {
         auto pass =
             MakeOwner<GraphicsPass>(CheckedCast<EngineContext>(m_device.get()), m_implDetails->m_pipelineCache.get(),
@@ -381,7 +381,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return ptr;
     }
 
-    IFRIT_APIDECL Owner<Rhi::RhiComputePass> RhiVulkanBackend::CreateComputePass2()
+    IFRIT_APIDECL Owner<RHI::RhiComputePass> RhiVulkanBackend::CreateComputePass2()
     {
         auto pass =
             MakeOwner<ComputePass>(CheckedCast<EngineContext>(m_device.get()), m_implDetails->m_pipelineCache.get(),
@@ -390,7 +390,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         ptr->SetDefaultNumMultiBuffers(m_swapChain->GetNumBackbuffers());
         return pass;
     }
-    IFRIT_APIDECL Owner<Rhi::RhiGraphicsPass> RhiVulkanBackend::CreateGraphicsPass2()
+    IFRIT_APIDECL Owner<RHI::RhiGraphicsPass> RhiVulkanBackend::CreateGraphicsPass2()
     {
         auto pass =
             MakeOwner<GraphicsPass>(CheckedCast<EngineContext>(m_device.get()), m_implDetails->m_pipelineCache.get(),
@@ -400,7 +400,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return pass;
     }
 
-    IFRIT_APIDECL Rhi::RhiTexture* RhiVulkanBackend::GetSwapchainImage()
+    IFRIT_APIDECL RHI::RhiTexture* RhiVulkanBackend::GetSwapchainImage()
     {
         return m_implDetails->m_commandExecutor->GetSwapchainImageResource();
     }
@@ -428,7 +428,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto nums          = deleteList->ProcessDeleteQueue();
     }
     IFRIT_APIDECL void RhiVulkanBackend::EndFrame() { m_implDetails->m_commandExecutor->EndFrame(); }
-    IFRIT_APIDECL Owner<Rhi::RhiTaskSubmission> RhiVulkanBackend::GetSwapchainFrameReadyEventHandler()
+    IFRIT_APIDECL Owner<RHI::RhiTaskSubmission> RhiVulkanBackend::GetSwapchainFrameReadyEventHandler()
     {
         auto                  swapchain = CheckedCast<Swapchain>(m_swapChain.get());
         auto                  sema      = swapchain->GetImageAvailableSemaphoreCurrentFrame();
@@ -437,7 +437,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         wait.m_semaphore            = sema;
         return MakeOwner<TimelineSemaphoreWait>(wait);
     }
-    IFRIT_APIDECL Owner<Rhi::RhiTaskSubmission> RhiVulkanBackend::GetSwapchainRenderDoneEventHandler()
+    IFRIT_APIDECL Owner<RHI::RhiTaskSubmission> RhiVulkanBackend::GetSwapchainRenderDoneEventHandler()
     {
         auto                  swapchain = CheckedCast<Swapchain>(m_swapChain.get());
         auto                  sema      = swapchain->GetRenderingFinishSemaphoreCurrentFrame();
@@ -449,21 +449,21 @@ namespace Ifrit::Graphics::VulkanGraphics
         return MakeOwner<TimelineSemaphoreWait>(wait);
     }
 
-    Ref<Rhi::RhiColorAttachment> RhiVulkanBackend::CreateRenderTarget(Rhi::RhiTexture* renderTarget,
-        Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers)
+    Ref<RHI::RhiColorAttachment> RhiVulkanBackend::CreateRenderTarget(RHI::RhiTexture* renderTarget,
+        RHI::RhiClearValue2 clearValue, RHI::RhiRenderTargetLoadOp loadOp, u32 mips, u32 layers)
     {
         auto attachment = MakeRef<ColorAttachment>(renderTarget, clearValue, loadOp, mips, layers);
         return attachment;
     }
 
-    Ref<Rhi::RhiDepthStencilAttachment> RhiVulkanBackend::CreateRenderTargetDepthStencil(
-        Rhi::RhiTexture* renderTarget, Rhi::RhiClearValue2 clearValue, Rhi::RhiRenderTargetLoadOp loadOp)
+    Ref<RHI::RhiDepthStencilAttachment> RhiVulkanBackend::CreateRenderTargetDepthStencil(
+        RHI::RhiTexture* renderTarget, RHI::RhiClearValue2 clearValue, RHI::RhiRenderTargetLoadOp loadOp)
     {
         auto attachment = MakeRef<DepthStencilAttachment>(renderTarget, clearValue, loadOp);
         return attachment;
     }
 
-    Ref<Rhi::RhiRenderTargets> RhiVulkanBackend::CreateRenderTargets()
+    Ref<RHI::RhiRenderTargets> RhiVulkanBackend::CreateRenderTargets()
     {
         auto ctx = CheckedCast<EngineContext>(m_device.get());
         return MakeRef<RenderTargets>(ctx);
@@ -471,7 +471,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     IFRIT_APIDECL RhiVulkanBackend::~RhiVulkanBackend() { delete m_implDetails; }
 
-    IFRIT_APIDECL Rhi::RhiBindlessDescriptorRef* RhiVulkanBackend::CreateBindlessDescriptorRef()
+    IFRIT_APIDECL RHI::RhiBindlessDescriptorRef* RhiVulkanBackend::CreateBindlessDescriptorRef()
     {
         auto ref = MakeOwner<DescriptorBindlessIndices>(CheckedCast<EngineContext>(m_device.get()),
             m_implDetails->m_descriptorManager.get(), m_swapChain->GetNumBackbuffers());
@@ -480,7 +480,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return ptr;
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterUniformBuffer(Rhi::RhiMultiBuffer* buffer)
+    IFRIT_APIDECL Ref<RHI::RhiDescHandleLegacy> RhiVulkanBackend::RegisterUniformBuffer(RHI::RhiMultiBuffer* buffer)
     {
         Vec<u32> ids;
         auto     descriptorManager = m_implDetails->m_descriptorManager.get();
@@ -491,15 +491,15 @@ namespace Ifrit::Graphics::VulkanGraphics
             auto id = descriptorManager->RegisterUniformBuffer(multiBuffer->GetBuffer(i));
             ids.push_back(id);
         }
-        auto p         = MakeRef<Rhi::RhiDescHandleLegacy>();
+        auto p         = MakeRef<RHI::RhiDescHandleLegacy>();
         p->ids         = ids;
         p->activeFrame = m_swapChain->GetCurrentImageIndex();
         m_implDetails->m_bindlessIdRefs.push_back(p);
         return p;
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiDescHandleLegacy> RhiVulkanBackend::RegisterStorageBufferShared(
-        Rhi::RhiMultiBuffer* buffer)
+    IFRIT_APIDECL Ref<RHI::RhiDescHandleLegacy> RhiVulkanBackend::RegisterStorageBufferShared(
+        RHI::RhiMultiBuffer* buffer)
     {
         // TODO
         Vec<u32> ids;
@@ -509,27 +509,27 @@ namespace Ifrit::Graphics::VulkanGraphics
         for (u32 i = 0; i < numBackbuffers; i++)
         {
             auto                     id = descriptorManager->RegisterStorageBuffer(multiBuffer->GetBuffer(i));
-            Rhi::RhiDescriptorHandle handle(Rhi::RhiDescriptorHeapType::StorageBuffer, id);
+            RHI::RhiDescriptorHandle handle(RHI::RhiDescriptorHeapType::StorageBuffer, id);
             multiBuffer->GetBuffer(i)->SetDescriptorHandle(handle);
             ids.push_back(id);
         }
-        auto p         = MakeRef<Rhi::RhiDescHandleLegacy>();
+        auto p         = MakeRef<RHI::RhiDescHandleLegacy>();
         p->ids         = ids;
         p->activeFrame = m_swapChain->GetCurrentImageIndex();
         m_implDetails->m_bindlessIdRefs.push_back(p);
         return p;
     }
 
-    IFRIT_APIDECL Rhi::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(
-        Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)
+    IFRIT_APIDECL RHI::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(
+        RHI::RhiTexture* texture, RHI::RhiImageSubResource subResource)
     {
         auto dm  = m_implDetails->m_descriptorManager.get();
         auto tex = CheckedCast<SingleDeviceImage>(texture);
         auto p   = dm->RegisterSampledImage(tex, subResource);
         return p;
     }
-    IFRIT_APIDECL Rhi::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(
-        Rhi::RhiTexture* texture, Rhi::RhiImageSubResource subResource)
+    IFRIT_APIDECL RHI::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(
+        RHI::RhiTexture* texture, RHI::RhiImageSubResource subResource)
     {
         bool isMainLayer = (subResource.mipCount == 1) && (subResource.layerCount == 1) && (subResource.arrayLayer == 0)
             && (subResource.mipLevel == 0);
@@ -541,18 +541,18 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto tex = CheckedCast<SingleDeviceImage>(texture);
         auto p   = dm->RegisterStorageImage(tex, subResource);
         if (isMainLayer)
-            texture->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageImage, p));
+            texture->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::StorageImage, p));
         return p;
     }
-    IFRIT_APIDECL Rhi::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(Rhi::RhiTexture* texture)
+    IFRIT_APIDECL RHI::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(RHI::RhiTexture* texture)
     {
         return GetSRVDescriptor(texture, { 0, 0, 1, 1 });
     }
-    IFRIT_APIDECL Rhi::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(Rhi::RhiTexture* texture)
+    IFRIT_APIDECL RHI::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(RHI::RhiTexture* texture)
     {
         return GetUAVDescriptor(texture, { 0, 0, 1, 1 });
     }
-    IFRIT_APIDECL Rhi::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(Rhi::RhiBuffer* buffer)
+    IFRIT_APIDECL RHI::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(RHI::RhiBuffer* buffer)
     {
         // vulkan seems to not support buffer SRV, so we just return UAV
         auto dm  = m_implDetails->m_descriptorManager.get();
@@ -560,7 +560,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto p   = dm->RegisterStorageBuffer(buf);
         return p;
     }
-    IFRIT_APIDECL Rhi::RhiCBVDesc RhiVulkanBackend::GetCBVDescriptor(Rhi::RhiBuffer* buffer)
+    IFRIT_APIDECL RHI::RhiCBVDesc RhiVulkanBackend::GetCBVDescriptor(RHI::RhiBuffer* buffer)
     {
 
         auto dm  = m_implDetails->m_descriptorManager.get();
@@ -568,7 +568,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto p   = dm->RegisterUniformBuffer(buf);
         return p;
     }
-    IFRIT_APIDECL Rhi::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(Rhi::RhiBuffer* buffer)
+    IFRIT_APIDECL RHI::RhiUAVDesc RhiVulkanBackend::GetUAVDescriptor(RHI::RhiBuffer* buffer)
     {
         if (buffer->GetDescId(true) != ~0u)
         {
@@ -577,25 +577,25 @@ namespace Ifrit::Graphics::VulkanGraphics
         auto dm  = m_implDetails->m_descriptorManager.get();
         auto buf = CheckedCast<SingleBuffer>(buffer);
         auto p   = dm->RegisterStorageBuffer(buf);
-        buffer->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::StorageBuffer, p));
+        buffer->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::StorageBuffer, p));
         return p;
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiVertexBufferView> RhiVulkanBackend::CreateVertexBufferView()
+    IFRIT_APIDECL Ref<RHI::RhiVertexBufferView> RhiVulkanBackend::CreateVertexBufferView()
     {
         auto view = MakeRef<VertexBufferDescriptor>();
         return view;
     }
 
-    IFRIT_APIDECL Ref<Rhi::RhiVertexBufferView> RhiVulkanBackend::GetFullScreenQuadVertexBufferView() const
+    IFRIT_APIDECL Ref<RHI::RhiVertexBufferView> RhiVulkanBackend::GetFullScreenQuadVertexBufferView() const
     {
         return m_implDetails->m_fullScreenQuadVertexBufferDescriptor;
     }
 
-    IFRIT_APIDECL Owner<Rhi::FSR2::RhiFsr2Processor> RhiVulkanBackend::CreateFsr2Processor()
+    IFRIT_APIDECL Owner<RHI::FSR2::RhiFsr2Processor> RhiVulkanBackend::CreateFsr2Processor()
     {
         auto ctx = CheckedCast<EngineContext>(m_device.get());
-        return MakeOwner<VulkanGraphics::FSR2::FSR2Processor>(ctx);
+        return MakeOwner<VulkanAdapter::FSR2::FSR2Processor>(ctx);
     }
 
     IFRIT_APIDECL void RhiVulkanBackend::SetCacheDirectory(const std::string& dir)
@@ -609,13 +609,13 @@ namespace Ifrit::Graphics::VulkanGraphics
         return engineContext->GetCacheDir();
     }
 
-    IFRIT_APIDECL Owner<Rhi::RhiBackend> RhiVulkanBackendBuilder::CreateBackend(const Rhi::RhiInitializeArguments& args)
+    IFRIT_APIDECL Owner<RHI::RhiBackend> RhiVulkanBackendBuilder::CreateBackend(const RHI::RhiInitializeArguments& args)
     {
         return MakeOwner<RhiVulkanBackend>(args);
     }
 
-    IFRIT_APIDECL void GetRhiBackendBuilder_Vulkan(Owner<Rhi::RhiBackendFactory>& ptr)
+    IFRIT_APIDECL void GetRhiBackendBuilder_Vulkan(Owner<RHI::RhiBackendFactory>& ptr)
     {
         ptr = MakeOwner<RhiVulkanBackendBuilder>();
     }
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

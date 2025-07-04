@@ -43,7 +43,7 @@ include_directories(${IFRIT_PROJECT_SUBDIR}/display/include)
 # add link libraries to a variable
 set(IFRIT_DEMO_LINK_LIBRARIES 
     ifrit.softgraphics 
-    ifrit.meshproclib 
+    ifrit.geomproc 
     ifrit.display 
     glfw 
     ifrit.vkgraphics 

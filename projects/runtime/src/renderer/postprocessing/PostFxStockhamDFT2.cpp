@@ -13,7 +13,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     IFRIT_APIDECL void PostFxStockhamDFT2::RunCommand(const GPUCmdBuffer* cmd, u32 wgX, u32 wgY, const void* pc)
     {
-        m_computePipeline->SetRecordFunction([&](const Graphics::Rhi::RhiRenderPassContext* ctx) {
+        m_computePipeline->SetRecordFunction([&](const RHI::RhiRenderPassContext* ctx) {
             cmd->SetPushConst(pc, 0, 12 * sizeof(u32));
             ctx->m_cmd->Dispatch(wgX, wgY, 1);
         });
@@ -46,7 +46,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
             u32 srcImgId;
             u32 kernelImgId;
             u32 dstImgId;
-        } ;
+        };
 
         using Ifrit::Math::CountLeadingZero;
         using Ifrit::Math::IntegerLog2;
@@ -63,8 +63,8 @@ namespace Ifrit::Runtime::PostprocessPassCollection
         {
             auto rhi                      = m_app->GetRhi();
             auto tex1                     = rhi->CreateTexture2D("PostFx_DFT2_Tex", p2Width, p2Height,
-                                    Graphics::Rhi::RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
-                                    Graphics::Rhi::RhiImageUsage::RhiImgUsage_UnorderedAccess, true);
+                                    RHI::RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT, RHI::RhiImageUsage::RhiImgUsage_UnorderedAccess,
+                                    true);
             m_tex1[{ p2Width, p2Height }] = tex1;
 
             pc.logW            = IntegerLog2(p2Width);

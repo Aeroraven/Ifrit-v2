@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "RhiBaseTypes.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
     struct IFRIT_APIDECL RhiRenderTargetsFormat
     {
@@ -61,4 +61,4 @@ namespace Ifrit::Graphics::Rhi
         virtual void AddBinding(Vec<u32> location, Vec<RhiImageFormat> format, Vec<u32> offset, u32 stride,
             RhiVertexInputRate inputRate = RhiVertexInputRate::Vertex) = 0;
     };
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

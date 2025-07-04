@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/vkgraphics/engine/vkrenderer/Command.h"
 #include "ifrit/vkgraphics/utility/Logger.h"
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
     IFRIT_APIDECL DeviceTimer::DeviceTimer(EngineContext* ctx, u32 numFrameInFlight)
         : m_context(ctx), m_numFrameInFlight(numFrameInFlight)
@@ -50,14 +50,14 @@ namespace Ifrit::Graphics::VulkanGraphics
         }
     }
 
-    IFRIT_APIDECL void DeviceTimer::Start(const Rhi::RhiCommandList* cmd)
+    IFRIT_APIDECL void DeviceTimer::Start(const RHI::RhiCommandList* cmd)
     {
         auto cmdBuf   = Ifrit::CheckedCast<CommandBuffer>(cmd);
         auto curFrame = m_currentFrame;
         vkCmdWriteTimestamp(cmdBuf->GetCommandBuffer(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_queryPools[curFrame], 0);
     }
 
-    IFRIT_APIDECL void DeviceTimer::Stop(const Rhi::RhiCommandList* cmd)
+    IFRIT_APIDECL void DeviceTimer::Stop(const RHI::RhiCommandList* cmd)
     {
         auto cmdBuf   = Ifrit::CheckedCast<CommandBuffer>(cmd);
         auto curFrame = m_currentFrame;
@@ -82,4 +82,4 @@ namespace Ifrit::Graphics::VulkanGraphics
         vkResetQueryPool(m_context->GetDevice(), m_queryPools[m_currentFrame], 0, 2);
     }
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

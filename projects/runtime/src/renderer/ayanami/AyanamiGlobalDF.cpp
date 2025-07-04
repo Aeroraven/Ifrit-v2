@@ -30,7 +30,7 @@ using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime::Ayanami
 {
-    static ConsoleVariable<u32> cvVoxelExtentPerGlobalClipMap(
+    static TConsoleVariable<u32> cvVoxelExtentPerGlobalClipMap(
         "cv.Ayanami.GlobalDistanceField.VoxelExtentPerGlobalClipMap", 64,
         "The number of voxels per side in each global DF clipmap level", CVF_Default);
 
@@ -49,10 +49,8 @@ namespace Ifrit::Runtime::Ayanami
             m_TestClipMaps[i]->m_worldBoundMax = Vector3f(extent, extent, extent);
 
             m_TestClipMaps[i]->m_clipmapTexture = rhi->CreateTexture3D("Ayanami_GlobalDF", resolution, resolution,
-                resolution, Graphics::Rhi::RhiImageFormat::RhiImgFmt_R32_SFLOAT,
-                Graphics::Rhi::RhiImageUsage::RhiImgUsage_UnorderedAccess
-                    | Graphics::Rhi::RhiImageUsage::RhiImgUsage_ShaderRead,
-                true);
+                resolution, RHI::RhiImageFormat::RhiImgFmt_R32_SFLOAT,
+                RHI::RhiImageUsage::RhiImgUsage_UnorderedAccess | RHI::RhiImageUsage::RhiImgUsage_ShaderRead, true);
 
             // Voxel Lighting Resources
             auto voxelExtentPerGlobalClipMap = cvVoxelExtentPerGlobalClipMap.GetValue();
@@ -60,7 +58,7 @@ namespace Ifrit::Runtime::Ayanami
             m_TestClipMaps[i]->m_VoxelsPerWidth   = voxelExtentPerGlobalClipMap;
             m_TestClipMaps[i]->m_objectGridBuffer = rhi->CreateBuffer("Ayanami_GlobalDF_ObjectGrid",
                 totalVoxels * sizeof(u32) * Config::kAyanami_MaxObjectPerGridCell,
-                Graphics::Rhi::RhiBufferUsage::RhiBufferUsage_SSBO, false, true);
+                RHI::RhiBufferUsage::RhiBufferUsage_SSBO, false, true);
         }
     }
 

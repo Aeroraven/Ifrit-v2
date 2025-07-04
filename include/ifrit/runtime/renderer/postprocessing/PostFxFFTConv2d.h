@@ -29,9 +29,9 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     struct PostFxFFTConv2dResourceCollection
     {
-        using SRVDesc    = Graphics::Rhi::RhiSRVDesc;
-        using GPUTexture = Graphics::Rhi::RhiTextureRef;
-        using GPUShader  = Graphics::Rhi::RhiShader;
+        using SRVDesc    = RHI::RhiSRVDesc;
+        using GPUTexture = RHI::RhiTextureRef;
+        using GPUShader  = RHI::RhiShader;
 
         GPUTexture m_tex1;
         SRVDesc    m_tex1IdSamp;
@@ -47,11 +47,11 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
     class IFRIT_APIDECL PostFxFFTConv2d : public PostprocessPass
     {
-        using SRVDesc       = Graphics::Rhi::RhiSRVDesc;
-        using CBVDesc       = Graphics::Rhi::RhiCBVDesc;
-        using RenderTargets = Graphics::Rhi::RhiRenderTargets;
-        using GPUTexture    = Graphics::Rhi::RhiTexture;
-        using ComputePass   = Graphics::Rhi::RhiComputePass;
+        using SRVDesc       = RHI::RhiSRVDesc;
+        using CBVDesc       = RHI::RhiCBVDesc;
+        using RenderTargets = RHI::RhiRenderTargets;
+        using GPUTexture    = RHI::RhiTexture;
+        using ComputePass   = RHI::RhiComputePass;
 
         // I know this is UGLY
         CustomHashMap<Pair<u32, u32>, PostFxFFTConv2dResourceCollection, PairwiseHash<u32, u32>> m_resMap;

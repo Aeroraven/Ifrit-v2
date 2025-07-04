@@ -28,10 +28,10 @@ namespace Ifrit::Runtime::Ayanami
 
     struct IFRIT_APIDECL AyanamiGlobalDFClipmap : public NonCopyable
     {
-        using GPUTexture = Graphics::Rhi::RhiTextureRef;
-        using GPUResId   = Graphics::Rhi::RhiDescHandleLegacy;
-        using GPUBuffer  = Graphics::Rhi::RhiBufferRef;
-        using GPUSRVDesc = Graphics::Rhi::RhiSRVDesc;
+        using GPUTexture = RHI::RhiTextureRef;
+        using GPUResId   = RHI::RhiDescHandleLegacy;
+        using GPUBuffer  = RHI::RhiBufferRef;
+        using GPUSRVDesc = RHI::RhiSRVDesc;
 
         Vector3f         m_worldBoundMin;
         Vector3f         m_worldBoundMax;
@@ -52,11 +52,11 @@ namespace Ifrit::Runtime::Ayanami
     class IFRIT_APIDECL AyanamiGlobalDF : public NonCopyable
     {
     private:
-        using GPUTexture = Graphics::Rhi::RhiTextureRef;
+        using GPUTexture = RHI::RhiTextureRef;
 
         IApplication*                      m_app;
-        Graphics::Rhi::RhiComputePass*     m_updateClipmapPass = nullptr;
-        Graphics::Rhi::RhiComputePass*     m_raymarchPass      = nullptr;
+        RHI::RhiComputePass*               m_updateClipmapPass = nullptr;
+        RHI::RhiComputePass*               m_raymarchPass      = nullptr;
         Vec<Owner<AyanamiGlobalDFClipmap>> m_TestClipMaps;
 
     public:

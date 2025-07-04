@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/BaseForwardRenderer.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 
 namespace Ifrit::Runtime
 {

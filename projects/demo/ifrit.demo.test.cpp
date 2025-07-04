@@ -5,7 +5,7 @@
 #include "ifrit/core/tasks/TaskScheduler.h"
 #include "ifrit/rhi/platform/RhiSelector.h"
 using namespace Ifrit;
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 
 namespace Ifrit::Test
 {
@@ -24,7 +24,7 @@ namespace Ifrit::Test
 
 void RpoolTest()
 {
-    RPooledConcurrentQueue<Ifrit::Test::Cat> q;
+    TPooledConcurrentQueue<Ifrit::Test::Cat> q;
     // Start 2 threads,each deque 500 elements
     Atomic<u64>                              count = 0;
     Ifrit::UnorderedFor<int>(0, 16, [&](int i) {
@@ -44,7 +44,7 @@ void RpoolTest()
 
 void taskTest()
 {
-    TaskScheduler   scheduler(8);
+    FTaskScheduler  scheduler(8);
     Vec<TaskHandle> tasks;
     iInfo("Starting task test");
     for (int i = 0; i < 100; i++)

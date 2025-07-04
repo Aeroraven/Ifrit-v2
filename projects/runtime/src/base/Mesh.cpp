@@ -18,10 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/base/Mesh.h"
 #define IFRIT_MESHPROC_IMPORT
-#include "ifrit/meshproc/engine/mesh/MeshClusterLodProc.h"
-#include "ifrit/meshproc/engine/mesh/MeshletConeCull.h"
+#include "ifrit/geomproc/mesh/MeshClusterLodProc.h"
+#include "ifrit/geomproc/mesh/MeshletConeCull.h"
 
-#include "ifrit/meshproc/engine/base/MeshDesc.h"
+#include "ifrit/geomproc/base/MeshDesc.h"
 
 #undef IFRIT_MESHPROC_IMPORT
 #include "ifrit/runtime/common/Pch.h"
@@ -50,8 +50,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void Mesh::CreateMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const String& cachePath)
     {
-        using namespace Ifrit::MeshProcLib;
-        using namespace Ifrit::MeshProcLib::MeshProcess;
+        using namespace Ifrit::GeometryProc;
+        using namespace Ifrit::GeometryProc::MeshProcess;
         using namespace Ifrit;
         const size_t        max_vertices  = 64;
         const size_t        max_triangles = 124;

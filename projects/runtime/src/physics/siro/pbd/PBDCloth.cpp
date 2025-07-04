@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/runtime/physics/siro/geometry/TetrahedralMesh.h"
 
 using namespace Ifrit::Math;
-using namespace Ifrit::Graphics::Rhi;
+using namespace Ifrit::RHI;
 using namespace Ifrit::Runtime::FrameGraphUtils;
 using namespace Ifrit::Runtime::Internal;
 

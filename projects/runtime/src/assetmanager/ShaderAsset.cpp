@@ -33,43 +33,43 @@ namespace Ifrit::Runtime
         else
         {
             m_loaded = true;
-            std::ifstream file(m_path, std::ios::binary);
-            Vec<char>     data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            std::ifstream       file(m_path, std::ios::binary);
+            Vec<char>           data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-            auto          rhi = m_app->GetRhi();
-            Graphics::Rhi::RhiShaderStage stage;
-            auto                          fileName = m_path.filename().string();
+            auto                rhi = m_app->GetRhi();
+            RHI::RhiShaderStage stage;
+            auto                fileName = m_path.filename().string();
             // endswith .vert.glsl
-            auto                          endsWith = [](const String& str, const String& suffix) {
+            auto                endsWith = [](const String& str, const String& suffix) {
                 return str.size() >= suffix.size()
                     && str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
             };
             if (endsWith(fileName, ".vert.glsl"))
             {
-                stage = Graphics::Rhi::RhiShaderStage::Vertex;
+                stage = RHI::RhiShaderStage::Vertex;
             }
             else if (endsWith(fileName, ".frag.glsl"))
             {
-                stage = Graphics::Rhi::RhiShaderStage::Fragment;
+                stage = RHI::RhiShaderStage::Fragment;
             }
             else if (endsWith(fileName, ".comp.glsl"))
             {
-                stage = Graphics::Rhi::RhiShaderStage::Compute;
+                stage = RHI::RhiShaderStage::Compute;
             }
             else if (endsWith(fileName, ".mesh.glsl"))
             {
-                stage = Graphics::Rhi::RhiShaderStage::Mesh;
+                stage = RHI::RhiShaderStage::Mesh;
             }
             else if (endsWith(fileName, ".task.glsl"))
             {
-                stage = Graphics::Rhi::RhiShaderStage::Task;
+                stage = RHI::RhiShaderStage::Task;
             }
             else
             {
                 throw std::runtime_error("Unknown shader stage");
             }
 
-            auto p = rhi->CreateShader(fileName, data, "main", stage, Graphics::Rhi::RhiShaderSourceType::GLSLCode);
+            auto p = rhi->CreateShader(fileName, data, "main", stage, RHI::RhiShaderSourceType::GLSLCode);
             // TODO: eliminate raw pointer
             m_selfData = p;
             return m_selfData->GetVariant(permutations);

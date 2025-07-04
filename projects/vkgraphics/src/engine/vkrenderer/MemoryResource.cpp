@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 using namespace Ifrit;
 
-namespace Ifrit::Graphics::VulkanGraphics
+namespace Ifrit::RHI::VulkanAdapter
 {
     IFRIT_APIDECL void SingleBuffer::Init()
     {
@@ -78,7 +78,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         vmaFlushAllocation(m_context->GetAllocator(), m_allocation, 0, VK_WHOLE_SIZE);
     }
 
-    IFRIT_APIDECL Rhi::RhiDeviceAddr SingleBuffer::GetDeviceAddress() const { return m_deviceAddress; }
+    IFRIT_APIDECL RHI::RhiDeviceAddr SingleBuffer::GetDeviceAddress() const { return m_deviceAddress; }
 
     IFRIT_APIDECL void               SingleBuffer::SetDebugName(const String& name)
     {
@@ -111,15 +111,15 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     // Class: MultiBuffer
     IFRIT_APIDECL MultiBuffer::MultiBuffer(EngineContext* ctx, const BufferCreateInfo& ci, u32 numCopies)
-        : Rhi::RhiMultiBuffer(ctx->GetDeleteQueue()), m_context(ctx), m_createInfo(ci)
+        : RHI::RhiMultiBuffer(ctx->GetDeleteQueue()), m_context(ctx), m_createInfo(ci)
     {
         for (u32 i = 0; i < numCopies; i++)
         {
             auto bufferPtr = new SingleBuffer(ctx, ci);
-            auto bufferRef = MakeCountRef<Rhi::RhiBuffer>(bufferPtr);
+            auto bufferRef = MakeCountRef<RHI::RhiBuffer>(bufferPtr);
             m_buffersOwning.push_back(bufferRef);
             m_buffers.push_back(bufferPtr);
-            bufferPtr->SetDescriptorHandle(Rhi::RhiDescriptorHandle(Rhi::RhiDescriptorHeapType::Invalid, 0));
+            bufferPtr->SetDescriptorHandle(RHI::RhiDescriptorHandle(RHI::RhiDescriptorHeapType::Invalid, 0));
         }
     }
 
@@ -225,7 +225,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     }
 
     IFRIT_APIDECL SingleDeviceImage::SingleDeviceImage(EngineContext* ctx, const ImageCreateInfo& ci)
-        : Rhi::RhiTexture(ctx->GetDeleteQueue())
+        : RHI::RhiTexture(ctx->GetDeleteQueue())
     {
         m_context    = ctx;
         m_createInfo = ci;
@@ -335,7 +335,7 @@ namespace Ifrit::Graphics::VulkanGraphics
 
     // Class: Sampler
     IFRIT_APIDECL Sampler::Sampler(EngineContext* ctx, const SamplerCreateInfo& ci)
-        : Rhi::RhiSampler(ctx->GetDeleteQueue())
+        : RHI::RhiSampler(ctx->GetDeleteQueue())
     {
         m_context = ctx;
         VkSamplerCreateInfo samplerCI{};
@@ -478,17 +478,17 @@ namespace Ifrit::Graphics::VulkanGraphics
         return buffer;
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateSimpleImageUnmanaged(const ImageCreateInfo& ci)
+    IFRIT_APIDECL RHI::RhiTextureRef ResourceManager::CreateSimpleImageUnmanaged(const ImageCreateInfo& ci)
     {
         auto imagePtr = new SingleDeviceImage(m_context, ci);
-        auto image    = MakeCountRef<Rhi::RhiTexture>(imagePtr);
+        auto image    = MakeCountRef<RHI::RhiTexture>(imagePtr);
         return image;
     }
 
-    IFRIT_APIDECL Rhi::RhiBufferRef ResourceManager::CreateSimpleBufferUnmanaged(const BufferCreateInfo& ci)
+    IFRIT_APIDECL RHI::RhiBufferRef ResourceManager::CreateSimpleBufferUnmanaged(const BufferCreateInfo& ci)
     {
         auto bufferPtr = new SingleBuffer(m_context, ci);
-        auto buffer    = MakeCountRef<Rhi::RhiBuffer>(bufferPtr);
+        auto buffer    = MakeCountRef<RHI::RhiBuffer>(bufferPtr);
         return buffer;
     }
 
@@ -539,7 +539,7 @@ namespace Ifrit::Graphics::VulkanGraphics
     //   return CreateTracedMultipleBuffer(ci);
     // }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateDepthAttachment(
+    IFRIT_APIDECL RHI::RhiTextureRef ResourceManager::CreateDepthAttachment(
         u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
@@ -552,7 +552,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateTexture2DDeviceUnmanaged(
+    IFRIT_APIDECL RHI::RhiTextureRef ResourceManager::CreateTexture2DDeviceUnmanaged(
         u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage, u32 samples)
     {
         ImageCreateInfo ci{};
@@ -566,7 +566,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateRenderTargetTexture(
+    IFRIT_APIDECL RHI::RhiTextureRef ResourceManager::CreateRenderTargetTexture(
         u32 width, u32 height, VkFormat format, VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
@@ -579,7 +579,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::CreateTexture3D(
+    IFRIT_APIDECL RHI::RhiTextureRef ResourceManager::CreateTexture3D(
         u32 width, u32 height, u32 depth, VkFormat format, VkImageUsageFlags extraUsage)
     {
         bool isDepth = false;
@@ -603,7 +603,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiTextureRef ResourceManager::createMipTexture(
+    IFRIT_APIDECL RHI::RhiTextureRef ResourceManager::createMipTexture(
         u32 width, u32 height, u32 mips, VkFormat format, VkImageUsageFlags extraUsage)
     {
         ImageCreateInfo ci{};
@@ -617,7 +617,7 @@ namespace Ifrit::Graphics::VulkanGraphics
         return CreateSimpleImageUnmanaged(ci);
     }
 
-    IFRIT_APIDECL Rhi::RhiSamplerRef ResourceManager::CreateTrivialRenderTargetSampler()
+    IFRIT_APIDECL RHI::RhiSamplerRef ResourceManager::CreateTrivialRenderTargetSampler()
     {
         SamplerCreateInfo ci{};
         ci.magFilter               = VK_FILTER_LINEAR;
@@ -636,11 +636,11 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.minLod                  = 0.0f;
         ci.maxLod                  = 0.0f;
         auto samplerPtr            = new Sampler(m_context, ci);
-        auto sampler               = MakeCountRef<Rhi::RhiSampler>(samplerPtr);
+        auto sampler               = MakeCountRef<RHI::RhiSampler>(samplerPtr);
         return sampler;
     }
 
-    IFRIT_APIDECL Rhi::RhiSamplerRef ResourceManager::CreateTrivialBilinearSampler(bool repeat)
+    IFRIT_APIDECL RHI::RhiSamplerRef ResourceManager::CreateTrivialBilinearSampler(bool repeat)
     {
         SamplerCreateInfo ci{};
         ci.magFilter = VK_FILTER_LINEAR;
@@ -669,12 +669,12 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.minLod                  = 0.0f;
         ci.maxLod                  = 0.0f;
         auto samplerPtr            = new Sampler(m_context, ci);
-        auto sampler               = MakeCountRef<Rhi::RhiSampler>(samplerPtr);
+        auto sampler               = MakeCountRef<RHI::RhiSampler>(samplerPtr);
         return sampler;
     }
 
     IFRIT_APIDECL
-    Rhi::RhiSamplerRef ResourceManager::CreateTrivialNearestSampler(bool repeat)
+    RHI::RhiSamplerRef ResourceManager::CreateTrivialNearestSampler(bool repeat)
     {
         SamplerCreateInfo ci{};
         ci.magFilter = VK_FILTER_NEAREST;
@@ -703,8 +703,8 @@ namespace Ifrit::Graphics::VulkanGraphics
         ci.minLod                  = 0.0f;
         ci.maxLod                  = 0.0f;
         auto samplerPtr            = new Sampler(m_context, ci);
-        auto sampler               = MakeCountRef<Rhi::RhiSampler>(samplerPtr);
+        auto sampler               = MakeCountRef<RHI::RhiSampler>(samplerPtr);
         return sampler;
     }
 
-} // namespace Ifrit::Graphics::VulkanGraphics
+} // namespace Ifrit::RHI::VulkanAdapter

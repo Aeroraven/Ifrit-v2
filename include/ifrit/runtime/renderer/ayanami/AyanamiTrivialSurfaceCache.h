@@ -70,12 +70,12 @@ namespace Ifrit::Runtime::Ayanami
         FGTextureNode&    GetRDGIndirectLightingAtlas();
         FGTextureNode&    GetRDGFinalLightingAtlas();
 
-        Graphics::Rhi::RhiBufferRef GetCardDataBuffer();
-        u32                         GetCardResolution();
-        u32                         GetCardAtlasResolution();
-        u32                         GetWorldMatsId();
-        u32                         GetNumCards();
+        RHI::RhiBufferRef GetCardDataBuffer();
+        u32               GetCardResolution();
+        u32               GetCardAtlasResolution();
+        u32               GetWorldMatsId();
+        u32               GetNumCards();
 
-        void                        FrameProceed();
+        void              FrameProceed();
     };
 } // namespace Ifrit::Runtime::Ayanami
