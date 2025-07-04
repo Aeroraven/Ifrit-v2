@@ -1,5 +1,13 @@
+# Ifrit-v2 / Acknowledgements
 
-### 3.1 Dependencies
+## 1. Special Thanks
+
+- https://www.unrealengine.com/
+- https://github.com/zenustech/zpc
+
+
+
+## 2. Dependencies
 
 This project relies on following open-source projects. Corresponding licenses are in `licenses` folder.
 
@@ -26,9 +34,10 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [fsr2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2)   | Super Resolution                 | MIT                  |
 | [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) | Texture Compression              | Apache 2.0           |
 | [tetgen](https://github.com/ufz/tetgen)                      | Mesh Tetrahedralization          | AGPL 3.0             |
-| [openvdb](https://github.com/AcademySoftwareFoundation/openvdb) | (Volume Data Structure)          | Apache 2.0           |
-
-
+| [openvdb](https://github.com/AcademySoftwareFoundation/openvdb) | Volume Data Structure            | Apache 2.0           |
+| [zlib](https://github.com/madler/zlib)                       | (Required by `openvdb`)          | Zlib                 |
+| [blosc](https://github.com/Blosc/c-blosc)                    | (Required by `openvdb`)          | BSD License          |
+| [tbb](https://github.com/uxlfoundation/oneTBB?tab=Apache-2.0-1-ov-file#readme) | (Required by `openvdb`)          | Apache 2.0           |
 
 Some tools are used during the development.
 
@@ -38,10 +47,9 @@ Some tools are used during the development.
 
 
 
-And some references that give inspirations. Thanks for their selfless dedications.
+## 3. References
 
-**Overall**:
-1. https://www.unrealengine.com/
+And some references that give inspirations. Thanks for their selfless dedications.
 
 **Software Rasterization**：
 
@@ -78,12 +86,10 @@ And some references that give inspirations. Thanks for their selfless dedication
 
 **Physics**
 
-1. https://github.com/zenustech/zpc
-2. https://github.com/yuanming-hu/taichi_mpm
+1. https://github.com/yuanming-hu/taichi_mpm
 
 **Coding**
 
 1. https://github.com/TensorWorks/UE-Clang-Format
 2. https://zhuanlan.zhihu.com/p/352723264
-
 
