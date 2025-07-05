@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/tasks/TaskScheduler.h"
 #include "ifrit/core/algo/ConcurrentQueue.h"
+#include "ifrit/core/hal/HalHostConcurrency.h"
 
 namespace Ifrit
 {
@@ -108,7 +109,10 @@ namespace Ifrit
 
     IFRIT_APIDECL void FTaskWorker::Launch()
     {
-        m_Thread = std::thread([this]() { Run(); });
+        m_Thread = std::thread([this]() {
+            HAL::SetCurrentThreadId(m_Attributes->m_ThreadId + 1);
+            Run();
+        });
         m_Thread.detach();
     }
 

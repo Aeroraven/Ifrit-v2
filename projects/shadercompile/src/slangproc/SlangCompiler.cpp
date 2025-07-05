@@ -20,14 +20,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "slang/include/slang-com-ptr.h"
 #include "slang/include/slang.h"
 #include "ifrit/core/typing/Util.h"
+#include "ifrit/core/algo/Parallel.h"
+#include "ifrit/core/hal/HalHostConcurrency.h"
 
 #include "sha1/sha1.hpp"
 #include <filesystem>
 #include <fstream>
 namespace Ifrit::ShaderCompile::SlangProc
 {
+    struct FSlangCompilerPersistentData
+    {
+    private:
+        Slang::ComPtr<slang::IGlobalSession> m_SlangGlobalSession = nullptr;
 
-    void diagnoseIfNeeded(slang::IBlob* diagnosticsBlob)
+    public:
+        FSlangCompilerPersistentData() {}
+        Slang::ComPtr<slang::IGlobalSession> GetGlobalSession()
+        {
+            if (!m_SlangGlobalSession)
+            {
+                slang::createGlobalSession(m_SlangGlobalSession.writeRef());
+                iAssertion(m_SlangGlobalSession != nullptr, "Failed to create Slang global session");
+            }
+            return m_SlangGlobalSession;
+        }
+    };
+
+    static Vec<FSlangCompilerPersistentData> sPersistentData(HAL::GetMaxThreadLimit());
+
+    void                                     DiagnoseIfNeeded(slang::IBlob* diagnosticsBlob)
     {
         if (diagnosticsBlob != nullptr)
         {
@@ -42,6 +63,9 @@ namespace Ifrit::ShaderCompile::SlangProc
 
     ShaderCompileOutput SlangCompiler::Compile(const ShaderCompileJob& job)
     {
+        using Slang::ComPtr;
+
+        auto slangGlobalSession = sPersistentData[HAL::GetCurrentThreadId()].GetGlobalSession();
 
         auto sourceCode = job.m_Source.m_Code;
         sourceCode      = "#define IFSHADER_VULKAN 1\n" + sourceCode;
@@ -49,12 +73,6 @@ namespace Ifrit::ShaderCompile::SlangProc
         {
             sourceCode = "#define " + key + " " + value + "\n" + sourceCode;
         }
-
-        using Slang::ComPtr;
-        ComPtr<slang::IGlobalSession> slangGlobalSession;
-
-        iAssertion(
-            slang::createGlobalSession(slangGlobalSession.writeRef()) >= 0, "Failed to create Slang global session");
 
         slang::SessionDesc sessionDesc = {};
         slang::TargetDesc  targetDesc  = {};
@@ -68,10 +86,6 @@ namespace Ifrit::ShaderCompile::SlangProc
         Vec<slang::CompilerOptionEntry> options = {
             { slang::CompilerOptionName::EmitSpirvDirectly,
                 { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr } },
-            { slang::CompilerOptionName::Capability,
-                { slang::CompilerOptionValueKind::String, 0, 0, "SPV_EXT_shader_image_int64", nullptr } },
-            { slang::CompilerOptionName::Capability,
-                { slang::CompilerOptionValueKind::String, 0, 0, "Int64ImageEXT", nullptr } },
             { slang::CompilerOptionName::Include,
                 { slang::CompilerOptionValueKind::String, 0, 0, m_IncludeBase.c_str(), nullptr } },
 
@@ -89,7 +103,7 @@ namespace Ifrit::ShaderCompile::SlangProc
             ComPtr<slang::IBlob> diagnosticBlob;
             slangModule = session->loadModuleFromSourceString(
                 job.m_Name.c_str(), job.m_Name.c_str(), sourceCode.c_str(), diagnosticBlob.writeRef());
-            diagnoseIfNeeded(diagnosticBlob);
+            DiagnoseIfNeeded(diagnosticBlob);
             iAssertion(slangModule != nullptr, "Failed to load Slang module: {}", job.m_Name);
             // std::abort();
         }
@@ -153,7 +167,7 @@ namespace Ifrit::ShaderCompile::SlangProc
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
             SlangResult                 result = session->createCompositeComponentType(
                 componentTypes.data(), componentTypes.size(), composedProgram.writeRef(), diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
+            DiagnoseIfNeeded(diagnosticsBlob);
             iAssertion(result >= 0, "Failed to create composite component type for slang module: {}", job.m_Name);
         }
 
@@ -161,7 +175,7 @@ namespace Ifrit::ShaderCompile::SlangProc
         {
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
             SlangResult result = composedProgram->link(linkedProgram.writeRef(), diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
+            DiagnoseIfNeeded(diagnosticsBlob);
             iAssertion(result >= 0, "Failed to link program for slang module: {}", job.m_Name);
         }
 
@@ -170,7 +184,7 @@ namespace Ifrit::ShaderCompile::SlangProc
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
             SlangResult                 result =
                 linkedProgram->getEntryPointCode(0, 0, spirvCode.writeRef(), diagnosticsBlob.writeRef());
-            diagnoseIfNeeded(diagnosticsBlob);
+            DiagnoseIfNeeded(diagnosticsBlob);
             iAssertion(result >= 0, "Failed to get SPIR-V code for slang module: {}, entry:{}, code:{}", job.m_Name,
                 job.m_EntryPoint, (i32)result);
         }

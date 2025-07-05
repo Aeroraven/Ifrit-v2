@@ -212,7 +212,7 @@ namespace Ifrit::ShaderCompile::GLSLProc
             String        cacheFile = cacheDir + "/ifritsc.spirv.shader." + hash + ".cache";
             // check if cache exists
             std::ifstream cache(cacheFile, std::ios::binary);
-            if (false && cache.is_open())
+            if (cache.is_open())
             {
                 cache.seekg(0, std::ios::end);
                 size_t size = cache.tellg();
