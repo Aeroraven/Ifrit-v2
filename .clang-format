@@ -21,6 +21,8 @@
 # SOFTWARE.
 
 StatementMacros: ['UPROPERTY', 'UFUNCTION', 'UCLASS', 'USTRUCT', 'UENUM', 'UINTERFACE', 'GENERATED_BODY']
+AttributeMacros: ['IF_LIKELY', 'IF_UNLIKELY', 'IF_NODISCARD']
+
 Language: Cpp
 BasedOnStyle: LLVM
 

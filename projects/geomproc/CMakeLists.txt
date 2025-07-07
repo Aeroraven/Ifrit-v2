@@ -64,6 +64,7 @@ include_directories(${IFRIT_PROJECT_DIR}/build/dependencies/openvdb/openvdb/open
 
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.GeometryProcess")
 add_definitions(-DIFRIT_MODULE_GEOMPROC)
+add_definitions(-DIFRIT_GEOMPROC_SHARED_ASSET_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.asset")
 
 add_library(ifrit.geomproc SHARED ${SOURCE_0} ${SOURCE_1} ${SOURCE_1B})
 target_link_libraries(ifrit.geomproc PUBLIC 

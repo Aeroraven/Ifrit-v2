@@ -18,6 +18,7 @@ add_definitions(-DIFRIT_MODULE_CORE)
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Core")
 
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/stb)
+include_directories(${IFRIT_PROJECT_DIR}/dependencies/mimalloc)
 
 # set cxx20
 set(CMAKE_CXX_STANDARD 20)
@@ -25,6 +26,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_library(ifrit.core SHARED ${IFRIT_CORELIB_SOURCE_FILES_CXX} ${IFRIT_CORELIB_SOURCE_FILES_C})
 target_link_libraries(ifrit.core 
+	mimalloc
 	${IFRIT_COMMON_DEPENDENCIES_SHARED})
 target_compile_options(ifrit.core
 	PRIVATE 

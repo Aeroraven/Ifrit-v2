@@ -1,0 +1,156 @@
+
+/*
+Ifrit-v2
+Copyright (C) 2024 funkybirds(Aeroraven)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+#pragma once
+
+#include <cstdint>
+#ifdef __cplusplus
+    #include <array>
+    #include <atomic>
+    #include <functional>
+    #include <map>
+    #include <memory>
+    #include <set>
+    #include <string>
+    #include <unordered_map>
+    #include <unordered_set>
+    #include <vector>
+    #include <queue>
+#endif
+
+#define IF_SIZEOF_RETURN_TYPE u32
+
+// check if compiler supports C++20, export to IF_CXX20_AVAILABLE
+#ifdef _MSVC_LANG
+    #define IF_CXX_VERSION _MSVC_LANG
+    #define IF_COMPILER_MSVC 1
+#else
+    #define IF_CXX_VERSION __cplusplus
+    // check g++ or clang
+    #ifdef __GNUC__
+        #define IF_COMPILER_GCC 1
+    #elif defined(__clang__)
+        #define IF_COMPILER_CLANG 1
+    #else
+        #define IF_COMPILER_UNKNOWN 1
+    #endif
+#endif
+
+#define IF_CONSTEXPR_AVAILABLE 1
+
+#define IF_CONSTEXPR constexpr
+#define IF_NOEXCEPT noexcept
+
+#if IF_CXX_VERSION >= 202002L
+    #define IF_CONSTEVAL consteval
+    #define IF_LIKELY [[likely]]
+    #define IF_UNLIKELY [[unlikely]]
+#else
+    #define IF_CONSTEVAL IF_CONSTEXPR
+    #define IF_LIKELY
+    #define IF_UNLIKELY
+#endif
+
+#if IF_CXX_VERSION >= 201703L
+    #define IF_NODISCARD [[nodiscard]]
+#else
+    #define IF_NODISCARD
+    #error "C++17 or later is required for Ifrit-v2. Please enable C++17 support in your compiler settings."
+#endif
+
+// forceinline
+#if defined(IF_COMPILER_MSVC)
+    #define IF_FORCEINLINE __forceinline
+#else
+    #define IF_FORCEINLINE inline
+#endif
+
+namespace Ifrit
+{
+    typedef uint8_t   u8;
+    typedef uint16_t  u16;
+    typedef uint32_t  u32;
+    typedef uint64_t  u64;
+
+    typedef int8_t    i8;
+    typedef int16_t   i16;
+    typedef int32_t   i32;
+    typedef int64_t   i64;
+
+    typedef float     f32;
+    typedef double    f64;
+
+    typedef intptr_t  isize;
+    typedef uintptr_t usize;
+
+#define IF_TYPE_SIZEOF(type) (static_cast<IF_SIZEOF_RETURN_TYPE>(sizeof(type)))
+
+// if have constexpr, use it
+#if defined(IF_CONSTEXPR_AVAILABLE)
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE u8Size  = IF_TYPE_SIZEOF(u8);
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE u16Size = IF_TYPE_SIZEOF(u16);
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE u32Size = IF_TYPE_SIZEOF(u32);
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE u64Size = IF_TYPE_SIZEOF(u64);
+
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE i8Size  = IF_TYPE_SIZEOF(i8);
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE i16Size = IF_TYPE_SIZEOF(i16);
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE i32Size = IF_TYPE_SIZEOF(i32);
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE i64Size = IF_TYPE_SIZEOF(i64);
+
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE f32Size = IF_TYPE_SIZEOF(f32);
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE f64Size = IF_TYPE_SIZEOF(f64);
+
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE isizeSize = IF_TYPE_SIZEOF(isize);
+    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE usizeSize = IF_TYPE_SIZEOF(usize);
+
+#else
+    // if not, use normal variable
+    #define u8Size IF_TYPE_SIZEOF(u8)
+    #define u16Size IF_TYPE_SIZEOF(u16)
+    #define u32Size IF_TYPE_SIZEOF(u32)
+    #define u64Size IF_TYPE_SIZEOF(u64)
+
+    #define i8Size IF_TYPE_SIZEOF(i8)
+    #define i16Size IF_TYPE_SIZEOF(i16)
+    #define i32Size IF_TYPE_SIZEOF(i32)
+    #define i64Size IF_TYPE_SIZEOF(i64)
+
+    #define f32Size IF_TYPE_SIZEOF(f32)
+    #define f64Size IF_TYPE_SIZEOF(f64)
+
+    #define isizeSize IF_TYPE_SIZEOF(isize)
+    #define usizeSize IF_TYPE_SIZEOF(usize)
+#endif
+
+// Requires
+#if IF_CXX_VERSION >= 202002L
+    namespace Private
+    {
+        template <typename T>
+        concept RequiresHelper = true;
+
+    } // namespace Private
+
+    // clang-format off
+    #define IF_REQUIRES(...)  > requires(!!(__VA_ARGS__)) && Private::RequiresHelper < int
+    // clang-format on
+#else
+    #define IF_REQUIRES(...) , std::enable_if_t<(__VA_ARGS__), int> = 0
+#endif
+
+} // namespace Ifrit

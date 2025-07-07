@@ -171,8 +171,8 @@ namespace Ifrit::Runtime::Internal
         RegisterRuntimeInternalShadersSiro(shaderRegistry);
 
         iInfo("Internal: Compiling internal shaders...");
-        shaderRegistry->WaitForShaderCompilations();
-        iInfo("Internal: Internal shaders compiled.");
+        // shaderRegistry->WaitForShaderCompilations();
+        // iInfo("Internal: Internal shaders compiled.");
 
 #undef REG_MESH
 #undef REG_FRAGMENT

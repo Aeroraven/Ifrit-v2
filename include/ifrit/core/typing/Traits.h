@@ -23,4 +23,27 @@ namespace Ifrit
 {
     template <typename T, typename... Types> using TypeIsAnyOf = std::disjunction<std::is_same<T, Types>...>;
     template <typename T, typename... Types> inline IF_CONSTEXPR bool TypeIsAnyOf_v = TypeIsAnyOf<T, Types...>::value;
+
+    template <typename T> using TpTrivallyCopyable                      = std::is_trivially_copyable<T>;
+    template <typename T> inline IF_CONSTEXPR bool TpTrivallyCopyable_v = TpTrivallyCopyable<T>::value;
+
+    template <typename T> using TpTrivallyDestructible                      = std::is_trivially_destructible<T>;
+    template <typename T> inline IF_CONSTEXPR bool TpTrivallyDestructible_v = TpTrivallyDestructible<T>::value;
+
+    template <typename T> using TpTrivallyConstructible                      = std::is_trivially_constructible<T>;
+    template <typename T> inline IF_CONSTEXPR bool TpTrivallyConstructible_v = TpTrivallyConstructible<T>::value;
+
+    template <typename T, typename = void> struct TpIsIterable : std::false_type
+    {
+    };
+
+    template <typename T>
+    struct TpIsIterable<T,
+        std::void_t<decltype(std::begin(std::declval<T>())), decltype(std::end(std::declval<T>())),
+            decltype(*std::begin(std::declval<T>()))>> : std::true_type
+    {
+    };
+
+    template <typename T> inline IF_CONSTEXPR bool TpIsIterable_v = TpIsIterable<T>::value;
+
 } // namespace Ifrit

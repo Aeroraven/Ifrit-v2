@@ -40,4 +40,6 @@ namespace Ifrit::GeometryProc::Sampler
     IFRIT_GEOMPROC_API Vec<TGenericVector<T, Dim>> PoissonSample(const PoissonSamplerArgs<T, Dim>& args,
         const PoissonSamplerReferences<T, Dim>& refs, Fn<bool(TGenericVector<T, Dim>)> predicate);
 
+    IFRIT_GEOMPROC_API PoissonSamplerReferences<f32, 3> LoadZpcPoissonSamplerReferences();
+
 } // namespace Ifrit::GeometryProc::Sampler

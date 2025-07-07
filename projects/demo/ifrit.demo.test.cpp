@@ -4,6 +4,8 @@
 #include "ifrit/core/algo/Parallel.h"
 #include "ifrit/core/tasks/TaskScheduler.h"
 #include "ifrit/rhi/platform/RhiSelector.h"
+#include "ifrit/geomproc/sampler/PoissonSampler.h"
+#include <iostream>
 using namespace Ifrit;
 using namespace Ifrit::RHI;
 
@@ -65,8 +67,10 @@ void taskTest()
     }
 }
 
-int main()
+void vectorTest() { auto p = Ifrit::GeometryProc::Sampler::LoadZpcPoissonSamplerReferences(); }
+
+int  main()
 {
-    taskTest();
+    vectorTest();
     return 0;
 }

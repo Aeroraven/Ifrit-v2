@@ -141,12 +141,18 @@ namespace Ifrit::Runtime
     {
         auto name         = desc.m_Name;
         auto permutations = desc.m_Defines;
+        bool loadingTip   = false;
 
         if (m_Data->m_ShaderMap.contains(name))
         {
             auto& entry = m_Data->m_ShaderMap[name];
             while (entry.m_Status.load(std::memory_order::acquire) != ShaderRegistryData::ShaderStatus::Compiled)
             {
+                if (!loadingTip)
+                {
+                    iInfo("ShaderRegistry: Waiting for shader `{}` to be compiled...", name);
+                    loadingTip = true;
+                }
                 std::this_thread::yield();
             }
             return m_Data->m_ShaderMap[name].m_Shader->GetVariant(permutations);

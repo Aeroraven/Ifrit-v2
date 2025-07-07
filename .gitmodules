@@ -58,3 +58,6 @@
 [submodule "dependencies/zlib"]
 	path = dependencies/zlib
 	url = git@github.com:madler/zlib.git
+[submodule "dependencies/mimalloc"]
+	path = dependencies/mimalloc
+	url = git@github.com:microsoft/mimalloc.git

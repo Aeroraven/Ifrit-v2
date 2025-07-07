@@ -107,6 +107,10 @@ set(TBB_ROOT "${IFRIT_THIRDPARTH_INSTALL_DIR}/tbb" CACHE PATH "TBB root director
 message(STATUS "[Ifrit.Build.Dependencies] Using TBB root directory: ${TBB_ROOT}")
 set(BLOSC_ROOT "${IFRIT_THIRDPARTH_INSTALL_DIR}/blosc" CACHE PATH "Blosc root directory" FORCE)
 set(ZLIB_ROOT "${IFRIT_THIRDPARTH_INSTALL_DIR}/zlib" CACHE PATH "Zlib root directory" FORCE)
+
+# mimalloc
+set(MI_BUILD_TESTS OFF CACHE BOOL "Disable mimalloc tests" FORCE)
+
 # ifrit
 set(IFRIT_DEMO_LIST CACHE INTERNAL "List of demo stages" FORCE)
 
@@ -120,6 +124,7 @@ ifrit_add_dependency(ktxsoftware)
 ifrit_add_dependency(slang)
 ifrit_add_dependency(tetgen)
 ifrit_add_dependency(openvdb)
+ifrit_add_dependency(mimalloc)
 
 ifrit_add_core_component(core)
 ifrit_add_core_component(shadercompile)
@@ -143,6 +148,9 @@ include(projects/buildinfra/OpenVDBBuildPostprocess.cmake)
 
 # slang targets
 include(projects/buildinfra/SlangBuildPostprocess.cmake)
+
+# mimalloc targets
+include(projects/buildinfra/MiMallocBuildPostprocess.cmake)
 
 # spdlog targets
 set_targets_folder(dependencies/spdlog ${IFRIT_GROUP_DEPENDENCIES}/spdlog)
@@ -189,7 +197,6 @@ set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 
 # print num demoss
-
 foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
     set_target_properties(${DEMO_STAGE} PROPERTIES FOLDER ${IFRIT_GROUP_DEMO})
     message(STATUS "[Ifrit.Build.Demo] Added demo stage: ${DEMO_STAGE}")
@@ -197,7 +204,8 @@ foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
 endforeach()
 
 add_dependencies(ifrit.core 
-    spdlog)
+    spdlog
+    mimalloc)
 add_dependencies(ifrit.geomproc 
     openvdb_shared
     meshoptimizer 
