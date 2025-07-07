@@ -2,6 +2,8 @@
 #include <sstream>
 #include "openvdb/openvdb/openvdb.h"
 #include "openvdb/io/Stream.h"
+#include "ifrit/core/logging/Logging.h"
+#include "openvdb/tools/Interpolation.h"
 
 namespace Ifrit::GeometryProc::VDB
 {
@@ -22,9 +24,51 @@ namespace Ifrit::GeometryProc::VDB
         openvdb::io::Stream    vdbStream(static_cast<std::istream&>(ss));
         openvdb::GridPtrVecPtr grids = vdbStream.getGrids();
 
-        VDBDescriptor          desc;
-        desc.m_VdbData = grids;
-        return desc;
+        // find the first float grid
+        for (const auto& grid : *grids)
+        {
+            if (grid->isType<openvdb::FloatGrid>())
+            {
+                VDBDescriptor desc;
+                desc.m_VdbData = grid->copyGrid();
+                return desc;
+                break;
+            }
+        }
+    }
+
+    IFRIT_APIDECL void PrintVdbMeta(const VDBDescriptor& p)
+    {
+        auto               gridPtr   = std::any_cast<openvdb::GridBase::Ptr>(p.m_VdbData);
+        auto               floatGrid = openvdb::gridPtrCast<openvdb::FloatGrid>(gridPtr);
+
+        openvdb::CoordBBox indexBBox = floatGrid->evalActiveVoxelBoundingBox();
+
+        // Convert to world space
+        openvdb::Vec3f     minWorld =
+            floatGrid->indexToWorld(openvdb::Vec3f(indexBBox.min().x(), indexBBox.min().y(), indexBBox.min().z()));
+        openvdb::Vec3f maxWorld =
+            floatGrid->indexToWorld(openvdb::Vec3f(indexBBox.max().x(), indexBBox.max().y(), indexBBox.max().z()));
+        auto minIndex         = indexBBox.min();
+        auto maxIndex         = indexBBox.max();
+        auto voxelSize        = floatGrid->voxelSize();
+        auto activeVoxelCount = floatGrid->activeVoxelCount();
+
+        openvdb::tools::GridSampler<openvdb::FloatGrid, openvdb::tools::BoxSampler> sampler(*floatGrid);
+
+        iInfo("VDB Meta:");
+        iInfo("  Grid Type: {}", floatGrid->type());
+        iInfo("  Value Type: {}", floatGrid->valueType());
+        iInfo("  Active Voxel Count: {}", activeVoxelCount);
+        iInfo("  Index BBox: min({},{},{}) max({},{},{})", minIndex.x(), minIndex.y(), minIndex.z(), maxIndex.x(),
+            maxIndex.y(), maxIndex.z());
+        iInfo("  World BBox: min({},{},{}) max({},{},{})", minWorld.x(), minWorld.y(), minWorld.z(), maxWorld.x(),
+            maxWorld.y(), maxWorld.z());
+
+        //
+        openvdb::Vec3f worldPos(0, 12, 0);
+        auto           pv = sampler.wsSample(worldPos);
+        iInfo("  Sampled Value at World Position (0,0,0): {}", pv);
     }
 
 } // namespace Ifrit::GeometryProc::VDB

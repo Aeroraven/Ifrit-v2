@@ -2,6 +2,7 @@
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Siro.h"
 #include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
 #include "ifrit/core/math/linalg/LinalgOps.h"
+#include <variant>
 
 using namespace Ifrit::Math;
 using namespace Ifrit::RHI;
@@ -62,78 +63,90 @@ namespace Ifrit::Runtime::Siro
 
     struct MPMSimulatorPrivateData
     {
-        static IF_CONSTEXPR u32       kDefaultTGX = IfritShader::Siro::MPM::kMpmTGSizeX;
+        static IF_CONSTEXPR u32                    kDefaultTGX = IfritShader::Siro::MPM::kMpmTGSizeX;
 
-        MPMSimulatorConfig*           m_Config              = nullptr;
-        bool                          m_RebuildGPUResources = true;
+        MPMSimulatorConfig*                        m_Config                   = nullptr;
+        bool                                       m_RebuildGPUResources      = true;
+        bool                                       m_HasInitParticleLocations = false;
+
+        std::variant<Vec<Vector2f>, Vec<Vector4f>> m_InitParticleLocations;
 
         // Persistent data
-        RhiBufferRef                  m_ParticlePosition;
-        RhiBufferRef                  m_ParticleVelocity;
-        RhiBufferRef                  m_ParticleMass;
-        RhiBufferRef                  m_ParticleDeformGrad;
-        RhiBufferRef                  m_ParticleDeformGradDet;
-        RhiBufferRef                  m_ParticleVolume;
-        RhiBufferRef                  m_ParticleApicB;
-        RhiBufferRef                  m_ParticleIndex;
-        RhiBufferRef                  m_ParticleDebug;
-        RhiBufferRef                  m_ParticleStressContrib;
-        RhiBufferRef                  m_ParticleMatProperty;
+        RhiBufferRef                               m_ParticlePosition;
+        RhiBufferRef                               m_ParticleVelocity;
+        RhiBufferRef                               m_ParticleMass;
+        RhiBufferRef                               m_ParticleDeformGrad;
+        RhiBufferRef                               m_ParticleDeformGradDet;
+        RhiBufferRef                               m_ParticleVolume;
+        RhiBufferRef                               m_ParticleApicB;
+        RhiBufferRef                               m_ParticleIndex;
+        RhiBufferRef                               m_ParticleDebug;
+        RhiBufferRef                               m_ParticleStressContrib;
+        RhiBufferRef                               m_ParticleMatProperty;
 
-        RhiBufferRef                  m_GridForce;
-        RhiBufferRef                  m_GridVelocity;
-        RhiBufferRef                  m_GridMass;
+        RhiBufferRef                               m_GridForce;
+        RhiBufferRef                               m_GridVelocity;
+        RhiBufferRef                               m_GridMass;
 
-        RhiBufferRef                  m_GridAttribute;
+        RhiBufferRef                               m_GridAttribute;
 
-        FGBufferNodeRef               m_RDGParticlePosition;
-        FGBufferNodeRef               m_RDGParticleVelocity;
-        FGBufferNodeRef               m_RDGParticleMass;
-        FGBufferNodeRef               m_RDGParticleDeformGrad;
-        FGBufferNodeRef               m_RDGParticleDeformGradDet;
-        FGBufferNodeRef               m_RDGParticleVolume;
-        FGBufferNodeRef               m_RDGParticleApicB;
-        FGBufferNodeRef               m_RDGParticleDebug;
-        FGBufferNodeRef               m_RDGParticleStressContrib;
-        FGBufferNodeRef               m_RDGParticleMatProperty;
+        FGBufferNodeRef                            m_RDGParticlePosition;
+        FGBufferNodeRef                            m_RDGParticleVelocity;
+        FGBufferNodeRef                            m_RDGParticleMass;
+        FGBufferNodeRef                            m_RDGParticleDeformGrad;
+        FGBufferNodeRef                            m_RDGParticleDeformGradDet;
+        FGBufferNodeRef                            m_RDGParticleVolume;
+        FGBufferNodeRef                            m_RDGParticleApicB;
+        FGBufferNodeRef                            m_RDGParticleDebug;
+        FGBufferNodeRef                            m_RDGParticleStressContrib;
+        FGBufferNodeRef                            m_RDGParticleMatProperty;
 
-        FGBufferNodeRef               m_RDGGridForce;
-        FGBufferNodeRef               m_RDGGridVelocity;
-        FGBufferNodeRef               m_RDGGridMass;
-        FGBufferNodeRef               m_RDGGridAttribute;
+        FGBufferNodeRef                            m_RDGGridForce;
+        FGBufferNodeRef                            m_RDGGridVelocity;
+        FGBufferNodeRef                            m_RDGGridMass;
+        FGBufferNodeRef                            m_RDGGridAttribute;
 
         // Transient data
-        FGBufferNodeRef               m_RDGValidGridCounter;
-        FGBufferNodeRef               m_RDGValidGridList;
+        FGBufferNodeRef                            m_RDGValidGridCounter;
+        FGBufferNodeRef                            m_RDGValidGridList;
 
         // Init
-        template <u32 Dimension> void InitGPUResources(RhiBackend* RHI);
-        void                          PrepareInitialGPUData(RhiBackend* RHI);
-        void                          InitRDGResources(FrameGraphBuilder& builder);
-        void                          RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime);
-        ShaderVariantDesc             GetShader(const String& name) const;
-        u32                           GetNumGrids() const;
+        template <u32 Dimension> void              InitGPUResources(RhiBackend* RHI);
+        void                                       PrepareInitialGPUData(RhiBackend* RHI);
+        void                                       InitRDGResources(FrameGraphBuilder& builder);
+        void                                       RunSolverStep(FrameGraphBuilder& builder, f32 dt);
+        ShaderVariantDesc                          GetShader(const String& name, const Vec<String>& extra = {}) const;
+        u32                                        GetNumGrids() const;
 
         // Solver steps
-        void                          ParticleInit(FrameGraphBuilder& builder);
-        void                          GridReset(FrameGraphBuilder& builder);
-        void                          ParticleToGridTransfer(FrameGraphBuilder& builder, f32 deltaTime);
-        void                          GridVelocityNormalize(FrameGraphBuilder& builder);
-        void                          GridForceUpdate(FrameGraphBuilder& builder);
-        void                          GridGravityApply(FrameGraphBuilder& builder);
-        void                          GridVelocityUpdate(FrameGraphBuilder& builder, f32 deltaTime);
-        void                          GridToParticleTransfer(FrameGraphBuilder& builder, f32 deltaTime);
-        void                          ParticleAdvect(FrameGraphBuilder& builder, f32 deltaTime);
+        void                                       ParticleInit(FrameGraphBuilder& builder);
+        void                                       GridReset(FrameGraphBuilder& builder, bool firstFrame);
+        void                                       ParticleToGridTransfer(FrameGraphBuilder& builder, f32 dt, u32 last);
+        void                                       GridVelocityNormalize(FrameGraphBuilder& builder);
+        void                                       GridForceUpdate(FrameGraphBuilder& builder);
+        void                                       GridGravityApply(FrameGraphBuilder& builder);
+        void                                       GridVelocityUpdate(FrameGraphBuilder& builder, f32 dt);
+        void                                       GridToParticleTransfer(FrameGraphBuilder& builder, f32 dt);
+        void                                       ParticleAdvect(FrameGraphBuilder& builder, f32 dt);
+
+        // Position-based MPM
+        void                                       ResolveConstraints(FrameGraphBuilder& builder, f32 dt);
 
         // Visualizer
-        void                          ParticleRender2D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
-        void                          ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
+        void ParticleRender2D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
+        void ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
     };
+
+    void MPMSimulatorPrivateData::ResolveConstraints(FrameGraphBuilder& builder, f32 deltaTime)
+    {
+        // TODO
+    }
 
     void MPMSimulatorPrivateData::ParticleInit(FrameGraphBuilder& builder)
     {
         struct PushConst
         {
+            u32 m_IgnoreParticlePosition;
             f32 m_DefaultYoungsModulus;
             f32 m_DefaultPoissonRatio;
             u32 m_DefaultMatType;
@@ -151,9 +164,10 @@ namespace Ifrit::Runtime::Siro
             u32 m_ParticleDeformationGradDet;
             u32 m_ParticleMatProperty;
         } pc;
-        pc.m_DefaultYoungsModulus = m_Config->m_DefaultYoungsModulus;
-        pc.m_DefaultPoissonRatio  = m_Config->m_DefaultPoissonRatio;
-        pc.m_DefaultMatType       = static_cast<u32>(m_Config->m_DefaultParticleType);
+        pc.m_IgnoreParticlePosition = m_HasInitParticleLocations ? 1 : 0;
+        pc.m_DefaultYoungsModulus   = m_Config->m_DefaultYoungsModulus;
+        pc.m_DefaultPoissonRatio    = m_Config->m_DefaultPoissonRatio;
+        pc.m_DefaultMatType         = static_cast<u32>(m_Config->m_DefaultParticleType);
 
         pc.m_NumParticles               = m_Config->m_DefaultNumParticles;
         pc.m_Mass                       = m_Config->m_DefaultMass;
@@ -195,27 +209,56 @@ namespace Ifrit::Runtime::Siro
             .AddReadResource(*m_RDGGridAttribute);
     }
 
-    void MPMSimulatorPrivateData::GridReset(FrameGraphBuilder& builder)
+    void MPMSimulatorPrivateData::GridReset(FrameGraphBuilder& builder, bool firstFrame)
     {
         struct PushConst
         {
+            u32 m_FirstTime;
             u32 m_Grid;
+            u32 m_ValidGridCounter;
+            u32 m_ValidGridList;
         } pc;
-        pc.m_Grid = 0;
+        pc.m_FirstTime        = firstFrame ? 1 : 0;
+        pc.m_ValidGridCounter = 0;
+        pc.m_Grid             = 0;
+        pc.m_ValidGridList    = 0;
 
-        auto numGrids = GetNumGrids();
-        auto tgX      = static_cast<i32>(DivRoundUp(numGrids, kDefaultTGX));
-
-        AddComputePass<PushConst>(builder, "MPMSimulator.GridReset",
-            GetShader(Internal::kIntShaderTableSiro.MPMGridResetCS), Vector3i(tgX, 1, 1), pc,
-            [this](PushConst pc, const FrameGraphPassContext& ctx) {
-                pc.m_Grid = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
-                SetRootConstant(pc, ctx);
-            })
-            .AddWriteResource(*m_RDGGridAttribute);
+        auto        numGrids = GetNumGrids();
+        auto        tgX      = static_cast<i32>(DivRoundUp(numGrids, kDefaultTGX));
+        Vec<String> extra;
+        if (firstFrame)
+        {
+            extra.push_back("IFSHADER_MPM_GRIDRESET_INIT");
+            AddComputePass<PushConst>(builder, "MPMSimulator.GridReset.Init",
+                GetShader(Internal::kIntShaderTableSiro.MPMGridResetCS, extra), Vector3i(tgX, 1, 1), pc,
+                [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                    pc.m_Grid             = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                    pc.m_ValidGridCounter = ctx.m_FgDesc->GetUAV(*m_RDGValidGridCounter);
+                    pc.m_ValidGridList    = ctx.m_FgDesc->GetUAV(*m_RDGValidGridList);
+                    SetRootConstant(pc, ctx);
+                })
+                .AddWriteResource(*m_RDGGridAttribute)
+                .AddReadResource(*m_RDGValidGridCounter)
+                .AddWriteResource(*m_RDGValidGridCounter)
+                .AddReadResource(*m_RDGValidGridList);
+        }
+        else
+        {
+            AddIndirectComputePass<PushConst>(builder, "MPMSimulator.GridReset.Seq",
+                GetShader(Internal::kIntShaderTableSiro.MPMGridResetCS), *m_RDGValidGridCounter, sizeof(u32), pc,
+                [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                    pc.m_Grid             = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                    pc.m_ValidGridCounter = ctx.m_FgDesc->GetUAV(*m_RDGValidGridCounter);
+                    pc.m_ValidGridList    = ctx.m_FgDesc->GetUAV(*m_RDGValidGridList);
+                    SetRootConstant(pc, ctx);
+                })
+                .AddWriteResource(*m_RDGGridAttribute)
+                .AddReadWriteResource(*m_RDGValidGridCounter)
+                .AddReadResource(*m_RDGValidGridList);
+        }
     }
 
-    void MPMSimulatorPrivateData::ParticleToGridTransfer(FrameGraphBuilder& builder, f32 deltaTime)
+    void MPMSimulatorPrivateData::ParticleToGridTransfer(FrameGraphBuilder& builder, f32 deltaTime, u32 lastRun)
     {
         struct PushConst
         {
@@ -231,6 +274,7 @@ namespace Ifrit::Runtime::Siro
             u32 m_ParticleDebug;
             u32 m_ParticleStressContrib;
             u32 m_ParticleMatProperty;
+            u32 m_IsLastRun;
         } pc;
 
         pc.m_NumParticles          = m_Config->m_DefaultNumParticles;
@@ -245,11 +289,18 @@ namespace Ifrit::Runtime::Siro
         pc.m_ParticleDebug         = 0;
         pc.m_ParticleStressContrib = 0;
         pc.m_ParticleMatProperty   = 0;
+        pc.m_IsLastRun             = lastRun ? 1 : 0;
 
-        auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
+        auto        tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
+        Vec<String> extra;
+        auto        isPbMpm = m_Config->m_Variant == MPMSimulatorVariant::PB_MLS;
+        if (isPbMpm)
+        {
+            extra.push_back("IFSHADER_MPM_PBMPM");
+        }
 
         AddComputePass<PushConst>(builder, "MPMSimulator.ParticleToGridTransfer",
-            GetShader(Internal::kIntShaderTableSiro.MPMP2GCS), Vector3i(tgX, 1, 1), pc,
+            GetShader(Internal::kIntShaderTableSiro.MPMP2GCS, extra), Vector3i(tgX, 1, 1), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_ParticleVelocity      = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
                 pc.m_ParticleLocation      = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
@@ -473,9 +524,42 @@ namespace Ifrit::Runtime::Siro
         auto tq             = RHI->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
         auto stagedIndex    = RHI->CreateStagedSingleBuffer(m_ParticleIndex.get());
         auto stagedGridAttr = RHI->CreateStagedSingleBuffer(m_GridAttribute.get());
+        auto stagedPosition = RHI->CreateStagedSingleBuffer(m_ParticlePosition.get());
         tq->RunSyncCommand([&](const RhiCommandList* cmd) {
             stagedIndex->CmdCopyToDevice(cmd, particleIndexData.data(), particleIndexData.size() * sizeof(u32), 0);
             stagedGridAttr->CmdCopyToDevice(cmd, &gridAttr, sizeof(MPMSimulatorGridAttribute), 0);
+
+            if (m_HasInitParticleLocations)
+            {
+                if (m_Config->m_Dimension == MPMSimulatorProblemDimension::TwoDimensional)
+                {
+                    if (std::holds_alternative<Vec<Vector2f>>(m_InitParticleLocations))
+                    {
+                        auto& initLocs = std::get<Vec<Vector2f>>(m_InitParticleLocations);
+                        stagedPosition->CmdCopyToDevice(cmd, initLocs.data(), initLocs.size() * sizeof(Vector2f), 0);
+                    }
+                    else
+                    {
+                        iAssertion(false,
+                            "MPMSimulator: Initial particle locations must be of type Vec<Vector2f> "
+                            "for 2D simulations.");
+                    }
+                }
+                else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
+                {
+                    if (std::holds_alternative<Vec<Vector4f>>(m_InitParticleLocations))
+                    {
+                        auto& initLocs = std::get<Vec<Vector4f>>(m_InitParticleLocations);
+                        stagedPosition->CmdCopyToDevice(cmd, initLocs.data(), initLocs.size() * sizeof(Vector4f), 0);
+                    }
+                    else
+                    {
+                        iAssertion(false,
+                            "MPMSimulator: Initial particle locations must be of type Vec<Vector4f> "
+                            "for 3D simulations.");
+                    }
+                }
+            }
         });
     }
 
@@ -619,6 +703,7 @@ namespace Ifrit::Runtime::Siro
     {
         auto rhi        = builder.GetRhi();
         bool isFirstRun = m_RebuildGPUResources;
+        bool isPbMpm    = (m_Config->m_Variant == MPMSimulatorVariant::PB_MLS);
         if (m_RebuildGPUResources)
         {
             m_RebuildGPUResources = false;
@@ -634,29 +719,56 @@ namespace Ifrit::Runtime::Siro
         {
             ParticleInit(builder);
         }
-        for (auto i = 0; i < m_Config->m_Substeps; ++i)
+
+        if (isPbMpm)
         {
-            GridReset(builder);
-            ParticleToGridTransfer(builder, deltaTime);
-            GridVelocityNormalize(builder);
-            GridForceUpdate(builder);
-            GridGravityApply(builder);
-            GridVelocityUpdate(builder, deltaTime);
-            GridToParticleTransfer(builder, deltaTime);
-            ParticleAdvect(builder, deltaTime);
+            for (auto i = 0; i < m_Config->m_Substeps; ++i)
+            {
+                for (auto j = 0; j < m_Config->m_PbMpmIterations; ++j)
+                {
+                    bool isLastIteration = (j == m_Config->m_PbMpmIterations - 1);
+                    GridReset(builder, isFirstRun);
+                    ParticleToGridTransfer(builder, deltaTime, isLastIteration);
+                    GridVelocityNormalize(builder); // TODO: only mark cells at last run (performance)
+                    if (isLastIteration)
+                    {
+                        GridForceUpdate(builder);
+                        GridGravityApply(builder);
+                        GridVelocityUpdate(builder, deltaTime);
+                    }
+                    GridToParticleTransfer(builder, deltaTime);
+                    if (isLastIteration)
+                    {
+                        ParticleAdvect(builder, deltaTime);
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (auto i = 0; i < m_Config->m_Substeps; ++i)
+            {
+                GridReset(builder, isFirstRun);
+                ParticleToGridTransfer(builder, deltaTime, false);
+                GridVelocityNormalize(builder);
+                GridForceUpdate(builder);
+                GridGravityApply(builder);
+                GridVelocityUpdate(builder, deltaTime);
+                GridToParticleTransfer(builder, deltaTime);
+                ParticleAdvect(builder, deltaTime);
+            }
         }
     }
 
-    ShaderVariantDesc MPMSimulatorPrivateData::GetShader(const String& name) const
+    ShaderVariantDesc MPMSimulatorPrivateData::GetShader(const String& name, const Vec<String>& extra) const
     {
-
         Vec<String> shaderVariants;
 
         if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
         {
             shaderVariants.push_back("IFSHADER_MPM_3D");
         }
-        if (m_Config->m_Variant == MPMSimulatorVariant::MLS)
+        if (m_Config->m_Variant == MPMSimulatorVariant::MLS || m_Config->m_Variant == MPMSimulatorVariant::PB_MLS)
         {
             shaderVariants.push_back("IFSHADER_MPM_MLS");
         }
@@ -747,6 +859,7 @@ namespace Ifrit::Runtime::Siro
             cmd->DrawIndexed(m_Config->m_DefaultNumParticles, 1, 0, 0, 0);
         });
         pass.AddRenderTarget(*renderTarget).AddReadResource(*m_RDGParticlePosition);
+        // Sleep(500);
     }
 
     // MPMSimulator implementation
@@ -787,5 +900,33 @@ namespace Ifrit::Runtime::Siro
             iAssertion(false, "MPMSimulator: Invalid problem dimension specified for rendering.");
         }
     }
+
+    template <u32 Dimension IF_REQUIRES(Dimension == 2 || Dimension == 3)>
+    void MPMSimulator::SetInitParticleLocations(const Vec<TGenericVector<f32, Dimension>>& locations)
+    {
+        IF_CONSTEXPR auto TAlignedDim = Dimension + (Dimension == 3 ? 1 : 0);
+        using TAlignedVec             = TGenericVector<f32, TAlignedDim>;
+
+        Vec<TAlignedVec> alignedLocations(locations.size());
+        alignedLocations.resize(locations.size());
+        for (u32 i = 0; i < locations.size(); ++i)
+        {
+            if IF_CONSTEXPR (Dimension == 2)
+            {
+                alignedLocations[i] = TAlignedVec(locations[i].x, locations[i].y);
+            }
+            else if IF_CONSTEXPR (Dimension == 3)
+            {
+                alignedLocations[i] = TAlignedVec(locations[i].x, locations[i].y, locations[i].z, 1.0f);
+            }
+        }
+        m_Data->m_RebuildGPUResources           = true;
+        m_Data->m_HasInitParticleLocations      = true;
+        m_Data->m_Config->m_DefaultNumParticles = static_cast<u32>(locations.size());
+        m_Data->m_InitParticleLocations         = std::move(alignedLocations);
+    }
+
+    template IFRIT_APIDECL void MPMSimulator::SetInitParticleLocations<2>(const Vec<TGenericVector<f32, 2>>& locations);
+    template IFRIT_APIDECL void MPMSimulator::SetInitParticleLocations<3>(const Vec<TGenericVector<f32, 3>>& locations);
 
 } // namespace Ifrit::Runtime::Siro

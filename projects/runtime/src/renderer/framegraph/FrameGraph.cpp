@@ -322,13 +322,15 @@ namespace Ifrit::Runtime
         if (res.type == FrameGraphResourceType::ResourceBuffer)
         {
             iAssertion(res.selfBuffer,
-                "FrameGraphBuilder: GetUAV() called on buffer resource that is not created. Lifetime is corrupted.");
+                "FrameGraphBuilder: GetUAV() called on buffer resource that is not created. Lifetime is corrupted. Resource: {}",
+                res.name);
             return m_Rhi->GetUAVDescriptor(res.selfBuffer);
         }
         else if (res.type == FrameGraphResourceType::ResourceTexture)
         {
             iAssertion(res.selfTexture,
-                "FrameGraphBuilder: GetUAV() called on texture resource that is not created. Lifetime is corrupted.");
+                "FrameGraphBuilder: GetUAV() called on texture resource that is not created. Lifetime is corrupted. Resource: {}",
+                res.name);
             return m_Rhi->GetUAVDescriptor(res.selfTexture);
         }
         iError("FrameGraphBuilder: GetUAV() called on resource that is not a buffer or texture.");

@@ -36,7 +36,7 @@ namespace MPM{
         FSpatialTransform ParticleDeformGrad = PushConst.m_ParticleDeformationGrad.GetMatrix(ThreadId.x);
         FDenseGridStructure Grid = PushConst.m_Grid.Load();
         FScalar GridSpacing = Grid.GetGridSpacing();
-        FSpatialIndex CenterGrid = Grid.GetCentralGrid(ParticleLocation);
+        FSpatialIndex CenterGrid = Grid.GetCentralGridRounded(ParticleLocation);
         FScalar J = PushConst.m_ParticleDeformationGradDet.Load(ThreadId.x);
         FMpmParticleMaterial ParticleMaterial = PushConst.m_ParticleMaterial.Load(ThreadId.x);
         
@@ -57,7 +57,7 @@ namespace MPM{
         ToLameParameter(Young, Possion,Mu, Lambda);
 
         //PFT = NeoHookeanStressFT(ParticleDeformGrad, Mu, Lambda);
-        PFT = FixedCortotatedStressFT(ParticleDeformGrad,Mu,Lambda);
+        PFT = FixedCorotatedStressFT(ParticleDeformGrad,Mu,Lambda);
 #endif
 
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)

@@ -5,6 +5,10 @@
 #include "ifrit/core/tasks/TaskScheduler.h"
 #include "ifrit/rhi/platform/RhiSelector.h"
 #include "ifrit/geomproc/sampler/PoissonSampler.h"
+#include "ifrit/geomproc/vdb/VdbBase.h"
+#include "ifrit/geomproc/vdb/VdbSampler.h"
+#include "ifrit/geomproc/pointcloud/PointCloudTransforms.h"
+#include "ifrit/core/file/FileOps.h"
 #include <iostream>
 using namespace Ifrit;
 using namespace Ifrit::RHI;
@@ -69,8 +73,39 @@ void taskTest()
 
 void vectorTest() { auto p = Ifrit::GeometryProc::Sampler::LoadZpcPoissonSamplerReferences(); }
 
-int  main()
+void vdbTest()
 {
-    vectorTest();
+    auto vdbFileData = Ifrit::ReadBinaryFile("E:/bunny.vdb");
+    auto vdbDesc     = Ifrit::GeometryProc::VDB::LoadVdbFromString(vdbFileData);
+    Ifrit::GeometryProc::VDB::PrintVdbMeta(vdbDesc);
+    auto p = Ifrit::GeometryProc::VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.25f, 8);
+    std::cout << "Sampled " << p.size() << " points from VDB." << std::endl;
+    Ifrit::GeometryProc::PointCloud::PointCloudDescriptor pcDesc;
+    pcDesc.m_Points = p.data();
+    pcDesc.m_Count  = static_cast<u32>(p.size());
+
+    Ifrit::GeometryProc::PointCloud::MoveCenterTo(pcDesc, Vector3f(32.0f, 32.0f, 32.0f));
+    Ifrit::GeometryProc::PointCloud::NormalizeToLongestAxisAABB(pcDesc, Vector3f(0.0f), Vector3f(64.0f));
+
+    // write points to "D:/vdb_points.txt"
+    std::ofstream outFile("D:/vdb_points.txt");
+    if (outFile.is_open())
+    {
+        for (const auto& point : p)
+        {
+            outFile << point.x << " " << point.y << " " << point.z << "\n";
+        }
+        outFile.close();
+        iInfo("Saved sampled points to D:/vdb_points.txt");
+    }
+    else
+    {
+        iError("Failed to open file for writing sampled points.");
+    }
+}
+
+int main()
+{
+    vdbTest();
     return 0;
 }

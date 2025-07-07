@@ -10,7 +10,8 @@
 #include <numbers>
 #include <thread>
 #include "ifrit/rhi/common/RhiStructHelper.h"
-
+#include "ifrit/geomproc/vdb/VdbSampler.h"
+#include "ifrit/geomproc/pointcloud/PointCloudTransforms.h"
 #include "ifrit/runtime/physics/siro/mpm/MPMSimulator.h"
 
 #define WINDOW_WIDTH 800
@@ -18,9 +19,10 @@
 
 using namespace Ifrit;
 using namespace Ifrit::RHI;
-using namespace Ifrit::GeometryProc::MeshProcess;
+using namespace GeometryProc;
 using namespace Ifrit::Math;
 using namespace Ifrit::Runtime;
+using namespace Ifrit::GeometryProc;
 
 namespace Ifrit
 {
@@ -46,13 +48,28 @@ namespace Ifrit
         void OnStart() override
         {
             iInfo("DemoApplication::OnStart()");
+            renderer = MakeRef<BaseForwardRenderer>(this);
+            m_MpmSim = MakeRef<Siro::MPMSimulator>();
+
+            {
+                auto vdbFileData = Ifrit::ReadBinaryFile(IFRIT_DEMO_ASSET_PATH "/bunny.vdb");
+                auto vdbDesc     = VDB::LoadVdbFromString(vdbFileData);
+                VDB::PrintVdbMeta(vdbDesc);
+                auto                             p = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.25f, 8);
+                // std::cout << "Sampled " << p.size() << " points from VDB." << std::endl;
+                PointCloud::PointCloudDescriptor pcDesc;
+                pcDesc.m_Points = p.data();
+                pcDesc.m_Count  = static_cast<u32>(p.size());
+
+                PointCloud::MoveCenterTo(pcDesc, Vector3f(32.0f, 32.0f, 32.0f));
+                PointCloud::NormalizeToLongestAxisAABB(pcDesc, Vector3f(0.0f), Vector3f(64.0f));
+                m_MpmSim->SetInitParticleLocations<3>(p);
+            }
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
             renderConfig.m_AntiAliasingType           = AntiAliasingType::None;
             renderConfig.m_OverrideMaterialCulling    = OverrideMaterialCulling::ForcedCullNone;
 
-            renderer   = MakeRef<BaseForwardRenderer>(this);
-            m_MpmSim   = MakeRef<Siro::MPMSimulator>();
             auto scene = m_sceneAssetManager->CreateScene("TestScene2");
             auto node  = scene->AddSceneNode();
 

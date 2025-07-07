@@ -8,6 +8,7 @@ namespace MPM{
 
     struct PushConst_T
     {
+        int m_IgnoreParticlePosition;
         float m_DefaultYoungs;
         float m_DefaultPossion;
         int m_DefaultMatType;
@@ -58,8 +59,10 @@ namespace MPM{
         FSpatialVector RandomUV = lerp(FSpatialVector(0.375f),FSpatialVector(0.625f), RandomOffsetVec);
         FSpatialVector Location = lerp(GridMinBound, GridMaxBound, RandomUV);
 
-
-        PushConst.m_ParticleLocation.Store(ThreadId.x, Location);
+        if(PushConst.m_IgnoreParticlePosition == 0)
+        {
+            PushConst.m_ParticleLocation.Store(ThreadId.x, Location);
+        }
         PushConst.m_ParticleVelocity.Store(ThreadId.x, FSpatialVector(0.0f));
         PushConst.m_ParticleMass.Store(ThreadId.x, PushConst.m_Mass);
         PushConst.m_ParticleVolume.Store(ThreadId.x, PushConst.m_Mass / PushConst.m_Density);

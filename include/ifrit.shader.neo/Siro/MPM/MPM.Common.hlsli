@@ -12,8 +12,12 @@ namespace Siro{
 namespace MPM{
 
     IFSHADER_DEFINE_CONST_UINT32(kMpmTGSizeX, 128);
+    IFSHADER_DEFINE_CONST_INT32(kMpmGridSearchRange,1);
 
-    IFSHADER_DEFINE_CONST_INT32(kMpmGridSearchRange,2);
+    IFSHADER_DEFINE_CONST_INT32(kMpmMaterial_Jelly,0);
+    IFSHADER_DEFINE_CONST_INT32(kMpmMaterial_Fluid,1);
+    IFSHADER_DEFINE_CONST_INT32(kMpmMaterial_Snow,2);
+
 
 #ifndef __cplusplus
     IFSHADER_TYPEALIAS(FScalar, float);
@@ -316,6 +320,16 @@ namespace MPM{
             FSpatialIndex CentralGrid = FSpatialIndex(GridPosition);
             return CentralGrid;
         }
+
+        FSpatialIndex GetCentralGridRounded(FSpatialVector Position)
+        {
+            FScalar GridSpacing = m_GridSpacing;
+            FSpatialVector GridTranslation = ToSpatialVector(m_GridTranslation);
+            FSpatialVector GridPosition = (Position - GridTranslation) / GridSpacing;
+            FSpatialIndex CentralGrid = FSpatialIndex(GridPosition);
+            return CentralGrid;
+        }
+
 
         FScalar GetGridSpacing()
         {
@@ -639,7 +653,7 @@ namespace MPM{
         return mul(P, F_T);
     }
 
-    FSpatialTransform FixedCortotatedStressFT(FSpatialTransform F, FScalar Mu, FScalar Lambda)
+    FSpatialTransform FixedCorotatedStressFT(FSpatialTransform F, FScalar Mu, FScalar Lambda)
     {
         FScalar J = Math::Determinant(F);
         FSpatialTransform I = GetIdentitySpatialTransform();
@@ -652,7 +666,7 @@ namespace MPM{
         return P;
     }
 
-    FSpatialTransform FixedCortotatedStressFT(FSpatialTransform F, FScalar J, FScalar Mu, FScalar Lambda)
+    FSpatialTransform FixedCorotatedStressFT(FSpatialTransform F, FScalar J, FScalar Mu, FScalar Lambda)
     {
         FSpatialTransform F_T = Math::Transpose(F);
         FSpatialTransform I = GetIdentitySpatialTransform();

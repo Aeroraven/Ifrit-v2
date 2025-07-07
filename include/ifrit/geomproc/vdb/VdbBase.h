@@ -11,5 +11,6 @@ namespace Ifrit::GeometryProc::VDB
     };
 
     IFRIT_GEOMPROC_API VDBDescriptor LoadVdbFromString(String s);
+    IFRIT_GEOMPROC_API void          PrintVdbMeta(const VDBDescriptor& p);
 
 } // namespace Ifrit::GeometryProc::VDB

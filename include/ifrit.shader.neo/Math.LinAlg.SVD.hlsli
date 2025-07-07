@@ -190,6 +190,7 @@ namespace Math {
         float3x3 SI = S;
         SI[0][0] = rcp(SI[0][0]);
         SI[1][1] = rcp(SI[1][1]);
+        SI[2][2] = rcp(SI[2][2]);
         U = mul(mul(A, V), SI);
     }
 
