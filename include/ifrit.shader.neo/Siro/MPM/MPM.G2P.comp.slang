@@ -1,6 +1,17 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_3D
 #pragma ifrit.multi_compile IFSHADER_MPM_MLS
+#pragma ifrit.multi_compile IFSHADER_MPM_PBMPM
 #include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
+
+#ifdef IFSHADER_MPM_MLS
+    #define IFSHADER_MPM_IGNORE_DEFORM_GRAD_UPDATE
+#endif
+
+#ifdef IFSHADER_MPM_PBMPM
+#ifndef IFSHADER_MPM_IGNORE_DEFORM_GRAD_UPDATE
+    #define IFSHADER_MPM_IGNORE_DEFORM_GRAD_UPDATE
+#endif
+#endif
 
 namespace IfritShader{
 namespace Siro{
@@ -61,14 +72,14 @@ namespace MPM{
 #endif
             FSpatialVector GridVelocity = Grid.LoadVelocity(GridCell);      
 
-#ifndef IFSHADER_MPM_MLS
+#ifndef IFSHADER_MPM_IGNORE_DEFORM_GRAD_UPDATE
             DeformGradChange += PushConst.m_DeltaTime * Math::OuterProduct(GridVelocity, GradW);
 #endif
             NewVelocity += W * GridVelocity;
             NewB += W * Math::OuterProduct(GridVelocity, G2PVector);
         IFSHADER_MPM_RANGESEARCH_END()
 
-#ifndef IFSHADER_MPM_MLS
+#ifndef IFSHADER_MPM_IGNORE_DEFORM_GRAD_UPDATE
         FSpatialTransform ParticleDeformGrad = PushConst.m_ParticleDeformationGrad.GetMatrix(ThreadId.x);
         FSpatialTransform NewDeformGrad = mul(DeformGradChange, ParticleDeformGrad);
         PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, NewDeformGrad);

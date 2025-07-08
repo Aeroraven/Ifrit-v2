@@ -83,6 +83,7 @@ namespace Ifrit::Runtime::Siro
         RhiBufferRef                               m_ParticleDebug;
         RhiBufferRef                               m_ParticleStressContrib;
         RhiBufferRef                               m_ParticleMatProperty;
+        RhiBufferRef                               m_ParticleLiquidDensity; // For PBMPM
 
         RhiBufferRef                               m_GridForce;
         RhiBufferRef                               m_GridVelocity;
@@ -100,6 +101,7 @@ namespace Ifrit::Runtime::Siro
         FGBufferNodeRef                            m_RDGParticleDebug;
         FGBufferNodeRef                            m_RDGParticleStressContrib;
         FGBufferNodeRef                            m_RDGParticleMatProperty;
+        FGBufferNodeRef                            m_RDGParticleLiquidDensity; // For PBMPM
 
         FGBufferNodeRef                            m_RDGGridForce;
         FGBufferNodeRef                            m_RDGGridVelocity;
@@ -130,16 +132,111 @@ namespace Ifrit::Runtime::Siro
         void                                       ParticleAdvect(FrameGraphBuilder& builder, f32 dt);
 
         // Position-based MPM
-        void                                       ResolveConstraints(FrameGraphBuilder& builder, f32 dt);
+        void                                       PbMpmResolveConstraints(FrameGraphBuilder& builder, f32 dt);
+        void                                       PbMpmParticleIntegrate(FrameGraphBuilder& builder, f32 dt);
 
         // Visualizer
         void ParticleRender2D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
         void ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
     };
-
-    void MPMSimulatorPrivateData::ResolveConstraints(FrameGraphBuilder& builder, f32 deltaTime)
+    void MPMSimulatorPrivateData::PbMpmParticleIntegrate(FrameGraphBuilder& builder, f32 dt)
     {
-        // TODO
+        struct PushConst
+        {
+            Vector4f m_Gravity;
+            u32      m_NumParticles;
+            f32      m_DeltaTime;
+
+            u32      m_Grid;
+            u32      m_ParticleLocation;
+            u32      m_ParticleVelocity; // !!! Particle Displacement Indeed !!!
+            u32      m_ParticleDeformationGrad;
+            u32      m_ParticleB;
+            u32      m_ParticleMaterial;
+            u32      m_ParticleLiquidDensity;
+
+            f32      m_ViscoPlasticity;
+        } pc;
+        pc.m_Gravity         = Vector4f(m_Config->m_Gravity, 0.0f);
+        pc.m_NumParticles    = m_Config->m_DefaultNumParticles;
+        pc.m_DeltaTime       = dt;
+        pc.m_ViscoPlasticity = m_Config->m_DefaultViscoPlasticity;
+
+        auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
+        AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmParticleIntegrate",
+            GetShader(Internal::kIntShaderTableSiro.MPMPbMpmParticleIntegrateCS), Vector3i(tgX, 1, 1), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_Grid                    = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                pc.m_ParticleLocation        = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
+                pc.m_ParticleVelocity        = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
+                pc.m_ParticleDeformationGrad = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
+                pc.m_ParticleB               = ctx.m_FgDesc->GetUAV(*m_RDGParticleApicB);
+                pc.m_ParticleMaterial        = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
+                pc.m_ParticleLiquidDensity   = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadWriteResource(*m_RDGGridAttribute)
+            .AddReadWriteResource(*m_RDGParticlePosition)
+            .AddReadWriteResource(*m_RDGParticleVelocity)
+            .AddReadWriteResource(*m_RDGParticleDeformGrad)
+            .AddReadWriteResource(*m_RDGParticleApicB)
+            .AddReadWriteResource(*m_RDGParticleLiquidDensity)
+            .AddReadWriteResource(*m_RDGParticleMatProperty);
+    }
+
+    void MPMSimulatorPrivateData::PbMpmResolveConstraints(FrameGraphBuilder& builder, f32 deltaTime)
+    {
+        struct PushConst
+        {
+            u32 m_NumParticles;
+            f32 m_DeltaTime;
+            u32 m_ParticleVelocity;
+            u32 m_ParticleB;
+            u32 m_ParticleDeformationGrad;
+            u32 m_ParticleMaterial;
+            u32 m_Grid;
+            u32 m_ParticleDebug;
+            u32 m_ParticleLiquidDensity;
+
+            // PBMPM
+            f32 m_ElasticityInterpolationFactor;
+            f32 m_ElasticityRelaxationFactor;
+            f32 m_LiquidViscosity;
+            f32 m_LiquidRelaxation;
+            f32 m_ViscoPlasticity;
+        } pc;
+
+        pc.m_NumParticles                  = m_Config->m_DefaultNumParticles;
+        pc.m_DeltaTime                     = deltaTime;
+        pc.m_ElasticityInterpolationFactor = m_Config->m_PbMpmDefaultElasticityInterpolationFactor;
+        pc.m_ElasticityRelaxationFactor    = m_Config->m_PbMpmDefaultElasticityRelaxationFactor;
+        pc.m_LiquidViscosity               = m_Config->m_PbMpmDefaultLiquidViscosity;
+        pc.m_LiquidRelaxation              = m_Config->m_PbMpmDefaultLiquidRelaxation;
+        pc.m_ViscoPlasticity               = m_Config->m_DefaultViscoPlasticity;
+
+        auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
+
+        AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmResolveConstraints",
+            GetShader(Internal::kIntShaderTableSiro.MPMPbMpmResolveConstraintsCS), Vector3i(tgX, 1, 1), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleVelocity        = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
+                pc.m_ParticleB               = ctx.m_FgDesc->GetUAV(*m_RDGParticleApicB);
+                pc.m_ParticleDeformationGrad = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
+                pc.m_ParticleMaterial        = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
+                pc.m_ParticleDebug           = ctx.m_FgDesc->GetUAV(*m_RDGParticleDebug);
+                pc.m_Grid                    = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                pc.m_ParticleLiquidDensity   = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadWriteResource(*m_RDGParticleVelocity)
+            .AddReadWriteResource(*m_RDGParticleApicB)
+            .AddReadWriteResource(*m_RDGParticleDeformGrad)
+            .AddReadWriteResource(*m_RDGGridAttribute)
+            .AddReadWriteResource(*m_RDGParticleDebug)
+            .AddReadWriteResource(*m_RDGParticleLiquidDensity)
+            .AddReadWriteResource(*m_RDGParticleMatProperty);
     }
 
     void MPMSimulatorPrivateData::ParticleInit(FrameGraphBuilder& builder)
@@ -163,24 +260,16 @@ namespace Ifrit::Runtime::Siro
             u32 m_ParticleDeformationGrad;
             u32 m_ParticleDeformationGradDet;
             u32 m_ParticleMatProperty;
+            u32 m_ParticleLiquidDensity;
         } pc;
         pc.m_IgnoreParticlePosition = m_HasInitParticleLocations ? 1 : 0;
         pc.m_DefaultYoungsModulus   = m_Config->m_DefaultYoungsModulus;
         pc.m_DefaultPoissonRatio    = m_Config->m_DefaultPoissonRatio;
         pc.m_DefaultMatType         = static_cast<u32>(m_Config->m_DefaultParticleType);
 
-        pc.m_NumParticles               = m_Config->m_DefaultNumParticles;
-        pc.m_Mass                       = m_Config->m_DefaultMass;
-        pc.m_Density                    = m_Config->m_DefaultDensity;
-        pc.m_Grid                       = 0;
-        pc.m_ParticleLocation           = 0;
-        pc.m_ParticleVelocity           = 0;
-        pc.m_ParticleMass               = 0;
-        pc.m_ParticleVolume             = 0;
-        pc.m_ParticleB                  = 0;
-        pc.m_ParticleDeformationGrad    = 0;
-        pc.m_ParticleDeformationGradDet = 0;
-        pc.m_ParticleMatProperty        = 0;
+        pc.m_NumParticles = m_Config->m_DefaultNumParticles;
+        pc.m_Mass         = m_Config->m_DefaultMass;
+        pc.m_Density      = m_Config->m_DefaultDensity;
 
         auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
 
@@ -196,6 +285,7 @@ namespace Ifrit::Runtime::Siro
                 pc.m_ParticleDeformationGrad    = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
                 pc.m_ParticleDeformationGradDet = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGradDet);
                 pc.m_ParticleMatProperty        = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
+                pc.m_ParticleLiquidDensity      = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
 
                 SetRootConstant(pc, ctx);
             })
@@ -206,6 +296,7 @@ namespace Ifrit::Runtime::Siro
             .AddWriteResource(*m_RDGParticleApicB)
             .AddWriteResource(*m_RDGParticleDeformGrad)
             .AddWriteResource(*m_RDGParticleDeformGradDet)
+            .AddWriteResource(*m_RDGParticleMatProperty)
             .AddReadResource(*m_RDGGridAttribute);
     }
 
@@ -258,7 +349,7 @@ namespace Ifrit::Runtime::Siro
         }
     }
 
-    void MPMSimulatorPrivateData::ParticleToGridTransfer(FrameGraphBuilder& builder, f32 deltaTime, u32 lastRun)
+    void MPMSimulatorPrivateData::ParticleToGridTransfer(FrameGraphBuilder& builder, f32 deltaTime, u32 firstOrLastRun)
     {
         struct PushConst
         {
@@ -274,7 +365,7 @@ namespace Ifrit::Runtime::Siro
             u32 m_ParticleDebug;
             u32 m_ParticleStressContrib;
             u32 m_ParticleMatProperty;
-            u32 m_IsLastRun;
+            u32 m_IsFirstOrLastRun;
         } pc;
 
         pc.m_NumParticles          = m_Config->m_DefaultNumParticles;
@@ -289,11 +380,11 @@ namespace Ifrit::Runtime::Siro
         pc.m_ParticleDebug         = 0;
         pc.m_ParticleStressContrib = 0;
         pc.m_ParticleMatProperty   = 0;
-        pc.m_IsLastRun             = lastRun ? 1 : 0;
+        pc.m_IsFirstOrLastRun      = firstOrLastRun;
 
         auto        tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
         Vec<String> extra;
-        auto        isPbMpm = m_Config->m_Variant == MPMSimulatorVariant::PB_MLS;
+        auto        isPbMpm = m_Config->m_Variant == MPMSimulatorVariant::PBMPM;
         if (isPbMpm)
         {
             extra.push_back("IFSHADER_MPM_PBMPM");
@@ -584,10 +675,17 @@ namespace Ifrit::Runtime::Siro
         pc.m_ParticleB               = 0;
         pc.m_ParticleVelocity        = 0;
 
-        auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
+        auto        tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
+
+        Vec<String> extra;
+        auto        isPbMpm = m_Config->m_Variant == MPMSimulatorVariant::PBMPM;
+        if (isPbMpm)
+        {
+            extra.push_back("IFSHADER_MPM_PBMPM");
+        }
 
         AddComputePass<PushConst>(builder, "MPMSimulator.GridToParticleTransfer",
-            GetShader(Internal::kIntShaderTableSiro.MPMG2PCS), Vector3i(tgX, 1, 1), pc,
+            GetShader(Internal::kIntShaderTableSiro.MPMG2PCS, extra), Vector3i(tgX, 1, 1), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_Grid                    = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
                 pc.m_ParticleDeformationGrad = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
@@ -635,6 +733,7 @@ namespace Ifrit::Runtime::Siro
         auto particleDebugSz         = numParticles * 64;
         auto particleStressContribSz = numParticles * MTypes::kFSpatialTransformAlignedSize;
         auto particleMatPropertySz   = numParticles * sizeof(MPMParticleMaterials);
+        auto particleLiquidSz        = numParticles * sizeof(f32);
 
         auto gridForceSz = numGrids * MTypes::kFSpatialVectorAlignedSize;
         auto gridVelSz   = numGrids * MTypes::kFSpatialVectorAlignedSize;
@@ -659,6 +758,8 @@ namespace Ifrit::Runtime::Siro
             RHI->CreateBufferDevice("MPM_ParticleStressContrib", particleStressContribSz, defaultUsage, true);
         m_ParticleMatProperty =
             RHI->CreateBufferDevice("MPM_ParticleMaterialProperty", particleMatPropertySz, defaultUsage, true);
+        m_ParticleLiquidDensity =
+            RHI->CreateBufferDevice("MPM_ParticleLiquiddDensity", particleLiquidSz, defaultUsage, true);
 
         m_GridForce     = RHI->CreateBufferDevice("MPM_GridForce", gridForceSz, defaultUsage, true);
         m_GridVelocity  = RHI->CreateBufferDevice("MPM_GridVelocity", gridVelSz, defaultUsage, true);
@@ -682,6 +783,7 @@ namespace Ifrit::Runtime::Siro
         m_RDGParticleDebug         = &builder.ImportBuffer("MPM_ParticleDebug", m_ParticleDebug.get());
         m_RDGParticleStressContrib = &builder.ImportBuffer("MPM_ParticleStressContrib", m_ParticleStressContrib.get());
         m_RDGParticleMatProperty   = &builder.ImportBuffer("MPM_ParticleMaterialProperty", m_ParticleMatProperty.get());
+        m_RDGParticleLiquidDensity = &builder.ImportBuffer("MPM_ParticleLiquidDensity", m_ParticleLiquidDensity.get());
 
         m_RDGGridForce     = &builder.ImportBuffer("MPM_GridForce", m_GridForce.get());
         m_RDGGridVelocity  = &builder.ImportBuffer("MPM_GridVelocity", m_GridVelocity.get());
@@ -703,7 +805,7 @@ namespace Ifrit::Runtime::Siro
     {
         auto rhi        = builder.GetRhi();
         bool isFirstRun = m_RebuildGPUResources;
-        bool isPbMpm    = (m_Config->m_Variant == MPMSimulatorVariant::PB_MLS);
+        bool isPbMpm    = (m_Config->m_Variant == MPMSimulatorVariant::PBMPM);
         if (m_RebuildGPUResources)
         {
             m_RebuildGPUResources = false;
@@ -726,22 +828,19 @@ namespace Ifrit::Runtime::Siro
             {
                 for (auto j = 0; j < m_Config->m_PbMpmIterations; ++j)
                 {
-                    bool isLastIteration = (j == m_Config->m_PbMpmIterations - 1);
+                    bool isLastIteration  = (j == m_Config->m_PbMpmIterations - 1);
+                    bool isFirstIteration = (j == 0);
+                    u32  firstOrLastRun   = 0;
+                    firstOrLastRun |= (isFirstIteration) ? 1 : 0;
+                    firstOrLastRun |= (isLastIteration) ? 2 : 0;
+
                     GridReset(builder, isFirstRun);
-                    ParticleToGridTransfer(builder, deltaTime, isLastIteration);
-                    GridVelocityNormalize(builder); // TODO: only mark cells at last run (performance)
-                    if (isLastIteration)
-                    {
-                        GridForceUpdate(builder);
-                        GridGravityApply(builder);
-                        GridVelocityUpdate(builder, deltaTime);
-                    }
+                    PbMpmResolveConstraints(builder, deltaTime);
+                    ParticleToGridTransfer(builder, deltaTime, firstOrLastRun);
+                    GridVelocityNormalize(builder);
                     GridToParticleTransfer(builder, deltaTime);
-                    if (isLastIteration)
-                    {
-                        ParticleAdvect(builder, deltaTime);
-                    }
                 }
+                PbMpmParticleIntegrate(builder, deltaTime);
             }
         }
         else
@@ -768,7 +867,7 @@ namespace Ifrit::Runtime::Siro
         {
             shaderVariants.push_back("IFSHADER_MPM_3D");
         }
-        if (m_Config->m_Variant == MPMSimulatorVariant::MLS || m_Config->m_Variant == MPMSimulatorVariant::PB_MLS)
+        if (m_Config->m_Variant == MPMSimulatorVariant::MLS)
         {
             shaderVariants.push_back("IFSHADER_MPM_MLS");
         }

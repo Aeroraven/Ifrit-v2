@@ -23,7 +23,7 @@ namespace MPM{
         TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
 
         // PBMPM
-        uint m_IsLastRun;
+        uint m_IsFirstOrLastRun;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -42,6 +42,7 @@ namespace MPM{
         FSpatialVector ParticleVelocity = PushConst.m_ParticleVelocity.Load(ThreadId.x);
         FSpatialVector ParticleLocation = PushConst.m_ParticleLocation.Load(ThreadId.x);
         FSpatialTransform ParticleB = PushConst.m_ParticleB.GetMatrix(ThreadId.x);
+        FSpatialTransform I = GetIdentitySpatialTransform();
         FScalar ParticleMass = PushConst.m_ParticleMass.Load(ThreadId.x);
         FDenseGridStructure Grid = PushConst.m_Grid.Load();
         FMpmParticleMaterial ParticleMaterial = PushConst.m_ParticleMaterial.Load(ThreadId.x);
@@ -63,69 +64,62 @@ namespace MPM{
         FSpatialTransform ParticleC = ParticleB * DInv;
 
 #ifdef IFSHADER_MPM_MLS
-        bool ShouldIntegrateParticle = true;
+        FSpatialTransform ParticleDeformGrad = PushConst.m_ParticleDeformationGrad.GetMatrix(ThreadId.x);
+        FSpatialTransform DeformGradChange = PushConst.m_DeltaTime * mul(ParticleC, ParticleDeformGrad);
+        ParticleDeformGrad += DeformGradChange;
 
-    #ifdef IFSHADER_MPM_PBMPM
-        if(PushConst.m_IsLastRun == 0)
         {
-            ShouldIntegrateParticle = false;
+            FSpatialTransform R,S;
+            Math::PolarDecomposition(ParticleDeformGrad, R, S);
         }
+
+        FScalar TraceC = Math::Trace(ParticleC);
+        FScalar Jp = PushConst.m_ParticlePlasticity.Load(ThreadId.x);
+        FScalar Hardening = exp(10 * (1.0 - Jp));  // From MPM-99
+
+        //if(IsJelly) Hardening = 0.3f;
+
+        FSpatialTransform U,S,V;
+        Math::SVD(ParticleDeformGrad, U, S, V);
+        S = Math::ClampDiag(S, 1e-6f, 1e30f);
+        FSpatialTransform Sx = S;
+
+        if(IsSnow)
+        {
+            Sx = Math::ClampDiag(Sx, 1-2.5e-2f, 1+4.5e-3f);
+            Jp *= Math::DiagProductRelative(S,Sx);
+        }
+        PushConst.m_ParticlePlasticity.Store(ThreadId.x, Jp);
+        FScalar J = Math::DiagProduct(Sx,1e-6f);
+
+        if(IsFluid)
+        {
+    #ifdef IFSHADER_MPM_3D
+            ParticleDeformGrad = GetIdentitySpatialTransform() * pow(J, 1.0f/3.0f);
+    #else
+            ParticleDeformGrad = GetIdentitySpatialTransform() * sqrt(J);
     #endif
-
-        if(ShouldIntegrateParticle)
-        {
-            FSpatialTransform ParticleDeformGrad = PushConst.m_ParticleDeformationGrad.GetMatrix(ThreadId.x);
-            FSpatialTransform DeformGradChange = PushConst.m_DeltaTime * mul(ParticleC, ParticleDeformGrad);
-            ParticleDeformGrad += DeformGradChange;
-
-            FScalar TraceC = Math::Trace(ParticleC);
-            FScalar Jp = PushConst.m_ParticlePlasticity.Load(ThreadId.x);
-            FScalar Hardening = exp(10 * (1.0 - Jp));  // From MPM-99
-
-            if(IsJelly) Hardening = 0.3f;
-
-            FSpatialTransform U,S,V;
-            Math::SVD(ParticleDeformGrad, U, S, V);
-            S = Math::ClampDiag(S, 1e-6f, 1e30f);
-            FSpatialTransform Sx = S;
-
-            if(IsSnow)
-            {
-                Sx = Math::ClampDiag(Sx, 1-2.5e-2f, 1+4.5e-3f);
-                Jp *= Math::DiagProductRelative(S,Sx);
-            }
-            PushConst.m_ParticlePlasticity.Store(ThreadId.x, Jp);
-            FScalar J = Math::DiagProduct(Sx,1e-6f);
-
-            if(IsFluid)
-            {
-        #ifdef IFSHADER_MPM_3D
-                ParticleDeformGrad = GetIdentitySpatialTransform() * pow(J, 1.0f/3.0f);
-        #else
-                ParticleDeformGrad = GetIdentitySpatialTransform() * sqrt(J);
-        #endif
-            }
-            if(IsSnow)
-            {
-                ParticleDeformGrad = mul(U, mul(Sx, Math::Transpose(V)));
-            }
-            PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, ParticleDeformGrad);
-
-            FScalar Young = ParticleMaterial.m_Youngs;
-            FScalar Possion = ParticleMaterial.m_Possion;
-            FScalar Mu, Lambda;
-            ToLameParameter( Young, Possion,Mu, Lambda);
-            if(IsFluid)
-            {
-                Mu = 0.0f;
-            }
-            Mu *= Hardening;
-            Lambda *= Hardening;
-
-            FSpatialTransform PFT = 0.0f;
-            PFT = FixedCorotatedStressFT(ParticleDeformGrad, J, Mu,Lambda);
-            PushConst.m_ParticleStressContrib.StoreMatrix(ThreadId.x, PFT);
         }
+        if(IsSnow)
+        {
+            ParticleDeformGrad = mul(U, mul(Sx, Math::Transpose(V)));
+        }
+        PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, ParticleDeformGrad);
+
+        FScalar Young = ParticleMaterial.m_Youngs;
+        FScalar Possion = ParticleMaterial.m_Possion;
+        FScalar Mu, Lambda;
+        ToLameParameter( Young, Possion,Mu, Lambda);
+        if(IsFluid)
+        {
+            Mu = 0.0f;
+        }
+        Mu *= Hardening;
+        Lambda *= Hardening;
+
+        FSpatialTransform PFT = 0.0f;
+        PFT = FixedCorotatedStressFT(ParticleDeformGrad, J, Mu,Lambda);
+        PushConst.m_ParticleStressContrib.StoreMatrix(ThreadId.x, PFT);
 #endif
         
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)

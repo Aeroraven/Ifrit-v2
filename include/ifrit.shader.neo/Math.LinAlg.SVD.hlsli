@@ -194,20 +194,36 @@ namespace Math {
         U = mul(mul(A, V), SI);
     }
 
+    float2x2 rot(float theta)
+    {
+        let ct = cos(theta);
+        let st = sin(theta);
+        return float2x2(ct, -st, st, ct);
+    }
+
     void SVD(float2x2 A, out float2x2 U, out float2x2 S, out float2x2 V)
     {
-        float2 E;
-        float2x2 ATA = mul(Math::Transpose(A), A);
-        JacobiEigenvalueAnalysis(ATA, E, V);
-        SortEigenvaluesAndVectors(E, V);
-        S = 0;
-        S[0][0] = sqrt(abs(E[0]));
-        S[1][1] = sqrt(abs(E[1]));
-
-        float2x2 SI = S;
-        SI[0][0] = rcp(SI[0][0]);
-        SI[1][1] = rcp(SI[1][1]);
-        U = mul(mul(A, V), SI);
+        // Pedro Gimeno (https://scicomp.stackexchange.com/users/9673/pedro-gimeno), 
+        // Robust algorithm for 2x2 SVD, URL (version: 2019-10-22): https://scicomp.stackexchange.com/q/14103
+        let E = (A[0][0] + A[1][1])*0.5;
+        let F = (A[0][0] - A[1][1])*0.5;
+        let G = (A[1][0] + A[0][1])*0.5;
+        let H = (A[1][0] - A[0][1])*0.5;
+    
+        let Q = sqrt(E*E + H*H);
+        let R = sqrt(F*F + G*G);
+        let sx = Q + R;
+        let sy = Q - R;
+    
+        let a1 = atan2(G, F);
+        let a2 = atan2(H, E);
+        
+        let theta = (a2 - a1)*0.5;
+        let phi = (a2 + a1)*0.5;
+    
+        U = rot(phi);
+        S = float2x2(sx, 0.0f, 0.0f, sy);
+        V = Math::Transpose(rot(theta));
     }
 
     void PolarDecomposition(float3x3 A, out float3x3 R, out float3x3 S)
@@ -227,7 +243,7 @@ namespace Math {
         float2x2 U;
         float2x2 V;
         float2x2 Sigma;
-        SVD(A, U, Sigma, V);
+        SVD(A, U, Sigma, V);  // Use the robust 2D SVD instead
         
         float2x2 Vt = Math::Transpose(V);
         R = mul(U, Vt);

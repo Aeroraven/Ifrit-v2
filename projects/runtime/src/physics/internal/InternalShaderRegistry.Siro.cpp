@@ -94,6 +94,10 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTSiro.MPMParticleAdvectionCS, "Siro/MPM/MPM.ParticleAdvection", "MpmParticleAdvectionCS");
         REG_COMPUTE_NEO(ISTSiro.MPMParticleInitCS, "Siro/MPM/MPM.ParticleInit", "MpmParticleInitCS");
         REG_COMPUTE_NEO(ISTSiro.MPMGridGravityApplyCS, "Siro/MPM/MPM.GridGravityApply", "MpmGridGravityApplyCS");
+        REG_COMPUTE_NEO(
+            ISTSiro.MPMPbMpmResolveConstraintsCS, "Siro/MPM/MPM.PbMpmResolveConstraints", "PbMpmResolveConstraintsCS");
+        REG_COMPUTE_NEO(
+            ISTSiro.MPMPbMpmParticleIntegrateCS, "Siro/MPM/MPM.PbMpmParticleIntegrate", "PbMpmParticleIntegrateCS");
 
 #undef REG_MESH
 #undef REG_FRAGMENT

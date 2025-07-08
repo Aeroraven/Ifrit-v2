@@ -26,6 +26,7 @@ namespace MPM{
         FPackedMatrixHandle m_ParticleDeformationGrad;
         FScalarHandle m_ParticleDeformationGradDet;
         TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
+        FScalarHandle m_ParticleLiquidDensity;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -56,7 +57,7 @@ namespace MPM{
         float4 RandomOffset = float4(Hash31(float(ThreadId.x)*11.45141f),0.0f);
         FSpatialVector RandomOffsetVec = ToSpatialVector(RandomOffset);
 
-        FSpatialVector RandomUV = lerp(FSpatialVector(0.375f),FSpatialVector(0.625f), RandomOffsetVec);
+        FSpatialVector RandomUV = lerp(FSpatialVector(0.35f),FSpatialVector(0.65f), RandomOffsetVec);
         FSpatialVector Location = lerp(GridMinBound, GridMaxBound, RandomUV);
 
         if(PushConst.m_IgnoreParticlePosition == 0)
@@ -89,6 +90,7 @@ namespace MPM{
         PushConst.m_ParticleMaterial.Store(Material,ThreadId.x);
 
         PushConst.m_ParticleDeformationGradDet.Store(ThreadId.x, Math::Determinant(I));
+        PushConst.m_ParticleLiquidDensity.Store(ThreadId.x, 1.0f);
     }
 
 }}}

@@ -24,23 +24,24 @@ namespace Ifrit::Runtime::Siro
     {
         NonMLS,
         MLS,
-        PB_MLS,
+        PBMPM,
     };
 
     enum class MPMSimulatorParticleType : u8
     {
         Jelly = 0,
         Fluid = 1,
-        Snow  = 2
+        Snow  = 2,
+        Visco = 3
     };
 
     struct MPMSimulatorConfig
     {
-        IF_CONSTEXPR static u32      kDefaultGridSizeX = 128;
+        IF_CONSTEXPR static u32      kDefaultGridSizeX = 64;
 
         MPMSimulatorTopologySource   m_TopoSource = MPMSimulatorTopologySource::Preset;
-        MPMSimulatorProblemDimension m_Dimension  = MPMSimulatorProblemDimension::ThreeDimensional;
-        MPMSimulatorVariant          m_Variant    = MPMSimulatorVariant::MLS;
+        MPMSimulatorProblemDimension m_Dimension  = MPMSimulatorProblemDimension::TwoDimensional;
+        MPMSimulatorVariant          m_Variant    = MPMSimulatorVariant::PBMPM;
 
         Vector3u                     m_GridSize   = Vector3u(kDefaultGridSizeX, kDefaultGridSizeX, kDefaultGridSizeX);
         Vector3f                     m_GridOffset = Vector3f(0.0f);
@@ -50,12 +51,19 @@ namespace Ifrit::Runtime::Siro
         f32                          m_DefaultMass       = (0.5f / kDefaultGridSizeX);
         f32                          m_DefaultDensity    = 1.0f;
 
-        f32                          m_DefaultYoungsModulus = 100.0f;
-        f32                          m_DefaultPoissonRatio  = 0.2f;
-        u32                          m_DefaultNumParticles  = 18000;
-        u32                          m_Substeps             = 5;
-        u32                          m_PbMpmIterations      = 5;
-        MPMSimulatorParticleType     m_DefaultParticleType  = MPMSimulatorParticleType::Jelly;
+        f32                          m_DefaultYoungsModulus   = 50.0f;
+        f32                          m_DefaultPoissonRatio    = 0.2f;
+        f32                          m_DefaultViscoPlasticity = 0.9f;
+        u32                          m_DefaultNumParticles    = 2000;
+        u32                          m_Substeps               = 5;
+        MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Jelly;
+
+        // PBMPM
+        u32                          m_PbMpmIterations                           = 14;
+        f32                          m_PbMpmDefaultElasticityInterpolationFactor = 0.001f;
+        f32                          m_PbMpmDefaultElasticityRelaxationFactor    = 1.5f;
+        f32                          m_PbMpmDefaultLiquidViscosity               = 0.000f;
+        f32                          m_PbMpmDefaultLiquidRelaxation              = 1.5f;
     };
 
     class IFRIT_RUNTIME_API MPMSimulator : public ISiroSolver

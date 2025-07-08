@@ -55,7 +55,7 @@ namespace Ifrit
                 auto vdbFileData = Ifrit::ReadBinaryFile(IFRIT_DEMO_ASSET_PATH "/bunny.vdb");
                 auto vdbDesc     = VDB::LoadVdbFromString(vdbFileData);
                 VDB::PrintVdbMeta(vdbDesc);
-                auto                             p = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.25f, 8);
+                auto                             p = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.5f, 8);
                 // std::cout << "Sampled " << p.size() << " points from VDB." << std::endl;
                 PointCloud::PointCloudDescriptor pcDesc;
                 pcDesc.m_Points = p.data();
@@ -63,7 +63,7 @@ namespace Ifrit
 
                 PointCloud::MoveCenterTo(pcDesc, Vector3f(32.0f, 32.0f, 32.0f));
                 PointCloud::NormalizeToLongestAxisAABB(pcDesc, Vector3f(0.0f), Vector3f(64.0f));
-                m_MpmSim->SetInitParticleLocations<3>(p);
+                // m_MpmSim->SetInitParticleLocations<3>(p);
             }
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
@@ -113,7 +113,7 @@ namespace Ifrit
                 [&](const RhiCommandList* cmd) {
                     FrameGraphBuilder builder(GetShaderRegistry(), GetRhi(), m_FrameGraphResourcePool.get());
                     auto              rt = builder.ImportTexture("Demo_Swapchain", swapchainImg);
-                    m_MpmSim->RunSolverStep(builder, 1.0f / 3000.0f);
+                    m_MpmSim->RunSolverStep(builder, 1.0f / 1500.0f);
                     m_MpmSim->Render(builder, &rt);
 
                     auto fg = m_FrameGraphCompiler->Compile(builder);

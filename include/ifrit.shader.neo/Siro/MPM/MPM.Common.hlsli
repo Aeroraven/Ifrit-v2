@@ -17,6 +17,7 @@ namespace MPM{
     IFSHADER_DEFINE_CONST_INT32(kMpmMaterial_Jelly,0);
     IFSHADER_DEFINE_CONST_INT32(kMpmMaterial_Fluid,1);
     IFSHADER_DEFINE_CONST_INT32(kMpmMaterial_Snow,2);
+    IFSHADER_DEFINE_CONST_INT32(kMpmMaterial_Visco,3);
 
 
 #ifndef __cplusplus

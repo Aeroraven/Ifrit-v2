@@ -76,6 +76,10 @@ namespace Ifrit::Runtime::Internal
         SDEF MPMParticleInitCS       = DECLARE_CS("Siro/MPM/MPM.ParticleInit");
         SDEF MPMGridGravityApplyCS   = DECLARE_CS("Siro/MPM/MPM.GridGravityApply");
 
+        // PBMPM
+        SDEF MPMPbMpmResolveConstraintsCS = DECLARE_CS("Siro/MPM/MPM.PbMpmResolveConstraints");
+        SDEF MPMPbMpmParticleIntegrateCS  = DECLARE_CS("Siro/MPM/MPM.PbMpmParticleIntegrate");
+
     } kIntShaderTableSiro;
 
 #undef SDEF
