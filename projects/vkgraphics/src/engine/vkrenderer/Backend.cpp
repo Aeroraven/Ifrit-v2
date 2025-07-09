@@ -556,9 +556,10 @@ namespace Ifrit::RHI::VulkanAdapter
     IFRIT_APIDECL RHI::RhiSRVDesc RhiVulkanBackend::GetSRVDescriptor(RHI::RhiBuffer* buffer)
     {
         // vulkan seems to not support buffer SRV, so we just return UAV
+        // update 250710:
         auto dm  = m_implDetails->m_descriptorManager.get();
         auto buf = CheckedCast<SingleBuffer>(buffer);
-        auto p   = dm->RegisterStorageBuffer(buf);
+        auto p   = dm->RegisterStorageBufferSRV(buf);
         return p;
     }
     IFRIT_APIDECL RHI::RhiCBVDesc RhiVulkanBackend::GetCBVDescriptor(RHI::RhiBuffer* buffer)

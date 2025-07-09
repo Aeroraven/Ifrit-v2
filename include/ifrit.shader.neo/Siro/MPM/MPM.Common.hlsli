@@ -65,7 +65,7 @@ namespace MPM{
         }
     };
 
-    struct FSpatialVectorHandle
+    struct FRWSpatialVectorHandle
     {
         TRWStructuredBufferHandle<FSpatialVectorAligned> SpatialVectors;
 
@@ -160,7 +160,7 @@ namespace MPM{
         }
     };
 
-    struct FSpatialVectorHandle
+    struct FRWSpatialVectorHandle
     {
         TRWStructuredBufferHandle<FSpatialVectorAligned> SpatialVectors;
 
@@ -172,6 +172,16 @@ namespace MPM{
         void Store(uint Index, FSpatialVector Value)
         {
             SpatialVectors.Store(FSpatialVectorAligned(Value.x, Value.y), Index);
+        }
+    };
+
+    struct FSpatialVectorHandle
+    {
+        TStructuredBufferHandle<FSpatialVectorAligned> SpatialVectors;
+
+        FSpatialVector Load(uint Index)
+        {
+            return SpatialVectors.Load(Index).xy;
         }
     };
 
@@ -229,7 +239,7 @@ namespace MPM{
         int m_Type;
     };
 
-    struct FScalarHandle
+    struct FRWScalarHandle
     {
         TRWStructuredBufferHandle<FScalar> Scalars;
 
@@ -242,6 +252,18 @@ namespace MPM{
         {
             Scalars.Store(Value, Index);
         }
+    };
+
+    
+    struct FScalarHandle
+    {
+        TStructuredBufferHandle<FScalar> Scalars;
+
+        FScalar Load(uint Index)
+        {
+            return Scalars.Load(Index);
+        }
+
     };
 
     struct FAtomicScalarHandle

@@ -179,7 +179,7 @@ namespace Ifrit::RHI::VulkanAdapter
     {
         if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
-            if (pCallbackData->messageIdNumber == -1307510846)
+            if (pCallbackData->messageIdNumber == -1307510846 || pCallbackData->messageIdNumber == -1520283006)
             {
                 return VK_FALSE;
             }

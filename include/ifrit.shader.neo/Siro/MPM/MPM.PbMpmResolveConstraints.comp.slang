@@ -11,13 +11,13 @@ namespace MPM{
     {
         FParticleCounterHandle m_ParticleCounter;
         float m_DeltaTime;
-        FSpatialVectorHandle m_ParticleVelocity;
+        FRWSpatialVectorHandle m_ParticleVelocity;
         FPackedMatrixHandle m_ParticleB; // Deformation deplacement VARIATION RATE!
         FPackedMatrixHandle m_ParticleDeformationGrad;
         TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
         FDenseGridStructureHandle m_Grid;
         FPackedMatrixHandle m_ParticleDebug;
-        FScalarHandle m_ParticleLiquidDensity;
+        FRWScalarHandle m_ParticleLiquidDensity;
 
         // PBMPM
         float m_ElasticityInterpolationFactor;

@@ -170,6 +170,36 @@ namespace Ifrit::RHI::VulkanAdapter
     }
 
     IFRIT_APIDECL
+    u32 DescriptorManager::RegisterStorageBufferSRV(SingleBuffer* buffer)
+    {
+        if (m_storageBufferMapSRV.find(buffer->GetBuffer()) != m_storageBufferMapSRV.end())
+        {
+            return m_storageBufferMapSRV[buffer->GetBuffer()];
+        }
+
+        auto handleId = SizeCast<u32>(m_storageBuffersSRV.size());
+        m_storageBuffersSRV.push_back(buffer->GetBuffer());
+        m_storageBufferMapSRV[buffer->GetBuffer()] = handleId;
+
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = buffer->GetBuffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range  = VK_WHOLE_SIZE;
+
+        VkWriteDescriptorSet write{};
+        write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet          = m_bindlessSet;
+        write.dstBinding      = getUnderlying(RHI::RhiDescriptorType::StorageBuffer);
+        write.dstArrayElement = SizeCast<u32>(handleId);
+        write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write.descriptorCount = 1;
+        write.pBufferInfo     = &bufferInfo;
+
+        vkUpdateDescriptorSets(m_context->GetDevice(), 1, &write, 0, nullptr);
+        return SizeCast<u32>(handleId);
+    }
+
+    IFRIT_APIDECL
     u32 DescriptorManager::RegisterStorageBuffer(SingleBuffer* buffer)
     {
 

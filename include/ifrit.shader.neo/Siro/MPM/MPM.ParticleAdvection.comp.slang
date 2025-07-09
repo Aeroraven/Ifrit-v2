@@ -10,8 +10,8 @@ namespace MPM{
     {
         FParticleCounterHandle m_ParticleCounter;
         FScalar m_DeltaTime;
-        FSpatialVectorHandle m_ParticleLocation;
-        FSpatialVectorHandle m_ParticleVelocity;
+        FRWSpatialVectorHandle m_ParticleLocation;
+        FRWSpatialVectorHandle m_ParticleVelocity;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;

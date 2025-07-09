@@ -18,15 +18,15 @@ namespace MPM{
         float m_Density;
         FDenseGridStructureHandle m_Grid;
 
-        FSpatialVectorHandle m_ParticleLocation;
-        FSpatialVectorHandle m_ParticleVelocity;
-        FScalarHandle m_ParticleMass;
-        FScalarHandle m_ParticleVolume;
+        FRWSpatialVectorHandle m_ParticleLocation;
+        FRWSpatialVectorHandle m_ParticleVelocity;
+        FRWScalarHandle m_ParticleMass;
+        FRWScalarHandle m_ParticleVolume;
         FPackedMatrixHandle m_ParticleB;
         FPackedMatrixHandle m_ParticleDeformationGrad;
-        FScalarHandle m_ParticleDeformationGradDet;
+        FRWScalarHandle m_ParticleDeformationGradDet;
         TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
-        FScalarHandle m_ParticleLiquidDensity;
+        FRWScalarHandle m_ParticleLiquidDensity;
         FParticleCounterHandle m_ParticleCounter;
     };
 

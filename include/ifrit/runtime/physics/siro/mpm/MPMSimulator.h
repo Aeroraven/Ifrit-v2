@@ -41,7 +41,7 @@ namespace Ifrit::Runtime::Siro
 
         MPMSimulatorTopologySource   m_TopoSource = MPMSimulatorTopologySource::Preset;
         MPMSimulatorProblemDimension m_Dimension  = MPMSimulatorProblemDimension::ThreeDimensional;
-        MPMSimulatorVariant          m_Variant    = MPMSimulatorVariant::MLS;
+        MPMSimulatorVariant          m_Variant    = MPMSimulatorVariant::PBMPM;
 
         u32                          m_MaxParticles = 914514;
         Vector3u                     m_GridSize     = Vector3u(kDefaultGridSizeX, kDefaultGridSizeX, kDefaultGridSizeX);

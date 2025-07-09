@@ -23,9 +23,9 @@ namespace MPM{
         FScalar m_DeltaTime;
         FDenseGridStructureHandle m_Grid;
         FPackedMatrixHandle m_ParticleDeformationGrad;
-        FSpatialVectorHandle m_ParticleLocation;
+        FRWSpatialVectorHandle m_ParticleLocation;
         FPackedMatrixHandle m_ParticleB;
-        FSpatialVectorHandle m_ParticleVelocity;
+        FRWSpatialVectorHandle m_ParticleVelocity;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;

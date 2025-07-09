@@ -52,7 +52,7 @@ namespace IfritShader
     // So no need to define it here
 
     IFSHADER_BINDING(IFSHADER_BINDLESS_RW_TEXTURE, IFSHADER_BINDLESS_SETID)
-    __DynamicResource _Ifrit_ResourceHeap_RWTexture[];
+    __DynamicResource _Ifrit_ResourceHeap_RWTexture[]; 
 
     IFSHADER_BINDING(IFSHADER_BINDLESS_TEXTURE, IFSHADER_BINDLESS_SETID)
     __DynamicResource _Ifrit_ResourceHeap_Texture[];

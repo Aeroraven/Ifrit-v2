@@ -236,7 +236,7 @@ namespace Ifrit::Runtime::Siro
             u32      m_ParticleVelocity; // !!! Particle Displacement Indeed !!!
             u32      m_ParticleDeformationGrad;
             u32      m_ParticleB;
-            u32      m_ParticleMaterial;
+            u32      m_ParticleMaterialSRV;
             u32      m_ParticleLiquidDensity;
             u32      m_ParticleDebug;
 
@@ -255,7 +255,7 @@ namespace Ifrit::Runtime::Siro
                 pc.m_ParticleVelocity        = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
                 pc.m_ParticleDeformationGrad = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
                 pc.m_ParticleB               = ctx.m_FgDesc->GetUAV(*m_RDGParticleApicB);
-                pc.m_ParticleMaterial        = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
+                pc.m_ParticleMaterialSRV     = ctx.m_FgDesc->GetSRV(*m_RDGParticleMatProperty);
                 pc.m_ParticleLiquidDensity   = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
                 pc.m_ParticleDebug           = ctx.m_FgDesc->GetUAV(*m_RDGParticleDebug);
 
@@ -268,7 +268,7 @@ namespace Ifrit::Runtime::Siro
             .AddReadWriteResource(*m_RDGParticleDeformGrad)
             .AddReadWriteResource(*m_RDGParticleApicB)
             .AddReadWriteResource(*m_RDGParticleLiquidDensity)
-            .AddReadWriteResource(*m_RDGParticleMatProperty);
+            .AddReadResource(*m_RDGParticleMatProperty);
     }
 
     void MPMSimulatorPrivateData::PbMpmResolveConstraints(FrameGraphBuilder& builder, f32 deltaTime)

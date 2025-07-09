@@ -14,12 +14,12 @@ namespace MPM{
         float m_DeltaTime;
 
         FDenseGridStructureHandle m_Grid;
-        FSpatialVectorHandle m_ParticleLocation;
-        FSpatialVectorHandle m_ParticleVelocity; // !!! Particle Displacement Indeed !!!
+        FRWSpatialVectorHandle m_ParticleLocation;
+        FRWSpatialVectorHandle m_ParticleVelocity; // !!! Particle Displacement Indeed !!!
         FPackedMatrixHandle m_ParticleDeformationGrad;
         FPackedMatrixHandle m_ParticleB; 
-        TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
-        FScalarHandle m_ParticleLiquidDensity;
+        TStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
+        FRWScalarHandle m_ParticleLiquidDensity;
         FPackedMatrixHandle m_ParticleDebug;
 
         float m_ViscoPlasticity;

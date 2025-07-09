@@ -109,6 +109,9 @@ namespace Ifrit::RHI::VulkanAdapter
         HashMap<VkBuffer, u32>                                             m_storageBufferMap;
         Vec<Pair<VkImage, VkSampler>>                                      m_combinedImageSamplers;
 
+        Vec<VkBuffer>                                                      m_storageBuffersSRV;
+        HashMap<VkBuffer, u32>                                             m_storageBufferMapSRV;
+
         Vec<DescriptorImageView>                                           m_StorageImages;
         CustomHashMap<DescriptorImageView, u32, DescriptorImageView::Hash> m_StorageImageMap;
 
@@ -138,6 +141,7 @@ namespace Ifrit::RHI::VulkanAdapter
         u32                    RegisterUniformBuffer(SingleBuffer* buffer);
         u32                    RegisterCombinedImageSampler(SingleDeviceImage* image, Sampler* sampler);
         u32                    RegisterStorageBuffer(SingleBuffer* buffer);
+        u32                    RegisterStorageBufferSRV(SingleBuffer* buffer);
 
         u32                    RegisterStorageImage(SingleDeviceImage* image, RHI::RhiImageSubResource subResource);
         u32                    RegisterSampledImage(SingleDeviceImage* image, RHI::RhiImageSubResource subResource);
