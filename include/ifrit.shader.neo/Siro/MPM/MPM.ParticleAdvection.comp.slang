@@ -8,7 +8,7 @@ namespace MPM{
 
     struct PushConst_T
     {
-        int m_NumParticles;
+        FParticleCounterHandle m_ParticleCounter;
         FScalar m_DeltaTime;
         FSpatialVectorHandle m_ParticleLocation;
         FSpatialVectorHandle m_ParticleVelocity;
@@ -23,7 +23,7 @@ namespace MPM{
                                uint3 GroupThreadId:SV_GroupThreadID)
     {
         // Step8. particle advection
-        if(ThreadId.x >= PushConst.m_NumParticles)
+        if(ThreadId.x >= PushConst.m_ParticleCounter.GetNumParticles())
             return;
 
         FSpatialVector ParticleLocation = PushConst.m_ParticleLocation.Load(ThreadId.x);

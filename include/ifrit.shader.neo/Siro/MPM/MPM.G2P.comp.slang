@@ -19,7 +19,7 @@ namespace MPM{
 
     struct PushConst_T
     {
-        int m_NumParticles;
+        FParticleCounterHandle m_ParticleCounter;
         FScalar m_DeltaTime;
         FDenseGridStructureHandle m_Grid;
         FPackedMatrixHandle m_ParticleDeformationGrad;
@@ -38,7 +38,7 @@ namespace MPM{
     {
         // Step6. particle deformation gradient update
         // Step7. G2P
-        if(ThreadId.x >= PushConst.m_NumParticles)
+        if(ThreadId.x >= PushConst.m_ParticleCounter.GetNumParticles())
             return;
 
         FSpatialTransform DeformGradChange = GetIdentitySpatialTransform();

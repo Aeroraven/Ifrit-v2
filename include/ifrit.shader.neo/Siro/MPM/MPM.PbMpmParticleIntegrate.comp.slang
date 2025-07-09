@@ -10,7 +10,7 @@ namespace MPM{
     struct PushConst_T
     {
         float4 m_Gravity;
-        int m_NumParticles;
+        FParticleCounterHandle m_ParticleCounter;
         float m_DeltaTime;
 
         FDenseGridStructureHandle m_Grid;
@@ -20,27 +20,14 @@ namespace MPM{
         FPackedMatrixHandle m_ParticleB; 
         TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
         FScalarHandle m_ParticleLiquidDensity;
+        FPackedMatrixHandle m_ParticleDebug;
 
         float m_ViscoPlasticity;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
 
-    bool IsElasticMaterial(FMpmParticleMaterial Material)
-    {
-        return Material.m_Type == kMpmMaterial_Jelly ||
-               Material.m_Type == kMpmMaterial_Visco;
-    }
 
-    bool IsViscoMaterial(FMpmParticleMaterial Material)
-    {
-        return Material.m_Type == kMpmMaterial_Visco;
-    }
-
-    bool IsLiquidMaterial(FMpmParticleMaterial Material)
-    {
-        return Material.m_Type == kMpmMaterial_Fluid;
-    }
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
     IFSHADER_BLOCKSIZE(kMpmTGSizeX, 1, 1)
@@ -48,7 +35,7 @@ namespace MPM{
                            uint3 GroupId:SV_GroupID,
                            uint3 GroupThreadId:SV_GroupThreadID)
     {
-        if(ThreadId.x >= PushConst.m_NumParticles)
+        if(ThreadId.x >= PushConst.m_ParticleCounter.GetNumParticles())
             return;
 
         FDenseGridStructure Grid = PushConst.m_Grid.Load();
@@ -91,13 +78,17 @@ namespace MPM{
                 if(IsVisco)
                 {
                     FScalar J = Math::DiagProduct(Sc,0);
-                    FScalar YelidSurface = exp(1.0f-0.2f);
+                    PushConst.m_ParticleDebug.StoreMatrix(ThreadId.x*2, Sc);
+
+                    FScalar YelidSurface = exp(1.0f-PushConst.m_ViscoPlasticity);
                     FSpatialTransform Scp = Math::ClampDiag(Sc, 1.0/YelidSurface, YelidSurface);
+                    PushConst.m_ParticleDebug.StoreMatrix(ThreadId.x*2+1, Scp);
+
                     FScalar NewJ = Math::DiagProduct(Scp,0);
 #ifdef IFSHADER_MPM_3D
-                    Sc = Sc * pow(J/NewJ, 1.0f/3.0f);
+                    Sc = Scp * pow(J/NewJ, 1.0f/3.0f);
 #else
-                    Sc = Sc * sqrt(J/NewJ);
+                    Sc = Scp * sqrt(J/NewJ);
 #endif
                 }
 

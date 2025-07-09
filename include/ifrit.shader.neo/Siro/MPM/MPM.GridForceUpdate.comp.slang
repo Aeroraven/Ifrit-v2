@@ -8,7 +8,7 @@ namespace MPM{
 
     struct PushConst_T
     {
-        int m_NumParticles;
+        FParticleCounterHandle m_ParticleCounter;
         FDenseGridStructureHandle m_Grid;
         FSpatialVectorHandle m_ParticleLocation;
         FScalarHandle m_ParticleVolume;
@@ -28,7 +28,7 @@ namespace MPM{
                               uint3 GroupThreadId:SV_GroupThreadID)
     {
         // Step5. grid force update
-        if(ThreadId.x >= PushConst.m_NumParticles)
+        if(ThreadId.x >= PushConst.m_ParticleCounter.GetNumParticles())
             return;
 
         FSpatialVector ParticleLocation = PushConst.m_ParticleLocation.Load(ThreadId.x);

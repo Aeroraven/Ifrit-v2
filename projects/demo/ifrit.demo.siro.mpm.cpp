@@ -43,6 +43,9 @@ namespace Ifrit
         Ref<FrameGraphCompiler>        m_FrameGraphCompiler;
         Ref<FrameGraphExecutor>        m_FrameGraphExecutor;
         Ref<FrameGraphResourcePool>    m_FrameGraphResourcePool;
+        Vec<Vector3f>                  m_PointClouds;
+
+        u32                            m_FrameIdx = 0;
 
     public:
         void OnStart() override
@@ -55,15 +58,15 @@ namespace Ifrit
                 auto vdbFileData = Ifrit::ReadBinaryFile(IFRIT_DEMO_ASSET_PATH "/bunny.vdb");
                 auto vdbDesc     = VDB::LoadVdbFromString(vdbFileData);
                 VDB::PrintVdbMeta(vdbDesc);
-                auto                             p = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.5f, 8);
+                m_PointClouds = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.5f, 8);
                 // std::cout << "Sampled " << p.size() << " points from VDB." << std::endl;
+                iDebug("Sampled {} points from VDB.", m_PointClouds.size());
                 PointCloud::PointCloudDescriptor pcDesc;
-                pcDesc.m_Points = p.data();
-                pcDesc.m_Count  = static_cast<u32>(p.size());
+                pcDesc.m_Points = m_PointClouds.data();
+                pcDesc.m_Count  = static_cast<u32>(m_PointClouds.size());
 
                 PointCloud::MoveCenterTo(pcDesc, Vector3f(32.0f, 32.0f, 32.0f));
                 PointCloud::NormalizeToLongestAxisAABB(pcDesc, Vector3f(0.0f), Vector3f(64.0f));
-                // m_MpmSim->SetInitParticleLocations<3>(p);
             }
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
@@ -104,6 +107,14 @@ namespace Ifrit
 
         void OnUpdate() override
         {
+            m_FrameIdx++;
+            if (m_FrameIdx == 1145)
+            {
+                Siro::MPMParticleEmitArgs args;
+                args.m_MaterialType = Siro::MPMSimulatorParticleType::Jelly;
+                m_MpmSim->EmitParticles<3>(m_PointClouds, args);
+                // m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
+            }
             auto scene       = m_sceneManager->GetActiveScene();
             auto sFrameStart = renderer->BeginFrame();
 
@@ -113,7 +124,7 @@ namespace Ifrit
                 [&](const RhiCommandList* cmd) {
                     FrameGraphBuilder builder(GetShaderRegistry(), GetRhi(), m_FrameGraphResourcePool.get());
                     auto              rt = builder.ImportTexture("Demo_Swapchain", swapchainImg);
-                    m_MpmSim->RunSolverStep(builder, 1.0f / 1500.0f);
+                    m_MpmSim->RunSolverStep(builder, 1.0f / 3000.0f);
                     m_MpmSim->Render(builder, &rt);
 
                     auto fg = m_FrameGraphCompiler->Compile(builder);

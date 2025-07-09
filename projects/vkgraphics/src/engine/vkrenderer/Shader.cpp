@@ -271,6 +271,10 @@ namespace Ifrit::RHI::VulkanAdapter
         shaderModuleCI.m_EntryPoint = "main"; // m_CI.m_EntryPoint;
         shaderModuleCI.stage        = m_CI.m_Stage;
         shaderModuleCI.m_ShaderName = m_CI.m_FileName;
+        if (defines.size() > 0)
+        {
+            shaderModuleCI.m_ShaderName += "(" + JoinString(defines, ".") + ")";
+        }
 
         auto shaderModule            = MakeOwner<ShaderModule>(m_Context, shaderModuleCI);
         m_ShaderVariants[permIdCopy] = std::move(shaderModule);

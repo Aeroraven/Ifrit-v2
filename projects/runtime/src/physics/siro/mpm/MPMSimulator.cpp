@@ -12,6 +12,12 @@ namespace Ifrit::Runtime::Siro
 {
     template <u32 Dimension> struct MPMSimulatorTypes;
 
+    struct MPMEmissionInfo
+    {
+        std::variant<Vec<Vector2f>, Vec<Vector4f>> m_InitialParticleLocations;
+        MPMParticleEmitArgs                        m_EmissionArgs;
+    };
+
     struct MPMParticleMaterials
     {
         f32                      m_YoungsModulus = 100.0f;
@@ -70,8 +76,12 @@ namespace Ifrit::Runtime::Siro
         bool                                       m_HasInitParticleLocations = false;
 
         std::variant<Vec<Vector2f>, Vec<Vector4f>> m_InitParticleLocations;
+        Vec<MPMEmissionInfo>                       m_EmissionInfos;
 
         // Persistent data
+        RhiBufferRef                               m_ParticleCount;
+        RhiBufferRef                               m_ParticleEmitLocations;
+
         RhiBufferRef                               m_ParticlePosition;
         RhiBufferRef                               m_ParticleVelocity;
         RhiBufferRef                               m_ParticleMass;
@@ -90,6 +100,10 @@ namespace Ifrit::Runtime::Siro
         RhiBufferRef                               m_GridMass;
 
         RhiBufferRef                               m_GridAttribute;
+
+        // RDG resources
+        FGBufferNodeRef                            m_RDGParticleCount;
+        FGBufferNodeRef                            m_RDGParticleEmitLocations;
 
         FGBufferNodeRef                            m_RDGParticlePosition;
         FGBufferNodeRef                            m_RDGParticleVelocity;
@@ -119,32 +133,102 @@ namespace Ifrit::Runtime::Siro
         void                                       RunSolverStep(FrameGraphBuilder& builder, f32 dt);
         ShaderVariantDesc                          GetShader(const String& name, const Vec<String>& extra = {}) const;
         u32                                        GetNumGrids() const;
+        template <u32 Dimension> void              HandleManualParticleEmit(FrameGraphBuilder& builder);
 
         // Solver steps
         void                                       ParticleInit(FrameGraphBuilder& builder);
-        void                                       GridReset(FrameGraphBuilder& builder, bool firstFrame);
-        void                                       ParticleToGridTransfer(FrameGraphBuilder& builder, f32 dt, u32 last);
-        void                                       GridVelocityNormalize(FrameGraphBuilder& builder);
-        void                                       GridForceUpdate(FrameGraphBuilder& builder);
-        void                                       GridGravityApply(FrameGraphBuilder& builder);
-        void                                       GridVelocityUpdate(FrameGraphBuilder& builder, f32 dt);
-        void                                       GridToParticleTransfer(FrameGraphBuilder& builder, f32 dt);
-        void                                       ParticleAdvect(FrameGraphBuilder& builder, f32 dt);
+        void ParticleEmit(FrameGraphBuilder& builder, const MPMParticleEmitArgs& args, u32 numParticles);
+        void GridReset(FrameGraphBuilder& builder, bool firstFrame, bool firstIteration);
+        void ParticleToGridTransfer(FrameGraphBuilder& builder, f32 dt, u32 last);
+        void GridVelocityNormalize(FrameGraphBuilder& builder);
+        void GridForceUpdate(FrameGraphBuilder& builder);
+        void GridGravityApply(FrameGraphBuilder& builder);
+        void GridVelocityUpdate(FrameGraphBuilder& builder, f32 dt, bool firstIteration);
+        void GridToParticleTransfer(FrameGraphBuilder& builder, f32 dt);
+        void ParticleAdvect(FrameGraphBuilder& builder, f32 dt);
 
         // Position-based MPM
-        void                                       PbMpmResolveConstraints(FrameGraphBuilder& builder, f32 dt);
-        void                                       PbMpmParticleIntegrate(FrameGraphBuilder& builder, f32 dt);
+        void PbMpmResolveConstraints(FrameGraphBuilder& builder, f32 dt);
+        void PbMpmParticleIntegrate(FrameGraphBuilder& builder, f32 dt);
 
         // Visualizer
         void ParticleRender2D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
         void ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
     };
+
+    void MPMSimulatorPrivateData::ParticleEmit(
+        FrameGraphBuilder& builder, const MPMParticleEmitArgs& args, u32 numParticles)
+    {
+        struct PushConst
+        {
+            f32 m_DefaultYoungs;
+            f32 m_DefaultPossion;
+            i32 m_DefaultMatType;
+
+            i32 m_NumParticles;
+            f32 m_Mass;
+            f32 m_Density;
+            u32 m_Grid;
+            u32 m_ParticleLocationSrc;
+
+            u32 m_ParticleLocation;
+            u32 m_ParticleVelocity;
+            u32 m_ParticleMass;
+            u32 m_ParticleVolume;
+            u32 m_ParticleB;
+            u32 m_ParticleDeformationGrad;
+            u32 m_ParticleDeformationGradDet;
+            u32 m_ParticleMaterial;
+            u32 m_ParticleLiquidDensity;
+            u32 m_ParticleCounter;
+        } pc;
+
+        pc.m_DefaultYoungs  = args.m_YoungsModulus;
+        pc.m_DefaultPossion = args.m_PoissonRatio;
+        pc.m_DefaultMatType = static_cast<i32>(args.m_MaterialType);
+        pc.m_NumParticles   = static_cast<i32>(numParticles);
+        pc.m_Mass           = args.m_Mass;
+        pc.m_Density        = args.m_Density;
+
+        i32 tgX = DivRoundUp(numParticles, kDefaultTGX);
+
+        AddComputePass<PushConst>(builder, "MPMSimulator.ParticleEmit",
+            GetShader(Internal::kIntShaderTableSiro.MPMParticleEmitCS), Vector3i(tgX, 1, 1), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_Grid                       = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                pc.m_ParticleLocationSrc        = ctx.m_FgDesc->GetUAV(*m_RDGParticleEmitLocations);
+                pc.m_ParticleLocation           = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
+                pc.m_ParticleVelocity           = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
+                pc.m_ParticleMass               = ctx.m_FgDesc->GetUAV(*m_RDGParticleMass);
+                pc.m_ParticleVolume             = ctx.m_FgDesc->GetUAV(*m_RDGParticleVolume);
+                pc.m_ParticleB                  = ctx.m_FgDesc->GetUAV(*m_RDGParticleApicB);
+                pc.m_ParticleDeformationGrad    = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
+                pc.m_ParticleDeformationGradDet = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGradDet);
+                pc.m_ParticleMaterial           = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
+                pc.m_ParticleLiquidDensity      = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
+                pc.m_ParticleCounter            = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadWriteResource(*m_RDGGridAttribute)
+            .AddReadWriteResource(*m_RDGParticlePosition)
+            .AddReadWriteResource(*m_RDGParticleVelocity)
+            .AddReadWriteResource(*m_RDGParticleMass)
+            .AddReadWriteResource(*m_RDGParticleDeformGrad)
+            .AddReadWriteResource(*m_RDGParticleDeformGradDet)
+            .AddReadWriteResource(*m_RDGParticleApicB)
+            .AddReadWriteResource(*m_RDGParticleVolume)
+            .AddReadWriteResource(*m_RDGParticleMatProperty)
+            .AddReadWriteResource(*m_RDGParticleLiquidDensity)
+            .AddReadWriteResource(*m_RDGParticleEmitLocations)
+            .AddReadWriteResource(*m_RDGParticleCount);
+    }
+
     void MPMSimulatorPrivateData::PbMpmParticleIntegrate(FrameGraphBuilder& builder, f32 dt)
     {
         struct PushConst
         {
             Vector4f m_Gravity;
-            u32      m_NumParticles;
+            u32      m_ParticleCounterBuf;
             f32      m_DeltaTime;
 
             u32      m_Grid;
@@ -154,18 +238,18 @@ namespace Ifrit::Runtime::Siro
             u32      m_ParticleB;
             u32      m_ParticleMaterial;
             u32      m_ParticleLiquidDensity;
+            u32      m_ParticleDebug;
 
             f32      m_ViscoPlasticity;
         } pc;
         pc.m_Gravity         = Vector4f(m_Config->m_Gravity, 0.0f);
-        pc.m_NumParticles    = m_Config->m_DefaultNumParticles;
         pc.m_DeltaTime       = dt;
         pc.m_ViscoPlasticity = m_Config->m_DefaultViscoPlasticity;
 
-        auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
-        AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmParticleIntegrate",
-            GetShader(Internal::kIntShaderTableSiro.MPMPbMpmParticleIntegrateCS), Vector3i(tgX, 1, 1), pc,
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.PbMpmParticleIntegrate",
+            GetShader(Internal::kIntShaderTableSiro.MPMPbMpmParticleIntegrateCS), *m_RDGParticleCount, sizeof(u32), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounterBuf      = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
                 pc.m_Grid                    = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
                 pc.m_ParticleLocation        = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
                 pc.m_ParticleVelocity        = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
@@ -173,11 +257,13 @@ namespace Ifrit::Runtime::Siro
                 pc.m_ParticleB               = ctx.m_FgDesc->GetUAV(*m_RDGParticleApicB);
                 pc.m_ParticleMaterial        = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
                 pc.m_ParticleLiquidDensity   = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
+                pc.m_ParticleDebug           = ctx.m_FgDesc->GetUAV(*m_RDGParticleDebug);
 
                 SetRootConstant(pc, ctx);
             })
             .AddReadWriteResource(*m_RDGGridAttribute)
             .AddReadWriteResource(*m_RDGParticlePosition)
+            .AddReadWriteResource(*m_RDGParticleDebug)
             .AddReadWriteResource(*m_RDGParticleVelocity)
             .AddReadWriteResource(*m_RDGParticleDeformGrad)
             .AddReadWriteResource(*m_RDGParticleApicB)
@@ -189,7 +275,7 @@ namespace Ifrit::Runtime::Siro
     {
         struct PushConst
         {
-            u32 m_NumParticles;
+            u32 m_ParticleCounterBuf;
             f32 m_DeltaTime;
             u32 m_ParticleVelocity;
             u32 m_ParticleB;
@@ -207,7 +293,6 @@ namespace Ifrit::Runtime::Siro
             f32 m_ViscoPlasticity;
         } pc;
 
-        pc.m_NumParticles                  = m_Config->m_DefaultNumParticles;
         pc.m_DeltaTime                     = deltaTime;
         pc.m_ElasticityInterpolationFactor = m_Config->m_PbMpmDefaultElasticityInterpolationFactor;
         pc.m_ElasticityRelaxationFactor    = m_Config->m_PbMpmDefaultElasticityRelaxationFactor;
@@ -215,11 +300,10 @@ namespace Ifrit::Runtime::Siro
         pc.m_LiquidRelaxation              = m_Config->m_PbMpmDefaultLiquidRelaxation;
         pc.m_ViscoPlasticity               = m_Config->m_DefaultViscoPlasticity;
 
-        auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
-
-        AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmResolveConstraints",
-            GetShader(Internal::kIntShaderTableSiro.MPMPbMpmResolveConstraintsCS), Vector3i(tgX, 1, 1), pc,
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.PbMpmResolveConstraints",
+            GetShader(Internal::kIntShaderTableSiro.MPMPbMpmResolveConstraintsCS), *m_RDGParticleCount, sizeof(u32), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounterBuf      = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
                 pc.m_ParticleVelocity        = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
                 pc.m_ParticleB               = ctx.m_FgDesc->GetUAV(*m_RDGParticleApicB);
                 pc.m_ParticleDeformationGrad = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
@@ -261,6 +345,7 @@ namespace Ifrit::Runtime::Siro
             u32 m_ParticleDeformationGradDet;
             u32 m_ParticleMatProperty;
             u32 m_ParticleLiquidDensity;
+            u32 m_ParticleCount;
         } pc;
         pc.m_IgnoreParticlePosition = m_HasInitParticleLocations ? 1 : 0;
         pc.m_DefaultYoungsModulus   = m_Config->m_DefaultYoungsModulus;
@@ -286,6 +371,7 @@ namespace Ifrit::Runtime::Siro
                 pc.m_ParticleDeformationGradDet = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGradDet);
                 pc.m_ParticleMatProperty        = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
                 pc.m_ParticleLiquidDensity      = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
+                pc.m_ParticleCount              = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
 
                 SetRootConstant(pc, ctx);
             })
@@ -300,7 +386,7 @@ namespace Ifrit::Runtime::Siro
             .AddReadResource(*m_RDGGridAttribute);
     }
 
-    void MPMSimulatorPrivateData::GridReset(FrameGraphBuilder& builder, bool firstFrame)
+    void MPMSimulatorPrivateData::GridReset(FrameGraphBuilder& builder, bool firstFrame, bool isFirstIteration)
     {
         struct PushConst
         {
@@ -309,7 +395,7 @@ namespace Ifrit::Runtime::Siro
             u32 m_ValidGridCounter;
             u32 m_ValidGridList;
         } pc;
-        pc.m_FirstTime        = firstFrame ? 1 : 0;
+        pc.m_FirstTime        = isFirstIteration ? 1 : 0;
         pc.m_ValidGridCounter = 0;
         pc.m_Grid             = 0;
         pc.m_ValidGridList    = 0;
@@ -317,7 +403,13 @@ namespace Ifrit::Runtime::Siro
         auto        numGrids = GetNumGrids();
         auto        tgX      = static_cast<i32>(DivRoundUp(numGrids, kDefaultTGX));
         Vec<String> extra;
-        if (firstFrame)
+        bool        isPbMpm = m_Config->m_Variant == MPMSimulatorVariant::PBMPM;
+        if (isPbMpm)
+        {
+            extra.push_back("IFSHADER_MPM_PBMPM");
+        }
+
+        if (firstFrame || true)
         {
             extra.push_back("IFSHADER_MPM_GRIDRESET_INIT");
             AddComputePass<PushConst>(builder, "MPMSimulator.GridReset.Init",
@@ -336,7 +428,7 @@ namespace Ifrit::Runtime::Siro
         else
         {
             AddIndirectComputePass<PushConst>(builder, "MPMSimulator.GridReset.Seq",
-                GetShader(Internal::kIntShaderTableSiro.MPMGridResetCS), *m_RDGValidGridCounter, sizeof(u32), pc,
+                GetShader(Internal::kIntShaderTableSiro.MPMGridResetCS, extra), *m_RDGValidGridCounter, sizeof(u32), pc,
                 [this](PushConst pc, const FrameGraphPassContext& ctx) {
                     pc.m_Grid             = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
                     pc.m_ValidGridCounter = ctx.m_FgDesc->GetUAV(*m_RDGValidGridCounter);
@@ -353,7 +445,7 @@ namespace Ifrit::Runtime::Siro
     {
         struct PushConst
         {
-            u32 m_NumParticles;
+            u32 m_ParticleCounterBuf;
             f32 m_DeltaTime;
             u32 m_ParticleVelocity;
             u32 m_ParticleLocation;
@@ -368,7 +460,6 @@ namespace Ifrit::Runtime::Siro
             u32 m_IsFirstOrLastRun;
         } pc;
 
-        pc.m_NumParticles          = m_Config->m_DefaultNumParticles;
         pc.m_DeltaTime             = deltaTime;
         pc.m_ParticleVelocity      = 0;
         pc.m_ParticleLocation      = 0;
@@ -382,7 +473,6 @@ namespace Ifrit::Runtime::Siro
         pc.m_ParticleMatProperty   = 0;
         pc.m_IsFirstOrLastRun      = firstOrLastRun;
 
-        auto        tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
         Vec<String> extra;
         auto        isPbMpm = m_Config->m_Variant == MPMSimulatorVariant::PBMPM;
         if (isPbMpm)
@@ -390,9 +480,10 @@ namespace Ifrit::Runtime::Siro
             extra.push_back("IFSHADER_MPM_PBMPM");
         }
 
-        AddComputePass<PushConst>(builder, "MPMSimulator.ParticleToGridTransfer",
-            GetShader(Internal::kIntShaderTableSiro.MPMP2GCS, extra), Vector3i(tgX, 1, 1), pc,
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.ParticleToGridTransfer",
+            GetShader(Internal::kIntShaderTableSiro.MPMP2GCS, extra), *m_RDGParticleCount, sizeof(u32), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounterBuf    = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
                 pc.m_ParticleVelocity      = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
                 pc.m_ParticleLocation      = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
                 pc.m_ParticleMass          = ctx.m_FgDesc->GetUAV(*m_RDGParticleMass);
@@ -406,6 +497,7 @@ namespace Ifrit::Runtime::Siro
 
                 SetRootConstant(pc, ctx);
             })
+            .AddReadResource(*m_RDGParticleCount)
             .AddReadResource(*m_RDGParticleVelocity)
             .AddReadResource(*m_RDGParticlePosition)
             .AddReadResource(*m_RDGParticleMass)
@@ -458,7 +550,7 @@ namespace Ifrit::Runtime::Siro
     {
         struct PushConst
         {
-            u32 m_NumParticles;
+            u32 m_ParticleCounterBuf;
             u32 m_Grid;
             u32 m_ParticleLocation;
             u32 m_ParticleVolume;
@@ -470,7 +562,6 @@ namespace Ifrit::Runtime::Siro
         auto Mu     = m_Config->m_DefaultYoungsModulus;
         auto Lambda = m_Config->m_DefaultPoissonRatio;
 
-        pc.m_NumParticles               = m_Config->m_DefaultNumParticles;
         pc.m_Grid                       = 0;
         pc.m_ParticleLocation           = 0;
         pc.m_ParticleVolume             = 0;
@@ -479,11 +570,10 @@ namespace Ifrit::Runtime::Siro
         pc.m_ParticleStressContrib      = 0;
         pc.m_ParticleMaterial           = 0;
 
-        auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
-
-        AddComputePass<PushConst>(builder, "MPMSimulator.GridForceUpdate",
-            GetShader(Internal::kIntShaderTableSiro.MPMGridForceUpdateCS), Vector3i(tgX, 1, 1), pc,
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.GridForceUpdate",
+            GetShader(Internal::kIntShaderTableSiro.MPMGridForceUpdateCS), *m_RDGParticleCount, sizeof(u32), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounterBuf         = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
                 pc.m_Grid                       = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
                 pc.m_ParticleLocation           = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
                 pc.m_ParticleVolume             = ctx.m_FgDesc->GetUAV(*m_RDGParticleVolume);
@@ -494,6 +584,7 @@ namespace Ifrit::Runtime::Siro
 
                 SetRootConstant(pc, ctx);
             })
+            .AddReadResource(*m_RDGParticleCount)
             .AddReadResource(*m_RDGGridAttribute)
             .AddReadResource(*m_RDGParticlePosition)
             .AddReadResource(*m_RDGParticleVolume)
@@ -536,7 +627,7 @@ namespace Ifrit::Runtime::Siro
             .AddReadResource(*m_RDGGridMass);
     }
 
-    void MPMSimulatorPrivateData::GridVelocityUpdate(FrameGraphBuilder& builder, f32 deltaTime)
+    void MPMSimulatorPrivateData::GridVelocityUpdate(FrameGraphBuilder& builder, f32 deltaTime, bool firstIteration)
     {
         struct PushConst
         {
@@ -544,6 +635,7 @@ namespace Ifrit::Runtime::Siro
             u32 m_Grid;
             u32 m_ValidGridCounter;
             u32 m_ValidGridList;
+            u32 m_RequireNormalizeVelocity;
         } pc;
 
         pc.m_DeltaTime        = deltaTime;
@@ -551,8 +643,18 @@ namespace Ifrit::Runtime::Siro
         pc.m_ValidGridCounter = 0;
         pc.m_ValidGridList    = 0;
 
+        Vec<String> extra;
+        auto        isPbMpm           = m_Config->m_Variant == MPMSimulatorVariant::PBMPM;
+        pc.m_RequireNormalizeVelocity = (firstIteration && isPbMpm) ? 1 : 0;
+
+        if (isPbMpm)
+        {
+            extra.push_back("IFSHADER_MPM_PBMPM");
+        }
+
         AddIndirectComputePass<PushConst>(builder, "MPMSimulator.GridVelocityUpdate",
-            GetShader(Internal::kIntShaderTableSiro.MPMGridVelocityUpdateCS), *m_RDGValidGridCounter, sizeof(u32), pc,
+            GetShader(Internal::kIntShaderTableSiro.MPMGridVelocityUpdateCS, extra), *m_RDGValidGridCounter,
+            sizeof(u32), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_Grid             = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
                 pc.m_ValidGridCounter = ctx.m_FgDesc->GetUAV(*m_RDGValidGridCounter);
@@ -571,35 +673,37 @@ namespace Ifrit::Runtime::Siro
     {
         struct PushConst
         {
-            u32 m_NumParticles;
+            u32 m_ParticleCounterBuf;
             f32 m_DeltaTime;
             u32 m_ParticleLocation;
             u32 m_ParticleVelocity;
         } pc;
-        pc.m_NumParticles     = m_Config->m_DefaultNumParticles;
         pc.m_DeltaTime        = deltaTime;
         pc.m_ParticleLocation = 0;
         pc.m_ParticleVelocity = 0;
 
-        auto tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
-
-        AddComputePass<PushConst>(builder, "MPMSimulator.ParticleAdvect",
-            GetShader(Internal::kIntShaderTableSiro.MPMParticleAdvectionCS), Vector3i(tgX, 1, 1), pc,
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.ParticleAdvect",
+            GetShader(Internal::kIntShaderTableSiro.MPMParticleAdvectionCS), *m_RDGParticleCount, sizeof(u32), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
-                pc.m_ParticleLocation = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
-                pc.m_ParticleVelocity = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
+                pc.m_ParticleCounterBuf = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                pc.m_ParticleLocation   = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
+                pc.m_ParticleVelocity   = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
 
                 SetRootConstant(pc, ctx);
             })
+            .AddReadResource(*m_RDGParticleCount)
             .AddReadWriteResource(*m_RDGParticlePosition)
             .AddReadResource(*m_RDGParticleVelocity);
     }
 
     void MPMSimulatorPrivateData::PrepareInitialGPUData(RhiBackend* RHI)
     {
-        auto     numParticles = m_Config->m_DefaultNumParticles;
-        Vec<u32> particleIndexData(numParticles);
-        for (u32 i = 0; i < numParticles; ++i)
+        auto          numParticles        = m_Config->m_DefaultNumParticles;
+        auto          maxParticles        = m_Config->m_MaxParticles;
+        Array<u32, 4> particleDataSection = { numParticles, 0, 1, 1 };
+
+        Vec<u32>      particleIndexData(maxParticles);
+        for (u32 i = 0; i < maxParticles; ++i)
             particleIndexData[i] = i;
 
         MPMSimulatorGridAttribute gridAttr;
@@ -616,9 +720,12 @@ namespace Ifrit::Runtime::Siro
         auto stagedIndex    = RHI->CreateStagedSingleBuffer(m_ParticleIndex.get());
         auto stagedGridAttr = RHI->CreateStagedSingleBuffer(m_GridAttribute.get());
         auto stagedPosition = RHI->CreateStagedSingleBuffer(m_ParticlePosition.get());
+        auto stagedCounter  = RHI->CreateStagedSingleBuffer(m_ParticleCount.get());
         tq->RunSyncCommand([&](const RhiCommandList* cmd) {
             stagedIndex->CmdCopyToDevice(cmd, particleIndexData.data(), particleIndexData.size() * sizeof(u32), 0);
             stagedGridAttr->CmdCopyToDevice(cmd, &gridAttr, sizeof(MPMSimulatorGridAttribute), 0);
+            stagedCounter->CmdCopyToDevice(
+                cmd, particleDataSection.data(), particleDataSection.size() * sizeof(u32), 0);
 
             if (m_HasInitParticleLocations)
             {
@@ -658,7 +765,7 @@ namespace Ifrit::Runtime::Siro
     {
         struct PushConst
         {
-            i32 m_NumParticles;
+            u32 m_ParticleCounterBuf;
             f32 m_DeltaTime;
             u32 m_Grid;
             u32 m_ParticleDeformationGrad;
@@ -667,15 +774,12 @@ namespace Ifrit::Runtime::Siro
             u32 m_ParticleVelocity;
         } pc;
 
-        pc.m_NumParticles            = m_Config->m_DefaultNumParticles;
         pc.m_DeltaTime               = deltaTime;
         pc.m_Grid                    = 0;
         pc.m_ParticleDeformationGrad = 0;
         pc.m_ParticleLocation        = 0;
         pc.m_ParticleB               = 0;
         pc.m_ParticleVelocity        = 0;
-
-        auto        tgX = static_cast<i32>(DivRoundUp(pc.m_NumParticles, kDefaultTGX));
 
         Vec<String> extra;
         auto        isPbMpm = m_Config->m_Variant == MPMSimulatorVariant::PBMPM;
@@ -684,9 +788,10 @@ namespace Ifrit::Runtime::Siro
             extra.push_back("IFSHADER_MPM_PBMPM");
         }
 
-        AddComputePass<PushConst>(builder, "MPMSimulator.GridToParticleTransfer",
-            GetShader(Internal::kIntShaderTableSiro.MPMG2PCS, extra), Vector3i(tgX, 1, 1), pc,
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.GridToParticleTransfer",
+            GetShader(Internal::kIntShaderTableSiro.MPMG2PCS, extra), *m_RDGParticleCount, sizeof(u32), pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounterBuf      = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
                 pc.m_Grid                    = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
                 pc.m_ParticleDeformationGrad = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
                 pc.m_ParticleLocation        = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
@@ -695,6 +800,7 @@ namespace Ifrit::Runtime::Siro
 
                 SetRootConstant(pc, ctx);
             })
+            .AddReadResource(*m_RDGParticleCount)
             .AddReadResource(*m_RDGGridAttribute)
             .AddReadResource(*m_RDGGridVelocity)
             .AddReadResource(*m_RDGGridMass)
@@ -713,14 +819,46 @@ namespace Ifrit::Runtime::Siro
             return m_Config->m_GridSize.x * m_Config->m_GridSize.y * m_Config->m_GridSize.z;
     }
 
+    template <u32 Dimension> void MPMSimulatorPrivateData::HandleManualParticleEmit(FrameGraphBuilder& builder)
+    {
+        auto rhi    = builder.GetRhi();
+        using EleTp = MPMSimulatorTypes<Dimension>::FSpatialVectorAligned;
+        using VecTp = Vec<EleTp>;
+        for (auto& emitRequest : m_EmissionInfos)
+        {
+            iAssertion(m_EmissionInfos.size() == 1,
+                "MPMSimulator: Manual particle emission is only supported for a single emission request at a time.");
+            if (std::holds_alternative<VecTp>(emitRequest.m_InitialParticleLocations))
+            {
+                auto  stagedLocation = rhi->CreateStagedSingleBuffer(m_ParticleEmitLocations.get());
+                auto  tq             = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
+                auto& locations      = std::get<VecTp>(emitRequest.m_InitialParticleLocations);
+                tq->RunSyncCommand([&](const RhiCommandList* cmd) {
+                    stagedLocation->CmdCopyToDevice(cmd, locations.data(), locations.size() * sizeof(EleTp), 0);
+                });
+                iDebug("Emit start!");
+                ParticleEmit(builder, emitRequest.m_EmissionArgs, locations.size());
+                iDebug("Emit end!");
+                m_Config->m_DefaultNumParticles += static_cast<u32>(locations.size());
+            }
+            else
+            {
+                iAssertion(false, "MPMSimulator: particle dimension mismatches.");
+            }
+        }
+        m_EmissionInfos.clear();
+    }
+
     template <u32 Dimension> void MPMSimulatorPrivateData::InitGPUResources(RhiBackend* RHI)
     {
         using MTypes = MPMSimulatorTypes<Dimension>;
         iAssertion(m_Config, "MPMSimulator: Config must be set before initializing GPU resources.");
         static_assert(Dimension == 2 || Dimension == 3, "MPMSimulator: Invalid dimension specified.");
 
-        auto numParticles = m_Config->m_DefaultNumParticles;
+        auto numParticles = m_Config->m_MaxParticles;
         auto numGrids     = GetNumGrids();
+
+        auto particleCountSz = sizeof(u32) * 4;
 
         auto particlePosSz           = numParticles * MTypes::kFSpatialVectorAlignedSize;
         auto particleVelSz           = numParticles * MTypes::kFSpatialVectorAlignedSize;
@@ -740,10 +878,14 @@ namespace Ifrit::Runtime::Siro
         auto gridMassSz  = numGrids * MTypes::kFScalarSize;
         auto gridAttrSz  = sizeof(MPMSimulatorGridAttribute);
 
-        auto defaultUsage = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
-        auto indexUsage   = defaultUsage | RhiBufferUsage::RhiBufferUsage_Index;
+        auto defaultUsage  = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
+        auto indexUsage    = defaultUsage | RhiBufferUsage::RhiBufferUsage_Index;
+        auto indirectUsage = defaultUsage | RhiBufferUsage::RhiBufferUsage_Indirect;
 
+        m_ParticleCount    = RHI->CreateBufferDevice("MPM_ParticleCount", particleCountSz, indirectUsage, true);
         m_ParticlePosition = RHI->CreateBufferDevice("MPM_ParticlePosition", particlePosSz, defaultUsage, true);
+        m_ParticleEmitLocations =
+            RHI->CreateBufferDevice("MPM_ParticleEmitLocations", particlePosSz, defaultUsage, true);
         m_ParticleVelocity = RHI->CreateBufferDevice("MPM_ParticleVelocity", particleVelSz, defaultUsage, true);
         m_ParticleMass     = RHI->CreateBufferDevice("MPM_ParticleMass", particleMassSz, defaultUsage, true);
         m_ParticleDeformGrad =
@@ -772,10 +914,12 @@ namespace Ifrit::Runtime::Siro
     void MPMSimulatorPrivateData::InitRDGResources(FrameGraphBuilder& builder)
     {
         // Persistent
-        m_RDGParticlePosition   = &builder.ImportBuffer("MPM_ParticlePosition", m_ParticlePosition.get());
-        m_RDGParticleVelocity   = &builder.ImportBuffer("MPM_ParticleVelocity", m_ParticleVelocity.get());
-        m_RDGParticleMass       = &builder.ImportBuffer("MPM_ParticleMass", m_ParticleMass.get());
-        m_RDGParticleDeformGrad = &builder.ImportBuffer("MPM_ParticleDeformGradient", m_ParticleDeformGrad.get());
+        m_RDGParticleCount         = &builder.ImportBuffer("MPM_ParticleCount", m_ParticleCount.get());
+        m_RDGParticlePosition      = &builder.ImportBuffer("MPM_ParticlePosition", m_ParticlePosition.get());
+        m_RDGParticleEmitLocations = &builder.ImportBuffer("MPM_ParticleEmitLocations", m_ParticleEmitLocations.get());
+        m_RDGParticleVelocity      = &builder.ImportBuffer("MPM_ParticleVelocity", m_ParticleVelocity.get());
+        m_RDGParticleMass          = &builder.ImportBuffer("MPM_ParticleMass", m_ParticleMass.get());
+        m_RDGParticleDeformGrad    = &builder.ImportBuffer("MPM_ParticleDeformGradient", m_ParticleDeformGrad.get());
         m_RDGParticleDeformGradDet =
             &builder.ImportBuffer("MPM_ParticleDeformGradientDeterminant", m_ParticleDeformGradDet.get());
         m_RDGParticleVolume        = &builder.ImportBuffer("MPM_ParticleVolume", m_ParticleVolume.get());
@@ -791,6 +935,7 @@ namespace Ifrit::Runtime::Siro
         m_RDGGridAttribute = &builder.ImportBuffer("MPM_GridAttribute", m_GridAttribute.get());
 
         // Transient
+        // TODO: make imported !!!
         auto defaultUsage  = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
         auto indirectUsage = defaultUsage | RhiBufferUsage::RhiBufferUsage_Indirect;
         auto numGrids      = GetNumGrids();
@@ -806,55 +951,75 @@ namespace Ifrit::Runtime::Siro
         auto rhi        = builder.GetRhi();
         bool isFirstRun = m_RebuildGPUResources;
         bool isPbMpm    = (m_Config->m_Variant == MPMSimulatorVariant::PBMPM);
-        if (m_RebuildGPUResources)
+        if (m_RebuildGPUResources) IF_UNLIKELY
         {
             m_RebuildGPUResources = false;
             if (m_Config->m_Dimension == MPMSimulatorProblemDimension::TwoDimensional)
                 InitGPUResources<2>(rhi);
             else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
                 InitGPUResources<3>(rhi);
-            else
+            else IF_UNLIKELY
                 iAssertion(false, "MPMSimulator: Invalid problem dimension specified.");
         }
         InitRDGResources(builder);
-        if (isFirstRun)
+        if (isFirstRun) IF_UNLIKELY
         {
             ParticleInit(builder);
         }
+
+        if (m_Config->m_Dimension == MPMSimulatorProblemDimension::TwoDimensional)
+            HandleManualParticleEmit<3>(builder);
+        else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
+            HandleManualParticleEmit<3>(builder);
 
         if (isPbMpm)
         {
             for (auto i = 0; i < m_Config->m_Substeps; ++i)
             {
-                for (auto j = 0; j < m_Config->m_PbMpmIterations; ++j)
                 {
-                    bool isLastIteration  = (j == m_Config->m_PbMpmIterations - 1);
-                    bool isFirstIteration = (j == 0);
-                    u32  firstOrLastRun   = 0;
-                    firstOrLastRun |= (isFirstIteration) ? 1 : 0;
-                    firstOrLastRun |= (isLastIteration) ? 2 : 0;
+                    IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmSubstep");
 
-                    GridReset(builder, isFirstRun);
-                    PbMpmResolveConstraints(builder, deltaTime);
-                    ParticleToGridTransfer(builder, deltaTime, firstOrLastRun);
-                    GridVelocityNormalize(builder);
-                    GridToParticleTransfer(builder, deltaTime);
+                    for (auto j = 0; j < m_Config->m_PbMpmIterations; ++j)
+                    {
+                        bool isLastIteration  = (j == m_Config->m_PbMpmIterations - 1);
+                        bool isFirstIteration = (j == 0);
+                        u32  firstOrLastRun   = 0;
+                        firstOrLastRun |= (isFirstIteration) ? 1 : 0;
+                        firstOrLastRun |= (isLastIteration) ? 2 : 0;
+                        {
+                            IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmIteration");
+                            GridReset(builder, isFirstRun, isFirstIteration);
+                            PbMpmResolveConstraints(builder, deltaTime);
+                            ParticleToGridTransfer(builder, deltaTime, firstOrLastRun);
+                            if (isFirstIteration)
+                            {
+                                GridVelocityNormalize(builder);
+                            }
+                            GridVelocityUpdate(builder, deltaTime, isFirstIteration);
+                            GridToParticleTransfer(builder, deltaTime);
+                        }
+                        isFirstRun = false;
+                    }
+                    PbMpmParticleIntegrate(builder, deltaTime);
                 }
-                PbMpmParticleIntegrate(builder, deltaTime);
             }
         }
         else
         {
             for (auto i = 0; i < m_Config->m_Substeps; ++i)
             {
-                GridReset(builder, isFirstRun);
-                ParticleToGridTransfer(builder, deltaTime, false);
-                GridVelocityNormalize(builder);
-                GridForceUpdate(builder);
-                GridGravityApply(builder);
-                GridVelocityUpdate(builder, deltaTime);
-                GridToParticleTransfer(builder, deltaTime);
-                ParticleAdvect(builder, deltaTime);
+                {
+                    IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.MpmSubstep");
+                    GridReset(builder, isFirstRun, true);
+                    ParticleToGridTransfer(builder, deltaTime, false);
+                    GridVelocityNormalize(builder);
+                    GridForceUpdate(builder);
+                    GridGravityApply(builder);
+                    GridVelocityUpdate(builder, deltaTime, false);
+                    GridToParticleTransfer(builder, deltaTime);
+                    ParticleAdvect(builder, deltaTime);
+                }
+                isFirstRun = false;
             }
         }
     }
@@ -870,6 +1035,10 @@ namespace Ifrit::Runtime::Siro
         if (m_Config->m_Variant == MPMSimulatorVariant::MLS)
         {
             shaderVariants.push_back("IFSHADER_MPM_MLS");
+        }
+        for (const auto& e : extra)
+        {
+            shaderVariants.push_back(e);
         }
         return ShaderVariantDesc(name, shaderVariants);
     }
@@ -1006,8 +1175,9 @@ namespace Ifrit::Runtime::Siro
         IF_CONSTEXPR auto TAlignedDim = Dimension + (Dimension == 3 ? 1 : 0);
         using TAlignedVec             = TGenericVector<f32, TAlignedDim>;
 
+        iAssertion(locations.size() > 0, "MPMSimulator: No particles found");
+
         Vec<TAlignedVec> alignedLocations(locations.size());
-        alignedLocations.resize(locations.size());
         for (u32 i = 0; i < locations.size(); ++i)
         {
             if IF_CONSTEXPR (Dimension == 2)
@@ -1027,5 +1197,37 @@ namespace Ifrit::Runtime::Siro
 
     template IFRIT_APIDECL void MPMSimulator::SetInitParticleLocations<2>(const Vec<TGenericVector<f32, 2>>& locations);
     template IFRIT_APIDECL void MPMSimulator::SetInitParticleLocations<3>(const Vec<TGenericVector<f32, 3>>& locations);
+
+    template <u32 Dimension IF_REQUIRES(Dimension == 2 || Dimension == 3)>
+    void MPMSimulator::EmitParticles(
+        const Vec<TGenericVector<f32, Dimension>>& locations, const MPMParticleEmitArgs& args)
+
+    {
+        IF_CONSTEXPR auto TAlignedDim = Dimension + (Dimension == 3 ? 1 : 0);
+        using TAlignedVec             = TGenericVector<f32, TAlignedDim>;
+        Vec<TAlignedVec> alignedLocations(locations.size());
+        for (u32 i = 0; i < locations.size(); ++i)
+
+        {
+            if IF_CONSTEXPR (Dimension == 2)
+            {
+                alignedLocations[i] = TAlignedVec(locations[i].x, locations[i].y);
+            }
+            else if IF_CONSTEXPR (Dimension == 3)
+            {
+                alignedLocations[i] = TAlignedVec(locations[i].x, locations[i].y, locations[i].z, 1.0f);
+            }
+        }
+        MPMEmissionInfo emitInfo;
+        emitInfo.m_InitialParticleLocations = alignedLocations;
+        emitInfo.m_EmissionArgs             = args;
+        m_Data->m_EmissionInfos.push_back(emitInfo);
+    }
+    template IFRIT_APIDECL void MPMSimulator::SetInitParticleLocations<2>(const Vec<TGenericVector<f32, 2>>& locations);
+    template IFRIT_APIDECL void MPMSimulator::SetInitParticleLocations<3>(const Vec<TGenericVector<f32, 3>>& locations);
+    template IFRIT_APIDECL void MPMSimulator::EmitParticles<2>(
+        const Vec<TGenericVector<f32, 2>>& locations, const MPMParticleEmitArgs& args);
+    template IFRIT_APIDECL void MPMSimulator::EmitParticles<3>(
+        const Vec<TGenericVector<f32, 3>>& locations, const MPMParticleEmitArgs& args);
 
 } // namespace Ifrit::Runtime::Siro

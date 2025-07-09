@@ -1,6 +1,7 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_3D
 #pragma ifrit.multi_compile IFSHADER_MPM_MLS
 #pragma ifrit.multi_compile IFSHADER_MPM_GRIDRESET_INIT
+#pragma ifrit.multi_compile IFSHADER_MPM_PBMPM
 #include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
 
 namespace IfritShader{
@@ -9,7 +10,7 @@ namespace MPM{
 
     struct PushConst_T
     {
-        uint m_FirstTime;
+        uint m_FirstIter;
         FDenseGridStructureHandle m_Grid;
         FValidGridCounter m_ValidGridCounter;
         TRWStructuredBufferHandle<int> m_ValidGridList;
@@ -37,9 +38,18 @@ namespace MPM{
         FSpatialIndex GridIndex =  Grid.DecodeSpatialIndex(PushConst.m_ValidGridList.Load(ThreadId.x));
 #endif
 
-        Grid.StoreForce(GridIndex, FSpatialVector(0.0f));
-        Grid.StoreMass(GridIndex, 0.0f);
+#ifndef IFSHADER_MPM_PBMPM
+         Grid.StoreForce(GridIndex, FSpatialVector(0.0f));
+         Grid.StoreMass(GridIndex, 0.0f);
+         Grid.StoreVelocity(GridIndex, FSpatialVector(0.0f));
+#else
+        bool IsFirstIter = (PushConst.m_FirstIter & 1) != 0;
+        if(IsFirstIter)
+        {
+            Grid.StoreMass(GridIndex, 0.0f);
+        }
         Grid.StoreVelocity(GridIndex, FSpatialVector(0.0f));
+#endif
     }
 
 }}} 

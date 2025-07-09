@@ -31,6 +31,28 @@ namespace Ifrit::Runtime::FrameGraphUtils
         return vec;
     }
 
+    IFRIT_RUNTIME_API FrameGraphScopeGuard::FrameGraphScopeGuard(FrameGraphBuilder& builder, const String& name)
+        : m_Builder(&builder)
+    {
+        m_Scope = &m_Builder->AddScopeBegin(name);
+    }
+
+    IFRIT_RUNTIME_API FrameGraphScopeGuard::~FrameGraphScopeGuard()
+    {
+        if (m_Builder && m_Scope)
+        {
+            m_Builder->AddScopeEnd(*m_Scope);
+            m_Scope = nullptr;
+        }
+    }
+
+    IFRIT_RUNTIME_API Owner<FrameGraphScopeGuard> AddFrameGraphEventScope(
+        FrameGraphBuilder& builder, const String& name)
+    {
+        auto scopeGuard = MakeOwner<FrameGraphScopeGuard>(builder, name);
+        return scopeGuard;
+    }
+
     IFRIT_APIDECL GraphicsPassNode& AddFullScreenQuadPass(FrameGraphBuilder& builder, const String& name,
         const ShaderVariantDesc& vs, const ShaderVariantDesc& fs, u32 pushConsts, FnPassFunction onCall)
     {

@@ -264,6 +264,34 @@ namespace MPM{
         }
     };
 
+    struct FParticleCounterHandle
+    {
+        TAtomicRWStructuredBufferHandle<int> ParticleCounter;
+
+        int Allocate(int Count)
+        {
+            int Index = ParticleCounter.AtomicAdd(0,Count);
+            int CurSize = Index + Count;
+            int RequiredTGs = DivRoundUp(CurSize, (int)kMpmTGSizeX);
+            ParticleCounter.AtomicMax(1, RequiredTGs);
+            return Index;
+        }
+
+        int Set(int Count)
+        {
+            ParticleCounter.Store(Count,0);
+            int CurSize = Count;
+            int RequiredTGs = DivRoundUp(CurSize, (int)kMpmTGSizeX);
+            ParticleCounter.AtomicMax(1, RequiredTGs);
+            return 0;
+        }
+
+        int GetNumParticles()
+        {
+            return ParticleCounter.Load(0);
+        }
+    }
+
     struct FDenseGridStructure
     {
         int4 m_GridSize;
@@ -676,6 +704,26 @@ namespace MPM{
         Math::PolarDecomposition(F,R,S);
         FSpatialTransform P = 2.0f * Mu * mul((F - R),F_T) + Lambda * (J - 1.0f) * J * I;
         return P;
+    }
+
+    // ==========================================
+    // Particle types
+    // ==========================================
+    
+    bool IsElasticMaterial(FMpmParticleMaterial Material)
+    {
+        return Material.m_Type == kMpmMaterial_Jelly ||
+               Material.m_Type == kMpmMaterial_Visco;
+    }
+
+    bool IsViscoMaterial(FMpmParticleMaterial Material)
+    {
+        return Material.m_Type == kMpmMaterial_Visco;
+    }
+
+    bool IsLiquidMaterial(FMpmParticleMaterial Material)
+    {
+        return Material.m_Type == kMpmMaterial_Fluid;
     }
 
 #endif

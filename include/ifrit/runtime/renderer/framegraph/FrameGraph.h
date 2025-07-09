@@ -333,6 +333,14 @@ namespace Ifrit::Runtime
         friend class FrameGraphBuilder;
     };
 
+    struct FrameGraphScope
+    {
+        String m_Name;
+        u32    m_ScopeId;
+        u32    m_StartingPassId = ~0u;
+        u32    m_EndingPassId   = ~0u;
+    };
+
     class IFRIT_APIDECL IFrameGraphDescRegistry
     {
     public:
@@ -346,6 +354,7 @@ namespace Ifrit::Runtime
     private:
         Vec<Owner<ResourceNode>>    m_resources;
         Vec<Owner<PassNode>>        m_passes;
+        Vec<Owner<FrameGraphScope>> m_scopes;
         FrameGraphCompileMode       m_compileMode       = FrameGraphCompileMode::Sequential;
         FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
         ShaderRegistry*             m_ShaderRegistry    = nullptr;
@@ -384,6 +393,9 @@ namespace Ifrit::Runtime
         inline RHI::RhiBackend* GetRhi() const { return m_Rhi; }
         inline ShaderRegistry*  GetShaderRegistry() const { return m_ShaderRegistry; }
 
+        FrameGraphScope&        AddScopeBegin(const String& name);
+        void                    AddScopeEnd(const FrameGraphScope& scope);
+
         friend class FrameGraphCompiler;
         friend class FrameGraphExecutor;
     };
@@ -401,6 +413,8 @@ namespace Ifrit::Runtime
         FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
         const FrameGraphBuilder*    m_graph             = nullptr;
         Vec<Vec<ResourceBarrier>>   m_inputBarriers     = {};
+        Vec<Vec<String>>            m_StartingScopes    = {};
+        Vec<u32>                    m_EndingScopes      = {};
     };
 
     class IFRIT_APIDECL FrameGraphCompiler

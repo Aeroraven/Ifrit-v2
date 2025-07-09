@@ -388,6 +388,23 @@ namespace Ifrit::Runtime
         return 0;
     }
 
+    IFRIT_APIDECL FrameGraphScope& FrameGraphBuilder::AddScopeBegin(const String& name)
+    {
+        Owner<FrameGraphScope> scope = MakeOwner<FrameGraphScope>();
+        scope->m_Name                = name;
+        scope->m_StartingPassId      = m_passes.size();
+        auto scopeId                 = SizeCast<u32>(m_scopes.size());
+        scope->m_ScopeId             = scopeId;
+        auto ptr                     = scope.get();
+        m_scopes.push_back(std::move(scope));
+        return *ptr;
+    }
+    IFRIT_APIDECL void FrameGraphBuilder::AddScopeEnd(const FrameGraphScope& scope)
+    {
+        FrameGraphScope& scopex = *m_scopes[scope.m_ScopeId];
+        scopex.m_EndingPassId   = std::max(scopex.m_StartingPassId, (u32)std::max(0, (i32)m_passes.size()));
+    }
+
     // Frame Graph compiler
 
     RHI::RhiResourceState GetInputResourceState(FrameGraphPassType passType, FrameGraphResourceType resType)
@@ -488,6 +505,26 @@ namespace Ifrit::Runtime
             iError("Not supported any longer.");
             std::abort();
         }
+
+        // RDG event scopes
+        compiledGraph.m_StartingScopes.clear();
+        compiledGraph.m_EndingScopes.clear();
+        compiledGraph.m_StartingScopes.resize(graph.m_passes.size() + 1);
+        compiledGraph.m_EndingScopes.resize(graph.m_passes.size() + 1, 0);
+
+        for (auto& scope : graph.m_scopes)
+        {
+
+            if (scope->m_StartingPassId < graph.m_passes.size())
+            {
+                compiledGraph.m_StartingScopes[scope->m_StartingPassId].push_back(scope->m_Name);
+            }
+            if (scope->m_EndingPassId < graph.m_passes.size())
+            {
+                compiledGraph.m_EndingScopes[scope->m_EndingPassId]++;
+            }
+        }
+
         // Managed Resource Lifetime
         Vec<u32> resourceBeginUse;
         Vec<u32> resourceEndUse;
@@ -800,12 +837,15 @@ namespace Ifrit::Runtime
     {
         cmd->BeginScope("Ifrit.RDG: Execute Render Graph");
         using namespace Ifrit::RHI;
+        // Begin event scopes, top level
+        for (auto& scopeName : compiledGraph.m_StartingScopes[0])
+        {
+            cmd->BeginScope(scopeName);
+        }
+
         for (auto& pass : compiledGraph.m_graph->m_passes)
         {
-            if (pass->name == "Ayanami.Debug.VisualizeScreenProbeAdaptive")
-            {
-                // std::abort();
-            }
+
             // PreExecute
             // iInfo("FrameGraphExecutor: Executing {}", pass->name);
             for (u32 i = 0; i < pass->m_ResourceCreateRequest.size(); i++)
@@ -867,6 +907,18 @@ namespace Ifrit::Runtime
                     compiledGraph.m_graph->m_ResourcePool->ReleaseTexture(res->m_PooledResId);
                     res->m_PooledResId = FIndexedPtr(0);
                 }
+            }
+
+            // End scopes
+            for (u32 i = 0; i < compiledGraph.m_EndingScopes[pass->id + 1]; i++)
+            {
+                cmd->EndScope();
+            }
+
+            // Begin event scopes
+            for (auto& scopeName : compiledGraph.m_StartingScopes[pass->id + 1])
+            {
+                cmd->BeginScope(scopeName);
             }
         }
         cmd->EndScope();

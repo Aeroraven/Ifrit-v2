@@ -1,5 +1,6 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_3D
 #pragma ifrit.multi_compile IFSHADER_MPM_MLS
+#pragma ifrit.multi_compile IFSHADER_MPM_PBMPM
 #include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
 
 namespace IfritShader{
@@ -12,6 +13,7 @@ namespace MPM{
         FDenseGridStructureHandle m_Grid;
         FValidGridCounter m_ValidGridCounter;
         TRWStructuredBufferHandle<int> m_ValidGridList;
+        uint m_Temp;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -39,8 +41,11 @@ namespace MPM{
         FSpatialVector GridVelocity = Grid.LoadVelocity(GridCell);
         FSpatialVector GridForce = Grid.LoadForce(GridCell);
         FScalar GridMass = Grid.LoadMass(GridCell);
-
+#ifdef IFSHADER_MPM_PBMPM
+        FSpatialVector NewVelocity = GridVelocity;
+#else
         FSpatialVector NewVelocity = GridVelocity + PushConst.m_DeltaTime * GridForce / GridMass;
+#endif
 
         FSpatialVector NewVelocityPos = max(NewVelocity, FSpatialVector(0.0f));
         FSpatialVector NewVelocityNeg = min(NewVelocity, FSpatialVector(0.0f));

@@ -75,6 +75,7 @@ namespace Ifrit::Runtime::Internal
         SDEF MPMParticleAdvectionCS  = DECLARE_CS("Siro/MPM/MPM.ParticleAdvection");
         SDEF MPMParticleInitCS       = DECLARE_CS("Siro/MPM/MPM.ParticleInit");
         SDEF MPMGridGravityApplyCS   = DECLARE_CS("Siro/MPM/MPM.GridGravityApply");
+        SDEF MPMParticleEmitCS       = DECLARE_CS("Siro/MPM/MPM.ParticleEmit");
 
         // PBMPM
         SDEF MPMPbMpmResolveConstraintsCS = DECLARE_CS("Siro/MPM/MPM.PbMpmResolveConstraints");

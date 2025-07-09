@@ -9,7 +9,7 @@ namespace MPM{
 
     struct PushConst_T
     {
-        int m_NumParticles;
+        FParticleCounterHandle m_ParticleCounter;
         float m_DeltaTime;
         FSpatialVectorHandle m_ParticleVelocity;
         FSpatialVectorHandle m_ParticleLocation;
@@ -36,7 +36,7 @@ namespace MPM{
     {
         // Step1. P2G
         
-        if(ThreadId.x >= PushConst.m_NumParticles)
+        if(ThreadId.x >= PushConst.m_ParticleCounter.GetNumParticles())
             return;
 
         FSpatialVector ParticleVelocity = PushConst.m_ParticleVelocity.Load(ThreadId.x);
@@ -55,6 +55,7 @@ namespace MPM{
         bool IsFluid = ParticleMaterial.m_Type == kMpmMaterial_Fluid;
         bool IsSnow = ParticleMaterial.m_Type == kMpmMaterial_Snow;
         bool IsJelly = ParticleMaterial.m_Type == kMpmMaterial_Jelly;
+        bool IsVisco = ParticleMaterial.m_Type == kMpmMaterial_Visco;
 
 #ifdef IFSHADER_MPM_INTERP_CUBIC
         DInv = 3.0f * rcp(GridSpacing*GridSpacing);
@@ -77,7 +78,7 @@ namespace MPM{
         FScalar Jp = PushConst.m_ParticlePlasticity.Load(ThreadId.x);
         FScalar Hardening = exp(10 * (1.0 - Jp));  // From MPM-99
 
-        //if(IsJelly) Hardening = 0.3f;
+        if(IsJelly) Hardening = 0.3f;
 
         FSpatialTransform U,S,V;
         Math::SVD(ParticleDeformGrad, U, S, V);
@@ -88,6 +89,18 @@ namespace MPM{
         {
             Sx = Math::ClampDiag(Sx, 1-2.5e-2f, 1+4.5e-3f);
             Jp *= Math::DiagProductRelative(S,Sx);
+        }
+        if(IsVisco)
+        {
+            FScalar YeildSurface = exp(1.0f-0.9f);
+            FScalar J1 = Math::DiagProduct(S, 0);
+            Sx = Math::ClampDiag(Sx, 1.0f/YeildSurface, YeildSurface);
+            FScalar J2 = Math::DiagProduct(Sx, 0);
+    #ifdef IFSHADER_MPM_3D
+            Sx = Sx * pow(J1/J2, 1.0f/3.0f);
+    #else
+            Sx = Sx * sqrt(J1/J2);
+    #endif
         }
         PushConst.m_ParticlePlasticity.Store(ThreadId.x, Jp);
         FScalar J = Math::DiagProduct(Sx,1e-6f);
@@ -100,7 +113,7 @@ namespace MPM{
             ParticleDeformGrad = GetIdentitySpatialTransform() * sqrt(J);
     #endif
         }
-        if(IsSnow)
+        if(IsSnow || IsVisco)
         {
             ParticleDeformGrad = mul(U, mul(Sx, Math::Transpose(V)));
         }
@@ -121,7 +134,9 @@ namespace MPM{
         PFT = FixedCorotatedStressFT(ParticleDeformGrad, J, Mu,Lambda);
         PushConst.m_ParticleStressContrib.StoreMatrix(ThreadId.x, PFT);
 #endif
-        
+        bool IsFirstRun = (PushConst.m_IsFirstOrLastRun & 1) != 0;
+        FScalar RcpGridSpacing = rcp(GridSpacing);
+        FSpatialVector BaseMomentum = ParticleMass * ParticleVelocity;
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)
             FSpatialIndex GridOffset = ToSpatialIndex(dx,dy,dz);
             FSpatialIndex GridLocIndex = CenterGrid + GridOffset;
@@ -134,17 +149,32 @@ namespace MPM{
             FScalar ContribWeight = 0.0f;
             
 #ifdef IFSHADER_MPM_INTERP_CUBIC
-            ContribWeight = EulerianInterpCubicSpatial(G2PVector/GridSpacing);
+            ContribWeight = EulerianInterpCubicSpatial(G2PVector*RcpGridSpacing);
 #else
-            ContribWeight = EulerianInterpQuadraticSpatial(G2PVector/GridSpacing);
+            ContribWeight = EulerianInterpQuadraticSpatial(G2PVector*RcpGridSpacing);
 #endif
             FScalar ContribMass = ContribWeight * ParticleMass;
-            FSpatialVector ContribMomentumBase = ContribWeight * ParticleVelocity * ParticleMass;
-            FSpatialVector ContribMomentumAffine = ContribWeight * mul(ParticleC, G2PVector) * ParticleMass;
+            FSpatialVector ContribMomentumBase = ContribWeight * BaseMomentum;
+            FSpatialVector ContribMomentumAffine = ContribMass * mul(ParticleC, G2PVector);
             FSpatialVector ContribMomentum = ContribMomentumBase + ContribMomentumAffine;
 
+#ifdef IFSHADER_MPM_PBMPM
+            if(IsFirstRun)
+            {
+                Grid.AddMass(GridLocIndex, ContribMass);
+                Grid.AddVelocity(GridLocIndex, ContribMomentum);
+            }else
+            {
+                FScalar CurrentMass = Grid.LoadMass(GridLocIndex);
+                if(CurrentMass> 1e-6f)
+                {
+                    Grid.AddVelocity(GridLocIndex, ContribMomentum/ CurrentMass);
+                }
+            }
+#else
             Grid.AddMass(GridLocIndex, ContribMass);
             Grid.AddVelocity(GridLocIndex, ContribMomentum);
+#endif
 
         IFSHADER_MPM_RANGESEARCH_END()
     }

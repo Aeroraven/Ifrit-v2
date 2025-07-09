@@ -9,7 +9,7 @@ namespace MPM{
 
     struct PushConst_T
     {
-        int m_NumParticles;
+        FParticleCounterHandle m_ParticleCounter;
         float m_DeltaTime;
         FSpatialVectorHandle m_ParticleVelocity;
         FPackedMatrixHandle m_ParticleB; // Deformation deplacement VARIATION RATE!
@@ -29,29 +29,13 @@ namespace MPM{
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
 
-    bool IsElasticMaterial(FMpmParticleMaterial Material)
-    {
-        return Material.m_Type == kMpmMaterial_Jelly ||
-               Material.m_Type == kMpmMaterial_Visco;
-    }
-
-    bool IsViscoMaterial(FMpmParticleMaterial Material)
-    {
-        return Material.m_Type == kMpmMaterial_Visco;
-    }
-
-    bool IsLiquidMaterial(FMpmParticleMaterial Material)
-    {
-        return Material.m_Type == kMpmMaterial_Fluid;
-    }
-
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
     IFSHADER_BLOCKSIZE(kMpmTGSizeX, 1, 1)
     void PbMpmResolveConstraintsCS(uint3 ThreadId:SV_DispatchThreadID,
                            uint3 GroupId:SV_GroupID,
                            uint3 GroupThreadId:SV_GroupThreadID)
     {
-        if(ThreadId.x >= PushConst.m_NumParticles)
+        if(ThreadId.x >= PushConst.m_ParticleCounter.GetNumParticles())
             return;
 
         FScalar DeltaTime = PushConst.m_DeltaTime;

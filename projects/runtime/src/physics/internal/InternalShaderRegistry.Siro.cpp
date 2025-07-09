@@ -98,6 +98,7 @@ namespace Ifrit::Runtime::Internal
             ISTSiro.MPMPbMpmResolveConstraintsCS, "Siro/MPM/MPM.PbMpmResolveConstraints", "PbMpmResolveConstraintsCS");
         REG_COMPUTE_NEO(
             ISTSiro.MPMPbMpmParticleIntegrateCS, "Siro/MPM/MPM.PbMpmParticleIntegrate", "PbMpmParticleIntegrateCS");
+        REG_COMPUTE_NEO(ISTSiro.MPMParticleEmitCS, "Siro/MPM/MPM.ParticleEmit", "MpmParticleEmitCS");
 
 #undef REG_MESH
 #undef REG_FRAGMENT
