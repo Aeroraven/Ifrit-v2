@@ -671,12 +671,15 @@ namespace Ifrit::Runtime
                 auto              mesh        = shaderEffect.m_meshes[i];
                 auto              meshDataRef = mesh->LoadMesh();
                 Mesh::GPUResource meshResource;
-                bool              requireUpdate    = false;
-                bool              haveMaterialData = false;
+                bool              requireUpdate         = false;
+                bool              requireUpdateInstance = false;
+                bool              haveMaterialData      = false;
 
                 mesh->GetGPUResource(meshResource);
                 if (meshResource.objectBuffer == nullptr || mesh->m_resourceDirty)
                 {
+                    iAssertion(meshDataRef->m_GenerationType == MeshGeneratorType::Static,
+                        "Mesh generation type must be static for GPU resource creation");
                     requireUpdate                             = true;
                     mesh->m_resourceDirty                     = false;
                     meshDataRef->m_cpCounter.totalBvhNodes    = SizeCast<u32>(meshDataRef->m_bvhNodes.size());
@@ -799,8 +802,8 @@ namespace Ifrit::Runtime
                 auto& meshInstObjData = meshInst->m_resource.objectData;
                 if (instanceResource.objectBuffer == nullptr)
                 {
-                    auto tmpUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
-                    requireUpdate = true;
+                    auto tmpUsage         = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
+                    requireUpdateInstance = true;
                     if (meshDataRef->m_MeshType == MeshType::VirtualGeometry)
                     {
                         instanceResource.cpQueueBuffer = rhi->CreateBufferDevice("Render_CpQueue",
@@ -883,7 +886,9 @@ namespace Ifrit::Runtime
                     stagedBuffers.push_back(stagedObjectBuffer);
                     pendingVertexBuffers.push_back(&mesh->m_resource.objectData);
                     pendingVertexBufferSizes.push_back(sizeof(Mesh::GPUObjectBuffer));
-
+                }
+                if (requireUpdateInstance)
+                {
                     auto stagedInstanceObjectBuffer =
                         rhi->CreateStagedSingleBuffer(instanceResource.objectBuffer.get());
                     stagedBuffers.push_back(stagedInstanceObjectBuffer);
@@ -924,7 +929,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void RendererBase::EndFrame(const std::vector<GPUCommandSubmission*>& cmdToWait)
     {
-        auto rhi = m_app->GetRhi();
+        auto rhi             = m_app->GetRhi();
         auto drawq           = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Graphics);
         auto swapchainImg    = rhi->GetSwapchainImage();
         auto sRenderComplete = rhi->GetSwapchainRenderDoneEventHandler();

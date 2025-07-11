@@ -409,7 +409,7 @@ namespace Ifrit::Runtime::Siro
             extra.push_back("IFSHADER_MPM_PBMPM");
         }
 
-        if (firstFrame || true)
+        if (firstFrame)
         {
             extra.push_back("IFSHADER_MPM_GRIDRESET_INIT");
             AddComputePass<PushConst>(builder, "MPMSimulator.GridReset.Init",
@@ -1045,6 +1045,7 @@ namespace Ifrit::Runtime::Siro
 
     void MPMSimulatorPrivateData::ParticleRender2D(FrameGraphBuilder& builder, FGTextureNode* renderTarget)
     {
+        IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.ParticleRender");
         struct PushConst
         {
             u32 m_PositionId;
@@ -1079,6 +1080,8 @@ namespace Ifrit::Runtime::Siro
 
     void MPMSimulatorPrivateData::ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget)
     {
+        IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.ParticleRender");
+
         f32      camNear  = 0.1f;
         auto     rtWidth  = renderTarget->GetWidth();
         auto     rtHeight = renderTarget->GetHeight();
@@ -1150,6 +1153,7 @@ namespace Ifrit::Runtime::Siro
 
     IFRIT_APIDECL void MPMSimulator::RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime)
     {
+        IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.SolverStep");
         m_Data->RunSolverStep(builder, deltaTime);
     }
 
@@ -1223,11 +1227,13 @@ namespace Ifrit::Runtime::Siro
         emitInfo.m_EmissionArgs             = args;
         m_Data->m_EmissionInfos.push_back(emitInfo);
     }
-    template IFRIT_APIDECL void MPMSimulator::SetInitParticleLocations<2>(const Vec<TGenericVector<f32, 2>>& locations);
-    template IFRIT_APIDECL void MPMSimulator::SetInitParticleLocations<3>(const Vec<TGenericVector<f32, 3>>& locations);
+
     template IFRIT_APIDECL void MPMSimulator::EmitParticles<2>(
         const Vec<TGenericVector<f32, 2>>& locations, const MPMParticleEmitArgs& args);
     template IFRIT_APIDECL void MPMSimulator::EmitParticles<3>(
         const Vec<TGenericVector<f32, 3>>& locations, const MPMParticleEmitArgs& args);
+
+    RHI::RhiBufferRef MPMSimulator::GetParticlePositionBuffer() { return m_Data->m_ParticlePosition; }
+    RHI::RhiBufferRef MPMSimulator::GetParticleCounterBuffer() { return m_Data->m_ParticleCount; }
 
 } // namespace Ifrit::Runtime::Siro

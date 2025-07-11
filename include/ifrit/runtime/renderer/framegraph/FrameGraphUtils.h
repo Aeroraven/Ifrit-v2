@@ -149,8 +149,8 @@ namespace Ifrit::Runtime::FrameGraphUtils
     }
 
 // Macros
-#define IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, name)       \
-    Owner<FrameGraphScopeGuard> _fgScopeGuard##__LINE__ = \
+#define IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, name)                                        \
+    Owner<Ifrit::Runtime::FrameGraphUtils::FrameGraphScopeGuard> _fgScopeGuard##__LINE__ = \
         Ifrit::Runtime::FrameGraphUtils::AddFrameGraphEventScope(builder, name);
 
 } // namespace Ifrit::Runtime::FrameGraphUtils

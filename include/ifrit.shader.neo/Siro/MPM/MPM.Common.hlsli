@@ -7,6 +7,8 @@
 #include "ifrit.shader.neo/Math.LinAlg.SVD.hlsli"
 #endif
 
+#define IFSHADER_MPM_WAVE_INTRINSIC_ENABLED 1
+
 namespace IfritShader{
 namespace Siro{
 namespace MPM{

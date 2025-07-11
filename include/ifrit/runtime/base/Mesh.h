@@ -32,6 +32,12 @@ namespace Ifrit::Runtime
         VirtualGeometry,
     };
 
+    enum class MeshGeneratorType
+    {
+        Static,
+        Procedual
+    };
+
     struct MeshData
     {
         struct GPUCPCounter
@@ -54,7 +60,8 @@ namespace Ifrit::Runtime
             Vector4f selfErrorSphere;
         };
         String                                           identifier;
-        MeshType                                         m_MeshType = MeshType::VirtualGeometry;
+        MeshType                                         m_MeshType       = MeshType::VirtualGeometry;
+        MeshGeneratorType                                m_GenerationType = MeshGeneratorType::Static;
 
         Vec<Vector3f>                                    m_vertices;
         Vec<Vector4f>                                    m_verticesAligned;
@@ -138,6 +145,8 @@ namespace Ifrit::Runtime
             GPUBuffer       tangentBuffer          = nullptr;
             GPUBuffer       indexBuffer            = nullptr;
 
+            GPUBuffer       procIndirectDrawBuffer = nullptr;
+
             GPUObjectBuffer objectData;
             GPUBuffer       objectBuffer = nullptr;
 
@@ -170,6 +179,7 @@ namespace Ifrit::Runtime
             m_resource.materialDataBuffer     = resource.materialDataBuffer;
             m_resource.tangentBuffer          = resource.tangentBuffer;
             m_resource.indexBuffer            = resource.indexBuffer;
+            m_resource.procIndirectDrawBuffer = resource.procIndirectDrawBuffer;
 
             m_resource.objectBuffer = resource.objectBuffer;
             m_resource.objectData   = resource.objectData;
@@ -190,6 +200,7 @@ namespace Ifrit::Runtime
             resource.materialDataBuffer     = m_resource.materialDataBuffer;
             resource.tangentBuffer          = m_resource.tangentBuffer;
             resource.indexBuffer            = m_resource.indexBuffer;
+            resource.procIndirectDrawBuffer = m_resource.procIndirectDrawBuffer;
 
             resource.objectBuffer = m_resource.objectBuffer;
             resource.objectData   = m_resource.objectData;

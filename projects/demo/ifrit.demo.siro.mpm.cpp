@@ -29,23 +29,26 @@ namespace Ifrit
     class DemoApplicationAyanami : public Runtime::Application
     {
     private:
-        RhiScissor                     scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
-        Ref<RhiRenderTargets>          renderTargets;
-        Ref<RhiColorAttachment>        colorAttachment;
-        RhiTextureRef                  depthImage;
-        Ref<RhiDepthStencilAttachment> depthAttachment;
-        Ref<BaseForwardRenderer>       renderer;
-        RhiTexture*                    swapchainImg;
-        RendererConfig                 renderConfig;
+        RhiScissor                                   scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
+        Ref<RhiRenderTargets>                        renderTargets;
+        Ref<RhiColorAttachment>                      colorAttachment;
+        RhiTextureRef                                depthImage;
+        Ref<RhiDepthStencilAttachment>               depthAttachment;
+        Ref<BaseForwardRenderer>                     renderer;
+        RhiTexture*                                  swapchainImg;
+        RendererConfig                               renderConfig;
 
-        Ref<Siro::MPMSimulator>        m_MpmSim;
+        Ref<Siro::MPMSimulator>                      m_MpmSim;
 
-        Ref<FrameGraphCompiler>        m_FrameGraphCompiler;
-        Ref<FrameGraphExecutor>        m_FrameGraphExecutor;
-        Ref<FrameGraphResourcePool>    m_FrameGraphResourcePool;
-        Vec<Vector3f>                  m_PointClouds;
+        Ref<FrameGraphCompiler>                      m_FrameGraphCompiler;
+        Ref<FrameGraphExecutor>                      m_FrameGraphExecutor;
+        Ref<FrameGraphResourcePool>                  m_FrameGraphResourcePool;
+        Vec<Vector3f>                                m_PointClouds;
 
-        u32                            m_FrameIdx = 0;
+        u32                                          m_FrameIdx = 0;
+
+        // Debug
+        Ref<Geometry::ParticleSurfaceProceduralMesh> m_ParticleSurfaceMesh;
 
     public:
         void OnStart() override
@@ -58,8 +61,7 @@ namespace Ifrit
                 auto vdbFileData = Ifrit::ReadBinaryFile(IFRIT_DEMO_ASSET_PATH "/bunny.vdb");
                 auto vdbDesc     = VDB::LoadVdbFromString(vdbFileData);
                 VDB::PrintVdbMeta(vdbDesc);
-                m_PointClouds = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.5f, 8);
-                // std::cout << "Sampled " << p.size() << " points from VDB." << std::endl;
+                m_PointClouds = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.3f, 10);
                 iDebug("Sampled {} points from VDB.", m_PointClouds.size());
                 PointCloud::PointCloudDescriptor pcDesc;
                 pcDesc.m_Points = m_PointClouds.data();
@@ -67,6 +69,7 @@ namespace Ifrit
 
                 PointCloud::MoveCenterTo(pcDesc, Vector3f(32.0f, 32.0f, 32.0f));
                 PointCloud::NormalizeToLongestAxisAABB(pcDesc, Vector3f(0.0f), Vector3f(64.0f));
+                m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
             }
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
@@ -89,6 +92,21 @@ namespace Ifrit
             camera->SetFar(20.0f);
             camera->SetNear(0.10f);
 
+            auto cameraTransform = cameraGameObject->GetComponent<Transform>();
+            cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
+            cameraTransform->SetPosition({ 0.5f, 0.5f, -1.0f });
+
+            auto material = MakeRef<SyaroDefaultGBufEmitter>(this);
+            material->BuildMaterial();
+            auto meshingObject    = node->AddGameObject("meshing");
+            m_ParticleSurfaceMesh = MakeRef<Geometry::ParticleSurfaceProceduralMesh>();
+            m_ParticleSurfaceMesh->Init(GetRhi(), 2145141, 2145141, Vector4i(200, 200, 200, 0),
+                Vector3f(-0.01f, -0.01f, -0.01f), Vector3f(1.01f, 1.01f, 1.01f));
+            auto meshFilter = meshingObject->AddComponent<MeshFilter>();
+            meshFilter->SetMesh(m_ParticleSurfaceMesh);
+            auto meshRenderer = meshingObject->AddComponent<MeshRenderer>();
+            meshRenderer->SetMaterial(material);
+
             // Render targets
             auto rt         = m_rhiLayer.get();
             depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
@@ -108,31 +126,44 @@ namespace Ifrit
         void OnUpdate() override
         {
             m_FrameIdx++;
-            if (m_FrameIdx == 1145)
+            if (m_FrameIdx == 511)
             {
                 Siro::MPMParticleEmitArgs args;
                 args.m_MaterialType = Siro::MPMSimulatorParticleType::Jelly;
-                m_MpmSim->EmitParticles<3>(m_PointClouds, args);
+                // m_MpmSim->EmitParticles<3>(m_PointClouds, args);
                 // m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
             }
             auto scene       = m_sceneManager->GetActiveScene();
             auto sFrameStart = renderer->BeginFrame();
 
-            auto rhi  = GetRhi();
-            auto dq   = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Graphics);
+            auto rhi = GetRhi();
+            auto dq  = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Graphics);
+            m_ParticleSurfaceMesh->SetParticleData(
+                m_MpmSim->GetParticlePositionBuffer(), m_MpmSim->GetParticleCounterBuffer());
+
             auto task = dq->RunAsyncCommand(
                 [&](const RhiCommandList* cmd) {
                     FrameGraphBuilder builder(GetShaderRegistry(), GetRhi(), m_FrameGraphResourcePool.get());
                     auto              rt = builder.ImportTexture("Demo_Swapchain", swapchainImg);
-                    m_MpmSim->RunSolverStep(builder, 1.0f / 3000.0f);
+                    m_MpmSim->RunSolverStep(builder, 1.0f / 1500.0f);
                     m_MpmSim->Render(builder, &rt);
+                    // m_ParticleSurfaceMesh->UpdateMesh(builder);
 
                     auto fg = m_FrameGraphCompiler->Compile(builder);
                     m_FrameGraphExecutor->ExecuteInSingleCmd(cmd, fg);
                 },
                 { sFrameStart.get() }, {});
 
-            renderer->EndFrame({ task.get() });
+            if (0)
+            {
+                auto renderComplete =
+                    renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { task.get() });
+                renderer->EndFrame({ renderComplete.get() });
+            }
+            else
+            {
+                renderer->EndFrame({ task.get() });
+            }
         }
 
         void OnEnd() override {}

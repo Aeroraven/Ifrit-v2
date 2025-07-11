@@ -130,6 +130,12 @@ namespace IfritShader
             StructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_StructuredBuffer[Index].as<StructuredBuffer<T>>();
             return Buffer[Offset];
         }
+
+        void DebugStore(T Value, uint Offset = 0)
+        {
+            RWStructuredBuffer<T> Buffer = _Ifrit_ResourceHeap_StructuredBuffer[Index];
+            Buffer[Offset] = Value;
+        }
     };
 
     IFSHADER_TEMPLATE_STRUCT(TConstantBufferHandle,T)

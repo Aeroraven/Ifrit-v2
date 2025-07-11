@@ -34,7 +34,7 @@ namespace BaseForward{
     struct PushConstant_T
     {
         TRWStructuredBufferHandle<FPerObjectData> m_BatchedObjectData;
-        TRWStructuredBufferHandle<PerFramePerViewData> m_PerFrameData;
+        TStructuredBufferHandle<PerFramePerViewData> m_PerFrameData;
         uint m_ObjectIndex; // Index of the current object in the batch
     };
 

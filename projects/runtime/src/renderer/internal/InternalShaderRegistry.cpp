@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Neo.h"
 
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Siro.h"
+#include "ifrit/runtime/geometry/internal/InternalShaderRegistry.Geometry.h"
 
 namespace Ifrit::Runtime::Internal
 {
@@ -169,6 +170,9 @@ namespace Ifrit::Runtime::Internal
 
         // Siro
         RegisterRuntimeInternalShadersSiro(shaderRegistry);
+
+        // Geometry
+        RegisterRuntimeInternalShadersGeometry(shaderRegistry);
 
         iInfo("Internal: Compiling internal shaders...");
         // shaderRegistry->WaitForShaderCompilations();

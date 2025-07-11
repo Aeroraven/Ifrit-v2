@@ -14,9 +14,12 @@ namespace MPM{
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
+
+#if !IFSHADER_MPM_WAVE_INTRINSIC_ENABLED
     groupshared int sMarkedGrids[kMpmTGSizeX];
     groupshared int sMarkedGridCount;
     groupshared int sMarkedGridListStart;
+#endif
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
     IFSHADER_BLOCKSIZE(kMpmTGSizeX, 1, 1)
@@ -27,10 +30,49 @@ namespace MPM{
         // Step2. compute grid velocities
         // Step3. identify grid degree of freedoms
 
-        if(GroupThreadId.x == 0)
-            sMarkedGridCount = 0;
         FDenseGridStructure Grid = PushConst.m_Grid.Load();
         int TotalGrids = Grid.GetTotalGridCount();
+
+#if IFSHADER_MPM_WAVE_INTRINSIC_ENABLED
+
+        FSpatialIndex GridIndex = 0;
+        FScalar GridMass = 0.0f;
+        FSpatialVector GridMomentum = FSpatialVector(0.0f);
+        FSpatialVector GridVelocity = FSpatialVector(0.0f);
+        bool IsGridFilled = false;
+        if(ThreadId.x < TotalGrids)
+        {
+            GridIndex = Grid.DecodeSpatialIndex((int)ThreadId.x);
+            GridMass = Grid.LoadMass(GridIndex);
+            GridMomentum = Grid.LoadVelocity(GridIndex);
+            if(GridMass > 1e-6f)
+            {
+                GridVelocity = GridMomentum / GridMass;
+                IsGridFilled = true;
+            }
+            Grid.StoreVelocity(GridIndex, GridVelocity);
+        }
+
+        int sWaveMarkedGridListStart = 0;
+        int sThreadMarkedGridListOffset = WavePrefixCountBits(IsGridFilled);
+        int sWaveNumGridsToMark = WaveActiveCountBits(IsGridFilled);
+        if(WaveIsFirstLane())
+        {
+            sWaveMarkedGridListStart = PushConst.m_ValidGridCounter.Allocate(sWaveNumGridsToMark);
+        }
+        int sThreadMarkedGridListStart = WaveReadLaneFirst(sWaveMarkedGridListStart);
+        int PositionInList = sThreadMarkedGridListStart + sThreadMarkedGridListOffset;
+
+        if(IsGridFilled)
+        {
+            int GridId = ThreadId.x;
+            PushConst.m_ValidGridList.Store(GridId, PositionInList);
+        }
+
+#else
+        if(GroupThreadId.x == 0)
+            sMarkedGridCount = 0;
+        
 
         GroupMemoryBarrierWithGroupSync();
 
@@ -69,6 +111,7 @@ namespace MPM{
                 PushConst.m_ValidGridList.Store(GridIndex, sMarkedGridListStart + GroupThreadId.x);
             }
         }
+#endif
 
     }
 

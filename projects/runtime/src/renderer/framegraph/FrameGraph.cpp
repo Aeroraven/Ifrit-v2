@@ -295,12 +295,20 @@ namespace Ifrit::Runtime
     ResourceNode& FrameGraphBuilder::ImportTexture(
         const String& name, FgTexture* texture, const FgTextureSubResource& subResource)
     {
+        if (!texture)
+        {
+            iAssertion(false, "FrameGraphBuilder: ImportTexture called with null texture.");
+        }
         auto& node = AddResource(name);
         node.SetImportedResource(texture, subResource);
         return node;
     }
     ResourceNode& FrameGraphBuilder::ImportBuffer(const String& name, FgBuffer* buffer)
     {
+        if (!buffer)
+        {
+            iAssertion(false, "FrameGraphBuilder: ImportBuffer called with null buffer.");
+        }
         auto& node = AddResource(name);
         node.SetImportedResource(buffer);
         return node;
@@ -838,9 +846,11 @@ namespace Ifrit::Runtime
         cmd->BeginScope("Ifrit.RDG: Execute Render Graph");
         using namespace Ifrit::RHI;
         // Begin event scopes, top level
+        int scopesActive = 0;
         for (auto& scopeName : compiledGraph.m_StartingScopes[0])
         {
             cmd->BeginScope(scopeName);
+            scopesActive++;
         }
 
         for (auto& pass : compiledGraph.m_graph->m_passes)
@@ -913,15 +923,22 @@ namespace Ifrit::Runtime
             for (u32 i = 0; i < compiledGraph.m_EndingScopes[pass->id + 1]; i++)
             {
                 cmd->EndScope();
+                scopesActive--;
             }
 
             // Begin event scopes
             for (auto& scopeName : compiledGraph.m_StartingScopes[pass->id + 1])
             {
                 cmd->BeginScope(scopeName);
+                scopesActive++;
             }
         }
         cmd->EndScope();
+        while (scopesActive > 0)
+        {
+            cmd->EndScope();
+            scopesActive--;
+        }
     }
 
 } // namespace Ifrit::Runtime

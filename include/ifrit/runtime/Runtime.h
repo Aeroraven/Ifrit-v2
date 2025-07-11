@@ -45,3 +45,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/physics/siro/geometry/TessellatedRectMesh.h"
 #include "ifrit/runtime/physics/siro/SiroSimulator.h"
 #include "ifrit/runtime/physics/siro/geometry/TetrahedralMesh.h"
+
+#include "ifrit/runtime/geometry/surfaceop/ParticleSurfaceProceduralMesh.h"

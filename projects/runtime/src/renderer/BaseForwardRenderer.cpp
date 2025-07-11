@@ -110,11 +110,20 @@ namespace Ifrit::Runtime
                     cmd->SetCullMode(RhiCullMode::None);
 
                     cmd->SetPushConst(&pc, 0, sizeof(PushConst));
-                    auto indexCount = shaderEffects.m_meshes[i]->LoadMeshUnsafe()->m_indices.size();
+                    auto meshData = shaderEffects.m_meshes[i]->LoadMeshUnsafe();
 
-                    if (indexCount != 0)
+                    if (meshData->m_GenerationType == MeshGeneratorType::Static)
                     {
-                        cmd->DrawIndexed(indexCount, 1, 0, 0, 0);
+                        auto indexCount = shaderEffects.m_meshes[i]->LoadMeshUnsafe()->m_indices.size();
+
+                        if (indexCount != 0)
+                        {
+                            cmd->DrawIndexed(indexCount, 1, 0, 0, 0);
+                        }
+                    }
+                    else if (meshData->m_GenerationType == MeshGeneratorType::Procedual)
+                    {
+                        cmd->DrawIndexedIndirect(shaderEffects.m_meshes[i]->m_resource.procIndirectDrawBuffer.get(), 0);
                     }
                 }
             }

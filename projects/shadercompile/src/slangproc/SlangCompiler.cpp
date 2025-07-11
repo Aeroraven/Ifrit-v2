@@ -83,9 +83,12 @@ namespace Ifrit::ShaderCompile::SlangProc
         sessionDesc.targets                     = &targetDesc;
         sessionDesc.targetCount                 = 1;
         sessionDesc.defaultMatrixLayoutMode     = SlangMatrixLayoutMode::SLANG_MATRIX_LAYOUT_COLUMN_MAJOR;
+        auto capNonUniformBallot                = slangGlobalSession->findCapability("spvGroupNonUniformBallot");
         Vec<slang::CompilerOptionEntry> options = {
             { slang::CompilerOptionName::EmitSpirvDirectly,
                 { slang::CompilerOptionValueKind::Int, 1, 0, nullptr, nullptr } },
+            { slang::CompilerOptionName::Capability,
+                { slang::CompilerOptionValueKind::Int, capNonUniformBallot, 0, nullptr, nullptr } },
             { slang::CompilerOptionName::Include,
                 { slang::CompilerOptionValueKind::String, 0, 0, m_IncludeBase.c_str(), nullptr } },
 

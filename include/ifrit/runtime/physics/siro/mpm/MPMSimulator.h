@@ -43,7 +43,7 @@ namespace Ifrit::Runtime::Siro
         MPMSimulatorProblemDimension m_Dimension  = MPMSimulatorProblemDimension::ThreeDimensional;
         MPMSimulatorVariant          m_Variant    = MPMSimulatorVariant::PBMPM;
 
-        u32                          m_MaxParticles = 914514;
+        u32                          m_MaxParticles = 614514;
         Vector3u                     m_GridSize     = Vector3u(kDefaultGridSizeX, kDefaultGridSizeX, kDefaultGridSizeX);
         Vector3f                     m_GridOffset   = Vector3f(0.0f);
         Vector3u                     m_GridBoundaryWidth = Vector3u(3, 3, 3);
@@ -56,11 +56,11 @@ namespace Ifrit::Runtime::Siro
         f32                          m_DefaultPoissonRatio    = 0.2f;
         f32                          m_DefaultViscoPlasticity = 0.7f;
         u32                          m_DefaultNumParticles    = 11451;
-        u32                          m_Substeps               = 8;
+        u32                          m_Substeps               = 5;
         MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Fluid;
 
         // PBMPM
-        u32                          m_PbMpmIterations                           = 5;
+        u32                          m_PbMpmIterations                           = 4;
         f32                          m_PbMpmDefaultElasticityInterpolationFactor = 0.01f;
         f32                          m_PbMpmDefaultElasticityRelaxationFactor    = 1.5f;
         f32                          m_PbMpmDefaultLiquidViscosity               = 0.000f;
@@ -92,6 +92,9 @@ namespace Ifrit::Runtime::Siro
 
         template <u32 Dimension IF_REQUIRES(Dimension == 2 || Dimension == 3)>
         void EmitParticles(const Vec<TGenericVector<f32, Dimension>>& locations, const MPMParticleEmitArgs& args);
+
+        RHI::RhiBufferRef GetParticlePositionBuffer();
+        RHI::RhiBufferRef GetParticleCounterBuffer();
 
     private:
         MPMSimulatorPrivateData* m_Data = nullptr;
