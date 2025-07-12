@@ -21,9 +21,14 @@ endfunction()
 
 function(ifrit_add_core_component component_name)
     message(STATUS "[Ifrit.Build.Core] Adding core component ${component_name}")
-    add_subdirectory(projects/${component_name})
+    add_subdirectory(modules/${component_name})
 endfunction()
  
+function(ifrit_add_demo_component component_name)
+    message(STATUS "[Ifrit.Build.Core] Adding demo foldeer ${component_name}")
+    add_subdirectory(${component_name})
+endfunction()
+
 # Note following paths should be set to the correct paths on your system
 # Fallback paths will be used if `find_package` fails to find the package 
 set(IFRIT_GLOBAL_LLVM_DIR_LINUX "/usr/local/llvm-10/")
@@ -39,7 +44,7 @@ set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
 set(IFRIT_GLOBAL_DISABLE_LLVM 1)
 set(CMAKE_WARN_DEPRECATED CACHE BOOL "Disable deprecated warnings" FORCE)
 # some global checks
-include(projects/buildinfra/SIMDCheck.cmake)
+include(cmake/SIMDCheck.cmake)
  
 # llvm
 if (IFRIT_GLOBAL_DISABLE_LLVM)
@@ -137,20 +142,20 @@ ifrit_add_core_component(vkgraphics)
 ifrit_add_core_component(external/fsr2)
 ifrit_add_core_component(runtime)
 ifrit_add_core_component(rhi)
-ifrit_add_core_component(demo)
+ifrit_add_demo_component(demo)
 
 set(IFRIT_GROUP_ENGINE "Project Ifrit/Engine")
 set(IFRIT_GROUP_DEPENDENCIES "Project Ifrit/ThirdParty")
 set(IFRIT_GROUP_DEMO "Project Ifrit/Demo")
 
 # openvdb targets
-include(projects/buildinfra/OpenVDBBuildPostprocess.cmake)
+include(cmake/OpenVDBBuildPostprocess.cmake)
 
 # slang targets
-include(projects/buildinfra/SlangBuildPostprocess.cmake)
+include(cmake/SlangBuildPostprocess.cmake)
 
 # mimalloc targets
-include(projects/buildinfra/MiMallocBuildPostprocess.cmake)
+include(cmake/MiMallocBuildPostprocess.cmake)
 
 # spdlog targets
 set_targets_folder(dependencies/spdlog ${IFRIT_GROUP_DEPENDENCIES}/spdlog)

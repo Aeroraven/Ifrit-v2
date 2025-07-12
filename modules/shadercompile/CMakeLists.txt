@@ -1,0 +1,31 @@
+cmake_minimum_required(VERSION 3.10)
+project(Ifrit-v2-CoreLib LANGUAGES CXX C)
+
+set(IFRIT_PROJECT_DIR_CORE "${CMAKE_CURRENT_SOURCE_DIR}")
+string(REGEX REPLACE "(.*)/(.*)/(.*)" "\\1" IFRIT_PROJECT_DIR  ${IFRIT_PROJECT_DIR_CORE})
+
+include(${IFRIT_PROJECT_DIR}/cmake/ProjectShared.cmake)
+
+file(GLOB_RECURSE IFRIT_SHADER_COMPILE_SOURCE_FILES_CXX "src/*.cpp")
+file(GLOB_RECURSE IFRIT_SHADER_COMPILE_SOURCE_FILES_C "src/*.c")
+file(GLOB_RECURSE IFRIT_SHADER_COMPILE_HEADER_FILES ${IFRIT_PROJECT_DIR}"/include/ifrit/*.h")
+
+include(${IFRIT_PROJECT_DIR}/cmake/VulkanResolve.cmake)
+
+# add api export
+add_definitions(-DIFRIT_DLL)
+add_definitions(-DIFRIT_API_EXPORT)
+add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.ShaderCompile")
+add_definitions(-DIFRIT_MODULE_SHADER_COMPILE)
+
+# set cxx20
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
+add_library(ifrit.shadercompile SHARED ${IFRIT_SHADER_COMPILE_SOURCE_FILES_CXX} ${IFRIT_SHADER_COMPILE_SOURCE_FILES_C})
+target_link_libraries(ifrit.shadercompile PUBLIC 
+    ifrit.core
+    Vulkan::shaderc_combined 
+    slang
+    ${IFRIT_COMMON_DEPENDENCIES_SHARED})     
+
