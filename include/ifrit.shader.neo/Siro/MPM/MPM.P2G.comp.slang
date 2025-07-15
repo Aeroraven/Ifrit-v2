@@ -1,7 +1,11 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_3D
 #pragma ifrit.multi_compile IFSHADER_MPM_MLS
 #pragma ifrit.multi_compile IFSHADER_MPM_PBMPM
+#pragma ifrit.multi_compile IFSHADER_MPM_CPIC
+
 #include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
+#include "ifrit.shader.neo/Siro/MPM/MPM.MlsParticleIntegrateUtil.hlsli"
+#include "ifrit.shader.neo/Siro/MPM/CPIC/CPIC.Compatibility.hlsli"
 
 namespace IfritShader{
 namespace Siro{
@@ -24,6 +28,14 @@ namespace MPM{
 
         // PBMPM
         uint m_IsFirstOrLastRun;
+
+        // CPIC
+#ifdef IFSHADER_MPM_CPIC
+        TStructuredBufferHandle<int> m_CpicGAffinity; // g_A
+        TStructuredBufferHandle<int> m_CpicGSign; // g_T
+        TStructuredBufferHandle<int> m_CpicPAffinity; // p_A
+        TStructuredBufferHandle<int> m_CpicPSign; // p_T
+#endif
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -42,117 +54,53 @@ namespace MPM{
         FSpatialVector ParticleVelocity = PushConst.m_ParticleVelocity.Load(ThreadId.x);
         FSpatialVector ParticleLocation = PushConst.m_ParticleLocation.Load(ThreadId.x);
         FSpatialTransform ParticleB = PushConst.m_ParticleB.GetMatrix(ThreadId.x);
-        FSpatialTransform I = GetIdentitySpatialTransform();
         FScalar ParticleMass = PushConst.m_ParticleMass.Load(ThreadId.x);
         FDenseGridStructure Grid = PushConst.m_Grid.Load();
-        FMpmParticleMaterial ParticleMaterial = PushConst.m_ParticleMaterial.Load(ThreadId.x);
-
+        
         FSpatialIndex CenterGrid = Grid.GetCentralGridRounded(ParticleLocation);
 
-        FScalar DInv = 0.0f;
         FScalar GridSpacing = Grid.GetGridSpacing();
-
-        bool IsFluid = ParticleMaterial.m_Type == kMpmMaterial_Fluid;
-        bool IsSnow = ParticleMaterial.m_Type == kMpmMaterial_Snow;
-        bool IsJelly = ParticleMaterial.m_Type == kMpmMaterial_Jelly;
-        bool IsVisco = ParticleMaterial.m_Type == kMpmMaterial_Visco;
-
-#ifdef IFSHADER_MPM_INTERP_CUBIC
-        DInv = 3.0f * rcp(GridSpacing*GridSpacing);
-#else
-        DInv = 4.0f * rcp(GridSpacing*GridSpacing);
-#endif
+        FScalar DInv = GetDInv(GridSpacing);
         FSpatialTransform ParticleC = ParticleB * DInv;
 
-#ifdef IFSHADER_MPM_MLS
-        FSpatialTransform ParticleDeformGrad = PushConst.m_ParticleDeformationGrad.GetMatrix(ThreadId.x);
-        FSpatialTransform DeformGradChange = PushConst.m_DeltaTime * mul(ParticleC, ParticleDeformGrad);
-        ParticleDeformGrad += DeformGradChange;
-
-        {
-            FSpatialTransform R,S;
-            Math::PolarDecomposition(ParticleDeformGrad, R, S);
-        }
-
-        FScalar TraceC = Math::Trace(ParticleC);
-        FScalar Jp = PushConst.m_ParticlePlasticity.Load(ThreadId.x);
-        FScalar Hardening = exp(10 * (1.0 - Jp));  // From MPM-99
-
-        if(IsJelly) Hardening = 0.3f;
-
-        FSpatialTransform U,S,V;
-        Math::SVD(ParticleDeformGrad, U, S, V);
-        S = Math::ClampDiag(S, 1e-6f, 1e30f);
-        FSpatialTransform Sx = S;
-
-        if(IsSnow)
-        {
-            Sx = Math::ClampDiag(Sx, 1-2.5e-2f, 1+4.5e-3f);
-            Jp *= Math::DiagProductRelative(S,Sx);
-        }
-        if(IsVisco)
-        {
-            FScalar YeildSurface = exp(1.0f-0.9f);
-            FScalar J1 = Math::DiagProduct(S, 0);
-            Sx = Math::ClampDiag(Sx, 1.0f/YeildSurface, YeildSurface);
-            FScalar J2 = Math::DiagProduct(Sx, 0);
-    #ifdef IFSHADER_MPM_3D
-            Sx = Sx * pow(J1/J2, 1.0f/3.0f);
-    #else
-            Sx = Sx * sqrt(J1/J2);
-    #endif
-        }
-        PushConst.m_ParticlePlasticity.Store(ThreadId.x, Jp);
-        FScalar J = Math::DiagProduct(Sx,1e-6f);
-
-        if(IsFluid)
-        {
-    #ifdef IFSHADER_MPM_3D
-            ParticleDeformGrad = GetIdentitySpatialTransform() * pow(J, 1.0f/3.0f);
-    #else
-            ParticleDeformGrad = GetIdentitySpatialTransform() * sqrt(J);
-    #endif
-        }
-        if(IsSnow || IsVisco)
-        {
-            ParticleDeformGrad = mul(U, mul(Sx, Math::Transpose(V)));
-        }
-        PushConst.m_ParticleDeformationGrad.StoreMatrix(ThreadId.x, ParticleDeformGrad);
-
-        FScalar Young = ParticleMaterial.m_Youngs;
-        FScalar Possion = ParticleMaterial.m_Possion;
-        FScalar Mu, Lambda;
-        ToLameParameter( Young, Possion,Mu, Lambda);
-        if(IsFluid)
-        {
-            Mu = 0.0f;
-        }
-        Mu *= Hardening;
-        Lambda *= Hardening;
-
-        FSpatialTransform PFT = 0.0f;
-        PFT = FixedCorotatedStressFT(ParticleDeformGrad, J, Mu,Lambda);
-        PushConst.m_ParticleStressContrib.StoreMatrix(ThreadId.x, PFT);
+#ifdef IFSHADER_MPM_CPIC
+        FCpicSignTagSet CpicParticleTagSet = GetCpicParticleAffinityAndTags(
+            ThreadId.x, PushConst.m_CpicPAffinity, PushConst.m_CpicPSign,
+        );
 #endif
+
+
+#ifdef IFSHADER_MPM_MLS
+        PerformMlsParticleDeformUpdate(
+            ThreadId.x,PushConst.m_DeltaTime,ParticleC,PushConst.m_ParticleDeformationGrad,
+            PushConst.m_ParticleMaterial,PushConst.m_ParticlePlasticity,PushConst.m_ParticleStressContrib
+        );
+#endif
+    
         bool IsFirstRun = (PushConst.m_IsFirstOrLastRun & 1) != 0;
         FScalar RcpGridSpacing = rcp(GridSpacing);
         FSpatialVector BaseMomentum = ParticleMass * ParticleVelocity;
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)
             FSpatialIndex GridOffset = ToSpatialIndex(dx,dy,dz);
             FSpatialIndex GridLocIndex = CenterGrid + GridOffset;
+            int GridId = Grid.EncodeSpatialIndex(GridLocIndex);
 
             if(!Grid.IsValidGrid(GridLocIndex)) continue;
+
+#ifdef IFSHADER_MPM_CPIC
+            FCpicSignTagSet CpicGridTagSet = GetCpicGridAffinityAndTags(
+                GridId, PushConst.m_CpicGAffinity, PushConst.m_CpicGSign
+            );
+
+            bool CpicCompatible = CheckCpicCompatibility(CpicGridTagSet, CpicParticleTagSet);
+            if(!CpicCompatible) continue;
+#endif
 
             FSpatialVector GridCenter = Grid.GetGridLocation(GridLocIndex);
             FSpatialVector G2PVector = GridCenter - ParticleLocation;
             
-            FScalar ContribWeight = 0.0f;
-            
-#ifdef IFSHADER_MPM_INTERP_CUBIC
-            ContribWeight = EulerianInterpCubicSpatial(G2PVector*RcpGridSpacing);
-#else
-            ContribWeight = EulerianInterpQuadraticSpatial(G2PVector*RcpGridSpacing);
-#endif
+            FScalar ContribWeight  = GetEulerianInterpWeight(G2PVector*RcpGridSpacing);
+
             FScalar ContribMass = ContribWeight * ParticleMass;
             FSpatialVector ContribMomentumBase = ContribWeight * BaseMomentum;
             FSpatialVector ContribMomentumAffine = ContribMass * mul(ParticleC, G2PVector);

@@ -140,8 +140,11 @@ ifrit_add_core_component(softgraphics)
 ifrit_add_core_component(geomproc)
 ifrit_add_core_component(vkgraphics)
 ifrit_add_core_component(external/fsr2)
+ifrit_add_core_component(external/imgui)
 ifrit_add_core_component(runtime)
 ifrit_add_core_component(rhi)
+ifrit_add_core_component(ui)
+
 ifrit_add_demo_component(demo)
 
 set(IFRIT_GROUP_ENGINE "Project Ifrit/Engine")
@@ -188,6 +191,8 @@ set_target_properties(update_mappings PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCI
 set_target_properties(tet PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/tetgen)
 set_target_properties(tetgen PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/tetgen)
 
+# imgui targets
+set_target_properties(ifrit.external.imgui PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/imgui)
 
 # ifrit targets
 set_target_properties(ifrit.core PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
@@ -200,6 +205,7 @@ set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.vkgraphics PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+set_target_properties(ifrit.ui PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 
 # print num demoss
 foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
@@ -207,6 +213,8 @@ foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
     message(STATUS "[Ifrit.Build.Demo] Added demo stage: ${DEMO_STAGE}")
 
 endforeach()
+
+add_dependencies(ifrit.external.imgui glfw)
 
 add_dependencies(ifrit.core 
     spdlog
@@ -236,6 +244,11 @@ add_dependencies(ifrit.vkgraphics
     ifrit.core 
     ifrit.shadercompile
     ${FSR2_API_LIBRARIES})
+
+add_dependencies(ifrit.ui 
+    ifrit.external.imgui
+    ifrit.vkgraphics 
+    ifrit.runtime)
 
 set(DEMO_DEPENDENCIES 
     ifrit.vkgraphics 

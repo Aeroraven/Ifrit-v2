@@ -93,5 +93,8 @@ namespace Ifrit::RHI
 
         // Host sync
         virtual void                     HostWaitEvent(RhiTaskSubmission* event) = 0;
+
+        // Raw Handle
+        virtual RhiRawHandle             GetRawHandle() const = 0;
     };
 } // namespace Ifrit::RHI

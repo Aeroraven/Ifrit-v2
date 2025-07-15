@@ -9,6 +9,11 @@
 
 #define IFSHADER_MPM_WAVE_INTRINSIC_ENABLED 1
 
+// Pascal's fp32 shared atomics use locks. For performance, fixed-point atomics are used instead.
+// Reference: https://forums.developer.nvidia.com/t/worse-atomic-performance-in-shared-than-global-memory/52150/2
+#define IFSHADER_MPM_GRID_ATTRIBUTE_FIXEDPOINT 0
+
+
 namespace IfritShader{
 namespace Siro{
 namespace MPM{
@@ -24,6 +29,20 @@ namespace MPM{
 
 #ifndef __cplusplus
     IFSHADER_TYPEALIAS(FScalar, float);
+    IFSHADER_DEFINE_CONST_FLOAT(kMpmFixedPointComponent, 1e11f);
+    IFSHADER_DEFINE_CONST_INT32(kMpmBlockPageSize, 128);
+    IFSHADER_DEFINE_CONST_INT32(kMpmBlockWidth, 4);
+
+
+    int ToFixedPoint(float Value)
+    {
+        return int(Value * kMpmFixedPointComponent);
+    }
+
+    float ToFloatPoint(int Value)
+    {
+        return float(Value) / kMpmFixedPointComponent;
+    }
     
 #ifdef IFSHADER_MPM_3D
     IFSHADER_DEFINE_CONST_INT32(kMpmProbDimension, 3);
@@ -106,6 +125,33 @@ namespace MPM{
             SpatialVectors.AtomicAdd(Index * 4 + 0, Value.x);
             SpatialVectors.AtomicAdd(Index * 4 + 1, Value.y);
             SpatialVectors.AtomicAdd(Index * 4 + 2, Value.z);
+        }
+    };
+
+    struct FAtomicSpatialVectorHandleFixedPoint
+    {
+        TAtomicRWStructuredBufferHandle<int> SpatialVectors;
+
+        FSpatialVector Load(uint Index)
+        {
+            int X = SpatialVectors.Load(Index * 4 + 0);
+            int Y = SpatialVectors.Load(Index * 4 + 1);
+            int Z = SpatialVectors.Load(Index * 4 + 2);
+            return FSpatialVector(ToFloatPoint(X), ToFloatPoint(Y), ToFloatPoint(Z));
+        }
+
+        void Store(uint Index, FSpatialVector Value)
+        {
+            SpatialVectors.Store(ToFixedPoint(Value.x), Index * 4 + 0);
+            SpatialVectors.Store(ToFixedPoint(Value.y), Index * 4 + 1);
+            SpatialVectors.Store(ToFixedPoint(Value.z), Index * 4 + 2);
+        }
+
+        void AtomicAdd(uint Index, FSpatialVector Value)
+        {
+            SpatialVectors.AtomicAdd(Index * 4 + 0, ToFixedPoint(Value.x));
+            SpatialVectors.AtomicAdd(Index * 4 + 1, ToFixedPoint(Value.y));
+            SpatialVectors.AtomicAdd(Index * 4 + 2, ToFixedPoint(Value.z));
         }
     };
 
@@ -211,6 +257,30 @@ namespace MPM{
         }
     };
 
+    struct FAtomicSpatialVectorHandleFixedPoint
+    {
+        TAtomicRWStructuredBufferHandle<int> SpatialVectors;
+
+        FSpatialVector Load(uint Index)
+        {
+            int X = SpatialVectors.Load(Index * 2 + 0);
+            int Y = SpatialVectors.Load(Index * 2 + 1);
+            return FSpatialVector(ToFloatPoint(X), ToFloatPoint(Y)); 
+        }
+
+        void Store(uint Index, FSpatialVector Value)
+        {
+            SpatialVectors.Store(ToFixedPoint(Value.x), Index * 2 + 0);
+            SpatialVectors.Store(ToFixedPoint(Value.y), Index * 2 + 1);
+        }
+
+        void AtomicAdd(uint Index, FSpatialVector Value)
+        {
+            SpatialVectors.AtomicAdd(Index * 2 + 0, ToFixedPoint(Value.x));
+            SpatialVectors.AtomicAdd(Index * 2 + 1, ToFixedPoint(Value.y));
+        }
+    };
+
     FSpatialVector ToSpatialVector(float4 Value)
     {
         return FSpatialVector(Value.x, Value.y);
@@ -288,6 +358,24 @@ namespace MPM{
         }
     };
 
+    struct FAtomicScalarHandleFixedPoint
+    {
+        TAtomicRWStructuredBufferHandle<int> Scalars;
+
+        FScalar Load(uint Index)
+        {
+            return ToFloatPoint(Scalars.Load(Index));
+        }
+        void Store(uint Index, FScalar Value)
+        {
+            Scalars.Store(ToFixedPoint(Value), Index);
+        }
+        void AtomicAdd(uint Index, FScalar Value)
+        {
+            Scalars.AtomicAdd(Index, ToFixedPoint(Value));
+        }
+    };
+
     struct FParticleCounterHandle
     {
         TAtomicRWStructuredBufferHandle<int> ParticleCounter;
@@ -322,9 +410,16 @@ namespace MPM{
         int4 m_GridBoundaryWidth;
         float4 m_GridTranslation;
 
+    #if IFSHADER_MPM_GRID_ATTRIBUTE_FIXEDPOINT
+        FAtomicSpatialVectorHandleFixedPoint m_GridVelocity;
+        FAtomicSpatialVectorHandleFixedPoint m_GridForce;
+        FAtomicScalarHandleFixedPoint m_GridMass;
+    #else
         FAtomicSpatialVectorHandle m_GridVelocity;
         FAtomicSpatialVectorHandle m_GridForce;
         FAtomicScalarHandle m_GridMass;
+    #endif
+
         FScalar m_GridSpacing;
 
         int EncodeSpatialIndex(FSpatialIndex Index)
@@ -497,6 +592,155 @@ namespace MPM{
             return m_Data.Load(0);
         }
     };
+
+    // ==========================================
+    // Grid Block
+    // ==========================================
+
+    struct FMpmBlockPageAllocData
+    {
+        int m_NumPages;
+        int m_Offset;
+        int m_StartingPageId;
+    };
+
+    // Blocks -> 4^D Cells (6^D Influence)
+    struct FDenseBlockStructure
+    {
+        int4 m_BlockSize;
+        TAtomicRWStructuredBufferHandle<int> m_BlockDispatchArgs; //(NumBlockPages, 1, 1)
+        TRWStructuredBufferHandle<int> m_ParticleIndices;
+        TAtomicRWStructuredBufferHandle<int> m_AllocBlockOffset;
+        TAtomicRWStructuredBufferHandle<int> m_ParticleCountsInBlock;
+        TRWStructuredBufferHandle<int> m_BlockStoreOffset;
+
+        void ClearPages()
+        {
+            m_BlockDispatchArgs.Store(0, 0);
+            m_BlockDispatchArgs.Store(1, 1);
+            m_BlockDispatchArgs.Store(1, 2);
+        }
+
+        void StoreParticleIndex(int OverallOffset,int ParticleIndex)
+        {
+            m_ParticleIndices.Store(ParticleIndex, OverallOffset);
+        }
+    
+        int GetParticleIndex(int OverallOffset)
+        {
+            return m_ParticleIndices.Load(OverallOffset);
+        }
+
+        int ScatterToBlock(int BlockId)
+        {
+            return m_ParticleCountsInBlock.AtomicAdd(BlockId, 1);
+        }
+
+        void SetBlockStoreOffset(int BlockId, int Offset)
+        {
+            m_BlockStoreOffset.Store(Offset, BlockId);
+        }
+
+        int GetBlockStoreOffset(int BlockId)
+        {
+            return m_BlockStoreOffset.Load(BlockId);
+        }
+
+        int GetNumParticlesInBlock(int BlockId)
+        {
+            return m_ParticleCountsInBlock.Load(BlockId);
+        }
+
+        
+
+        FMpmBlockPageAllocData AllocatePagesWithElementSize(int ElementCount,int BlockId)
+        {
+            int NumPages = DivRoundUp(ElementCount, kMpmBlockPageSize);
+            int Offset = m_AllocBlockOffset.AtomicAdd(BlockId, NumPages* kMpmBlockPageSize);
+            m_BlockDispatchArgs.AtomicAdd(0, NumPages);
+            
+            FMpmBlockPageAllocData Ret;
+            Ret.m_NumPages = NumPages;
+            Ret.m_Offset = Offset;
+            Ret.m_StartingPageId = Offset / kMpmBlockPageSize;
+            return Ret; 
+        }
+
+        FSpatialIndex GetBlockSize(FSpatialIndex GridSize)
+        {
+            FSpatialIndex Ret;
+#ifdef IFSHADER_MPM_3D
+            Ret.x = DivRoundUp(GridSize.x, kMpmBlockWidth);
+            Ret.y = DivRoundUp(GridSize.y, kMpmBlockWidth);
+            Ret.z = DivRoundUp(GridSize.z, kMpmBlockWidth);
+#else
+            Ret.x = DivRoundUp(GridSize.x, kMpmBlockWidth); 
+            Ret.y = DivRoundUp(GridSize.y, kMpmBlockWidth);
+#endif
+            return Ret;
+        }
+
+        FSpatialIndex GetBlockCoord(FSpatialIndex Index)
+        {
+#ifdef IFSHADER_MPM_3D
+            return FSpatialIndex(
+                Index.x / kMpmBlockWidth,
+                Index.y / kMpmBlockWidth,
+                Index.z / kMpmBlockWidth
+            );
+#else
+            return FSpatialIndex(
+                Index.x / kMpmBlockWidth,
+                Index.y / kMpmBlockWidth
+            );
+#endif
+
+        }
+
+        int GetBlockId(FSpatialIndex BlockCoord)
+        {
+#ifdef IFSHADER_MPM_3D
+            return BlockCoord.x + BlockCoord.y * m_BlockSize.x + BlockCoord.z * m_BlockSize.x * m_BlockSize.y;
+#else
+            return BlockCoord.x + BlockCoord.y * m_BlockSize.x;   
+#endif
+        }
+
+        FSpatialIndex DecodeBlockId(int BlockId)
+        {
+#ifdef IFSHADER_MPM_3D
+            int Z = BlockId / (m_BlockSize.x * m_BlockSize.y);
+            int Y = (BlockId - Z * m_BlockSize.x * m_BlockSize.y) / m_BlockSize.x;
+            int X = BlockId - Y * m_BlockSize.x - Z * m_BlockSize.x * m_BlockSize.y;
+            return FSpatialIndex(X, Y, Z);
+#else
+            int Y = BlockId / m_BlockSize.x;
+            int X = BlockId % m_BlockSize.x;
+            return FSpatialIndex(X, Y);
+#endif
+        }
+
+        int GetTotalBlockCount()
+        {
+#ifdef IFSHADER_MPM_3D
+            return m_BlockSize.x * m_BlockSize.y * m_BlockSize.z;
+#else
+            return m_BlockSize.x * m_BlockSize.y;
+#endif
+        }
+
+    };
+
+    struct FDenseBlockStructureHandle
+    {
+        TRWStructuredBufferHandle<FDenseBlockStructure> m_Data;
+
+        FDenseBlockStructure Load()
+        {
+            return m_Data.Load(0);
+        }
+    };
+
 
     struct FValidGridCounter
     {
@@ -674,6 +918,34 @@ namespace MPM{
         ) * rcp(GridSpacing);
 #endif
     }
+
+    FScalar GetEulerianInterpWeight(FSpatialVector Val)
+    {
+#ifdef IFSHADER_MPM_INTERP_CUBIC
+        return EulerianInterpCubicSpatial(Val);
+#else
+        return EulerianInterpQuadraticSpatial(Val);
+#endif
+    }
+
+    FScalar GetDInv(FScalar GridSpacing)
+    {
+#ifdef IFSHADER_MPM_INTERP_CUBIC
+        return 3.0f * rcp(GridSpacing*GridSpacing);
+#else
+        return 4.0f * rcp(GridSpacing*GridSpacing);
+#endif
+    }
+
+    FSpatialVector GetEulerianInterpGradient(FSpatialVector Val, FScalar GridSpacing)
+    {
+#ifdef IFSHADER_MPM_INTERP_CUBIC
+        return EulerianInterpCubicSpatialGradient(Val, GridSpacing);
+#else
+        return EulerianInterpQuadraticSpatialGradient(Val, GridSpacing);
+#endif
+    }
+
 
     // ==========================================
     // Constitutive models

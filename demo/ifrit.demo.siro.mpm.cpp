@@ -69,7 +69,7 @@ namespace Ifrit
 
                 PointCloud::MoveCenterTo(pcDesc, Vector3f(32.0f, 32.0f, 32.0f));
                 PointCloud::NormalizeToLongestAxisAABB(pcDesc, Vector3f(0.0f), Vector3f(64.0f));
-                m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
+                // m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
             }
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
@@ -131,7 +131,7 @@ namespace Ifrit
                 Siro::MPMParticleEmitArgs args;
                 args.m_MaterialType = Siro::MPMSimulatorParticleType::Jelly;
                 // m_MpmSim->EmitParticles<3>(m_PointClouds, args);
-                // m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
+                //  m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
             }
             auto scene       = m_sceneManager->GetActiveScene();
             auto sFrameStart = renderer->BeginFrame();

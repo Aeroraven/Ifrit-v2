@@ -611,6 +611,22 @@ namespace Ifrit::RHI::VulkanAdapter
         return engineContext->GetCacheDir();
     }
 
+    IFRIT_APIDECL RhiRawHandle RhiVulkanBackend::GetRawHandle_Instance() const
+    {
+        auto engineContext = CheckedCast<EngineContext>(m_device.get());
+        return engineContext->GetInstance();
+    }
+    IFRIT_APIDECL RhiRawHandle RhiVulkanBackend::GetRawHandle_ActiveAdapter() const
+    {
+        auto engineContext = CheckedCast<EngineContext>(m_device.get());
+        return engineContext->GetPhysicalDevice();
+    }
+    IFRIT_APIDECL RhiRawHandle RhiVulkanBackend::GetRawHandle_Device() const
+    {
+        auto engineContext = CheckedCast<EngineContext>(m_device.get());
+        return engineContext->GetDevice();
+    }
+
     IFRIT_APIDECL Owner<RHI::RhiBackend> RhiVulkanBackendBuilder::CreateBackend(const RHI::RhiInitializeArguments& args)
     {
         return MakeOwner<RhiVulkanBackend>(args);
@@ -620,4 +636,5 @@ namespace Ifrit::RHI::VulkanAdapter
     {
         ptr = MakeOwner<RhiVulkanBackendBuilder>();
     }
+
 } // namespace Ifrit::RHI::VulkanAdapter

@@ -1078,6 +1078,8 @@ namespace Ifrit::RHI::VulkanAdapter
             "Failed to wait for semaphore");
     }
 
+    RhiRawHandle       DeviceQueue::GetRawHandle() const { return m_queue; }
+
     // Queue Collections
     IFRIT_APIDECL void QueueCollections::LoadQueues(u32 numFramesInFlight)
     {

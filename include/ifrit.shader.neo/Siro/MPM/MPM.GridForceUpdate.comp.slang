@@ -40,12 +40,7 @@ namespace MPM{
         FScalar J = PushConst.m_ParticleDeformationGradDet.Load(ThreadId.x);
         FMpmParticleMaterial ParticleMaterial = PushConst.m_ParticleMaterial.Load(ThreadId.x);
         
-        FScalar DInv = 0.0f;
-#ifdef IFSHADER_MPM_INTERP_CUBIC
-        DInv = 3.0f * rcp(GridSpacing*GridSpacing);
-#else
-        DInv = 4.0f * rcp(GridSpacing*GridSpacing);
-#endif  
+        FScalar DInv = GetDInv(GridSpacing);
 
         FSpatialTransform PFT = 0.0f;
 #ifdef IFSHADER_MPM_MLS
@@ -69,20 +64,10 @@ namespace MPM{
             FSpatialVector G2PVector = GridCenter - ParticleLocation;
             
 #ifdef IFSHADER_MPM_MLS
-            FScalar W = 0.0f;
-    #ifdef IFSHADER_MPM_INTERP_CUBIC
-            W = EulerianInterpCubicSpatial(G2PVector/GridSpacing);
-    #else
-            W = EulerianInterpQuadraticSpatial(G2PVector/GridSpacing);
-    #endif
+            FScalar W = GetEulerianInterpWeight(G2PVector/GridSpacing);
             Grid.AddForce(GridCell, -ParticleVolume * W * DInv * mul(PFT, G2PVector));
 #else
-            FSpatialVector GradW = FSpatialVector(0.0f);
-    #ifdef IFSHADER_MPM_INTERP_CUBIC
-            GradW = EulerianInterpCubicSpatialGradient(G2PVector/GridSpacing, GridSpacing);
-    #else
-            GradW = EulerianInterpQuadraticSpatialGradient(G2PVector/GridSpacing, GridSpacing);
-    #endif      
+            FSpatialVector GradW = GetEulerianInterpGradient(G2PVector/GridSpacing, GridSpacing);
             Grid.AddForce(GridCell, -ParticleVolume*mul(PFT, GradW));
 #endif
 

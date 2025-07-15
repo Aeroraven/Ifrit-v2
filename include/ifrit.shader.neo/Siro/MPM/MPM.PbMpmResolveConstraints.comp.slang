@@ -72,7 +72,7 @@ namespace MPM{
             FSpatialTransform Avol = mul(Q,Fs);
             FSpatialTransform Ashape = R;
             
-            FScalar beta = PushConst.m_ElasticityInterpolationFactor;
+            FScalar beta = 1.0f;//PushConst.m_ElasticityInterpolationFactor;
             FSpatialTransform Tgt = (beta * Ashape + (1.0f - beta) * Avol);
             FSpatialTransform InvF = Math::Inverse(ParticleDeformGrad);
             FSpatialTransform Dp = mul(Tgt, InvF) - I;

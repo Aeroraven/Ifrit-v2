@@ -125,6 +125,11 @@ namespace Ifrit::RHI::VulkanAdapter
         virtual Owner<RHI::RhiRTShaderBindingTable> CreateShaderBindingTable() { return nullptr; }
 
         virtual Owner<RHI::RhiRTPass>               CreateRaytracingPass() { return nullptr; }
+
+        // Raw Handle
+        virtual RhiRawHandle                        GetRawHandle_Instance() const override;
+        virtual RhiRawHandle                        GetRawHandle_ActiveAdapter() const override;
+        virtual RhiRawHandle                        GetRawHandle_Device() const override;
     };
 
     class IFRIT_APIDECL RhiVulkanBackendBuilder : public RHI::RhiBackendFactory, public NonCopyable

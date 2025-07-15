@@ -1,0 +1,45 @@
+
+#pragma ifrit.multi_compile IFSHADER_MPM_3D
+#pragma ifrit.multi_compile IFSHADER_MPM_MLS
+
+#include "ifrit.shader.neo/Siro/MPM/MPM.Common.hlsli"
+#include "ifrit.shader.neo/Random/Random.Simplex2d.hlsli"
+namespace IfritShader{
+namespace Siro{
+namespace MPM{
+
+    struct PushConst_T
+    {
+        FParticleCounterHandle m_ParticleCounter;
+        FDenseBlockStructureHandle m_Block;
+        FDenseGridStructureHandle m_Grid;
+        FSpatialVectorHandle m_ParticleLocation;
+        TRWStructuredBufferHandle<int> m_ParticleOffset;
+    };
+
+    IFSHADER_PUSHCONST PushConst_T PushConst;
+
+    IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
+    IFSHADER_BLOCKSIZE(kMpmTGSizeX, 1, 1)
+    void MpmParticleScatterInsertCS(uint3 ThreadId:SV_DispatchThreadID,
+                                    uint3 GroupId:SV_GroupID,
+                                    uint3 GroupThreadId:SV_GroupThreadID)
+    {
+        FDenseBlockStructure Block = PushConst.m_Block.Load();
+        FDenseGridStructure Grid = PushConst.m_Grid.Load();
+
+        if(ThreadId.x >= PushConst.m_ParticleCounter.GetNumParticles())
+            return;
+
+        FSpatialVector ParticleLocation = PushConst.m_ParticleLocation.Load(ThreadId.x);
+        FSpatialIndex GridIndex = Grid.GetCentralGridRounded(ParticleLocation);
+        FSpatialIndex BlockCoord = Block.GetBlockCoord(GridIndex);
+        int BlockId = Block.GetBlockId(BlockCoord);
+        int BlockPageOffset = Block.GetBlockStoreOffset(BlockId);
+        int Offset = PushConst.m_ParticleOffset.Load(ThreadId.x);
+
+        int OverallOffset = BlockPageOffset + Offset;
+        Block.StoreParticleIndex(OverallOffset, ThreadId.x);
+    }
+
+}}}

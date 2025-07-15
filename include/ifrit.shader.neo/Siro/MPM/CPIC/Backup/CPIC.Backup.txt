@@ -1,0 +1,24 @@
+        // TODO: filter neighbouring cells
+        int TotalAffectingCells = 0;
+#ifdef IFSHADER_MPM_3D
+        TotalAffectingCells = kMpmBlockWidth * kMpmBlockWidth * kMpmBlockWidth;
+#else
+        TotalAffectingCells = kMpmBlockWidth * kMpmBlockWidth;
+#endif
+        for(int i=0;i<TotalAffectingCells;i+=kMpmBlockPageSize)
+        {
+            int GridIdX = i % kMpmBlockWidth;
+            int GridIdY = (i / kMpmBlockWidth) % kMpmBlockWidth;
+            int GridIdZ = 0;
+#ifdef IFSHADER_MPM_3D
+            GridIdZ = i / (kMpmBlockWidth * kMpmBlockWidth);
+#endif  
+            FSpatialIndex AffectingGridOffsetR = ToSpatialIndex(GridIdX, GridIdY, GridIdZ);
+            FSpatialIndex AffectingGridOffset = AffectingGridOffsetR - 1;
+            
+            FSpatialIndex BaseGridCoordInBlock = Block.GetBlockCoord(BlockId) * kMpmBlockWidth;
+            FSpatialIndex GridCoord = BaseGridCoordInBlock + AffectingGridOffset;
+
+            FSpatialIndex GridBlockCoord = GridCoord / kMpmBlockWidth;
+            int GridBlockId = Block.GetBlockId(GridBlockCoord);
+        }

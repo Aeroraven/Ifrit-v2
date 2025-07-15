@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "RhiBaseTypes.h"
 #include "RhiFsr2Processor.h"
+#include "RhiDevice.h"
 
 #ifdef _WIN32
     #ifndef NOMINMAX
@@ -164,6 +165,11 @@ namespace Ifrit::RHI
         virtual Owner<RhiRTScene>              CreateBLAS()               = 0;
         virtual Owner<RhiRTShaderBindingTable> CreateShaderBindingTable() = 0;
         virtual Owner<RhiRTPass>               CreateRaytracingPass()     = 0;
+
+        // Raw Handles
+        virtual RhiRawHandle                   GetRawHandle_Instance() const      = 0;
+        virtual RhiRawHandle                   GetRawHandle_ActiveAdapter() const = 0;
+        virtual RhiRawHandle                   GetRawHandle_Device() const        = 0;
     };
 
 } // namespace Ifrit::RHI

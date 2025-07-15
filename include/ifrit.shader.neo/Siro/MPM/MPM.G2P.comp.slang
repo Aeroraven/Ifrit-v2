@@ -49,7 +49,7 @@ namespace MPM{
         FSpatialTransform NewB = 0.0f;
         FSpatialVector NewVelocity = 0.0f;
         FScalar GridSpacing = Grid.GetGridSpacing();
-        FScalar DInv = 4.0f * rcp(GridSpacing * GridSpacing);
+        FScalar DInv = GetDInv(GridSpacing);
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)
             FSpatialIndex GridOffset = ToSpatialIndex(dx,dy,dz);
             FSpatialIndex GridCell = GridOffset + CenterGrid;
@@ -58,18 +58,9 @@ namespace MPM{
             FSpatialVector GridCenter = Grid.GetGridLocation(GridCell);
             FSpatialVector G2PVector = GridCenter - ParticleLocation;
 
-            FSpatialVector GradW = FSpatialVector(0.0f);
-            FScalar W = 0.0f;
+            FSpatialVector GradW = GetEulerianInterpGradient(G2PVector/GridSpacing, GridSpacing);
+            FScalar W = GetEulerianInterpWeight(G2PVector/GridSpacing);
 
-#ifdef IFSHADER_MPM_INTERP_CUBIC
-            GradW = EulerianInterpCubicSpatialGradient(G2PVector/GridSpacing, GridSpacing);
-            W = EulerianInterpCubicSpatial(G2PVector/GridSpacing);
-            DInv = 3.0f * rcp(GridSpacing * GridSpacing);
-#else
-            GradW = EulerianInterpQuadraticSpatialGradient(G2PVector/GridSpacing,GridSpacing);
-            W = EulerianInterpQuadraticSpatial(G2PVector/GridSpacing);
-            DInv = 4.0f * rcp(GridSpacing * GridSpacing);
-#endif
             FSpatialVector GridVelocity = Grid.LoadVelocity(GridCell);      
 
 #ifndef IFSHADER_MPM_IGNORE_DEFORM_GRAD_UPDATE

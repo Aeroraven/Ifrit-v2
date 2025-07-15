@@ -473,4 +473,6 @@ namespace Ifrit::RHI
     using RhiCBVDesc     = u32;
     using RhiSRVDesc     = u32;
     using RhiUAVDesc     = u32;
+
+    using RhiRawHandle = void*;
 } // namespace Ifrit::RHI

@@ -37,10 +37,10 @@ namespace Ifrit::Runtime::Siro
 
     struct MPMSimulatorConfig
     {
-        IF_CONSTEXPR static u32      kDefaultGridSizeX = 64;
+        IF_CONSTEXPR static u32      kDefaultGridSizeX = 96;
 
         MPMSimulatorTopologySource   m_TopoSource = MPMSimulatorTopologySource::Preset;
-        MPMSimulatorProblemDimension m_Dimension  = MPMSimulatorProblemDimension::ThreeDimensional;
+        MPMSimulatorProblemDimension m_Dimension  = MPMSimulatorProblemDimension::TwoDimensional;
         MPMSimulatorVariant          m_Variant    = MPMSimulatorVariant::PBMPM;
 
         u32                          m_MaxParticles = 614514;
@@ -57,7 +57,7 @@ namespace Ifrit::Runtime::Siro
         f32                          m_DefaultViscoPlasticity = 0.7f;
         u32                          m_DefaultNumParticles    = 11451;
         u32                          m_Substeps               = 5;
-        MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Fluid;
+        MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Jelly;
 
         // PBMPM
         u32                          m_PbMpmIterations                           = 4;

@@ -46,127 +46,127 @@ namespace Ifrit::Runtime::Internal
 
         // const auto& ISTSiro = kIntShaderTableSiro;
 
-        // GI & AO
-        REG_COMPUTE(IST.GI.HBAOCS, "AmbientOcclusion/HBAO");
-        REG_COMPUTE(IST.GI.SSGICS, "AmbientOcclusion/SSGI");
+        //// GI & AO
+        //REG_COMPUTE(IST.GI.HBAOCS, "AmbientOcclusion/HBAO");
+        //REG_COMPUTE(IST.GI.SSGICS, "AmbientOcclusion/SSGI");
 
-        // Atmosphere
-        REG_COMPUTE(IST.Atmosphere.PASIndirectRadianceCS, "Atmosphere/PAS.ComputeIndirectIrradiance");
-        REG_COMPUTE(IST.Atmosphere.PASIrradianceCS, "Atmosphere/PAS.ComputeIrradiance");
-        REG_COMPUTE(IST.Atmosphere.PASMultipleScatteringCS, "Atmosphere/PAS.ComputeMultipleScattering");
-        REG_COMPUTE(IST.Atmosphere.PASScatteringDensityCS, "Atmosphere/PAS.ComputeScatteringDensity");
-        REG_COMPUTE(IST.Atmosphere.PASSingleScatteringCS, "Atmosphere/PAS.ComputeSingleScattering");
-        REG_COMPUTE(IST.Atmosphere.PASTransmittanceCS, "Atmosphere/PAS.ComputeTransmittance");
+        //// Atmosphere
+        //REG_COMPUTE(IST.Atmosphere.PASIndirectRadianceCS, "Atmosphere/PAS.ComputeIndirectIrradiance");
+        //REG_COMPUTE(IST.Atmosphere.PASIrradianceCS, "Atmosphere/PAS.ComputeIrradiance");
+        //REG_COMPUTE(IST.Atmosphere.PASMultipleScatteringCS, "Atmosphere/PAS.ComputeMultipleScattering");
+        //REG_COMPUTE(IST.Atmosphere.PASScatteringDensityCS, "Atmosphere/PAS.ComputeScatteringDensity");
+        //REG_COMPUTE(IST.Atmosphere.PASSingleScatteringCS, "Atmosphere/PAS.ComputeSingleScattering");
+        //REG_COMPUTE(IST.Atmosphere.PASTransmittanceCS, "Atmosphere/PAS.ComputeTransmittance");
 
-        // Ayanami
-        REG_FRAGMENT_NEO(ISTAya.CopyFS, "Ayanami/Ayanami.CopyTex", "CopyTexPS");
-        REG_VERTEX_NEO(ISTAya.CopyVS, "Ayanami/Ayanami.CopyTex", "CopyTexVS");
-        REG_COMPUTE(ISTAya.DirectShadowVisibilityCS, "Ayanami/Ayanami.DirectionalShadowVisibility");
-        REG_COMPUTE_NEO(ISTAya.GlobalDFRayMarchCS, "Ayanami/Ayanami.Debug.GlobalDFRayMarch", "DebugGlobalDFRayMarchCS");
-        REG_COMPUTE(ISTAya.RayMarchCS, "Ayanami/Ayanami.RayMarch");
+        //// Ayanami
+        //REG_FRAGMENT_NEO(ISTAya.CopyFS, "Ayanami/Ayanami.CopyTex", "CopyTexPS");
+        //REG_VERTEX_NEO(ISTAya.CopyVS, "Ayanami/Ayanami.CopyTex", "CopyTexVS");
+        //REG_COMPUTE(ISTAya.DirectShadowVisibilityCS, "Ayanami/Ayanami.DirectionalShadowVisibility");
+        //REG_COMPUTE_NEO(ISTAya.GlobalDFRayMarchCS, "Ayanami/Ayanami.Debug.GlobalDFRayMarch", "DebugGlobalDFRayMarchCS");
+        //REG_COMPUTE(ISTAya.RayMarchCS, "Ayanami/Ayanami.RayMarch");
 
-        REG_COMPUTE_NEO(ISTAya.TrivialGlobalDFCompCS, "Ayanami/Ayanami.GlobalDF.Build", "GlobalDFBuildCS");
-        REG_MESH(ISTAya.DFShadowTileCullingMS, "Ayanami/Ayanami.DFShadowTileCull");
-        REG_FRAGMENT(ISTAya.DFShadowTileCullingFS, "Ayanami/Ayanami.DFShadowTileCull");
-        REG_FRAGMENT(ISTAya.DFShadowFS, "Ayanami/Ayanami.DFShadow");
-        REG_FRAGMENT_NEO(ISTAya.TestDeferShadingFS, "Ayanami/Ayanami.TestDeferShading", "TestDeferShadingPS");
-        REG_COMPUTE(ISTAya.DFShadowVisibilityCS, "Ayanami/Ayanami.DFShadowVisibility");
-        REG_COMPUTE(ISTAya.ObjectGridCompositionCS, "Ayanami/Ayanami.ObjectGridComposition");
+        //REG_COMPUTE_NEO(ISTAya.TrivialGlobalDFCompCS, "Ayanami/Ayanami.GlobalDF.Build", "GlobalDFBuildCS");
+        //REG_MESH(ISTAya.DFShadowTileCullingMS, "Ayanami/Ayanami.DFShadowTileCull");
+        //REG_FRAGMENT(ISTAya.DFShadowTileCullingFS, "Ayanami/Ayanami.DFShadowTileCull");
+        //REG_FRAGMENT(ISTAya.DFShadowFS, "Ayanami/Ayanami.DFShadow");
+        //REG_FRAGMENT_NEO(ISTAya.TestDeferShadingFS, "Ayanami/Ayanami.TestDeferShading", "TestDeferShadingPS");
+        //REG_COMPUTE(ISTAya.DFShadowVisibilityCS, "Ayanami/Ayanami.DFShadowVisibility");
+        //REG_COMPUTE(ISTAya.ObjectGridCompositionCS, "Ayanami/Ayanami.ObjectGridComposition");
 
-        REG_COMPUTE(ISTAya.RadiosityTraceCS, "Ayanami/Ayanami.RadiosityTrace");
-        REG_COMPUTE(ISTAya.RadiositySHConversionCS, "Ayanami/Ayanami.RadiositySHConversion");
-        REG_COMPUTE_NEO(
-            ISTAya.RadiositySHIntegrateCS, "Ayanami/Ayanami.Radiosity.SHIntegrate", "RadiositySHIntegrateCS");
+        //REG_COMPUTE(ISTAya.RadiosityTraceCS, "Ayanami/Ayanami.RadiosityTrace");
+        //REG_COMPUTE(ISTAya.RadiositySHConversionCS, "Ayanami/Ayanami.RadiositySHConversion");
+        //REG_COMPUTE_NEO(
+        //    ISTAya.RadiositySHIntegrateCS, "Ayanami/Ayanami.Radiosity.SHIntegrate", "RadiositySHIntegrateCS");
 
-        REG_COMPUTE_NEO(ISTAya.SurfaceCacheDirectLightCS, "Ayanami/Ayanami.SurfaceCache.DirectLighting",
-            "SurfaceCacheDirectLightingCS");
-        REG_COMPUTE_NEO(ISTAya.SurfaceCacheCombineLightCS, "Ayanami/Ayanami.SurfaceCache.CombineLighting",
-            "SurfaceCacheCombineLightingCS");
-        REG_FRAGMENT_NEO(ISTAya.SurfaceCacheGenFS, "Ayanami/Ayanami.SurfaceCache.Generate", "SurfaceCacheGeneratePS");
-        REG_VERTEX_NEO(ISTAya.SurfaceCacheGenVS, "Ayanami/Ayanami.SurfaceCache.Generate", "SurfaceCacheGenerateVS");
+        //REG_COMPUTE_NEO(ISTAya.SurfaceCacheDirectLightCS, "Ayanami/Ayanami.SurfaceCache.DirectLighting",
+        //    "SurfaceCacheDirectLightingCS");
+        //REG_COMPUTE_NEO(ISTAya.SurfaceCacheCombineLightCS, "Ayanami/Ayanami.SurfaceCache.CombineLighting",
+        //    "SurfaceCacheCombineLightingCS");
+        //REG_FRAGMENT_NEO(ISTAya.SurfaceCacheGenFS, "Ayanami/Ayanami.SurfaceCache.Generate", "SurfaceCacheGeneratePS");
+        //REG_VERTEX_NEO(ISTAya.SurfaceCacheGenVS, "Ayanami/Ayanami.SurfaceCache.Generate", "SurfaceCacheGenerateVS");
 
-        REG_COMPUTE(ISTAya.ScreenProbeAdaptivePlaceCS, "Ayanami/Ayanami.ScreenProbe.AdaptivePlace");
-        REG_COMPUTE_NEO(ISTAya.ScreenProbeTraceScreenCS, "Ayanami/Ayanami.ScreenProbe.ScreenSpaceTrace",
-            "ScreenProbeScreenSpaceTraceCS");
-        REG_COMPUTE(ISTAya.ScreenProbeMDFCullPrepCS, "Ayanami/Ayanami.ScreenProbe.MDFCullMatPrep");
-        REG_VERTEX(ISTAya.ScreenProbeMDFCullScatterVS, "Ayanami/Ayanami.ScreenProbe.CullMDFToGrids");
-        REG_FRAGMENT(ISTAya.ScreenProbeMDFCullScatterFS, "Ayanami/Ayanami.ScreenProbe.CullMDFToGrids");
-        REG_COMPUTE(ISTAya.ScreenProbeMDFTraceCS, "Ayanami/Ayanami.ScreenProbe.MDFTrace");
-        REG_COMPUTE(ISTAya.ScreenProbeGDFTraceCS, "Ayanami/Ayanami.ScreenProbe.GDFTrace");
-        REG_COMPUTE_NEO(
-            ISTAya.ScreenProbeSHIntegrateCS, "Ayanami/Ayanami.ScreenProbe.IntegrateSH", "ScreenProbeIntegrateSHCS");
-        REG_COMPUTE_NEO(
-            ISTAya.ScreenProbePixelGatherCS, "Ayanami/Ayanami.ScreenProbe.PixelGather", "ScreenProbePixelGatherCS");
-        REG_COMPUTE_NEO(ISTAya.ScreenProbeBorderFixCS, "Ayanami/Ayanami.ScreenProbe.OctMapBorderFix",
-            "ScreenProbeOctMapBorderFixCS");
+        //REG_COMPUTE(ISTAya.ScreenProbeAdaptivePlaceCS, "Ayanami/Ayanami.ScreenProbe.AdaptivePlace");
+        //REG_COMPUTE_NEO(ISTAya.ScreenProbeTraceScreenCS, "Ayanami/Ayanami.ScreenProbe.ScreenSpaceTrace",
+        //    "ScreenProbeScreenSpaceTraceCS");
+        //REG_COMPUTE(ISTAya.ScreenProbeMDFCullPrepCS, "Ayanami/Ayanami.ScreenProbe.MDFCullMatPrep");
+        //REG_VERTEX(ISTAya.ScreenProbeMDFCullScatterVS, "Ayanami/Ayanami.ScreenProbe.CullMDFToGrids");
+        //REG_FRAGMENT(ISTAya.ScreenProbeMDFCullScatterFS, "Ayanami/Ayanami.ScreenProbe.CullMDFToGrids");
+        //REG_COMPUTE(ISTAya.ScreenProbeMDFTraceCS, "Ayanami/Ayanami.ScreenProbe.MDFTrace");
+        //REG_COMPUTE(ISTAya.ScreenProbeGDFTraceCS, "Ayanami/Ayanami.ScreenProbe.GDFTrace");
+        //REG_COMPUTE_NEO(
+        //    ISTAya.ScreenProbeSHIntegrateCS, "Ayanami/Ayanami.ScreenProbe.IntegrateSH", "ScreenProbeIntegrateSHCS");
+        //REG_COMPUTE_NEO(
+        //    ISTAya.ScreenProbePixelGatherCS, "Ayanami/Ayanami.ScreenProbe.PixelGather", "ScreenProbePixelGatherCS");
+        //REG_COMPUTE_NEO(ISTAya.ScreenProbeBorderFixCS, "Ayanami/Ayanami.ScreenProbe.OctMapBorderFix",
+        //    "ScreenProbeOctMapBorderFixCS");
 
-        REG_FRAGMENT_NEO(ISTAya.DeferredShadowFS, "Ayanami/Ayanami.FinalLighting.DirectShadow", "FinalDirectShadowPS");
-        REG_FRAGMENT_NEO(
-            ISTAya.DeferredLightingFS, "Ayanami/Ayanami.FinalLighting.DirectLighting", "FinalDirectLightingPS");
-        REG_FRAGMENT_NEO(
-            ISTAya.DeferredExpMixFS, "Ayanami/Ayanami.FinalLighting.ExperimentalMix", "FinalLightingMixPS");
-        REG_COMPUTE_NEO(ISTAya.TemporalFilterIndirectCS, "Ayanami/Ayanami.FinalLighting.TemporalFilteringIndirect",
-            "FinalLightingTemporalFilteringIndirectCS");
+        //REG_FRAGMENT_NEO(ISTAya.DeferredShadowFS, "Ayanami/Ayanami.FinalLighting.DirectShadow", "FinalDirectShadowPS");
+        //REG_FRAGMENT_NEO(
+        //    ISTAya.DeferredLightingFS, "Ayanami/Ayanami.FinalLighting.DirectLighting", "FinalDirectLightingPS");
+        //REG_FRAGMENT_NEO(
+        //    ISTAya.DeferredExpMixFS, "Ayanami/Ayanami.FinalLighting.ExperimentalMix", "FinalLightingMixPS");
+        //REG_COMPUTE_NEO(ISTAya.TemporalFilterIndirectCS, "Ayanami/Ayanami.FinalLighting.TemporalFilteringIndirect",
+        //    "FinalLightingTemporalFilteringIndirectCS");
 
-        REG_COMPUTE(ISTAya.DbgSampleObjectGridsCS, "Ayanami/Ayanami.Debug.SampleObjectGrids");
-        REG_MESH(ISTAya.DbgVisObjGridsMS, "Ayanami/Ayanami.Debug.VisObjectGrids");
-        REG_FRAGMENT_NEO(ISTAya.DbgVisObjGridsFS, "Ayanami/Ayanami.Debug.VisObjectGrids", "DebugVisObjectGridsPS");
-        REG_COMPUTE_NEO(
-            ISTAya.DbgVisAdaptiveProbeCS, "Ayanami/Ayanami.Debug.AdaptiveProbeLocate", "DebugAdaptiveProbeLocateCS");
-        REG_COMPUTE_NEO(ISTAya.DbgVisScreenUniformProbeCS, "Ayanami/Ayanami.Debug.ScreenUniformProbeVis",
-            "DebugScreenUniformProbeVisCS");
-        REG_COMPUTE_NEO(ISTAya.DbgReconFromSurfaceCacheCS, "Ayanami/Ayanami.Debug.ReconFromSurfaceCache",
-            "DebugReconFromSurfaceCacheCS");
-        REG_COMPUTE_NEO(
-            ISTAya.DbgSampleReconDepthCS, "Ayanami/Ayanami.Debug.SampleReconDepth", "DebugSampleReconDepthCS");
+        //REG_COMPUTE(ISTAya.DbgSampleObjectGridsCS, "Ayanami/Ayanami.Debug.SampleObjectGrids");
+        //REG_MESH(ISTAya.DbgVisObjGridsMS, "Ayanami/Ayanami.Debug.VisObjectGrids");
+        //REG_FRAGMENT_NEO(ISTAya.DbgVisObjGridsFS, "Ayanami/Ayanami.Debug.VisObjectGrids", "DebugVisObjectGridsPS");
+        //REG_COMPUTE_NEO(
+        //    ISTAya.DbgVisAdaptiveProbeCS, "Ayanami/Ayanami.Debug.AdaptiveProbeLocate", "DebugAdaptiveProbeLocateCS");
+        //REG_COMPUTE_NEO(ISTAya.DbgVisScreenUniformProbeCS, "Ayanami/Ayanami.Debug.ScreenUniformProbeVis",
+        //    "DebugScreenUniformProbeVisCS");
+        //REG_COMPUTE_NEO(ISTAya.DbgReconFromSurfaceCacheCS, "Ayanami/Ayanami.Debug.ReconFromSurfaceCache",
+        //    "DebugReconFromSurfaceCacheCS");
+        //REG_COMPUTE_NEO(
+        //    ISTAya.DbgSampleReconDepthCS, "Ayanami/Ayanami.Debug.SampleReconDepth", "DebugSampleReconDepthCS");
 
-        // Common
-        REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");
-        REG_COMPUTE(IST.Common.SinglePassHzbCS, "CommonPass/SinglePassHzb");
+        //// Common
+        //REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");
+        //REG_COMPUTE(IST.Common.SinglePassHzbCS, "CommonPass/SinglePassHzb");
 
-        // PostProcessing
-        REG_FRAGMENT(IST.Postprocess.ACESFS, "Postprocess/ACESToneMapping");
-        REG_COMPUTE(IST.Postprocess.FFTBloomCS, "Postprocess/FFTConv2d");
-        REG_COMPUTE(IST.Postprocess.FFTBloomUpsampleCS, "Postprocess/FFTConv2d.Upsample");
-        REG_FRAGMENT(IST.Postprocess.GaussianHoriFS, "Postprocess/GaussianHori");
-        REG_FRAGMENT(IST.Postprocess.GaussianVertFS, "Postprocess/GaussianVert");
-        REG_COMPUTE(IST.Postprocess.GaussianKernelGenerateCS, "Postprocess/GaussianKernelGenerate");
-        REG_FRAGMENT(IST.Postprocess.GlobalFogFS, "Postprocess/GlobalFog");
-        REG_FRAGMENT(IST.Postprocess.JointBilaterialFilterFS, "Postprocess/JointBilaterialFilter");
-        REG_COMPUTE(IST.Postprocess.StockhamDFT2CS, "Postprocess/StockhamDFT2");
+        //// PostProcessing
+        //REG_FRAGMENT(IST.Postprocess.ACESFS, "Postprocess/ACESToneMapping");
+        //REG_COMPUTE(IST.Postprocess.FFTBloomCS, "Postprocess/FFTConv2d");
+        //REG_COMPUTE(IST.Postprocess.FFTBloomUpsampleCS, "Postprocess/FFTConv2d.Upsample");
+        //REG_FRAGMENT(IST.Postprocess.GaussianHoriFS, "Postprocess/GaussianHori");
+        //REG_FRAGMENT(IST.Postprocess.GaussianVertFS, "Postprocess/GaussianVert");
+        //REG_COMPUTE(IST.Postprocess.GaussianKernelGenerateCS, "Postprocess/GaussianKernelGenerate");
+        //REG_FRAGMENT(IST.Postprocess.GlobalFogFS, "Postprocess/GlobalFog");
+        //REG_FRAGMENT(IST.Postprocess.JointBilaterialFilterFS, "Postprocess/JointBilaterialFilter");
+        //REG_COMPUTE(IST.Postprocess.StockhamDFT2CS, "Postprocess/StockhamDFT2");
 
-        // Postprocessing Vertex
-        REG_VERTEX(IST.PostprocessVertex.CommonVS, "Postprocess/Postproc.Common");
+        //// Postprocessing Vertex
+        //REG_VERTEX(IST.PostprocessVertex.CommonVS, "Postprocess/Postproc.Common");
 
-        // Syaro V1
-        REG_COMPUTE(IST.Syaro.ClassifyMaterialCountCS, "Syaro/Syaro.ClassifyMaterial.Count");
-        REG_COMPUTE(IST.Syaro.ClassifyMaterialReserveCS, "Syaro/Syaro.ClassifyMaterial.Reserve");
-        REG_COMPUTE(IST.Syaro.ClassifyMaterialScatterCS, "Syaro/Syaro.ClassifyMaterial.Scatter");
-        REG_COMPUTE(IST.Syaro.CombineVisBufferCS, "Syaro/Syaro.CombineVisBuffer");
-        REG_FRAGMENT(IST.Syaro.DeferredShadingFS, "Syaro/Syaro.DeferredShading");
-        REG_VERTEX(IST.Syaro.DeferredShadingVS, "Syaro/Syaro.DeferredShading");
-        REG_FRAGMENT(IST.Syaro.DeferredShadowingFS, "Syaro/Syaro.DeferredShadow");
-        REG_VERTEX(IST.Syaro.DeferredShadowingVS, "Syaro/Syaro.DeferredShadow");
-        REG_COMPUTE(IST.Syaro.EmitDepthTargetCS, "Syaro/Syaro.EmitDepthTarget");
-        REG_COMPUTE(IST.Syaro.EmitGBufferCS, "Syaro/Syaro.EmitGBuffer.Default");
-        REG_COMPUTE(IST.Syaro.InstanceCullingCS, "Syaro/Syaro.InstanceCulling");
-        REG_COMPUTE(IST.Syaro.PersistentCullingCS, "Syaro/Syaro.PersistentCulling");
-        REG_COMPUTE(IST.Syaro.PbrAtmoRenderCS, "Syaro/Syaro.PbrAtmoRender");
-        REG_COMPUTE(IST.Syaro.SoftRasterizeCS, "Syaro/Syaro.SoftRasterize");
-        REG_FRAGMENT(IST.Syaro.TAAFS, "Syaro/Syaro.TAA");
-        REG_VERTEX(IST.Syaro.TAAVS, "Syaro/Syaro.TAA");
-        REG_FRAGMENT(IST.Syaro.TriangleViewFS, "Syaro/Syaro.TriangleView");
-        REG_VERTEX(IST.Syaro.TriangleViewVS, "Syaro/Syaro.TriangleView");
-        REG_FRAGMENT(IST.Syaro.VisBufferFS, "Syaro/Syaro.VisBuffer");
-        REG_MESH(IST.Syaro.VisBufferMS, "Syaro/Syaro.VisBuffer");
-        REG_MESH(IST.Syaro.VisBufferDepthMS, "Syaro/Syaro.VisBufferDepth");
+        //// Syaro V1
+        //REG_COMPUTE(IST.Syaro.ClassifyMaterialCountCS, "Syaro/Syaro.ClassifyMaterial.Count");
+        //REG_COMPUTE(IST.Syaro.ClassifyMaterialReserveCS, "Syaro/Syaro.ClassifyMaterial.Reserve");
+        //REG_COMPUTE(IST.Syaro.ClassifyMaterialScatterCS, "Syaro/Syaro.ClassifyMaterial.Scatter");
+        //REG_COMPUTE(IST.Syaro.CombineVisBufferCS, "Syaro/Syaro.CombineVisBuffer");
+        //REG_FRAGMENT(IST.Syaro.DeferredShadingFS, "Syaro/Syaro.DeferredShading");
+        //REG_VERTEX(IST.Syaro.DeferredShadingVS, "Syaro/Syaro.DeferredShading");
+        //REG_FRAGMENT(IST.Syaro.DeferredShadowingFS, "Syaro/Syaro.DeferredShadow");
+        //REG_VERTEX(IST.Syaro.DeferredShadowingVS, "Syaro/Syaro.DeferredShadow");
+        //REG_COMPUTE(IST.Syaro.EmitDepthTargetCS, "Syaro/Syaro.EmitDepthTarget");
+        //REG_COMPUTE(IST.Syaro.EmitGBufferCS, "Syaro/Syaro.EmitGBuffer.Default");
+        //REG_COMPUTE(IST.Syaro.InstanceCullingCS, "Syaro/Syaro.InstanceCulling");
+        //REG_COMPUTE(IST.Syaro.PersistentCullingCS, "Syaro/Syaro.PersistentCulling");
+        //REG_COMPUTE(IST.Syaro.PbrAtmoRenderCS, "Syaro/Syaro.PbrAtmoRender");
+        //REG_COMPUTE(IST.Syaro.SoftRasterizeCS, "Syaro/Syaro.SoftRasterize");
+        //REG_FRAGMENT(IST.Syaro.TAAFS, "Syaro/Syaro.TAA");
+        //REG_VERTEX(IST.Syaro.TAAVS, "Syaro/Syaro.TAA");
+        //REG_FRAGMENT(IST.Syaro.TriangleViewFS, "Syaro/Syaro.TriangleView");
+        //REG_VERTEX(IST.Syaro.TriangleViewVS, "Syaro/Syaro.TriangleView");
+        //REG_FRAGMENT(IST.Syaro.VisBufferFS, "Syaro/Syaro.VisBuffer");
+        //REG_MESH(IST.Syaro.VisBufferMS, "Syaro/Syaro.VisBuffer");
+        //REG_MESH(IST.Syaro.VisBufferDepthMS, "Syaro/Syaro.VisBufferDepth");
 
-        // Neo
-        REG_COMPUTE_NEO(ISTNeo.TestCS, "TestCS", "TestCS");
+        //// Neo
+        //REG_COMPUTE_NEO(ISTNeo.TestCS, "TestCS", "TestCS");
 
-        // Base Forward
-        REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");
-        REG_FRAGMENT_NEO(IST.BaseForward.ForwardPS, "BaseForward/Forward.Default", "BaseForwardPS");
+        //// Base Forward
+        //REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");
+        //REG_FRAGMENT_NEO(IST.BaseForward.ForwardPS, "BaseForward/Forward.Default", "BaseForwardPS");
 
         // Siro
         RegisterRuntimeInternalShadersSiro(shaderRegistry);

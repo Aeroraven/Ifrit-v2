@@ -263,6 +263,8 @@ namespace Ifrit::RHI::VulkanAdapter
             const Vec<RHI::RhiTaskSubmission*>& waitOn, const Vec<RHI::RhiTaskSubmission*>& toIssue) override;
 
         void                          HostWaitEvent(RHI::RhiTaskSubmission* event) override;
+
+        virtual RhiRawHandle          GetRawHandle() const override;
     };
 
     class IFRIT_APIDECL QueueCollections
