@@ -6,6 +6,8 @@
 #include "ifrit/runtime/base/Property.h"
 #include "ifrit/runtime/base/Scene.h"
 
+#include "glfw/glfw3.h"
+
 #define IMGUI_API IFRIT_APIDECL_IMPORT
 
 namespace Ifrit::UI
@@ -61,6 +63,8 @@ namespace Ifrit::UI
         (void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+        io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
         io.DisplaySize.x           = projectProperty.m_width;
         io.DisplaySize.y           = projectProperty.m_height;
@@ -106,6 +110,9 @@ namespace Ifrit::UI
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        ImGui::Begin("Goodbye, world!");
+
+        ImGui::End();
         ImGui::Begin("Hello, world!");
         // ImGui::Text("This is some useful text.");
     }
@@ -136,6 +143,14 @@ namespace Ifrit::UI
         auto        dq             = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Graphics);
         auto        swapchainImage = rhi->GetSwapchainImage();
         auto        swapchainView  = reinterpret_cast<VkImageView>(swapchainImage->GetRawHandle_DefaultView());
+
+        // http://zhuanlan.zhihu.com/p/293067607
+        ImGuiIO&    io = ImGui::GetIO();
+        if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+        {
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
+        }
 
         return dq->RunAsyncCommand(
             [draw_data, swapchainView](const RHI::RhiCommandList* cmd) {

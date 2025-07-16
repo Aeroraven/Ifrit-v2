@@ -85,11 +85,6 @@ namespace Ifrit::Display::Window
         static int frameCount = 0;
         while (!glfwWindowShouldClose(window))
         {
-            {
-                int width, height;
-                glfwGetFramebufferSize(window, &width, &height);
-                //iDebug("Ptr:{} Framebuffer size:  {}x{}", (void*)window, width, height);
-            }
             int  repCore = -1;
             auto start   = std::chrono::high_resolution_clock::now();
             funcs(&repCore);
