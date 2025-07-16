@@ -162,6 +162,8 @@ namespace Ifrit::RHI
         virtual RhiImageFormat          GetImageFormat() const  = 0;
         virtual u32                     GetUsage() const        = 0;
 
+        virtual RhiRawHandle            GetRawHandle_DefaultView() const = 0;
+
         friend class RhiCommandList;
     };
 

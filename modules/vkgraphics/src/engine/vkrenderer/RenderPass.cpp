@@ -30,11 +30,16 @@ namespace Ifrit::RHI::VulkanAdapter
     }
     // Class : SwapchainImageResource
 
-    IFRIT_APIDECL VkFormat    SwapchainImageResource::GetFormat() const { return m_swapchain->GetPreferredFormat(); }
+    IFRIT_APIDECL VkFormat     SwapchainImageResource::GetFormat() const { return m_swapchain->GetPreferredFormat(); }
 
-    IFRIT_APIDECL VkImage     SwapchainImageResource::GetImage() const { return m_swapchain->GetCurrentImage(); }
+    IFRIT_APIDECL VkImage      SwapchainImageResource::GetImage() const { return m_swapchain->GetCurrentImage(); }
 
-    IFRIT_APIDECL VkImageView SwapchainImageResource::GetImageView() { return m_swapchain->GetCurrentImageView(); }
+    IFRIT_APIDECL VkImageView  SwapchainImageResource::GetImageView() { return m_swapchain->GetCurrentImageView(); }
+
+    IFRIT_APIDECL RhiRawHandle SwapchainImageResource::GetRawHandle_DefaultView() const
+    {
+        return m_swapchain->GetCurrentImageView();
+    }
 
     IFRIT_APIDECL VkImageView SwapchainImageResource::GetImageViewMipLayer(
         uint32_t mip, uint32_t layer, uint32_t mipRange, uint32_t layerRange)

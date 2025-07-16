@@ -853,8 +853,11 @@ namespace Ifrit::RHI::VulkanAdapter
         auto exfun = m_context->GetExtensionFunction();
         vkCmdSetCullMode(m_commandBuffer, cullMode);
     }
+
+    IFRIT_APIDECL RhiRawHandle CommandBuffer::GetRawHandle() const { return m_commandBuffer; }
+
     // Class: Queue
-    IFRIT_APIDECL DeviceQueue::DeviceQueue(
+    IFRIT_APIDECL              DeviceQueue::DeviceQueue(
         EngineContext* ctx, VkQueue queue, u32 family, VkQueueFlags capability, u32 m_InFlightFrames)
         : m_context(ctx)
         , m_queue(queue)
@@ -1078,10 +1081,12 @@ namespace Ifrit::RHI::VulkanAdapter
             "Failed to wait for semaphore");
     }
 
-    RhiRawHandle       DeviceQueue::GetRawHandle() const { return m_queue; }
+    IFRIT_APIDECL RhiRawHandle DeviceQueue::GetRawHandle() const { return m_queue; }
+
+    IFRIT_APIDECL u32          DeviceQueue::GetRawHandle_Family() const { return m_queueFamily; }
 
     // Queue Collections
-    IFRIT_APIDECL void QueueCollections::LoadQueues(u32 numFramesInFlight)
+    IFRIT_APIDECL void         QueueCollections::LoadQueues(u32 numFramesInFlight)
     {
         auto& queueData = m_context->GetQueueInfo();
         for (int i = 0; i < queueData.m_allQueues.size(); i++)

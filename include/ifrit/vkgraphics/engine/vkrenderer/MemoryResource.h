@@ -196,8 +196,9 @@ namespace Ifrit::RHI::VulkanAdapter
         {
             return static_cast<RHI::RhiImageFormat>(m_format);
         }
-        virtual u32  GetUsage() const override { return m_createInfo.usage; }
-        virtual void SetDebugName(const String& name) override;
+        virtual u32                 GetUsage() const override { return m_createInfo.usage; }
+        virtual void                SetDebugName(const String& name) override;
+        inline virtual RhiRawHandle GetRawHandle_DefaultView() const override { return m_imageView; }
     };
 
     struct SamplerCreateInfo

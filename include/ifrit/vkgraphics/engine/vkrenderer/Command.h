@@ -193,7 +193,9 @@ namespace Ifrit::RHI::VulkanAdapter
             RHI::RhiImageSubResource dstSub) const override;
         void CopyBufferToImage(
             const RHI::RhiBuffer* src, const RHI::RhiTexture* dst, RHI::RhiImageSubResource dstSub) const override;
-        void SetCullMode(RHI::RhiCullMode mode) const override;
+        void         SetCullMode(RHI::RhiCullMode mode) const override;
+
+        RhiRawHandle GetRawHandle() const override;
     };
 
     class IFRIT_APIDECL CommandPool : NonCopyable
@@ -265,6 +267,7 @@ namespace Ifrit::RHI::VulkanAdapter
         void                          HostWaitEvent(RHI::RhiTaskSubmission* event) override;
 
         virtual RhiRawHandle          GetRawHandle() const override;
+        virtual u32                   GetRawHandle_Family() const override;
     };
 
     class IFRIT_APIDECL QueueCollections

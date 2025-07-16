@@ -39,7 +39,14 @@ namespace Ifrit::Runtime
     Component::Component(Ref<GameObject> parent) : m_parentObject(parent), m_parentObjectRaw(parent.get())
     {
         GenerateUuid(m_id.m_uuid);
+        IntializeComponent();
     }
+
+    IFRIT_APIDECL void Component::IntializeComponent()
+    {
+        // SetupProperties();
+    }
+
     IFRIT_APIDECL void GameObject::Initialize(ComponentManager* manager)
     {
         m_componentManager = manager;
@@ -85,6 +92,21 @@ namespace Ifrit::Runtime
         }
     }
 
+    IFRIT_APIDECL void Component::CallPropertyEditorHandle()
+    {
+        // iDebug("Num properties: {}", m_Property.size());
+        if (!m_PropertyRegistered)
+        {
+            m_PropertyRegistered = true;
+            SetupProperties();
+        }
+
+        for (auto& prop : m_Property)
+        {
+            prop.RegisterEditorHandle();
+        }
+    }
+
     IFRIT_APIDECL      ComponentManager::ComponentManager() {}
 
     IFRIT_APIDECL void ComponentManager::RequestRemove(Component* component)
@@ -125,7 +147,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL Matrix4x4f Transform::GetModelToWorldMatrix()
     {
-        Matrix4x4f model = Identity<f32,4>();
+        Matrix4x4f model = Identity<f32, 4>();
         model            = MatMul(Scale3D(m_attributes.m_scale), model);
         model            = MatMul(EulerAngleToMatrix(m_attributes.m_rotation), model);
         model            = MatMul(Translate3D(m_attributes.m_position), model);
@@ -134,7 +156,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL Matrix4x4f Transform::GetModelToWorldMatrixLast()
     {
-        Matrix4x4f model = Identity<f32,4>();
+        Matrix4x4f model = Identity<f32, 4>();
         model            = MatMul(Scale3D(m_lastFrame.m_scale), model);
         model            = MatMul(EulerAngleToMatrix(m_lastFrame.m_rotation), model);
         model            = MatMul(Translate3D(m_lastFrame.m_position), model);

@@ -27,9 +27,6 @@ namespace MPM{
                              uint3 GroupId:SV_GroupID,
                              uint3 GroupThreadId:SV_GroupThreadID)
     {
-        // Step2. compute grid velocities
-        // Step3. identify grid degree of freedoms
-
         FDenseGridStructure Grid = PushConst.m_Grid.Load();
         int TotalGrids = Grid.GetTotalGridCount();
 

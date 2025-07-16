@@ -66,7 +66,7 @@ namespace Ifrit::Runtime
         u32                        m_rhiGraphicsQueueCount   = 1;
         u32                        m_rhiTransferQueueCount   = 1;
         u32                        m_rhiComputeQueueCount    = 1;
-        u32                        m_rhiNumBackBuffers       = 3;
+        u32                        m_rhiNumBackBuffers       = 2;
         u32                        m_rhiDebugMode            = 0;
         AppShaderOptimizationLevel m_shaderOptimizationLevel = AppShaderOptimizationLevel::Performance;
 

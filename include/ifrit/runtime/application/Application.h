@@ -27,6 +27,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/scene/SceneManager.h"
 #include "ifrit/runtime/util/TimingRecorder.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
+#include "ifrit/runtime/util/RendererWrapper.h"
+
+#include "ifrit/runtime/application/Subsystem.h"
 
 namespace Ifrit::Runtime
 {
@@ -39,6 +42,7 @@ namespace Ifrit::Runtime
     protected:
         Owner<RhiBackend>         m_rhiLayer; // should be destroyed last
         Ref<SharedRenderResource> m_SharedRenderResource;
+        Ref<RendererWrapper>      m_RendererWrapper;
         Ref<SceneManager>         m_sceneManager;
         Ref<AssetManager>         m_assetManager;
         Ref<SceneAssetManager>    m_sceneAssetManager;
@@ -47,6 +51,11 @@ namespace Ifrit::Runtime
         Owner<WindowProvider>     m_windowProvider;
         Ref<ShaderRegistry>       m_shaderRegistry;
         ProjectProperty           m_info;
+
+        Vec<Owner<ISubsystem>>    m_Subsystems;
+
+        // for legacy compatibility
+        bool                      m_EnableRendererWrapper = false;
 
     private:
         void        Start();
@@ -67,5 +76,10 @@ namespace Ifrit::Runtime
         inline const ProjectProperty&        GetProjectProperty() const override { return m_info; }
         inline ShaderRegistry*               GetShaderRegistry() override { return m_shaderRegistry.get(); }
         inline virtual SharedRenderResource* GetSharedRenderResource() override { return m_SharedRenderResource.get(); }
+
+        inline virtual RendererWrapper*      GetRendererWrapper() override { return m_RendererWrapper.get(); }
+
+        void                                 RegisterSubsystem(Owner<ISubsystem> subsystem);
+        void                                 EnableRendererWrapper(bool enable);
     };
 } // namespace Ifrit::Runtime

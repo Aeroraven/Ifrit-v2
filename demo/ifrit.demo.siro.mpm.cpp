@@ -2,6 +2,18 @@
     #define IFRIT_DLL
 #endif
 
+#ifndef IFRIT_DEMO_ASSET_PATH
+    #define IFRIT_DEMO_ASSET_PATH ""
+#endif
+
+#ifndef IFRIT_DEMO_CACHE_PATH
+    #define IFRIT_DEMO_CACHE_PATH ""
+#endif
+
+#ifndef IFRIT_DEMO_SCENE_PATH
+    #define IFRIT_DEMO_SCENE_PATH ""
+#endif
+
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/core/typing/Util.h"
@@ -13,6 +25,8 @@
 #include "ifrit/geomproc/vdb/VdbSampler.h"
 #include "ifrit/geomproc/pointcloud/PointCloudTransforms.h"
 #include "ifrit/runtime/physics/siro/mpm/MPMSimulator.h"
+
+#include "ifrit/ui/UIProviderHelper.h"
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -26,7 +40,26 @@ using namespace Ifrit::GeometryProc;
 
 namespace Ifrit
 {
-    class DemoApplicationAyanami : public Runtime::Application
+    static f32 sTimestep = 1.0f / 1500.0f;
+
+    class MpmConfigurator : public ActorBehavior
+    {
+        using ActorBehavior::ActorBehavior;
+
+    private:
+        typedef ActorBehavior Super;
+        f32                   m_InvTimestep = 1500.0f;
+
+    public:
+        void SetupProperties() override
+        {
+            AddProperty<f32, EPropertyEditorType::Range>("Time Interval", m_InvTimestep, 500.0f, 5000.0f, 0.001f);
+        }
+
+        void OnUpdate() override { sTimestep = 1.0f / m_InvTimestep; }
+    };
+
+    class DemoApplicationMpm : public Runtime::Application
     {
     private:
         RhiScissor                                   scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
@@ -57,6 +90,9 @@ namespace Ifrit
             renderer = MakeRef<BaseForwardRenderer>(this);
             m_MpmSim = MakeRef<Siro::MPMSimulator>();
 
+            RegisterSubsystem(UI::CreateUIProvider(UI::EUIProviderType::ImGui));
+            EnableRendererWrapper(true);
+
             {
                 auto vdbFileData = Ifrit::ReadBinaryFile(IFRIT_DEMO_ASSET_PATH "/bunny.vdb");
                 auto vdbDesc     = VDB::LoadVdbFromString(vdbFileData);
@@ -76,14 +112,16 @@ namespace Ifrit
             renderConfig.m_AntiAliasingType           = AntiAliasingType::None;
             renderConfig.m_OverrideMaterialCulling    = OverrideMaterialCulling::ForcedCullNone;
 
-            auto scene = m_sceneAssetManager->CreateScene("TestScene2");
-            auto node  = scene->AddSceneNode();
-
+            auto scene               = m_sceneAssetManager->CreateScene("TestScene2");
+            auto node                = scene->AddSceneNode();
             m_FrameGraphCompiler     = MakeRef<FrameGraphCompiler>();
             m_FrameGraphExecutor     = MakeRef<FrameGraphExecutor>(GetRhi());
             m_FrameGraphResourcePool = MakeRef<FrameGraphResourcePool>(GetRhi());
 
-            auto cameraGameObject = node->AddGameObject("camera");
+            auto configurator = node->AddGameObject("Configurator");
+            configurator->AddComponent<MpmConfigurator>();
+
+            auto cameraGameObject = node->AddGameObject("Camera");
             auto camera           = cameraGameObject->AddComponent<Camera>();
             camera->SetCameraType(CameraType::Perspective);
             camera->SetMainCamera(true);
@@ -98,7 +136,7 @@ namespace Ifrit
 
             auto material = MakeRef<SyaroDefaultGBufEmitter>(this);
             material->BuildMaterial();
-            auto meshingObject    = node->AddGameObject("meshing");
+            auto meshingObject    = node->AddGameObject("Meshing");
             m_ParticleSurfaceMesh = MakeRef<Geometry::ParticleSurfaceProceduralMesh>();
             m_ParticleSurfaceMesh->Init(GetRhi(), 2145141, 2145141, Vector4i(200, 200, 200, 0),
                 Vector3f(-0.01f, -0.01f, -0.01f), Vector3f(1.01f, 1.01f, 1.01f));
@@ -108,7 +146,7 @@ namespace Ifrit
             meshRenderer->SetMaterial(material);
 
             // Render targets
-            auto rt         = m_rhiLayer.get();
+            auto rt         = GetRhi();
             depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
             swapchainImg    = rt->GetSwapchainImage();
             renderTargets   = rt->CreateRenderTargets();
@@ -121,6 +159,8 @@ namespace Ifrit
             renderTargets->SetRenderArea(scissor);
 
             m_sceneManager->SetActiveScene(scene);
+
+            m_RendererWrapper->SetRenderer(renderer.get());
         }
 
         void OnUpdate() override
@@ -131,38 +171,25 @@ namespace Ifrit
                 Siro::MPMParticleEmitArgs args;
                 args.m_MaterialType = Siro::MPMSimulatorParticleType::Jelly;
                 // m_MpmSim->EmitParticles<3>(m_PointClouds, args);
-                //  m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
+                // m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
             }
-            auto scene       = m_sceneManager->GetActiveScene();
-            auto sFrameStart = renderer->BeginFrame();
 
-            auto rhi = GetRhi();
-            auto dq  = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Graphics);
             m_ParticleSurfaceMesh->SetParticleData(
                 m_MpmSim->GetParticlePositionBuffer(), m_MpmSim->GetParticleCounterBuffer());
 
-            auto task = dq->RunAsyncCommand(
-                [&](const RhiCommandList* cmd) {
-                    FrameGraphBuilder builder(GetShaderRegistry(), GetRhi(), m_FrameGraphResourcePool.get());
-                    auto              rt = builder.ImportTexture("Demo_Swapchain", swapchainImg);
-                    m_MpmSim->RunSolverStep(builder, 1.0f / 1500.0f);
-                    m_MpmSim->Render(builder, &rt);
-                    // m_ParticleSurfaceMesh->UpdateMesh(builder);
-
-                    auto fg = m_FrameGraphCompiler->Compile(builder);
-                    m_FrameGraphExecutor->ExecuteInSingleCmd(cmd, fg);
+            m_RendererWrapper->EnqueueRDGTask(
+                [&](FrameGraphBuilder* builder) {
+                    auto rt = &builder->ImportTexture("Demo_Swapchain", swapchainImg);
+                    m_MpmSim->RunSolverStep(*builder, sTimestep);
+                    // iDebug("Timestep: {}", sTimestep);
+                    m_MpmSim->Render(*builder, rt);
                 },
-                { sFrameStart.get() }, {});
+                m_FrameGraphResourcePool.get());
 
             if (0)
             {
-                auto renderComplete =
-                    renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { task.get() });
-                renderer->EndFrame({ renderComplete.get() });
-            }
-            else
-            {
-                renderer->EndFrame({ task.get() });
+                m_RendererWrapper->EnqueueRendererTask(
+                    m_sceneManager->GetActiveScene().get(), nullptr, renderTargets.get(), renderConfig);
             }
         }
 
@@ -175,21 +202,17 @@ int main()
     using namespace Ifrit;
 
     Runtime::ProjectProperty info;
-    info.m_assetPath             = IFRIT_DEMO_ASSET_PATH;
-    info.m_scenePath             = IFRIT_DEMO_SCENE_PATH;
-    info.m_displayProvider       = Runtime::AppDisplayProvider::GLFW;
-    info.m_rhiType               = Runtime::AppRhiType::Vulkan;
-    info.m_width                 = WINDOW_WIDTH;
-    info.m_height                = WINDOW_HEIGHT;
-    info.m_rhiComputeQueueCount  = 1;
-    info.m_rhiGraphicsQueueCount = 1;
-    info.m_rhiTransferQueueCount = 1;
-    info.m_rhiNumBackBuffers     = 2;
-    info.m_name                  = "Ifrit-v2";
-    info.m_cachePath             = IFRIT_DEMO_CACHE_PATH;
-    info.m_rhiDebugMode          = true;
+    info.m_assetPath       = IFRIT_DEMO_ASSET_PATH;
+    info.m_scenePath       = IFRIT_DEMO_SCENE_PATH;
+    info.m_displayProvider = Runtime::AppDisplayProvider::GLFW;
+    info.m_rhiType         = Runtime::AppRhiType::Vulkan;
+    info.m_width           = WINDOW_WIDTH;
+    info.m_height          = WINDOW_HEIGHT;
+    info.m_name            = "Ifrit-v2";
+    info.m_cachePath       = IFRIT_DEMO_CACHE_PATH;
+    info.m_rhiDebugMode    = true;
 
-    DemoApplicationAyanami app;
+    DemoApplicationMpm app;
     app.Run(info);
     return 0;
 }

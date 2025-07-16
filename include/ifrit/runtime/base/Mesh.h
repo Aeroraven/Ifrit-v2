@@ -282,6 +282,8 @@ namespace Ifrit::Runtime
         virtual ~MeshFilter() = default;
         inline String Serialize() override { return ""; }
         inline void   Deserialize() override {}
+        inline void   SetupProperties() override {}
+
         void          LoadMesh();
         inline void   SetMesh(Ref<Mesh> p)
         {
@@ -323,6 +325,7 @@ namespace Ifrit::Runtime
         virtual ~MeshRenderer() = default;
         inline String        Serialize() override { return ""; }
         inline void          Deserialize() override {}
+        inline void          SetupProperties() override {}
         inline Ref<Material> GetMaterial() { return m_material; }
         inline void          SetMaterial(Ref<Material> p) { m_material = p; }
 

@@ -53,7 +53,7 @@ private:
 
 public:
     void SetInputSystem(InputSystem* inputSystem) { m_inputSystem = inputSystem; }
-
+    inline void SetupProperties() override {}
     void OnUpdate() override
     {
         auto scale       = 0.12f;

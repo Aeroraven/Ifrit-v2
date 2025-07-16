@@ -73,7 +73,9 @@ namespace Ifrit::RHI
             RhiImageSubResource dstSub) const                                                                       = 0;
         virtual void CopyBufferToImage(
             const RhiBuffer* src, const RhiTexture* dst, RhiImageSubResource dstSub) const = 0;
-        virtual void SetCullMode(RhiCullMode mode) const                                   = 0;
+        virtual void         SetCullMode(RhiCullMode mode) const                           = 0;
+
+        virtual RhiRawHandle GetRawHandle() const = 0;
     };
 
     class IFRIT_APIDECL RhiQueue
@@ -95,6 +97,7 @@ namespace Ifrit::RHI
         virtual void                     HostWaitEvent(RhiTaskSubmission* event) = 0;
 
         // Raw Handle
-        virtual RhiRawHandle             GetRawHandle() const = 0;
+        virtual RhiRawHandle             GetRawHandle() const        = 0;
+        virtual u32                      GetRawHandle_Family() const = 0;
     };
 } // namespace Ifrit::RHI

@@ -36,6 +36,7 @@ namespace Ifrit::Runtime::Ayanami
 
         inline String Serialize() override { return ""; }
         inline void   Deserialize() override {}
+        inline void   SetupProperties() override {}
 
     public:
         IF_FORCEINLINE u32  GetTrivialMeshCardIndex() const { return m_TrivialMeshCardIndex; }

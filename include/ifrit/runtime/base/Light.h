@@ -39,11 +39,12 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL Light : public Component, public AttributeOwner<LightData>
     {
     public:
-        Light(){};
+        Light() {};
         Light(Ref<GameObject> owner) : Component(owner), AttributeOwner() {}
         virtual ~Light() = default;
         inline String    Serialize() override { return SerializeAttribute(); }
         inline void      Deserialize() override { DeserializeAttribute(); }
+        inline void      SetupProperties() override {}
 
         // getters
         inline LightType GetType() const { return m_attributes.m_type; }

@@ -15,7 +15,7 @@ file(GLOB_RECURSE IFRIT_CORELIB_HEADER_FILES ${IFRIT_PROJECT_DIR}"/include/ifrit
 add_definitions(-DIFRIT_DLL)
 add_definitions(-DIFRIT_API_EXPORT)
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.UI")
-add_definitions(-DIFRIT_MODULE_RUNTIME)
+add_definitions(-DIFRIT_MODULE_UI)
 
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/imgui)
 
@@ -41,5 +41,6 @@ target_link_libraries(ifrit.ui
 	ifrit.core 
 	ifrit.imaging
 	ifrit.external.imgui
+	ifrit.runtime
 	${FSR2_API_LIBRARIES}
 	${IFRIT_COMMON_DEPENDENCIES_SHARED})

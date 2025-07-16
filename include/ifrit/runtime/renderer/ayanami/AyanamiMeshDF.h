@@ -70,6 +70,7 @@ namespace Ifrit::Runtime::Ayanami
 
         inline std::string Serialize() override { return ""; }
         inline void        Deserialize() override {}
+        inline void        SetupProperties() override {}
 
     public:
         void            BuildMeshDF(const std::string_view& cachePath, Vector3u sdfSize = Vector3u(~0u, ~0u, ~0u));

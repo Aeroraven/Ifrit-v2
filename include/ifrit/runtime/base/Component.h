@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "AssetReference.h"
 #include "ifrit/runtime/common/Pch.h"
+#include "ifrit/runtime/base/Property.h"
 
 #include <typeinfo>
 
@@ -127,7 +128,7 @@ namespace Ifrit::Runtime
         GameObject();
         virtual ~GameObject();
         void                      Initialize(ComponentManager* manager);
-
+        inline String             GetName() const { return m_name; }
         static Ref<GameObject>    CreatePrefab(IComponentManagerKeeper* managerKeeper);
 
         template <class T> Ref<T> AddComponent()
@@ -195,24 +196,41 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL Component : public Ifrit::NonCopyable
     {
     protected:
-        ComponentIdentifier       m_id;
-        std::weak_ptr<GameObject> m_parentObject;
-        bool                      m_isEnabled         = true;
-        bool                      m_shouldInvokeStart = true;
-        bool                      m_shouldInvokeAwake = true;
+        ComponentIdentifier        m_id;
+        std::weak_ptr<GameObject>  m_parentObject;
+        Vec<ComponentPropertyBase> m_Property;
+        bool                       m_PropertyRegistered = false;
+
+        bool                       m_isEnabled         = true;
+        bool                       m_shouldInvokeStart = true;
+        bool                       m_shouldInvokeAwake = true;
 
     private:
         GameObject*                m_parentObjectRaw = nullptr;
         inline ComponentIdentifier GetMetaData() { return m_id; }
         friend class ComponentManager;
 
+    protected:
+        template <typename T, EPropertyEditorType E, typename... Args>
+        inline void AddProperty(const char* name, T& value, Args&&... args)
+        {
+            m_Property.push_back(
+                ComponentProperty<T, E>(name, value, PropertyConstraint<E, T>(std::forward<Args>(args)...)));
+        }
+
+        inline virtual void AddProperty(ComponentPropertyBase prop) final { m_Property.push_back(prop); }
+
     public:
-        Component(){}; // for deserializatioin
+        virtual void CallPropertyEditorHandle();
+
+    public:
+        Component() { IntializeComponent(); }; // for deserializatioin
         Component(Ref<GameObject> parentObject);
         virtual ~Component() = default;
 
         virtual String               Serialize()   = 0;
         virtual void                 Deserialize() = 0;
+        virtual void                 IntializeComponent();
 
         virtual void                 OnFrameCollecting() {}
         virtual void                 OnAwake() {}
@@ -220,6 +238,8 @@ namespace Ifrit::Runtime
         virtual void                 OnFixedUpdate() {}
         virtual void                 OnUpdate() {}
         virtual void                 OnEnd() {}
+
+        virtual void                 SetupProperties() = 0;
 
         inline void                  SetName(const String& name) { m_id.m_name = name; }
         virtual void                 SetAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>>& out) {}
@@ -268,11 +288,13 @@ namespace Ifrit::Runtime
         } m_dirty;
 
     public:
-        Transform(){};
+        Transform() {};
         Transform(Ref<GameObject> parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
 
         String      Serialize() override { return SerializeAttribute(); }
         void        Deserialize() override { DeserializeAttribute(); }
+
+        inline void SetupProperties() override {}
 
         inline void OnFrameCollecting()
         {

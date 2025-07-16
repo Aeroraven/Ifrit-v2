@@ -85,6 +85,7 @@ namespace Ifrit::Runtime::Siro
 
         String       Serialize() override { return SerializeAttribute(); }
         void         Deserialize() override { DeserializeAttribute(); }
+        inline void SetupProperties() override {}
 
         virtual void RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime) override;
 

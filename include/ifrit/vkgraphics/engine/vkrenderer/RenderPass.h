@@ -71,13 +71,15 @@ namespace Ifrit::RHI::VulkanAdapter
             m_isSwapchainImage = true;
         }
         virtual ~SwapchainImageResource() {}
-        virtual u32         GetWidth() const override { return m_swapchain->GetWidth(); }
-        virtual u32         GetHeight() const override { return m_swapchain->GetHeight(); }
-        virtual VkFormat    GetFormat() const override;
-        virtual VkImage     GetImage() const override;
-        virtual VkImageView GetImageView() override;
-        virtual VkImageView GetImageViewMipLayer(u32 mip, u32 layer, u32 mipRange, u32 layerRange) override;
-        inline void         ForceResetState() { m_state = RHI::RhiResourceState::Undefined; }
+        virtual u32          GetWidth() const override { return m_swapchain->GetWidth(); }
+        virtual u32          GetHeight() const override { return m_swapchain->GetHeight(); }
+        virtual VkFormat     GetFormat() const override;
+        virtual VkImage      GetImage() const override;
+        virtual VkImageView  GetImageView() override;
+        virtual VkImageView  GetImageViewMipLayer(u32 mip, u32 layer, u32 mipRange, u32 layerRange) override;
+        inline void          ForceResetState() { m_state = RHI::RhiResourceState::Undefined; }
+
+        virtual RhiRawHandle GetRawHandle_DefaultView() const override;
     };
 
     struct RenderPassResourceTransition

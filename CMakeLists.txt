@@ -15,11 +15,23 @@ function(set_targets_folder folder_name group_name)
 endfunction()
 
 function(ifrit_add_dependency dependency_name)
+    if(MSVC)
+        add_compile_options(/MP)
+        add_compile_options(/Ob2)
+        add_compile_options(/Ot)
+        add_compile_options(/Oi)
+    endif()
     message(STATUS "[Ifrit.Build.Dependencies] Adding dependency ${dependency_name}")
     add_subdirectory(dependencies/${dependency_name})
 endfunction()
 
 function(ifrit_add_core_component component_name)
+    if(MSVC)
+        add_compile_options(/MP)
+        add_compile_options(/Ob2)
+        add_compile_options(/Ot)
+        add_compile_options(/Oi)
+    endif()
     message(STATUS "[Ifrit.Build.Core] Adding core component ${component_name}")
     add_subdirectory(modules/${component_name})
 endfunction()
@@ -43,8 +55,15 @@ set(IFRIT_THIRDPARTH_INSTALL_DIR ${IFRIT_BASE_PATH}/build_thirdparty/)
 set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
 set(IFRIT_GLOBAL_DISABLE_LLVM 1)
 set(CMAKE_WARN_DEPRECATED CACHE BOOL "Disable deprecated warnings" FORCE)
+
+
 # some global checks
 include(cmake/SIMDCheck.cmake)
+
+# global compiler options
+if(MSVC)
+    add_compile_options(/MP)
+endif()
  
 # llvm
 if (IFRIT_GLOBAL_DISABLE_LLVM)
@@ -97,9 +116,6 @@ set(SLANG_ENABLE_GFX OFF CACHE BOOL "Disable Slang GFX" FORCE)
 set(SLANG_ENABLE_SLANG_RHI OFF CACHE BOOL "Disable Slang RHI" FORCE)
 set(SLANG_LIB_TYPE STATIC CACHE STRING "Slang library type" FORCE)
 
-# glfw
-set(GLFW_INSTALL OFF CACHE BOOL "Disable GLFW install" FORCE)
-
 # tetgen
 set(TETGEN_SKIP_INSTALL ON CACHE BOOL "Disable Tetgen install" FORCE)
 
@@ -121,7 +137,6 @@ set(IFRIT_DEMO_LIST CACHE INTERNAL "List of demo stages" FORCE)
 
 # start building
 ifrit_add_dependency(spdlog)
-ifrit_add_dependency(glfw)
 ifrit_add_dependency(meshoptimizer)
 ifrit_add_dependency(gklib)
 ifrit_add_dependency(metis)
@@ -131,6 +146,11 @@ ifrit_add_dependency(tetgen)
 ifrit_add_dependency(openvdb)
 ifrit_add_dependency(mimalloc)
 
+ifrit_add_core_component(external/fsr2)
+ifrit_add_core_component(external/imgui)
+ifrit_add_core_component(external/glfw)
+
+
 ifrit_add_core_component(core)
 ifrit_add_core_component(shadercompile)
 ifrit_add_core_component(imaging)
@@ -139,8 +159,6 @@ ifrit_add_core_component(ircompile)
 ifrit_add_core_component(softgraphics)
 ifrit_add_core_component(geomproc)
 ifrit_add_core_component(vkgraphics)
-ifrit_add_core_component(external/fsr2)
-ifrit_add_core_component(external/imgui)
 ifrit_add_core_component(runtime)
 ifrit_add_core_component(rhi)
 ifrit_add_core_component(ui)

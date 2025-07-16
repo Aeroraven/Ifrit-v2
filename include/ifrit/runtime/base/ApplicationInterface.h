@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/application/ProjectProperty.h"
 #include "ifrit/runtime/util/TimingRecorder.h"
 #include "ifrit/runtime/forwarding/FwdShaderRegistry.h"
+#include "ifrit/runtime/forwarding/FwdRendererWrapper.h"
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include "ifrit/rhi/common/RhiForwardingTypes.h"
 #include "ifrit/runtime/renderer/SharedRenderResource.h"
@@ -40,5 +41,6 @@ namespace Ifrit::Runtime
         virtual const ProjectProperty&           GetProjectProperty() const = 0;
         virtual ShaderRegistry*                  GetShaderRegistry()        = 0;
         virtual SharedRenderResource*            GetSharedRenderResource()  = 0;
+        virtual RendererWrapper*                 GetRendererWrapper()       = 0;
     };
 } // namespace Ifrit::Runtime

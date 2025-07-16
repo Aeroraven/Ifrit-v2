@@ -105,6 +105,9 @@ namespace Ifrit::Runtime
         // Timing Recorder
         m_timingRecorder = MakeRef<TimingRecorder>();
 
+        // Renderer Wrapper
+        m_RendererWrapper = MakeRef<RendererWrapper>(m_rhiLayer.get(), m_shaderRegistry.get());
+
         OnStart();
     }
 
@@ -112,7 +115,37 @@ namespace Ifrit::Runtime
     {
         m_timingRecorder->OnUpdate();
         m_sceneManager->InvokeActiveSceneUpdate();
+        if (m_EnableRendererWrapper)
+        {
+            m_RendererWrapper->BeginFrame();
+            for (auto& subsystem : m_Subsystems)
+            {
+                subsystem->OnFrameBegin();
+            }
+            for (auto& subsystem : m_Subsystems)
+            {
+                m_RendererWrapper->EnqueueGeneralTask(
+                    [&](RHI::RhiTaskSubmission* prevSubmission) { return subsystem->OnPreRendering(prevSubmission); });
+            }
+        }
         OnUpdate();
+        if (m_EnableRendererWrapper)
+        {
+            for (auto& subsystem : m_Subsystems)
+            {
+                subsystem->OnUpdate(m_sceneManager->GetActiveScene().get());
+            }
+            for (auto& subsystem : m_Subsystems)
+            {
+                m_RendererWrapper->EnqueueGeneralTask(
+                    [&](RHI::RhiTaskSubmission* prevSubmission) { return subsystem->OnPostRendering(prevSubmission); });
+            }
+            m_RendererWrapper->EndFrame();
+            for (auto& subsystem : m_Subsystems)
+            {
+                subsystem->OnFrameEnd();
+            }
+        }
         m_inputSystem->OnFrameUpdate();
     }
 
@@ -120,6 +153,19 @@ namespace Ifrit::Runtime
     {
         m_rhiLayer->WaitDeviceIdle();
         OnEnd();
+        for (auto& subsystem : m_Subsystems)
+        {
+            subsystem->OnShutdown();
+        }
     }
+
+    IFRIT_APIDECL void Application::RegisterSubsystem(Owner<ISubsystem> subsystem)
+    {
+        auto ptr = subsystem.get();
+        m_Subsystems.push_back(std::move(subsystem));
+        ptr->OnInitialize(this);
+    }
+
+    IFRIT_APIDECL void Application::EnableRendererWrapper(bool enable) { m_EnableRendererWrapper = enable; }
 
 } // namespace Ifrit::Runtime

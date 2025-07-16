@@ -32,7 +32,7 @@ namespace Ifrit::Runtime
     {
     private:
     public:
-        ActorBehavior(){};
+        ActorBehavior() : Component() {}
         ActorBehavior(Ref<GameObject> parent) : Component(parent), AttributeOwner<ActorBehaviorAttribute>() {}
 
         String Serialize() override { return SerializeAttribute(); }

@@ -24,6 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #ifndef _WIN32
     #include <X11/Xlib.h>
 #endif
+#include "ifrit/core/logging/Logging.h"
+
 namespace Ifrit::Display::Window
 {
 
@@ -83,6 +85,11 @@ namespace Ifrit::Display::Window
         static int frameCount = 0;
         while (!glfwWindowShouldClose(window))
         {
+            {
+                int width, height;
+                glfwGetFramebufferSize(window, &width, &height);
+                //iDebug("Ptr:{} Framebuffer size:  {}x{}", (void*)window, width, height);
+            }
             int  repCore = -1;
             auto start   = std::chrono::high_resolution_clock::now();
             funcs(&repCore);
