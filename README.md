@@ -7,7 +7,7 @@ Some **TOYS** about real-time rendering/simulation. Currently, it contains:
 - **Experimental Renderer**: All projects are still under development.
   - **Syaro**: Deferred Renderer with Nanite-styled Cluster Level of Details. 
   - **Ayanami**: A Planned Project for Global Illumination with Probes and Software Raytracing.
-  - **Siro**: GPU-Accelerated Basic Algorithms For Physic Simulation
+  - **Artemis**: GPU-Accelerated Basic Algorithms For Physical Simulation
 
 
 
@@ -20,8 +20,8 @@ Some **TOYS** about real-time rendering/simulation. Currently, it contains:
 | <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" /> | ![](docs/img/soft_dx1.png)                                   |
 | **Ayanami / GDF Object Grids + Surface Cache Lookup***      | **Ayanami / Global Distance Field (GDF)\***                  |
 | ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)                          |
-| **Siro / Position Based Dynamics**                          | **Aria / Volumetric Lighting**                               |
-| ![](docs/img/siro_pbd1.png)                                 | ![](docs/img/aria_hist2.png)                                 |
+| **Artemis / Position Based Dynamics**                          | **Aria / Volumetric Lighting**                               |
+| ![](docs/img/artemis_pbd1.png)                                 | ![](docs/img/aria_hist2.png)                                 |
 | **Soft Renderer / Profile** (Nsight Compute)                | **Ayanami / Debug (Tracing Hierarchy, Incomplete) \*** (RenderDoc) |
 | <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag.png" style="zoom:80%;" />        |
 
@@ -78,7 +78,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
   - Mesh/Global Distance Field Tracing (Grid Cull+Ray Marching)
   
 
-#### 1.2.3 Subproject Siro
+#### 1.2.3 Subproject Artemis
 
 - Position Based Dynamics (PBD) : SDF Collision Constraints / Volume Constraints / XPBD
 - Material Point Method (MPM):  MLS-MPM (2D/3D), PB-MPM (2D/3D)
@@ -113,7 +113,7 @@ bash InstallPrerequisite.sh # Use Cygwin/MinGW/Git Bash for Windows
 
 
 
-**Ifrit Runtime (Subprojects Syaro/Ayanami/Siro)**
+**Ifrit Runtime (Subprojects Syaro/Ayanami/Artemis)**
 
 - Vulkan SDK >= 1.3.296
   - Core Features 1.2 (Necessary)
@@ -126,7 +126,7 @@ bash InstallPrerequisite.sh # Use Cygwin/MinGW/Git Bash for Windows
 > | ----------- | ------------------ | -------------------------- |
 > | Syaro       | √                  | × (No mesh shader support) |
 > | Ayanami     | √                  | × (No mesh shader support) |
-> | Siro        | √                  | √                          |
+> | Artemis        | √                  | √                          |
 
 **Ifrit Soft Renderer** 
 

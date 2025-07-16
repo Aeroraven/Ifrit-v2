@@ -1,7 +1,7 @@
 ## Ifrit-v2/TODO
 
 ### 4.0 Ongoing Schedule
-- Subproject Siro: `ifrit.runtime/physics.siro` (Highest Priority)
+- Subproject Artemis: `ifrit.runtime/physics.artemis` (Highest Priority)
   - Helper Utilities for Miscellaneous Requirements
 - Subproject Ayanami: `ifrit.runtime/render.ayanami`
   - Indirect Lighting on Surface Atlas (Debugging Phase)

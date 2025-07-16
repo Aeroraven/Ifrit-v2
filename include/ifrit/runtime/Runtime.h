@@ -41,9 +41,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/BaseForwardRenderer.h"
 
-#include "ifrit/runtime/physics/siro/pbd/PBDCloth.h"
-#include "ifrit/runtime/physics/siro/geometry/TessellatedRectMesh.h"
-#include "ifrit/runtime/physics/siro/SiroSimulator.h"
-#include "ifrit/runtime/physics/siro/geometry/TetrahedralMesh.h"
+#include "ifrit/runtime/physics/artemis/pbd/PBDCloth.h"
+#include "ifrit/runtime/physics/artemis/geometry/TessellatedRectMesh.h"
+#include "ifrit/runtime/physics/artemis/ArtemisSimulator.h"
+#include "ifrit/runtime/physics/artemis/geometry/TetrahedralMesh.h"
 
 #include "ifrit/runtime/geometry/surfaceop/ParticleSurfaceProceduralMesh.h"

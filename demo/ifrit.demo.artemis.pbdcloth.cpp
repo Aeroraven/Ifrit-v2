@@ -1,0 +1,291 @@
+
+/*
+Ifrit-v2
+Copyright (C) 2024 funkybirds(Aeroraven)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+#ifndef IFRIT_DLL
+    #define IFRIT_DLL
+#endif
+
+#include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/math/linalg/LinalgOps.h"
+#include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/Runtime.h"
+#include "ifrit/runtime/material/SyaroDefaultGBufEmitter.h"
+#include <numbers>
+#include <thread>
+#include "ifrit/rhi/common/RhiStructHelper.h"
+
+#define WINDOW_WIDTH 1980
+#define WINDOW_HEIGHT 1080
+
+using namespace Ifrit;
+using namespace Ifrit::RHI;
+using namespace Ifrit::GeometryProc::MeshProcess;
+using namespace Ifrit::Math;
+using namespace Ifrit::Runtime;
+using namespace Ifrit;
+
+// Glfw key function here
+class CameraMovingScript : public ActorBehavior
+{
+    using ActorBehavior::ActorBehavior;
+
+private:
+    f32          m_movLeft   = 0.0f;
+    f32          m_movRight  = 0.0f;
+    f32          m_movTop    = 0.0f;
+    f32          m_movBottom = 0.0f;
+    f32          m_movFar    = 0.0f;
+    f32          m_movNear   = 0.0f;
+    f32          m_movRot    = 0.0f;
+
+    InputSystem* m_inputSystem;
+
+public:
+    void        SetInputSystem(InputSystem* inputSystem) { m_inputSystem = inputSystem; }
+    inline void SetupProperties() override {}
+    void        OnUpdate() override
+    {
+        auto scale       = 0.12f;
+        auto inputSystem = m_inputSystem;
+        if (inputSystem->IsKeyPressed(InputKeyCode::A))
+            m_movLeft += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::D))
+            m_movRight += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::W))
+            m_movTop += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::S))
+            m_movBottom += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::E))
+            m_movFar += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::F))
+            m_movNear += scale;
+        if (inputSystem->IsKeyPressed(InputKeyCode::Z))
+            m_movRot += scale * 0.2f;
+        if (inputSystem->IsKeyPressed(InputKeyCode::X))
+            m_movRot -= scale * 0.2f;
+
+        auto parent = this->GetParentUnsafe();
+        auto camera = parent->GetComponent<Transform>();
+        if (camera)
+        {
+            camera->SetPosition({ 0.0f + m_movRight - m_movLeft, 0.0f + m_movTop - m_movBottom + 2.1f,
+                0.340006f + m_movFar - m_movNear });
+            camera->SetRotation({ 0.0f, m_movRot + 3.14f, 0.0f });
+
+            // if print q, print the position and rotation
+            if (m_inputSystem->IsKeyPressed(InputKeyCode::Q))
+            {
+                auto pos = camera->GetPosition();
+                auto rot = camera->GetRotation();
+                iInfo("Camera Position: {}, {}, {}", pos.x, pos.y, pos.z);
+                iInfo("Camera Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
+            }
+        }
+    }
+};
+
+class LightRotScript : public ActorBehavior
+{
+    using ActorBehavior::ActorBehavior;
+
+private:
+    f32          m_rotX     = 13.0f;
+    f32          m_rotY     = 2.0f;
+    f32          m_rotZ     = 0.0f;
+    f32          m_rotSpeed = 0.1f;
+
+    InputSystem* m_inputSystem;
+
+public:
+    inline void SetupProperties() override {}
+    void        SetInputSystem(InputSystem* inputSystem) { m_inputSystem = inputSystem; }
+    void        OnUpdate() override
+    {
+        auto parent = this->GetParentUnsafe();
+        auto light  = parent->GetComponent<Transform>();
+        if (light)
+        {
+            if (m_inputSystem->IsKeyPressed(InputKeyCode::Q))
+            {
+                auto pos = light->GetPosition();
+                auto rot = light->GetRotation();
+                iInfo("Light Position: {}, {}, {}", pos.x, pos.y, pos.z);
+                iInfo("Light Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
+            }
+            if (m_inputSystem->IsKeyPressed(InputKeyCode::U))
+            {
+                m_rotZ += m_rotSpeed;
+            }
+            if (m_inputSystem->IsKeyPressed(InputKeyCode::J))
+            {
+                m_rotX += m_rotSpeed;
+            }
+            if (m_inputSystem->IsKeyPressed(InputKeyCode::I))
+            {
+                m_rotY += m_rotSpeed;
+            }
+            light->SetRotation({ m_rotX, m_rotY, m_rotZ });
+        }
+    }
+};
+
+namespace Ifrit
+{
+    class DemoApplicationAyanami : public Runtime::Application
+    {
+    private:
+        RhiScissor                     scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
+        Ref<RhiRenderTargets>          renderTargets;
+        Ref<RhiColorAttachment>        colorAttachment;
+        RhiTextureRef                  depthImage;
+        Ref<RhiDepthStencilAttachment> depthAttachment;
+        Ref<BaseForwardRenderer>       renderer;
+        Ref<Artemis::ArtemisSimulator> artemisSimulator;
+        RhiTexture*                    swapchainImg;
+        RendererConfig                 renderConfig;
+        float                          timing = 0;
+
+    public:
+        void OnStart() override
+        {
+            iInfo("DemoApplication::OnStart()");
+
+            renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
+            renderConfig.m_AntiAliasingType           = AntiAliasingType::None;
+            renderConfig.m_OverrideMaterialCulling    = OverrideMaterialCulling::ForcedCullNone;
+
+            renderer         = MakeRef<BaseForwardRenderer>(this);
+            artemisSimulator = MakeRef<Artemis::ArtemisSimulator>(this);
+            auto scene       = m_sceneAssetManager->CreateScene("TestScene2");
+            auto node        = scene->AddSceneNode();
+
+            auto cameraGameObject = node->AddGameObject("camera");
+            auto camera           = cameraGameObject->AddComponent<Camera>();
+            camera->SetCameraType(CameraType::Perspective);
+            camera->SetMainCamera(true);
+            camera->SetAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
+            camera->SetFov(60.0f / 180.0f * std::numbers::pi_v<float>);
+            camera->SetFar(20.0f);
+            camera->SetNear(0.10f);
+
+            auto cameraTransform = cameraGameObject->GetComponent<Transform>();
+            cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
+
+            auto cameraMover = cameraGameObject->AddComponent<CameraMovingScript>();
+            cameraMover->SetInputSystem(m_inputSystem.get());
+
+            auto lightGameObject = node->AddGameObject("sun");
+            auto light           = lightGameObject->AddComponent<Light>();
+            auto lightTransform  = lightGameObject->GetComponent<Transform>();
+            lightTransform->SetRotation({ 60.0 / 180.0f * std::numbers::pi_v<float>, 0.0f, 0.0f });
+            light->SetShadowMap(true);
+            light->SetShadowMapResolution(2048);
+            light->SetAffectPbrSky(true);
+
+            auto lightRotScript = lightGameObject->AddComponent<LightRotScript>();
+            lightRotScript->SetInputSystem(m_inputSystem.get());
+
+            auto cloth = node->AddGameObject("cloth");
+            auto clothMesh =
+                MakeRef<Artemis::TessellatedRectMesh>(0.25f, 0.25f, 40, 40, Vector3f(-0.15f, 2.02f, -0.14f));
+            auto material = MakeRef<SyaroDefaultGBufEmitter>(this);
+            material->BuildMaterial();
+
+            auto meshFilter = cloth->AddComponent<MeshFilter>();
+            meshFilter->SetMesh(clothMesh);
+            auto meshRenderer = cloth->AddComponent<MeshRenderer>();
+            meshRenderer->SetMaterial(material);
+            auto pbdCloth = cloth->AddComponent<Artemis::PBDCloth>();
+            pbdCloth->AddFixedParticles({
+                0,
+                40,
+            });
+            pbdCloth->SetSimulationAlgorithm(Artemis::EPBDSimulatorAlgorithm::ExtendedPBD);
+            artemisSimulator->RegisterSolver(pbdCloth.get());
+
+            auto bunny           = node->AddGameObject("bunny");
+            auto bunnyMeshAsset  = m_assetManager->GetAssetByName<WaveFrontAsset>("bunny_watertight.obj");
+            auto bunnyMeshFilter = bunny->AddComponent<MeshFilter>();
+            auto bunnyTetra      = MakeRef<Artemis::TetrahedralMesh>();
+            bunnyTetra->SetTriangularMesh(bunnyMeshAsset);
+            bunnyMeshFilter->SetMesh(bunnyTetra);
+            auto bunnyMeshRenderer = bunny->AddComponent<MeshRenderer>();
+            bunnyMeshRenderer->SetMaterial(material);
+            auto bunnyMeshDF = bunny->AddComponent<Ayanami::AyanamiMeshDF>();
+            bunnyMeshDF->BuildMeshDF(GetCacheDir(), Vector3u(64, 64, 64));
+            bunnyMeshDF->BuildGPUResource(GetRhi());
+            auto bunnySoftBody = bunny->AddComponent<Artemis::PBDCloth>();
+            bunnySoftBody->AddCollider(bunnyMeshDF.get());
+            bunnySoftBody->SetType(Artemis::EPBDClothSimulationType::Volume);
+
+            pbdCloth->AddCollider(bunnyMeshDF.get());
+            // artemisSimulator->RegisterSolver(bunnySoftBody.get());
+
+            // Render targets
+            auto rt         = m_rhiLayer.get();
+            depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
+            swapchainImg    = rt->GetSwapchainImage();
+            renderTargets   = rt->CreateRenderTargets();
+            colorAttachment = rt->CreateRenderTarget(
+                swapchainImg, RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
+            depthAttachment = rt->CreateRenderTargetDepthStencil(
+                depthImage.get(), RHI::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Clear);
+            renderTargets->SetColorAttachments({ colorAttachment.get() });
+            renderTargets->SetDepthStencilAttachment(depthAttachment.get());
+            renderTargets->SetRenderArea(scissor);
+
+            m_sceneManager->SetActiveScene(scene);
+        }
+
+        void OnUpdate() override
+        {
+            auto scene       = m_sceneManager->GetActiveScene();
+            auto sFrameStart = renderer->BeginFrame();
+            auto renderComplete =
+                renderer->Render(scene.get(), nullptr, renderTargets.get(), renderConfig, { sFrameStart.get() });
+            auto simulateComplete = artemisSimulator->Update(0.006f, { renderComplete.get() });
+            renderer->EndFrame({ simulateComplete.get() });
+        }
+
+        void OnEnd() override {}
+    };
+} // namespace Ifrit
+
+int main()
+{
+    using namespace Ifrit;
+
+    Runtime::ProjectProperty info;
+    info.m_assetPath             = IFRIT_DEMO_ASSET_PATH;
+    info.m_scenePath             = IFRIT_DEMO_SCENE_PATH;
+    info.m_displayProvider       = Runtime::AppDisplayProvider::GLFW;
+    info.m_rhiType               = Runtime::AppRhiType::Vulkan;
+    info.m_width                 = WINDOW_WIDTH;
+    info.m_height                = WINDOW_HEIGHT;
+    info.m_rhiComputeQueueCount  = 1;
+    info.m_rhiGraphicsQueueCount = 1;
+    info.m_rhiTransferQueueCount = 1;
+    info.m_rhiNumBackBuffers     = 2;
+    info.m_name                  = "Ifrit-v2";
+    info.m_cachePath             = IFRIT_DEMO_CACHE_PATH;
+    info.m_rhiDebugMode          = true;
+
+    DemoApplicationAyanami app;
+    app.Run(info);
+    return 0;
+}
