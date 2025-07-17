@@ -106,7 +106,7 @@ namespace Ifrit::Runtime
         m_timingRecorder = MakeRef<TimingRecorder>();
 
         // Renderer Wrapper
-        m_RendererWrapper = MakeRef<RendererWrapper>(m_rhiLayer.get(), m_shaderRegistry.get());
+        m_RendererWrapper = MakeRef<RendererWrapper>(m_rhiLayer.get(), m_shaderRegistry.get(), GetProjectProperty());
 
         OnStart();
     }
@@ -135,6 +135,11 @@ namespace Ifrit::Runtime
             {
                 subsystem->OnUpdate(m_sceneManager->GetActiveScene().get());
             }
+            if (!m_ApplicationState.m_EditorMode)
+            {
+                m_RendererWrapper->DrawToScreen();
+            }
+
             for (auto& subsystem : m_Subsystems)
             {
                 m_RendererWrapper->EnqueueGeneralTask(
@@ -167,5 +172,17 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL void Application::EnableRendererWrapper(bool enable) { m_EnableRendererWrapper = enable; }
+
+    IFRIT_APIDECL RHI::RhiTexture* Application::GetDefaultColorImage() const
+    {
+        if (m_EnableRendererWrapper)
+        {
+            return m_RendererWrapper->GetDefaultColorImage().get();
+        }
+        else
+        {
+            return m_rhiLayer->GetSwapchainImage();
+        }
+    }
 
 } // namespace Ifrit::Runtime

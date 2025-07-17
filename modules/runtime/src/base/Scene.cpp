@@ -181,6 +181,29 @@ namespace Ifrit::Runtime
         return result;
     }
 
+    IFRIT_APIDECL void Scene::DepthFirstTraverse(
+        Fn<bool(SceneNode*)> fnNode, Fn<void(GameObject*)> fnObject, Fn<void()> fnOnPush, Fn<void()> fnOnPop)
+    {
+        Fn<void(SceneNode*)> dfsFunc = [&](SceneNode* node) {
+            for (auto& child : node->GetChildren())
+            {
+                fnOnPush();
+                if (fnNode(child.get()))
+                    dfsFunc(child.get());
+                fnOnPop();
+            }
+            for (auto& obj : node->GetGameObjects())
+            {
+                fnObject(obj.get());
+            }
+        };
+        if (m_root)
+        {
+            // fnOnPush();
+            dfsFunc(m_root.get());
+            // fnOnPop();
+        }
+    }
     IFRIT_APIDECL void Scene::OnUpdate() { m_root->OnUpdate(); }
     IFRIT_APIDECL void Scene::OnComponentAwake() { m_root->OnComponentAwake(); }
     IFRIT_APIDECL void Scene::OnComponentStart() { m_root->OnComponentStart(); }

@@ -10,11 +10,15 @@
 
   - 参考：https://jcgt.org/published/0011/03/06/paper-lowres.pdf
 
+- Build: 编译时间过长，尤其是`slang`和`ifrit.runtime`
+
     
 
 ### Resolved
 
 #### 2025.07
+
+- Build: 启用MSVC的多核编译（250717）
 
 - Core: AI辅助重构带来的低级错误，修复矩阵乘法（250702）
 

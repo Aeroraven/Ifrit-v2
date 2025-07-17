@@ -230,8 +230,9 @@ namespace Ifrit::RHI::VulkanAdapter
     public:
         Sampler(EngineContext* ctx, const SamplerCreateInfo& ci);
         ~Sampler();
-        inline VkSampler GetSampler() { return m_sampler; }
-        virtual void     SetDebugName(const String& name) override;
+        inline VkSampler     GetSampler() { return m_sampler; }
+        virtual void         SetDebugName(const String& name) override;
+        virtual RhiRawHandle GetRawHandle() const override;
     };
 
     class IFRIT_APIDECL ResourceManager

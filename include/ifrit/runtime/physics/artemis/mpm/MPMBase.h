@@ -24,17 +24,75 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace Ifrit::Runtime::Artemis
 {
-    struct MPMGrid
+
+    enum class MPMSimulatorTopologySource : u8
     {
-        Vector3i m_GridId;
-        f32      m_GridVelocity;
-        f32      m_GridMass;
+
+        External,
+        Preset
     };
 
-    struct MPMParticle
+    enum class MPMSimulatorProblemDimension : u8
     {
-        Vector3f   m_Location;
-        Vector3f   m_Velocity;
-        Matrix2x2f m_Affine;
+        TwoDimensional,
+        ThreeDimensional,
+    };
+
+    enum class MPMSimulatorVariant : u8
+    {
+        NonMLS,
+        MLS,
+        PBMPM,
+    };
+
+    enum class MPMSimulatorParticleType : u8
+    {
+        Jelly = 0,
+        Fluid = 1,
+        Snow  = 2,
+        Visco = 3
+    };
+
+    struct MPMSimulatorConfig
+    {
+        IF_CONSTEXPR static u32      kDefaultGridSizeX = 128;
+
+        MPMSimulatorTopologySource   m_TopoSource = MPMSimulatorTopologySource::Preset;
+        MPMSimulatorProblemDimension m_Dimension  = MPMSimulatorProblemDimension::TwoDimensional;
+        MPMSimulatorVariant          m_Variant    = MPMSimulatorVariant::PBMPM;
+
+        u32                          m_MaxParticles = 614514;
+        Vector3u                     m_GridSize     = Vector3u(kDefaultGridSizeX, kDefaultGridSizeX, kDefaultGridSizeX);
+        Vector3f                     m_GridOffset   = Vector3f(0.0f);
+        Vector3u                     m_GridBoundaryWidth = Vector3u(3, 3, 3);
+        Vector3f                     m_Gravity           = Vector3f(0.0f, -1.0f, 0.0f);
+        f32                          m_GridSpacing       = 1.0f / kDefaultGridSizeX;
+        f32                          m_DefaultMass       = (0.5f / kDefaultGridSizeX);
+        f32                          m_DefaultDensity    = 1.0f;
+
+        f32                          m_DefaultYoungsModulus   = 200.0f;
+        f32                          m_DefaultPoissonRatio    = 0.2f;
+        f32                          m_DefaultViscoPlasticity = 0.7f;
+        u32                          m_DefaultNumParticles    = 11451;
+        u32                          m_Substeps               = 5;
+        MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Fluid;
+
+        // PBMPM
+        u32                          m_PbMpmIterations                           = 4;
+        f32                          m_PbMpmDefaultElasticityInterpolationFactor = 0.01f;
+        f32                          m_PbMpmDefaultElasticityRelaxationFactor    = 1.5f;
+        f32                          m_PbMpmDefaultLiquidViscosity               = 0.000f;
+        f32                          m_PbMpmDefaultLiquidRelaxation              = 1.1f;
+    };
+
+    struct MPMParticleEmitArgs
+    {
+
+        IF_CONSTEXPR static u32  kGlobalDefaultGridSizeX = MPMSimulatorConfig::kDefaultGridSizeX;
+        MPMSimulatorParticleType m_MaterialType          = MPMSimulatorParticleType::Fluid;
+        f32                      m_Mass                  = 0.5f / kGlobalDefaultGridSizeX;
+        f32                      m_Density               = 1.0f;
+        f32                      m_YoungsModulus         = 200.0f;
+        f32                      m_PoissonRatio          = 0.2f;
     };
 } // namespace Ifrit::Runtime::Artemis

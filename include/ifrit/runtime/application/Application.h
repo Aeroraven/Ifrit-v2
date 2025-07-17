@@ -56,6 +56,7 @@ namespace Ifrit::Runtime
 
         // for legacy compatibility
         bool                      m_EnableRendererWrapper = false;
+        ApplicationState          m_ApplicationState;
 
     private:
         void        Start();
@@ -79,7 +80,9 @@ namespace Ifrit::Runtime
 
         inline virtual RendererWrapper*      GetRendererWrapper() override { return m_RendererWrapper.get(); }
 
+        inline virtual ApplicationState*     GetApplicationState() override { return &m_ApplicationState; }
         void                                 RegisterSubsystem(Owner<ISubsystem> subsystem);
         void                                 EnableRendererWrapper(bool enable);
+        RHI::RhiTexture*                     GetDefaultColorImage() const override;
     };
 } // namespace Ifrit::Runtime

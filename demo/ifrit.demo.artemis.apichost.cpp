@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <thread>
 #include "ifrit/rhi/common/RhiStructHelper.h"
 
-#include "ifrit/runtime/physics/artemis/mpm/APICFluid.h"
+#include "ifrit/runtime/physics/artemis/apic/APICFluid.h"
 
 #define WINDOW_WIDTH 1980
 #define WINDOW_HEIGHT 1080

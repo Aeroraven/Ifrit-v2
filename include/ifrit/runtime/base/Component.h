@@ -129,6 +129,7 @@ namespace Ifrit::Runtime
         virtual ~GameObject();
         void                      Initialize(ComponentManager* manager);
         inline String             GetName() const { return m_name; }
+        inline String             GetUUID() const { return m_id.m_uuid; }
         static Ref<GameObject>    CreatePrefab(IComponentManagerKeeper* managerKeeper);
 
         template <class T> Ref<T> AddComponent()
@@ -294,7 +295,7 @@ namespace Ifrit::Runtime
         String      Serialize() override { return SerializeAttribute(); }
         void        Deserialize() override { DeserializeAttribute(); }
 
-        inline void SetupProperties() override {}
+        void        SetupProperties() override;
 
         inline void OnFrameCollecting()
         {

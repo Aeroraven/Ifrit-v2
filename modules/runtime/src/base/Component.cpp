@@ -145,6 +145,13 @@ namespace Ifrit::Runtime
         m_IdToTypeHash[id]             = typeHash;
     }
 
+    IFRIT_APIDECL void Transform::SetupProperties()
+    {
+        AddProperty<Vector3f, EPropertyEditorType::Text>("Position", m_attributes.m_position);
+        AddProperty<Vector3f, EPropertyEditorType::Text>("Rotation", m_attributes.m_rotation);
+        AddProperty<Vector3f, EPropertyEditorType::Text>("Scale", m_attributes.m_scale);
+    }
+
     IFRIT_APIDECL Matrix4x4f Transform::GetModelToWorldMatrix()
     {
         Matrix4x4f model = Identity<f32, 4>();

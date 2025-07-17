@@ -2,6 +2,7 @@
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Artemis.h"
 #include "ifrit.shader.neo/Artemis/MPM/MPM.Common.hlsli"
 #include "ifrit/core/math/linalg/LinalgOps.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMParticleEmitter.h"
 #include <variant>
 
 using namespace Ifrit::Math;
@@ -69,6 +70,7 @@ namespace Ifrit::Runtime::Artemis
 
     struct MPMSimulatorPrivateData
     {
+        u32                                        m_FrameId   = 0;
         static IF_CONSTEXPR u32                    kDefaultTGX = IfritShader::Artemis::MPM::kMpmTGSizeX;
 
         MPMSimulatorConfig*                        m_Config                   = nullptr;
@@ -971,7 +973,7 @@ namespace Ifrit::Runtime::Artemis
         }
 
         if (m_Config->m_Dimension == MPMSimulatorProblemDimension::TwoDimensional)
-            HandleManualParticleEmit<3>(builder);
+            HandleManualParticleEmit<2>(builder);
         else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
             HandleManualParticleEmit<3>(builder);
 
@@ -1148,13 +1150,16 @@ namespace Ifrit::Runtime::Artemis
         delete m_Data;
         m_Data = nullptr;
     }
+
     IFRIT_APIDECL void MPMSimulator::SetConfig(const MPMSimulatorConfig& cfg)
     {
         m_Config         = cfg;
         m_Data->m_Config = &m_Config;
     }
 
-    IFRIT_APIDECL void MPMSimulator::RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime)
+    IFRIT_APIDECL MPMSimulatorConfig& MPMSimulator::GetActiveConfig() { return m_Config; }
+
+    IFRIT_APIDECL void                MPMSimulator::RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime)
     {
         IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.SolverStep");
         m_Data->RunSolverStep(builder, deltaTime);
@@ -1236,7 +1241,26 @@ namespace Ifrit::Runtime::Artemis
     template IFRIT_APIDECL void MPMSimulator::EmitParticles<3>(
         const Vec<TGenericVector<f32, 3>>& locations, const MPMParticleEmitArgs& args);
 
-    RHI::RhiBufferRef MPMSimulator::GetParticlePositionBuffer() { return m_Data->m_ParticlePosition; }
-    RHI::RhiBufferRef MPMSimulator::GetParticleCounterBuffer() { return m_Data->m_ParticleCount; }
+    RHI::RhiBufferRef  MPMSimulator::GetParticlePositionBuffer() { return m_Data->m_ParticlePosition; }
+    RHI::RhiBufferRef  MPMSimulator::GetParticleCounterBuffer() { return m_Data->m_ParticleCount; }
+
+    IFRIT_APIDECL void MPMSimulator::CollectScene(Scene* scene)
+    {
+        m_Data->m_FrameId++;
+        auto emitters = scene->FilterObjectsUnsafe([](GameObject* obj) {
+            auto emitter = obj->GetComponent<MPMParticleEmitter>();
+            return emitter != nullptr && emitter->IsEnabled();
+        });
+        for (auto* emitter : emitters)
+        {
+            auto& emitterComponent = *emitter->GetComponent<MPMParticleEmitter>();
+            if (emitterComponent.ShouldEmitParticle(m_Data->m_FrameId))
+            {
+                auto particleLoc = emitterComponent.GetEmitParticlePosition2D();
+                auto emitArgs    = emitterComponent.GetEmitArgs();
+                EmitParticles<2>(particleLoc, emitArgs);
+            }
+        }
+    }
 
 } // namespace Ifrit::Runtime::Artemis

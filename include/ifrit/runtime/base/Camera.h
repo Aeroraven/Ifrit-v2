@@ -51,7 +51,7 @@ namespace Ifrit::Runtime
         virtual ~Camera() = default;
         inline std::string Serialize() override { return SerializeAttribute(); }
         inline void        Deserialize() override { DeserializeAttribute(); }
-        inline void        SetupProperties() override {}
+        void               SetupProperties() override;
 
         Matrix4x4f         GetWorldToCameraMatrix() const;
         Matrix4x4f         GetProjectionMatrix() const;

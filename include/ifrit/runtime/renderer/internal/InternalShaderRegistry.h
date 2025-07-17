@@ -54,8 +54,9 @@ namespace Ifrit::Runtime::Internal
 
         IF_CONSTEXPR static struct
         {
-            SDEF FullScreenVS    = DECLARE_VS("Common/FullScreen");
-            SDEF SinglePassHzbCS = DECLARE_CS("Common/SinglePassHiZ");
+            SDEF FullScreenVS         = DECLARE_VS("Common/FullScreen");
+            SDEF SinglePassHzbCS      = DECLARE_CS("Common/SinglePassHiZ");
+            SDEF ResolveToSwapchainPS = DECLARE_FS("Common/ResolveToSwapchain");
         } Common;
 
         IF_CONSTEXPR static struct

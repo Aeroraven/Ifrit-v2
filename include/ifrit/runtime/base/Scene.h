@@ -101,6 +101,9 @@ namespace Ifrit::Runtime
         Ref<PerFrameData>     GetPerFrameData() { return m_perFrameData; }
 
         inline ComponentManager* GetComponentManager() override { return m_componentManager.get(); }
+
+        void                     DepthFirstTraverse(
+                                Fn<bool(SceneNode*)> fnNode, Fn<void(GameObject*)> fnObject, Fn<void()> fnOnPush, Fn<void()> fnOnPop);
         IFRIT_STRUCT_SERIALIZE(m_root);
     };
 

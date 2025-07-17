@@ -4,12 +4,17 @@
 
 namespace Ifrit::UI
 {
+    struct ImGuiProviderData;
     class IFRIT_UI_API ImGuiProvider : public UIProvider
     {
     protected:
         typedef UIProvider Super;
+        ImGuiProviderData* m_Data = nullptr;
 
     public:
+        ImGuiProvider();
+        virtual ~ImGuiProvider();
+
         virtual void                          OnInitialize(Runtime::IApplication* app) override;
         virtual void                          OnShutdown() override;
         virtual void                          OnFrameBegin() override;

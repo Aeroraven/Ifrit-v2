@@ -72,6 +72,9 @@ namespace Ifrit::Runtime
 
         u32                        m_fixedUpdateRate              = 20000; // 0.02s
         u32                        m_fixedUpdateCompensationLimit = 10;    // allow max 10 frames
+
+        i32                        m_DefaultRTWidth  = -1;
+        i32                        m_DefaultRTHeight = -1;
     };
 
 } // namespace Ifrit::Runtime

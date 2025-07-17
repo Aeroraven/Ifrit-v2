@@ -172,6 +172,9 @@ namespace Ifrit::RHI
     protected:
         RhiSampler(IRhiDeviceResourceDeleteQueue* deleteQueue) : RhiDeviceResource(deleteQueue) {}
         virtual int _polymorphismPlaceHolder() { return 0; }
+
+    public:
+        virtual RhiRawHandle GetRawHandle() const = 0;
     };
 
     struct IFRIT_APIDECL RhiRTGeometryReference

@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/display/presentation/window/WindowProvider.h"
 #include "ifrit/rhi/common/RhiForwardingTypes.h"
 #include "ifrit/runtime/renderer/SharedRenderResource.h"
+#include "ifrit/runtime/application/ApplicationState.h"
 
 namespace Ifrit::Runtime
 {
@@ -42,5 +43,8 @@ namespace Ifrit::Runtime
         virtual ShaderRegistry*                  GetShaderRegistry()        = 0;
         virtual SharedRenderResource*            GetSharedRenderResource()  = 0;
         virtual RendererWrapper*                 GetRendererWrapper()       = 0;
+
+        virtual RHI::RhiTexture*                 GetDefaultColorImage() const = 0;
+        virtual ApplicationState*                GetApplicationState()        = 0;
     };
 } // namespace Ifrit::Runtime

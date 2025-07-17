@@ -61,7 +61,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 - Render Hardware Interface (RHI)
 - Render Dependency Graph (RDG)
 - Modern Graphics API Features: Bindless Descriptors, Dynamic Rendering ...
-- Miscellaneous Utilities: Task System, Shader Variants, Texture Compression Supports ...
+- Miscellaneous Utilities: Simple Editor*, Task System, Shader Variants, Texture Compression Supports ...
 
 #### 1.2.1 Subproject Syaro
 
@@ -69,11 +69,11 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 - Some extra features supported: Horizon-Based Ambient Occlusion (HBAO) / Cascaded Shadow Mapping (CSM) / Temporal Anti-aliasing (TAA) / Convolution Bloom
 
 
-#### 1.2.2 Subproject Ayanami
+#### 1.2.2 Subproject Ayanami*
 
 - Distance Field Generation: Distance Field Shadow Culling / Distance Field Soft Shadow (DFSS) /BC4 Compression
-- Surface Cache*: Object Grids (Global Distance Field Attribute Lookup)
-- Lighting Probes*: Adaptive Screen Space Probe Placement / Screen  Probe Tracing 
+- Surface Cache: Object Grids (Global Distance Field Attribute Lookup)
+- Lighting Probes: Adaptive Screen Space Probe Placement / Screen  Probe Tracing 
   - Screen Space Tracing (SSGI+HiZ)
   - Mesh/Global Distance Field Tracing (Grid Cull+Ray Marching)
   

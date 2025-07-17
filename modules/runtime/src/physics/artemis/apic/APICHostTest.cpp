@@ -15,7 +15,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include "ifrit/runtime/physics/artemis/mpm/APICHostTest.h"
+#include "ifrit/runtime/physics/artemis/apic/APICHostTest.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Artemis.h"

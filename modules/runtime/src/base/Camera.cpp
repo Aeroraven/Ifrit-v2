@@ -61,4 +61,10 @@ namespace Ifrit::Runtime
         auto     front          = MatMul(rotationMatrix, frontRaw);
         return front;
     }
+    IFRIT_APIDECL void Camera::SetupProperties()
+    {
+        AddProperty<f32, EPropertyEditorType::Range>("FOV", m_attributes.m_fov, 0.0f, 180.0f);
+        AddProperty<f32, EPropertyEditorType::Range>("Near Plane", m_attributes.m_near, 0.01f, 1000.0f);
+        AddProperty<f32, EPropertyEditorType::Range>("Far Plane", m_attributes.m_far, 0.01f, 10000.0f);
+    }
 } // namespace Ifrit::Runtime

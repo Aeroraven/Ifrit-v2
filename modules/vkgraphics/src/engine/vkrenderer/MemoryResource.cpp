@@ -431,9 +431,10 @@ namespace Ifrit::RHI::VulkanAdapter
         SetDebugName(name);
     }
 
-    IFRIT_APIDECL      Sampler::~Sampler() { vkDestroySampler(m_context->GetDevice(), m_sampler, nullptr); }
+    IFRIT_APIDECL              Sampler::~Sampler() { vkDestroySampler(m_context->GetDevice(), m_sampler, nullptr); }
+    IFRIT_APIDECL RhiRawHandle Sampler::GetRawHandle() const { return m_sampler; }
 
-    IFRIT_APIDECL void Sampler::SetDebugName(const String& name)
+    IFRIT_APIDECL void         Sampler::SetDebugName(const String& name)
     {
         if (name == RhiDeviceResource::GetDebugName())
         {

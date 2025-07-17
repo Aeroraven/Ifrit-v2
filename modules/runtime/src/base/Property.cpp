@@ -1,5 +1,6 @@
 #include "ifrit/runtime/base/Property.h"
 #include "ifrit/runtime/base/Base.h"
+#include "ifrit/core/math/VectorDefs.h"
 
 namespace Ifrit::Runtime
 {
@@ -11,5 +12,8 @@ namespace Ifrit::Runtime
 
     template IFRIT_APIDECL PropertyEditorHandle<f32>& GetPropertyEditorHandle<f32>();
     template IFRIT_APIDECL PropertyEditorHandle<i32>& GetPropertyEditorHandle<i32>();
+    template IFRIT_APIDECL PropertyEditorHandle<Vector2f>& GetPropertyEditorHandle<Vector2f>();
+    template IFRIT_APIDECL PropertyEditorHandle<Vector3f>& GetPropertyEditorHandle<Vector3f>();
+    template IFRIT_APIDECL PropertyEditorHandle<Vector3f>& GetPropertyEditorHandle<Vector3f>();
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

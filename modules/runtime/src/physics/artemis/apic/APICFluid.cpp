@@ -1,4 +1,4 @@
-#include "ifrit/runtime/physics/artemis/mpm/APICFluid.h"
+#include "ifrit/runtime/physics/artemis/apic/APICFluid.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Artemis.h"
 

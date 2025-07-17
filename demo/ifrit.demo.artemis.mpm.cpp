@@ -25,11 +25,12 @@
 #include "ifrit/geomproc/vdb/VdbSampler.h"
 #include "ifrit/geomproc/pointcloud/PointCloudTransforms.h"
 #include "ifrit/runtime/physics/artemis/mpm/MPMSimulator.h"
-
+#include "ifrit/runtime/physics/artemis/mpm/MPMParticleEmitter.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMSimulatorConfigurator.h"
 #include "ifrit/ui/UIProviderHelper.h"
 
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
+#define WINDOW_WIDTH 1024
+#define WINDOW_HEIGHT 768
 
 using namespace Ifrit;
 using namespace Ifrit::RHI;
@@ -42,7 +43,7 @@ namespace Ifrit
 {
     static f32 sTimestep = 1.0f / 1500.0f;
 
-    class MpmConfigurator : public ActorBehavior
+    class MpmTiming : public ActorBehavior
     {
         using ActorBehavior::ActorBehavior;
 
@@ -55,26 +56,16 @@ namespace Ifrit
         {
             AddProperty<f32, EPropertyEditorType::Range>("Time Interval", m_InvTimestep, 500.0f, 5000.0f, 0.001f);
         }
-
         void OnUpdate() override { sTimestep = 1.0f / m_InvTimestep; }
     };
 
     class DemoApplicationMpm : public Runtime::Application
     {
     private:
-        RhiScissor                                   scissor = { 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT };
-        Ref<RhiRenderTargets>                        renderTargets;
-        Ref<RhiColorAttachment>                      colorAttachment;
-        RhiTextureRef                                depthImage;
-        Ref<RhiDepthStencilAttachment>               depthAttachment;
         Ref<BaseForwardRenderer>                     renderer;
-        RhiTexture*                                  swapchainImg;
         RendererConfig                               renderConfig;
 
         Ref<Artemis::MPMSimulator>                   m_MpmSim;
-
-        Ref<FrameGraphCompiler>                      m_FrameGraphCompiler;
-        Ref<FrameGraphExecutor>                      m_FrameGraphExecutor;
         Ref<FrameGraphResourcePool>                  m_FrameGraphResourcePool;
         Vec<Vector3f>                                m_PointClouds;
 
@@ -86,7 +77,6 @@ namespace Ifrit
     public:
         void OnStart() override
         {
-            iInfo("DemoApplication::OnStart()");
             renderer = MakeRef<BaseForwardRenderer>(this);
             m_MpmSim = MakeRef<Artemis::MPMSimulator>();
 
@@ -114,12 +104,14 @@ namespace Ifrit
 
             auto scene               = m_sceneAssetManager->CreateScene("TestScene2");
             auto node                = scene->AddSceneNode();
-            m_FrameGraphCompiler     = MakeRef<FrameGraphCompiler>();
-            m_FrameGraphExecutor     = MakeRef<FrameGraphExecutor>(GetRhi());
             m_FrameGraphResourcePool = MakeRef<FrameGraphResourcePool>(GetRhi());
 
-            auto configurator = node->AddGameObject("Configurator");
-            configurator->AddComponent<MpmConfigurator>();
+            auto timeControl = node->AddGameObject("MPMTimeControl");
+            timeControl->AddComponent<MpmTiming>();
+
+            auto mpmGlobalConfig = node->AddGameObject("MPMGlobalConfig");
+            auto mpmConfig       = mpmGlobalConfig->AddComponent<Artemis::MPMSimulatorConfigurator>();
+            mpmConfig->SetActiveSimulator(m_MpmSim.get());
 
             auto cameraGameObject = node->AddGameObject("Camera");
             auto camera           = cameraGameObject->AddComponent<Camera>();
@@ -145,51 +137,32 @@ namespace Ifrit
             auto meshRenderer = meshingObject->AddComponent<MeshRenderer>();
             meshRenderer->SetMaterial(material);
 
-            // Render targets
-            auto rt         = GetRhi();
-            depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);
-            swapchainImg    = rt->GetSwapchainImage();
-            renderTargets   = rt->CreateRenderTargets();
-            colorAttachment = rt->CreateRenderTarget(
-                swapchainImg, RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RhiRenderTargetLoadOp::Clear, 0, 0);
-            depthAttachment = rt->CreateRenderTargetDepthStencil(
-                depthImage.get(), RHI::CreateRhiClearDepthStencilValue(1.0f, 0), RhiRenderTargetLoadOp::Clear);
-            renderTargets->SetColorAttachments({ colorAttachment.get() });
-            renderTargets->SetDepthStencilAttachment(depthAttachment.get());
-            renderTargets->SetRenderArea(scissor);
+            auto defaultEmitter = node->AddGameObject("ParticleEmitter");
+            auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();
 
             m_sceneManager->SetActiveScene(scene);
-
             m_RendererWrapper->SetRenderer(renderer.get());
         }
 
         void OnUpdate() override
         {
             m_FrameIdx++;
-            if (m_FrameIdx == 511)
-            {
-                Artemis::MPMParticleEmitArgs args;
-                args.m_MaterialType = Artemis::MPMSimulatorParticleType::Jelly;
-                // m_MpmSim->EmitParticles<3>(m_PointClouds, args);
-                // m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
-            }
-
             m_ParticleSurfaceMesh->SetParticleData(
                 m_MpmSim->GetParticlePositionBuffer(), m_MpmSim->GetParticleCounterBuffer());
 
             m_RendererWrapper->EnqueueRDGTask(
                 [&](FrameGraphBuilder* builder) {
-                    auto rt = &builder->ImportTexture("Demo_Swapchain", swapchainImg);
+                    auto rt = &builder->ImportTexture("DemoRT", m_RendererWrapper->GetDefaultColorImage().get());
+                    m_MpmSim->CollectScene(m_sceneManager->GetActiveScene().get());
                     m_MpmSim->RunSolverStep(*builder, sTimestep);
-                    // iDebug("Timestep: {}", sTimestep);
                     m_MpmSim->Render(*builder, rt);
                 },
                 m_FrameGraphResourcePool.get());
 
             if (0)
             {
-                m_RendererWrapper->EnqueueRendererTask(
-                    m_sceneManager->GetActiveScene().get(), nullptr, renderTargets.get(), renderConfig);
+                m_RendererWrapper->EnqueueRendererTask(m_sceneManager->GetActiveScene().get(), nullptr,
+                    m_RendererWrapper->GetDefaultRenderTargets(), renderConfig);
             }
         }
 

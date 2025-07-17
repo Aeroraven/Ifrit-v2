@@ -121,9 +121,10 @@ namespace Ifrit::Runtime::Internal
         // REG_COMPUTE_NEO(
         //     ISTAya.DbgSampleReconDepthCS, "Ayanami/Ayanami.Debug.SampleReconDepth", "DebugSampleReconDepthCS");
 
-        //// Common
-        // REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");
-        // REG_COMPUTE(IST.Common.SinglePassHzbCS, "CommonPass/SinglePassHzb");
+        // Common
+        REG_VERTEX(IST.Common.FullScreenVS, "CommonPass/FullScreen");
+        REG_COMPUTE(IST.Common.SinglePassHzbCS, "CommonPass/SinglePassHzb");
+        REG_FRAGMENT_NEO(IST.Common.ResolveToSwapchainPS, "CommonPass/ResolveToSwapchain", "ResolveToSwapchainPS");
 
         //// PostProcessing
         // REG_FRAGMENT(IST.Postprocess.ACESFS, "Postprocess/ACESToneMapping");
