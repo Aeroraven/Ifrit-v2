@@ -434,8 +434,8 @@ namespace Ifrit::UI
                 auto components = obj->GetAllComponents();
                 for (auto& component : components)
                 {
-                    auto typeName      = GetDynamicTypeNameWithoutNamespace(component.get());
-                    auto typeNamespace = GetDynamicTypeNamespace(component.get());
+                    auto typeName      = GetDynamicTypeNameWithoutNamespace(component);
+                    auto typeNamespace = GetDynamicTypeNamespace(component);
                     ImGui::SeparatorText(typeName.c_str());
                     ImGui::SetItemTooltip("Component Namespace: %s", typeNamespace.c_str());
                     component->CallPropertyEditorHandle();

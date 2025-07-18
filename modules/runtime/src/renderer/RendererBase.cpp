@@ -112,7 +112,7 @@ namespace Ifrit::Runtime
                 Math::Transpose(Math::Inverse(Math::Transpose(viewData.m_viewData.m_perspective)));
             viewData.m_viewData.m_clipToWorld =
                 Math::Transpose(Math::Inverse(Math::Transpose(viewData.m_viewData.m_worldToClip)));
-            auto cameraTransform = camera->GetParent()->GetComponentUnsafe<Transform>();
+            auto cameraTransform = camera->GetParent()->GetComponent<Transform>();
             if (cameraTransform == nullptr)
             {
                 throw std::runtime_error("Camera has no transform");
@@ -130,7 +130,7 @@ namespace Ifrit::Runtime
 
         // Find lights that represent the sun
         auto sunLights = scene->FilterObjectsUnsafe([](GameObject* obj) {
-            auto light = obj->GetComponentUnsafe<Light>();
+            auto light = obj->GetComponent<Light>();
             if (!light)
             {
                 return false;
@@ -145,7 +145,7 @@ namespace Ifrit::Runtime
         }
         if (sunLights.size() == 1)
         {
-            auto     transform = sunLights[0]->GetComponentUnsafe<Transform>();
+            auto     transform = sunLights[0]->GetComponent<Transform>();
             Vector4f front     = { 0.0f, 0.0f, 1.0f, 0.0f };
             auto     rotation  = transform->GetRotation();
             auto     rotMatrix = Math::EulerAngleToMatrix(rotation);
@@ -156,7 +156,7 @@ namespace Ifrit::Runtime
 
         // Insert light view data, if shadow maps are enabled
         auto lightWithShadow = scene->FilterObjectsUnsafe([](GameObject* obj) -> bool {
-            auto light = obj->GetComponentUnsafe<Light>();
+            auto light = obj->GetComponent<Light>();
             if (!light)
             {
                 return false;
@@ -183,8 +183,8 @@ namespace Ifrit::Runtime
         for (auto di = 0, dj = 0; auto& lightObj : lightWithShadow)
         {
             // Temporarily, we assume that all lights are directional lights
-            auto               light          = lightObj->GetComponentUnsafe<Light>();
-            auto               lightTransform = lightObj->GetComponentUnsafe<Transform>();
+            auto               light          = lightObj->GetComponent<Light>();
+            auto               lightTransform = lightObj->GetComponent<Transform>();
             std::vector<float> csmSplits(
                 m_config->m_ShadowConfig.m_csmSplits.begin(), m_config->m_ShadowConfig.m_csmSplits.end());
             std::vector<float> csmBorders(
@@ -245,8 +245,8 @@ namespace Ifrit::Runtime
             }
             for (auto& obj : node->GetGameObjects())
             {
-                auto meshRenderer = obj->GetComponentUnsafe<MeshRenderer>();
-                auto meshFilter   = obj->GetComponentUnsafe<MeshFilter>();
+                auto meshRenderer = obj->GetComponent<MeshRenderer>();
+                auto meshFilter   = obj->GetComponent<MeshFilter>();
                 if (!meshRenderer || !meshFilter)
                 {
                     continue;
@@ -256,7 +256,7 @@ namespace Ifrit::Runtime
                 {
                     materials.push_back(meshRenderer->GetMaterial().get());
                     meshes.push_back(meshFilter->GetMesh().get());
-                    transforms.push_back(transform.get());
+                    transforms.push_back(transform);
                     instances.push_back(meshFilter->GetMeshInstance().get());
                 }
                 else

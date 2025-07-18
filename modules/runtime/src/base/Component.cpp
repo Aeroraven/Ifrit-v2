@@ -56,11 +56,14 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL GameObject::~GameObject()
     {
-
-        for (auto& comp : m_components)
+        for (auto& [typeHash, index] : m_componentsHashed)
         {
-            comp->OnEnd();
-            m_componentManager->RequestRemove(comp.get());
+            auto component = m_componentManager->GetComponentFromReference<Component>({ typeHash, index });
+            if (component)
+            {
+                component->OnEnd();
+                m_componentManager->RequestRemove(component);
+            }
         }
     }
 
@@ -117,7 +120,7 @@ namespace Ifrit::Runtime
         auto  typeHash                                = m_IdToTypeHash[meta.m_ManagerIndex];
         auto& tailCom                                 = m_ComponentArray[typeHash].back();
         tailCom->m_id.m_ArrayIndex                    = meta.m_ArrayIndex;
-        m_ComponentArray[typeHash][meta.m_ArrayIndex] = tailCom;
+        m_ComponentArray[typeHash][meta.m_ArrayIndex] = std::move(tailCom);
         m_ComponentArray[typeHash].pop_back();
         // Release id
         m_FreeIdQueue.push(meta.m_ArrayIndex);
@@ -137,8 +140,7 @@ namespace Ifrit::Runtime
         }
     }
 
-    IFRIT_APIDECL void ComponentManager::SetComponentId(
-        Ref<Component> component, u32 arrayPos, ComponentTypeHash typeHash)
+    IFRIT_APIDECL void ComponentManager::SetComponentId(Component* component, u32 arrayPos, ComponentTypeHash typeHash)
     {
         auto id                        = AllocateId();
         component->m_id.m_ArrayIndex   = arrayPos;

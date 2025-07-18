@@ -128,7 +128,7 @@ namespace Ifrit::Runtime
                 if (camera)
                 {
                     if (camera->IsMainCamera())
-                        return camera.get();
+                        return camera;
                 }
             }
         }

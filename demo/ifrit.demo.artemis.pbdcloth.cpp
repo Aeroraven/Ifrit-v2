@@ -216,7 +216,7 @@ namespace Ifrit
                 40,
             });
             pbdCloth->SetSimulationAlgorithm(Artemis::EPBDSimulatorAlgorithm::ExtendedPBD);
-            artemisSimulator->RegisterSolver(pbdCloth.get());
+            artemisSimulator->RegisterSolver(pbdCloth);
 
             auto bunny           = node->AddGameObject("bunny");
             auto bunnyMeshAsset  = m_assetManager->GetAssetByName<WaveFrontAsset>("bunny_watertight.obj");
@@ -230,10 +230,10 @@ namespace Ifrit
             bunnyMeshDF->BuildMeshDF(GetCacheDir(), Vector3u(64, 64, 64));
             bunnyMeshDF->BuildGPUResource(GetRhi());
             auto bunnySoftBody = bunny->AddComponent<Artemis::PBDCloth>();
-            bunnySoftBody->AddCollider(bunnyMeshDF.get());
+            bunnySoftBody->AddCollider(bunnyMeshDF);
             bunnySoftBody->SetType(Artemis::EPBDClothSimulationType::Volume);
 
-            pbdCloth->AddCollider(bunnyMeshDF.get());
+            pbdCloth->AddCollider(bunnyMeshDF);
             // artemisSimulator->RegisterSolver(bunnySoftBody.get());
 
             // Render targets

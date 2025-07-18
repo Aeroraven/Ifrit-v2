@@ -143,7 +143,7 @@ namespace Ifrit
 #endif
     }
 
-    template <class T> struct RTypeInfo
+    template <class T> struct TTypeInfo
     {
         static IF_CONSTEXPR const char* name = GetFuncName<T>();
         static IF_CONSTEXPR u64         hash = GetFuncNameHashId<T>();

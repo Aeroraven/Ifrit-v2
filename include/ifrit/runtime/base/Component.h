@@ -29,6 +29,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     IFRIT_DERIVED_REGISTER(x);      \
     IFRIT_INHERIT_REGISTER(Ifrit::Runtime::Component, x);
 
+// Change log at 2025-07-18:
+// It's the pity that the messy ownership identification is found by @AEMShana
+// I am changing the ownership of Component to be unique.
+
 namespace Ifrit::Runtime
 {
 
@@ -64,8 +68,10 @@ namespace Ifrit::Runtime
     class Component;
     class GameObject;
     class Transform;
-    using ComponentTypeHash = u64;
     class ComponentManager;
+
+    using ComponentTypeHash  = u64;
+    using ComponentReference = Pair<ComponentTypeHash, u32>;
 
     class IFRIT_APIDECL IComponentManagerKeeper
     {
@@ -77,10 +83,10 @@ namespace Ifrit::Runtime
     {
 
     private:
-        Queue<u32>                                      m_FreeIdQueue;
-        u32                                             m_AllocatedComponents = 0;
-        HashMap<ComponentTypeHash, Vec<Ref<Component>>> m_ComponentArray;
-        HashMap<u32, ComponentTypeHash>                 m_IdToTypeHash;
+        Queue<u32>                                        m_FreeIdQueue;
+        HashMap<ComponentTypeHash, Vec<Owner<Component>>> m_ComponentArray;
+        HashMap<u32, ComponentTypeHash>                   m_IdToTypeHash;
+        u32                                               m_AllocatedComponents = 0;
 
     public:
         ComponentManager();
@@ -88,23 +94,37 @@ namespace Ifrit::Runtime
         u32  AllocateId();
 
     private:
-        void                 SetComponentId(Ref<Component> component, u32 arrayPos, ComponentTypeHash typeHash);
-        Vec<Ref<Component>>& GetComponentArray(ComponentTypeHash typeHash) { return m_ComponentArray[typeHash]; }
+        void                          SetComponentId(Component* component, u32 arrayPos, ComponentTypeHash typeHash);
+        inline Vec<Owner<Component>>& GetComponentArray(ComponentTypeHash typeHash)
+        {
+            return m_ComponentArray[typeHash];
+        }
 
-        template <typename T> Ref<T> CreateComponent(Ref<GameObject> parentObject)
+        template <typename T> ComponentReference CreateComponent(Ref<GameObject> parentObject)
         {
             static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
-            using Ifrit::RTypeInfo;
-            auto typeName = RTypeInfo<T>::name;
-            auto typeHash = RTypeInfo<T>::hash;
+            auto typeName = TTypeInfo<T>::name;
+            auto typeHash = TTypeInfo<T>::hash;
             if (m_ComponentArray.count(typeHash) == 0)
             {
-                m_ComponentArray[typeHash] = Vec<Ref<Component>>();
+                m_ComponentArray[typeHash] = Vec<Owner<Component>>();
             }
-            auto ret = MakeRef<T>(parentObject);
-            SetComponentId(ret, SizeCast<u32>(m_ComponentArray[typeHash].size()), typeHash);
-            m_ComponentArray[typeHash].push_back(ret);
-            return ret;
+            auto ret = MakeOwner<T>(parentObject);
+            SetComponentId(ret.get(), SizeCast<u32>(m_ComponentArray[typeHash].size()), typeHash);
+            m_ComponentArray[typeHash].push_back(std::move(ret));
+            return { typeHash, SizeCast<u32>(m_ComponentArray[typeHash].size() - 1) };
+        }
+
+        template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
+        T* GetComponentFromReference(ComponentReference ref)
+        {
+            auto typeHash = ref.first;
+            if (ref.first != typeHash || m_ComponentArray.count(typeHash) == 0)
+                return nullptr;
+            auto& componentArray = m_ComponentArray[typeHash];
+            if (ref.second >= componentArray.size())
+                return nullptr;
+            return static_cast<T*>(componentArray[ref.second].get());
         }
 
         friend class GameObject;
@@ -118,81 +138,60 @@ namespace Ifrit::Runtime
     protected:
         ComponentIdentifier             m_id;
         String                          m_name;
-        // HashMap<String, Ref<Component>> m_components;
-        Vec<Ref<Component>>             m_components;
-        HashMap<String, u32>            m_componentIndex;
         HashMap<ComponentTypeHash, u32> m_componentsHashed;
-
         ComponentManager*               m_componentManager = nullptr;
 
     public:
         GameObject();
         virtual ~GameObject();
-        void                      Initialize(ComponentManager* manager);
-        inline String             GetName() const { return m_name; }
-        inline String             GetUUID() const { return m_id.m_uuid; }
-        static Ref<GameObject>    CreatePrefab(IComponentManagerKeeper* managerKeeper);
+        void                   Initialize(ComponentManager* manager);
+        inline String          GetName() const { return m_name; }
+        inline String          GetUUID() const { return m_id.m_uuid; }
 
-        template <class T> Ref<T> AddComponent()
+        // DEPRECATING
+        static Ref<GameObject> CreatePrefab(IComponentManagerKeeper* managerKeeper);
+
+        template <class T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* AddComponent()
         {
             static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
-            auto component = m_componentManager->CreateComponent<T>(shared_from_this());
-
-            m_components.push_back(component);
-            auto typeName = Ifrit::RTypeInfo<T>::name;
-            auto typeHash = Ifrit::RTypeInfo<T>::hash;
-            if (m_componentIndex.count(typeName) > 0 || m_componentsHashed.count(typeHash) > 0)
+            auto componentRef = m_componentManager->CreateComponent<T>(shared_from_this());
+            auto typeName     = TTypeInfo<T>::name;
+            auto typeHash     = TTypeInfo<T>::hash;
+            if (m_componentsHashed.count(typeHash) > 0)
             {
                 iError("Component type name conflicted");
                 std::abort();
             }
-            m_componentIndex[typeName]   = SizeCast<u32>(m_components.size()) - 1;
-            m_componentsHashed[typeHash] = SizeCast<u32>(m_components.size()) - 1;
-            return component;
+            m_componentsHashed[typeHash] = componentRef.second;
+            return m_componentManager->GetComponentFromReference<T>(componentRef);
         }
 
-        template <class T> Ref<T> GetComponent()
+        template <class T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* GetComponent()
         {
-            static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
-            using Ifrit::RTypeInfo;
-            auto typeHash = RTypeInfo<T>::hash;
+            auto typeHash = TTypeInfo<T>::hash;
             if (m_componentsHashed.count(typeHash) == 0)
             {
                 return nullptr;
             }
-            auto itIndex = m_componentsHashed[typeHash];
-#ifdef _DEBUG
-            auto ret = std::dynamic_pointer_cast<T>(m_components[itIndex]);
-            if (ret == nullptr)
-            {
-                iError("Invalid cast");
-                std::abort();
-            }
-            return ret;
-#else
-            return std::static_pointer_cast<T>(m_components[itIndex]);
-#endif
+            auto itIndex   = m_componentsHashed[typeHash];
+            auto component = m_componentManager->GetComponentFromReference<T>({ typeHash, itIndex });
+            return component ? component : nullptr;
         }
 
-        // Unsafe version of GetComponent, use with caution. It's intended to be used
-        // in performance-critical code.
-        template <class T> T* GetComponentUnsafe()
+        inline Vec<Component*> GetAllComponents()
         {
-            static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
-            using Ifrit::RTypeInfo;
-            auto typeHash = RTypeInfo<T>::hash;
-            if (m_componentsHashed.count(typeHash) == 0)
+            Vec<Component*> components;
+            for (auto& [typeHash, index] : m_componentsHashed)
             {
-                return nullptr;
+                auto component = m_componentManager->GetComponentFromReference<Component>({ typeHash, index });
+                if (component)
+                    components.push_back(component);
             }
-            auto itIndex = m_componentsHashed[typeHash];
-            return static_cast<T*>(m_components[itIndex].get());
+            return components;
         }
 
-        inline Vec<Ref<Component>> GetAllComponents() { return m_components; }
-
-        inline void                SetName(const String& name) { m_name = name; }
-        IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components, m_componentIndex, m_componentsHashed);
+        inline void SetName(const String& name) { m_name = name; }
+        IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_componentsHashed);
     };
 
     class IFRIT_APIDECL Component : public Ifrit::NonCopyable
@@ -306,7 +305,7 @@ namespace Ifrit::Runtime
         } m_dirty;
 
     public:
-        Transform() {};
+        Transform(){};
         Transform(Ref<GameObject> parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
 
         String      Serialize() override { return SerializeAttribute(); }

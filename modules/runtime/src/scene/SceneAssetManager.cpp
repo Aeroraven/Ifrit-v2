@@ -56,7 +56,7 @@ namespace Ifrit::Runtime
     // Manager
     IFRIT_APIDECL void SceneAssetManager::AttachAssetResources(Ref<Scene>& scene)
     {
-        Vec<Ref<Component>> components;
+        Vec<Component*> components;
         Vec<SceneNode*>     nodes;
         nodes.push_back(scene->GetRootNode().get());
         while (!nodes.empty())
