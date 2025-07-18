@@ -89,10 +89,12 @@ namespace Ifrit::Runtime::Artemis
     {
 
         IF_CONSTEXPR static u32  kGlobalDefaultGridSizeX = MPMSimulatorConfig::kDefaultGridSizeX;
-        MPMSimulatorParticleType m_MaterialType          = MPMSimulatorParticleType::Fluid;
-        f32                      m_Mass                  = 0.5f / kGlobalDefaultGridSizeX;
-        f32                      m_Density               = 1.0f;
-        f32                      m_YoungsModulus         = 200.0f;
-        f32                      m_PoissonRatio          = 0.2f;
+
+        Vector4f                 m_EmitColor     = Vector4f(1.0f, 1.0f, 1.0f, 1.0f);
+        MPMSimulatorParticleType m_MaterialType  = MPMSimulatorParticleType::Fluid;
+        f32                      m_Mass          = 0.5f / kGlobalDefaultGridSizeX;
+        f32                      m_Density       = 1.0f;
+        f32                      m_YoungsModulus = 200.0f;
+        f32                      m_PoissonRatio  = 0.2f;
     };
 } // namespace Ifrit::Runtime::Artemis

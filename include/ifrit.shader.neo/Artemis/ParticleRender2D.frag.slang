@@ -22,11 +22,18 @@ namespace Artemis{
 
     struct PushConst_T{
         TRWStructuredBufferHandle<float2> m_Positions;
+        TRWStructuredBufferHandle<float4> m_Colors;
         float m_ParticleRange;
         float m_AspectRatio;
+        float m_PointSize;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
+
+    struct VSOutput
+    {
+        IFSHADER_LOCATION(0) float4 Color: COLOR0;
+    };
 
     struct PSOutput
     {
@@ -34,10 +41,10 @@ namespace Artemis{
     };
 
     IFSHADER_ENTRY(IFSHADER_PS_ENTRY)
-    PSOutput ArtemisParticleRender2DPS()
+    PSOutput ArtemisParticleRender2DPS(VSOutput input: IFSHADER_INPUT)
     {
         PSOutput Output;
-        Output.Color = float4(1.0f, 1.0f, 1.0f, 1.0f); 
+        Output.Color = input.Color;
         return Output;
     }
 }

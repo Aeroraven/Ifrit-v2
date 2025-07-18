@@ -8,15 +8,17 @@ namespace Ifrit::Runtime
     {
         Range,
         Text,
-        Select
+        Select,
+        Color
     };
 
     template <typename T> class PropertyEditorHandle
     {
     public:
-        Fn<void(const char* name, T& value, T min, T max, T step)> m_SliderCallback = nullptr;
-        Fn<void(const char* name, T& value, Vec<T> options)>       m_SelectCallback = nullptr;
-        Fn<void(const char* name, T& value)>                       m_TextCallback   = nullptr;
+        Fn<void(const char* name, T& value, T min, T max, T step)>         m_SliderCallback = nullptr;
+        Fn<void(const char* name, T& value, Vec<Pair<T, String>> options)> m_SelectCallback = nullptr;
+        Fn<void(const char* name, T& value)>                               m_TextCallback   = nullptr;
+        Fn<void(const char* name, T& value)>                               m_ColorCallback  = nullptr;
     };
     template <typename T> IFRIT_RUNTIME_API PropertyEditorHandle<T>& GetPropertyEditorHandle();
 
@@ -59,10 +61,11 @@ namespace Ifrit::Runtime
             };
         }
     };
+
     template <typename T> struct PropertyConstraint<EPropertyEditorType::Select, T>
     {
-        Vec<T> m_Options;
-        PropertyConstraint(Vec<T> options) : m_Options(std::move(options)) {}
+        Vec<Pair<T, String>> m_Options;
+        PropertyConstraint(Vec<Pair<T, String>> options) : m_Options(std::move(options)) {}
         IF_FORCEINLINE Fn<void()> GetEditorHandle(const char* name, T& value)
         {
             return [name, &value, options = m_Options]() {
@@ -72,6 +75,20 @@ namespace Ifrit::Runtime
             };
         }
     };
+
+    template <> struct PropertyConstraint<EPropertyEditorType::Select, bool>
+    {
+        PropertyConstraint() {}
+        IF_FORCEINLINE Fn<void()> GetEditorHandle(const char* name, bool& value)
+        {
+            return [name, &value]() {
+                auto handle = GetPropertyEditorHandle<bool>();
+                if (handle.m_SelectCallback)
+                    handle.m_SelectCallback(name, value, { { true, "True" }, { false, "False" } });
+            };
+        }
+    };
+
     template <typename T> struct PropertyConstraint<EPropertyEditorType::Text, T>
     {
         PropertyConstraint() {}
@@ -81,6 +98,19 @@ namespace Ifrit::Runtime
                 auto handle = GetPropertyEditorHandle<T>();
                 if (handle.m_TextCallback)
                     handle.m_TextCallback(name, value);
+            };
+        }
+    };
+
+    template <> struct PropertyConstraint<EPropertyEditorType::Color, Vector4f>
+    {
+        PropertyConstraint() {}
+        IF_FORCEINLINE Fn<void()> GetEditorHandle(const char* name, Vector4f& value)
+        {
+            return [name, &value]() {
+                auto handle = GetPropertyEditorHandle<Vector4f>();
+                if (handle.m_ColorCallback)
+                    handle.m_ColorCallback(name, value);
             };
         }
     };
@@ -98,4 +128,4 @@ namespace Ifrit::Runtime
         }
     };
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

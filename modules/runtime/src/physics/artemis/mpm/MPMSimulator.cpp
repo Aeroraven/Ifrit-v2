@@ -70,12 +70,14 @@ namespace Ifrit::Runtime::Artemis
 
     struct MPMSimulatorPrivateData
     {
-        u32                                        m_FrameId   = 0;
-        static IF_CONSTEXPR u32                    kDefaultTGX = IfritShader::Artemis::MPM::kMpmTGSizeX;
+        u32                                        m_FrameId            = 0;
+        f32                                        m_ParticleRenderSize = 1.0f;
+        static IF_CONSTEXPR u32                    kDefaultTGX          = IfritShader::Artemis::MPM::kMpmTGSizeX;
 
         MPMSimulatorConfig*                        m_Config                   = nullptr;
         bool                                       m_RebuildGPUResources      = true;
         bool                                       m_HasInitParticleLocations = false;
+        bool                                       m_HasGlobalDrain           = false;
 
         std::variant<Vec<Vector2f>, Vec<Vector4f>> m_InitParticleLocations;
         Vec<MPMEmissionInfo>                       m_EmissionInfos;
@@ -86,6 +88,7 @@ namespace Ifrit::Runtime::Artemis
 
         RhiBufferRef                               m_ParticlePosition;
         RhiBufferRef                               m_ParticleVelocity;
+        RhiBufferRef                               m_ParticleColor;
         RhiBufferRef                               m_ParticleMass;
         RhiBufferRef                               m_ParticleDeformGrad;
         RhiBufferRef                               m_ParticleDeformGradDet;
@@ -103,9 +106,12 @@ namespace Ifrit::Runtime::Artemis
 
         RhiBufferRef                               m_GridAttribute;
 
+        RhiBufferRef                               m_RenderParticleIndDrawBuffer;
+
         // RDG resources
         FGBufferNodeRef                            m_RDGParticleCount;
         FGBufferNodeRef                            m_RDGParticleEmitLocations;
+        FGBufferNodeRef                            m_RDGParticleColor;
 
         FGBufferNodeRef                            m_RDGParticlePosition;
         FGBufferNodeRef                            m_RDGParticleVelocity;
@@ -124,6 +130,8 @@ namespace Ifrit::Runtime::Artemis
         FGBufferNodeRef                            m_RDGGridMass;
         FGBufferNodeRef                            m_RDGGridAttribute;
 
+        FGBufferNodeRef                            m_RDGRenderParticleIndDrawBuffer;
+
         // Transient data
         FGBufferNodeRef                            m_RDGValidGridCounter;
         FGBufferNodeRef                            m_RDGValidGridList;
@@ -140,6 +148,7 @@ namespace Ifrit::Runtime::Artemis
         // Solver steps
         void                                       ParticleInit(FrameGraphBuilder& builder);
         void ParticleEmit(FrameGraphBuilder& builder, const MPMParticleEmitArgs& args, u32 numParticles);
+        void ParticleDrainAll(FrameGraphBuilder& builder);
         void GridReset(FrameGraphBuilder& builder, bool firstFrame, bool firstIteration);
         void ParticleToGridTransfer(FrameGraphBuilder& builder, f32 dt, u32 last);
         void GridVelocityNormalize(FrameGraphBuilder& builder);
@@ -158,33 +167,52 @@ namespace Ifrit::Runtime::Artemis
         void ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
     };
 
+    void MPMSimulatorPrivateData::ParticleDrainAll(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            u32 m_ParticleCounter;
+
+        } pc;
+
+        AddComputePass<PushConst>(builder, "MPMSimulator.ParticleDrainAll",
+            GetShader(Internal::kIntShaderTableArtemis.MPMParticleDrainAllCS), Vector3i(1, 1, 1), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounter = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadWriteResource(*m_RDGParticleCount);
+    }
+
     void MPMSimulatorPrivateData::ParticleEmit(
         FrameGraphBuilder& builder, const MPMParticleEmitArgs& args, u32 numParticles)
     {
         struct PushConst
         {
-            f32 m_DefaultYoungs;
-            f32 m_DefaultPossion;
-            i32 m_DefaultMatType;
+            Vector4f m_EmitColor;
+            f32      m_DefaultYoungs;
+            f32      m_DefaultPossion;
+            i32      m_DefaultMatType;
 
-            i32 m_NumParticles;
-            f32 m_Mass;
-            f32 m_Density;
-            u32 m_Grid;
-            u32 m_ParticleLocationSrc;
+            i32      m_NumParticles;
+            f32      m_Mass;
+            f32      m_Density;
+            u32      m_Grid;
+            u32      m_ParticleLocationSrc;
 
-            u32 m_ParticleLocation;
-            u32 m_ParticleVelocity;
-            u32 m_ParticleMass;
-            u32 m_ParticleVolume;
-            u32 m_ParticleB;
-            u32 m_ParticleDeformationGrad;
-            u32 m_ParticleDeformationGradDet;
-            u32 m_ParticleMaterial;
-            u32 m_ParticleLiquidDensity;
-            u32 m_ParticleCounter;
+            u32      m_ParticleLocation;
+            u32      m_ParticleVelocity;
+            u32      m_ParticleMass;
+            u32      m_ParticleVolume;
+            u32      m_ParticleB;
+            u32      m_ParticleDeformationGrad;
+            u32      m_ParticleDeformationGradDet;
+            u32      m_ParticleMaterial;
+            u32      m_ParticleLiquidDensity;
+            u32      m_ParticleCounter;
+            u32      m_ParticleColor;
         } pc;
-
+        pc.m_EmitColor      = args.m_EmitColor;
         pc.m_DefaultYoungs  = args.m_YoungsModulus;
         pc.m_DefaultPossion = args.m_PoissonRatio;
         pc.m_DefaultMatType = static_cast<i32>(args.m_MaterialType);
@@ -209,6 +237,7 @@ namespace Ifrit::Runtime::Artemis
                 pc.m_ParticleMaterial           = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
                 pc.m_ParticleLiquidDensity      = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
                 pc.m_ParticleCounter            = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                pc.m_ParticleColor              = ctx.m_FgDesc->GetUAV(*m_RDGParticleColor);
                 SetRootConstant(pc, ctx);
             })
             .AddReadWriteResource(*m_RDGGridAttribute)
@@ -222,6 +251,7 @@ namespace Ifrit::Runtime::Artemis
             .AddReadWriteResource(*m_RDGParticleMatProperty)
             .AddReadWriteResource(*m_RDGParticleLiquidDensity)
             .AddReadWriteResource(*m_RDGParticleEmitLocations)
+            .AddReadWriteResource(*m_RDGParticleColor)
             .AddReadWriteResource(*m_RDGParticleCount);
     }
 
@@ -350,6 +380,7 @@ namespace Ifrit::Runtime::Artemis
             u32 m_ParticleMatProperty;
             u32 m_ParticleLiquidDensity;
             u32 m_ParticleCount;
+            u32 m_ParticleColor;
         } pc;
         pc.m_IgnoreParticlePosition = m_HasInitParticleLocations ? 1 : 0;
         pc.m_DefaultYoungsModulus   = m_Config->m_DefaultYoungsModulus;
@@ -376,6 +407,7 @@ namespace Ifrit::Runtime::Artemis
                 pc.m_ParticleMatProperty        = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
                 pc.m_ParticleLiquidDensity      = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
                 pc.m_ParticleCount              = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                pc.m_ParticleColor              = ctx.m_FgDesc->GetUAV(*m_RDGParticleColor);
 
                 SetRootConstant(pc, ctx);
             })
@@ -387,6 +419,9 @@ namespace Ifrit::Runtime::Artemis
             .AddWriteResource(*m_RDGParticleDeformGrad)
             .AddWriteResource(*m_RDGParticleDeformGradDet)
             .AddWriteResource(*m_RDGParticleMatProperty)
+            .AddWriteResource(*m_RDGParticleLiquidDensity)
+            .AddWriteResource(*m_RDGParticleCount)
+            .AddWriteResource(*m_RDGParticleColor)
             .AddReadResource(*m_RDGGridAttribute);
     }
 
@@ -866,6 +901,7 @@ namespace Ifrit::Runtime::Artemis
         auto particleCountSz = sizeof(u32) * 4;
 
         auto particlePosSz           = numParticles * MTypes::kFSpatialVectorAlignedSize;
+        auto particleColorSz         = numParticles * sizeof(Vector4f);
         auto particleVelSz           = numParticles * MTypes::kFSpatialVectorAlignedSize;
         auto particleMassSz          = numParticles * MTypes::kFScalarSize;
         auto particleDeformGradSz    = numParticles * MTypes::kFSpatialTransformAlignedSize;
@@ -883,11 +919,14 @@ namespace Ifrit::Runtime::Artemis
         auto gridMassSz  = numGrids * MTypes::kFScalarSize;
         auto gridAttrSz  = sizeof(MPMSimulatorGridAttribute);
 
+        auto inddrawSz = sizeof(u32) * 4;
+
         auto defaultUsage  = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
         auto indexUsage    = defaultUsage | RhiBufferUsage::RhiBufferUsage_Index;
         auto indirectUsage = defaultUsage | RhiBufferUsage::RhiBufferUsage_Indirect;
 
         m_ParticleCount    = RHI->CreateBufferDevice("MPM_ParticleCount", particleCountSz, indirectUsage, true);
+        m_ParticleColor    = RHI->CreateBufferDevice("MPM_ParticleColor", particleColorSz, defaultUsage, true);
         m_ParticlePosition = RHI->CreateBufferDevice("MPM_ParticlePosition", particlePosSz, defaultUsage, true);
         m_ParticleEmitLocations =
             RHI->CreateBufferDevice("MPM_ParticleEmitLocations", particlePosSz, defaultUsage, true);
@@ -913,6 +952,9 @@ namespace Ifrit::Runtime::Artemis
         m_GridMass      = RHI->CreateBufferDevice("MPM_GridMass", gridMassSz, defaultUsage, true);
         m_GridAttribute = RHI->CreateBufferDevice("MPM_GridAttribute", gridAttrSz, defaultUsage, true);
 
+        m_RenderParticleIndDrawBuffer =
+            RHI->CreateBufferDevice("MPM_RenderParticleIndDraw", inddrawSz, indirectUsage, true);
+
         PrepareInitialGPUData(RHI);
     }
 
@@ -920,6 +962,7 @@ namespace Ifrit::Runtime::Artemis
     {
         // Persistent
         m_RDGParticleCount         = &builder.ImportBuffer("MPM_ParticleCount", m_ParticleCount.get());
+        m_RDGParticleColor         = &builder.ImportBuffer("MPM_ParticleColor", m_ParticleColor.get());
         m_RDGParticlePosition      = &builder.ImportBuffer("MPM_ParticlePosition", m_ParticlePosition.get());
         m_RDGParticleEmitLocations = &builder.ImportBuffer("MPM_ParticleEmitLocations", m_ParticleEmitLocations.get());
         m_RDGParticleVelocity      = &builder.ImportBuffer("MPM_ParticleVelocity", m_ParticleVelocity.get());
@@ -938,6 +981,9 @@ namespace Ifrit::Runtime::Artemis
         m_RDGGridVelocity  = &builder.ImportBuffer("MPM_GridVelocity", m_GridVelocity.get());
         m_RDGGridMass      = &builder.ImportBuffer("MPM_GridMass", m_GridMass.get());
         m_RDGGridAttribute = &builder.ImportBuffer("MPM_GridAttribute", m_GridAttribute.get());
+
+        m_RDGRenderParticleIndDrawBuffer =
+            &builder.ImportBuffer("MPM_RenderParticleIndDraw", m_RenderParticleIndDrawBuffer.get());
 
         // Transient
         // TODO: make imported !!!
@@ -976,6 +1022,12 @@ namespace Ifrit::Runtime::Artemis
             HandleManualParticleEmit<2>(builder);
         else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
             HandleManualParticleEmit<3>(builder);
+
+        if (m_HasGlobalDrain)
+        {
+            ParticleDrainAll(builder);
+            m_HasGlobalDrain = false;
+        }
 
         if (isPbMpm)
         {
@@ -1051,11 +1103,30 @@ namespace Ifrit::Runtime::Artemis
     void MPMSimulatorPrivateData::ParticleRender2D(FrameGraphBuilder& builder, FGTextureNode* renderTarget)
     {
         IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.ParticleRender");
+
+        struct PushConst_PrepareInd
+        {
+            u32 m_CounterId;
+            u32 m_IndirectDrawId;
+        } pci;
+        AddComputePass<PushConst_PrepareInd>(builder, "MPMSimulator.ParticleRenderPrepareIndirect",
+            GetShader(Internal::kIntShaderTableArtemis.ParticleIndDrawBufferPrepCS), Vector3i(1, 1, 1), pci,
+            [this](PushConst_PrepareInd pc, const FrameGraphPassContext& ctx) {
+                pc.m_CounterId      = ctx.m_FgDesc->GetSRV(*m_RDGParticleCount);
+                pc.m_IndirectDrawId = ctx.m_FgDesc->GetUAV(*m_RDGRenderParticleIndDrawBuffer);
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGParticleCount)
+            .AddWriteResource(*m_RDGRenderParticleIndDrawBuffer);
+
         struct PushConst
         {
             u32 m_PositionId;
+            u32 m_ColorId;
             f32 m_GridRange;
             f32 m_AspectRatio;
+            f32 m_PointSize;
         };
 
         auto& pass = builder.AddGraphicsPass("MPMSimulator.ParticleRender",
@@ -1072,15 +1143,21 @@ namespace Ifrit::Runtime::Artemis
 
             PushConst pc;
             pc.m_PositionId  = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
+            pc.m_ColorId     = ctx.m_FgDesc->GetUAV(*m_RDGParticleColor);
             pc.m_GridRange   = m_Config->m_GridSize.x * m_Config->m_GridSpacing;
             pc.m_AspectRatio = (f32)rtWidth / (f32)rtHeight;
+            pc.m_PointSize   = m_ParticleRenderSize;
 
             cmd->AttachIndexBuffer(m_ParticleIndex.get());
             cmd->SetCullMode(RhiCullMode::None);
             cmd->SetPushConst(&pc, 0, sizeof(PushConst));
-            cmd->DrawIndexed(m_Config->m_DefaultNumParticles, 1, 0, 0, 0);
+            // cmd->DrawIndexed(m_Config->m_DefaultNumParticles, 1, 0, 0, 0);
+            cmd->DrawIndirect(m_RenderParticleIndDrawBuffer.get(), 0);
         });
-        pass.AddRenderTarget(*renderTarget).AddReadResource(*m_RDGParticlePosition);
+        pass.AddRenderTarget(*renderTarget)
+            .AddReadResource(*m_RDGRenderParticleIndDrawBuffer)
+            .AddReadResource(*m_RDGParticlePosition)
+            .AddReadResource(*m_RDGParticleColor);
     }
 
     void MPMSimulatorPrivateData::ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget)
@@ -1241,10 +1318,13 @@ namespace Ifrit::Runtime::Artemis
     template IFRIT_APIDECL void MPMSimulator::EmitParticles<3>(
         const Vec<TGenericVector<f32, 3>>& locations, const MPMParticleEmitArgs& args);
 
-    RHI::RhiBufferRef  MPMSimulator::GetParticlePositionBuffer() { return m_Data->m_ParticlePosition; }
-    RHI::RhiBufferRef  MPMSimulator::GetParticleCounterBuffer() { return m_Data->m_ParticleCount; }
+    IFRIT_APIDECL RHI::RhiBufferRef MPMSimulator::GetParticlePositionBuffer() { return m_Data->m_ParticlePosition; }
+    IFRIT_APIDECL RHI::RhiBufferRef MPMSimulator::GetParticleCounterBuffer() { return m_Data->m_ParticleCount; }
 
-    IFRIT_APIDECL void MPMSimulator::CollectScene(Scene* scene)
+    IFRIT_APIDECL void              MPMSimulator::RequestClearParticles() { m_Data->m_HasGlobalDrain = true; }
+    void                            MPMSimulator::SetDefaultSize(f32 size) { m_Data->m_ParticleRenderSize = size; }
+
+    IFRIT_APIDECL void              MPMSimulator::CollectScene(Scene* scene)
     {
         m_Data->m_FrameId++;
         auto emitters = scene->FilterObjectsUnsafe([](GameObject* obj) {

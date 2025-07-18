@@ -1,5 +1,5 @@
 #include "ifrit/ui/imgui/ImGuiProvider.h"
-#include "ifrit/ui/imgui/ImGuiStyling.h"
+#include "ifrit.internal/ui/imgui/ImGuiStyling.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
@@ -39,8 +39,37 @@ namespace Ifrit::UI
         iAssertion(false, "ImGui Vulkan error: {}", (int)err);
     }
 
+    template <typename T>
+    static void GeneralSelectableHandle(const char* label, T& value, const Vec<Pair<T, String>>& options)
+    {
+        String previewValue = "(Invalid)";
+        for (const auto& option : options)
+        {
+            if (option.first == value)
+            {
+                previewValue = option.second;
+                break;
+            }
+        }
+        if (ImGui::BeginCombo(label, previewValue.c_str()))
+        {
+            for (const auto& option : options)
+            {
+                bool isSelected = (value == option.first);
+                if (ImGui::Selectable(option.second.c_str(), isSelected))
+                {
+                    value = option.first;
+                }
+                if (isSelected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+    }
+
     static void RegisterEditorHandles(ImGuiProvider* provider)
     {
+        // Float32
         auto& f32Handles            = Runtime::GetPropertyEditorHandle<f32>();
         f32Handles.m_SliderCallback = [](const char* name, f32& value, f32 min, f32 max, f32 step) {
             ImGui::Text("%s", name);
@@ -53,6 +82,7 @@ namespace Ifrit::UI
             ImGui::InputFloat((String("##") + name).c_str(), &value, 0.0f, 0.0f, "%.3f");
         };
 
+        // Int32
         auto& i32Handles            = Runtime::GetPropertyEditorHandle<i32>();
         i32Handles.m_SliderCallback = [](const char* name, i32& value, i32 min, i32 max, i32 step) {
             ImGui::Text("%s", name);
@@ -66,11 +96,56 @@ namespace Ifrit::UI
             ImGui::InputInt((String("##") + name).c_str(), &value);
         };
 
+        // Vector3f
         auto& v3fHandles          = Runtime::GetPropertyEditorHandle<Vector3f>();
         v3fHandles.m_TextCallback = [](const char* name, Vector3f& value) {
             ImGui::Text("%s", name);
             ImGui::SameLine();
             ImGui::InputFloat3((String("##") + name).c_str(), &value.x, "%.4f");
+        };
+
+        // Vector4f
+        auto& v4fHandles          = Runtime::GetPropertyEditorHandle<Vector4f>();
+        v4fHandles.m_TextCallback = [](const char* name, Vector4f& value) {
+            ImGui::Text("%s", name);
+            ImGui::SameLine();
+            ImGui::InputFloat4((String("##") + name).c_str(), &value.x, "%.4f");
+        };
+
+        v4fHandles.m_ColorCallback = [](const char* name, Vector4f& value) {
+            ImGui::Text("%s", name);
+            ImGui::SameLine();
+            ImGui::ColorEdit4(
+                (String("##") + name).c_str(), &value.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        };
+
+        // Int8
+        auto& i8Handles            = Runtime::GetPropertyEditorHandle<i8>();
+        i8Handles.m_SelectCallback = [](const char* name, i8& value, Vec<Pair<i8, String>> options) {
+            ImGui::Text("%s", name);
+            ImGui::SameLine();
+            GeneralSelectableHandle<i8>(name, value, options);
+        };
+
+        // UInt8
+        auto& u8Handles            = Runtime::GetPropertyEditorHandle<u8>();
+        u8Handles.m_SelectCallback = [](const char* name, u8& value, Vec<Pair<u8, String>> options) {
+            ImGui::Text("%s", name);
+            ImGui::SameLine();
+            GeneralSelectableHandle<u8>((String("##") + name).c_str(), value, options);
+        };
+
+        // Bool
+        auto& boolHandles            = Runtime::GetPropertyEditorHandle<bool>();
+        boolHandles.m_SelectCallback = [](const char* name, bool& value, Vec<Pair<bool, String>> options) {
+            ImGui::Text("%s", name);
+            ImGui::SameLine();
+            auto Id = (String("##") + name).c_str();
+            ImGui::PushID(Id);
+            ImGui::PushID(&value);
+            ImGui::Checkbox(Id, &value);
+            ImGui::PopID();
+            ImGui::PopID();
         };
     }
 
@@ -237,6 +312,10 @@ namespace Ifrit::UI
         io.DisplaySize.x           = projectProperty.m_width;
         io.DisplaySize.y           = projectProperty.m_height;
 
+        // C:/Windows/Fonts/NotoSans-Regular.ttf
+        io.Fonts->AddFontFromFileTTF(
+            "C:/Windows/Fonts/NotoSans-Regular.ttf", 15.0f, nullptr, io.Fonts->GetGlyphRangesDefault());
+
         // ImGui::StyleColorsDark();
         Internal::ApplyImGuiSytle();
         ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(windowObject), true);
@@ -355,9 +434,10 @@ namespace Ifrit::UI
                 auto components = obj->GetAllComponents();
                 for (auto& component : components)
                 {
-                    ImGui::Separator();
-                    auto typeName = GetDynamicTypeName(component.get());
-                    ImGui::Text("Component: %s", typeName.c_str());
+                    auto typeName      = GetDynamicTypeNameWithoutNamespace(component.get());
+                    auto typeNamespace = GetDynamicTypeNamespace(component.get());
+                    ImGui::SeparatorText(typeName.c_str());
+                    ImGui::SetItemTooltip("Component Namespace: %s", typeNamespace.c_str());
                     component->CallPropertyEditorHandle();
                 }
             }

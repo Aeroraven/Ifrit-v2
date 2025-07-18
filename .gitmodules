@@ -61,3 +61,6 @@
 [submodule "dependencies/mimalloc"]
 	path = dependencies/mimalloc
 	url = git@github.com:microsoft/mimalloc.git
+[submodule "dependencies/magicenum"]
+	path = dependencies/magicenum
+	url = git@github.com:Neargye/magic_enum.git

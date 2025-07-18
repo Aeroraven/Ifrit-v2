@@ -5,19 +5,21 @@ namespace Ifrit::Runtime::Artemis
 {
     struct MPMParticleEmitterPrivateData
     {
-        Vector3f m_EmitMinRange = Vector3f(0.45f, 0.92f, 0.45f);
-        Vector3f m_EmitMaxRange = Vector3f(0.55f, 0.95f, 0.55f);
-        i32      m_EmitKeyFrame = 15;
+        MPMSimulatorParticleType m_EmitMaterialType = MPMSimulatorParticleType::Fluid;
+        Vector4f                 m_EmitColor        = Vector4f(0.0f, 1.0f, 1.0f, 1.0f);
+        Vector3f                 m_EmitMinRange     = Vector3f(0.45f, 0.92f, 0.45f);
+        Vector3f                 m_EmitMaxRange     = Vector3f(0.55f, 0.95f, 0.55f);
+        i32                      m_EmitKeyFrame     = 15;
 
-        f32      m_ParticleMass                 = 1.0f;
-        f32      m_ParticleDensity              = 1.0f;
-        f32      m_PbmpmParticleElasticityRatio = 0.5f;
-        f32      m_PbmpmParticleElasticityRelax = 1.5f;
-        f32      m_PbmpmParticleViscoFactor     = 0.1f;
-        f32      m_PbmpmParticleLiquidViscosity = 0.01f;
-        f32      m_PbmpmParticleLiquidRelax     = 1.5f;
-        f32      m_MpmYoungsModulus             = 50.0f;
-        f32      m_MpmPoissonRatio              = 0.3f;
+        f32                      m_ParticleMass                 = 1.0f;
+        f32                      m_ParticleDensity              = 1.0f;
+        f32                      m_PbmpmParticleElasticityRatio = 0.5f;
+        f32                      m_PbmpmParticleElasticityRelax = 1.5f;
+        f32                      m_PbmpmParticleViscoFactor     = 0.1f;
+        f32                      m_PbmpmParticleLiquidViscosity = 0.01f;
+        f32                      m_PbmpmParticleLiquidRelax     = 1.5f;
+        f32                      m_MpmYoungsModulus             = 50.0f;
+        f32                      m_MpmPoissonRatio              = 0.3f;
     };
 
     IFRIT_APIDECL MPMParticleEmitter::MPMParticleEmitter() : m_Data(new MPMParticleEmitterPrivateData()) {}
@@ -29,6 +31,8 @@ namespace Ifrit::Runtime::Artemis
     IFRIT_APIDECL MPMParticleEmitArgs MPMParticleEmitter::GetEmitArgs()
     {
         MPMParticleEmitArgs args;
+        args.m_EmitColor    = m_Data->m_EmitColor;
+        args.m_MaterialType = m_Data->m_EmitMaterialType;
         return args;
     }
 
@@ -52,6 +56,10 @@ namespace Ifrit::Runtime::Artemis
 
     IFRIT_APIDECL void MPMParticleEmitter::SetupProperties()
     {
+        AddEnumProperty<MPMSimulatorParticleType>("Emit Material Type", m_Data->m_EmitMaterialType,
+            { MPMSimulatorParticleType::Fluid, MPMSimulatorParticleType::Jelly, MPMSimulatorParticleType::Visco });
+
+        AddProperty<Vector4f, EPropertyEditorType::Color>("Emit Color", m_Data->m_EmitColor);
         AddProperty<Vector3f, EPropertyEditorType::Text>("Emit MinRange", m_Data->m_EmitMinRange);
         AddProperty<Vector3f, EPropertyEditorType::Text>("Emit MaxRange", m_Data->m_EmitMaxRange);
         AddProperty<i32, EPropertyEditorType::Range>("Emit Key Frame", m_Data->m_EmitKeyFrame, 1, 1000);
@@ -68,4 +76,4 @@ namespace Ifrit::Runtime::Artemis
         AddProperty<f32, EPropertyEditorType::Range>("Young's Modulus", m_Data->m_MpmYoungsModulus, 1.0f, 10000.0f);
         AddProperty<f32, EPropertyEditorType::Range>("Poisson Ratio", m_Data->m_MpmPoissonRatio, 0.01f, 0.49f);
     }
-} // namespace Ifrit::Runtime::Artemis
+} // namespace Ifrit::Runtime::Artemis

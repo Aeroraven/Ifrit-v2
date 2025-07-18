@@ -56,7 +56,8 @@ namespace Ifrit::Runtime
         {
             for (auto& comp : obj->GetAllComponents())
             {
-                comp->OnUpdate();
+                if (comp->IsEnabled())
+                    comp->OnUpdate();
             }
         }
     }
@@ -101,7 +102,8 @@ namespace Ifrit::Runtime
         {
             for (auto& comp : obj->GetAllComponents())
             {
-                comp->OnFixedUpdate();
+                if (comp->IsEnabled())
+                    comp->OnFixedUpdate();
             }
         }
     }

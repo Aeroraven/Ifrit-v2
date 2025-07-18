@@ -22,8 +22,10 @@ namespace Artemis{
 
     struct PushConst_T{
         TRWStructuredBufferHandle<float2> m_Positions;
+        TRWStructuredBufferHandle<float4> m_Colors;
         float m_ParticleRange;
         float m_AspectRatio;
+        float m_PointSize; 
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -32,6 +34,7 @@ namespace Artemis{
     {
         float4 Position: SV_Position;
         IFSHADER_POINTSIZE_DECORATE float PointSize: IFSHADER_POINTSIZE_SEMANTIC;
+        IFSHADER_LOCATION(0) float4 Color: COLOR0;
     };
 
     IFSHADER_ENTRY(IFSHADER_VS_ENTRY)
@@ -46,6 +49,8 @@ namespace Artemis{
         VSOutput output;
         output.Position = float4(Loc, 0.5f, 1.0f);
         output.PointSize = 1.0f;
+        output.PointSize = PushConst.m_PointSize;
+        output.Color = PushConst.m_Colors.Load(VertexId);
 
         return output;
     }

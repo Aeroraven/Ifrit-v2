@@ -65,10 +65,13 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTArtemis.PBDClothVolumeConstraintProjectCS, "Artemis/PBD/PBDCloth.VolumeConstraintProject",
             "ArtemisPBDClothVolumeConstraintProjectCS");
 
+        // Particle Render
         REG_VERTEX_NEO(ISTArtemis.ParticleRender2dVS, "Artemis/ParticleRender2D", "ArtemisParticleRender2DVS");
         REG_FRAGMENT_NEO(ISTArtemis.ParticleRender2dFS, "Artemis/ParticleRender2D", "ArtemisParticleRender2DPS");
         REG_VERTEX_NEO(ISTArtemis.ParticleRender3dVS, "Artemis/ParticleRender3D", "ArtemisParticleRender3DVS");
         REG_FRAGMENT_NEO(ISTArtemis.ParticleRender3dFS, "Artemis/ParticleRender3D", "ArtemisParticleRender3DPS");
+        REG_COMPUTE_NEO(ISTArtemis.ParticleIndDrawBufferPrepCS, "Artemis/ParticleIndDrawBufferPrep",
+            "ArtemisParticleIndirectDrawPrepCS");
 
         // APIC
         REG_COMPUTE_NEO(ISTArtemis.APICFluidG2PCS, "Artemis/APIC/APICFluid.G2P", "ApicGridToParticleCS");
@@ -103,6 +106,7 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTArtemis.MPMPbMpmParticleIntegrateCS, "Artemis/MPM/MPM.PbMpmParticleIntegrate",
             "PbMpmParticleIntegrateCS");
         REG_COMPUTE_NEO(ISTArtemis.MPMParticleEmitCS, "Artemis/MPM/MPM.ParticleEmit", "MpmParticleEmitCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMParticleDrainAllCS, "Artemis/MPM/MPM.ParticleDrainAll", "MpmParticleDrainAllCS");
 
 #undef REG_MESH
 #undef REG_FRAGMENT

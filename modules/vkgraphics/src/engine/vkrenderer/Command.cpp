@@ -202,7 +202,7 @@ namespace Ifrit::RHI::VulkanAdapter
                 viewport[i].maxDepth };
             vps.push_back(s);
         }
-        vkCmdSetViewport(m_commandBuffer, 0, SizeCast<int>(vps.size()), vps.data());
+        vkCmdSetViewport(m_commandBuffer, 0, SizeCast<u32>(vps.size()), vps.data());
     }
 
     IFRIT_APIDECL void CommandBuffer::SetScissors(const Vec<RHI::RhiScissor>& scissor) const
@@ -213,12 +213,17 @@ namespace Ifrit::RHI::VulkanAdapter
             VkRect2D s = { { scissor[i].x, scissor[i].y }, { scissor[i].width, scissor[i].height } };
             scs.push_back(s);
         }
-        vkCmdSetScissor(m_commandBuffer, 0, SizeCast<int>(scs.size()), scs.data());
+        vkCmdSetScissor(m_commandBuffer, 0, SizeCast<u32>(scs.size()), scs.data());
     }
 
     IFRIT_APIDECL void CommandBuffer::Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const
     {
         vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+    IFRIT_APIDECL void CommandBuffer::DrawIndirect(const RhiBuffer* buffer, u32 offset) const
+    {
+        auto buf = CheckedCast<SingleBuffer>(buffer)->GetBuffer();
+        vkCmdDrawIndirect(m_commandBuffer, buf, offset, 1, sizeof(VkDrawIndirectCommand));
     }
 
     IFRIT_APIDECL void CommandBuffer::DrawIndexed(

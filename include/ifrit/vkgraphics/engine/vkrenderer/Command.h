@@ -149,10 +149,11 @@ namespace Ifrit::RHI::VulkanAdapter
         // Functionality
         void                   AddPipelineBarrier(const PipelineBarrier& barrier) const;
 
-        void                   Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const;
-        void                   DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const override;
-        void                   DrawIndexed(
-                              u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const override;
+        void Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const override;
+        void DrawIndirect(const RhiBuffer* buffer, u32 offset) const override;
+        void DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const override;
+        void DrawIndexed(
+            u32 indexCount, u32 instanceCount, u32 firstIndex, int32_t vertexOffset, u32 firstInstance) const override;
         void DrawIndexedIndirect(const RHI::RhiBuffer* buffer, u32 offset) const override;
         void CopyBuffer(const RHI::RhiBuffer* srcBuffer, const RHI::RhiBuffer* dstBuffer, u32 size, u32 srcOffset = 0,
             u32 dstOffset = 0) const;

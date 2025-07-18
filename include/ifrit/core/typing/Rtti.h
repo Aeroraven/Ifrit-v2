@@ -21,4 +21,26 @@ namespace Ifrit
         return typeid(*ptr).name();
 #endif
     }
-} // namespace Ifrit
+
+    template <typename T> String GetDynamicTypeNameWithoutNamespace(T* ptr)
+    {
+        String name = GetDynamicTypeName(ptr);
+        auto   pos  = name.find_last_of("::");
+        if (pos != String::npos)
+        {
+            return name.substr(pos + 1);
+        }
+        return name;
+    }
+
+    template <typename T> String GetDynamicTypeNamespace(T* ptr)
+    {
+        String name = GetDynamicTypeName(ptr);
+        auto   pos  = name.find_last_of("::");
+        if (pos != String::npos)
+        {
+            return name.substr(0, std::max(static_cast<decltype(pos)>(0), pos - 1));
+        }
+        return "";
+    }
+} // namespace Ifrit

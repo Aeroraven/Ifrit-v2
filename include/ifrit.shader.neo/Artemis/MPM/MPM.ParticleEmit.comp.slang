@@ -8,6 +8,8 @@ namespace MPM{
 
     struct PushConst_T
     {
+        float4 m_EmitColor;
+
         float m_DefaultYoungs;
         float m_DefaultPossion;
         int m_DefaultMatType;
@@ -28,6 +30,7 @@ namespace MPM{
         TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
         FRWScalarHandle m_ParticleLiquidDensity;
         FParticleCounterHandle m_ParticleCounter;
+        TRWStructuredBufferHandle<float4> m_ParticleColor;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -86,6 +89,8 @@ namespace MPM{
 
         PushConst.m_ParticleDeformationGradDet.Store(ParticleSlot, Math::Determinant(I));
         PushConst.m_ParticleLiquidDensity.Store(ParticleSlot, 1.0f);
+
+        PushConst.m_ParticleColor.Store(PushConst.m_EmitColor, ParticleSlot);
     }
 
 }}}

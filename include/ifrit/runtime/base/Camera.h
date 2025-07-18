@@ -27,11 +27,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime
 {
-    enum class CameraType
+    enum class CameraType : u8
     {
         Perspective,
         Orthographic
     };
+
     struct CameraData
     {
         CameraType m_type           = CameraType::Perspective; // Ortho support not implemented

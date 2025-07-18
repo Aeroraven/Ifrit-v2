@@ -50,6 +50,8 @@ namespace Ifrit::RHI
         virtual void SetScissors(const Vec<RhiScissor>& scissor) const                                            = 0;
         virtual void DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                       = 0;
         virtual void DrawMeshTasksIndirect(const RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const  = 0;
+        virtual void Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const           = 0;
+        virtual void DrawIndirect(const RhiBuffer* buffer, u32 offset) const                                      = 0;
         virtual void DrawIndexed(
             u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) const = 0;
         virtual void DrawIndexedIndirect(const RhiBuffer* buffer, u32 offset) const                       = 0;

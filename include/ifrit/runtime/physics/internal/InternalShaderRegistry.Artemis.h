@@ -50,10 +50,11 @@ namespace Ifrit::Runtime::Internal
 
         SDEF PBDClothVolumeConstraintProjectCS = DECLARE_CS("Artemis/PBDCloth.VolumeConstraintProject");
 
-        SDEF ParticleRender2dVS = DECLARE_VS("Artemis/ParticleRender2D");
-        SDEF ParticleRender2dFS = DECLARE_FS("Artemis/ParticleRender2D");
-        SDEF ParticleRender3dVS = DECLARE_VS("Artemis/ParticleRender3D");
-        SDEF ParticleRender3dFS = DECLARE_FS("Artemis/ParticleRender3D");
+        SDEF ParticleRender2dVS          = DECLARE_VS("Artemis/ParticleRender2D");
+        SDEF ParticleRender2dFS          = DECLARE_FS("Artemis/ParticleRender2D");
+        SDEF ParticleRender3dVS          = DECLARE_VS("Artemis/ParticleRender3D");
+        SDEF ParticleRender3dFS          = DECLARE_FS("Artemis/ParticleRender3D");
+        SDEF ParticleIndDrawBufferPrepCS = DECLARE_CS("Artemis/ParticleRender.IndirectDrawBufferPrep");
 
         SDEF APICFluidG2PCS                 = DECLARE_CS("Artemis/APICFluid.G2P");
         SDEF APICFluidGridResetCS           = DECLARE_CS("Artemis/APICFluid.GridReset");
@@ -76,6 +77,7 @@ namespace Ifrit::Runtime::Internal
         SDEF MPMParticleInitCS       = DECLARE_CS("Artemis/MPM/MPM.ParticleInit");
         SDEF MPMGridGravityApplyCS   = DECLARE_CS("Artemis/MPM/MPM.GridGravityApply");
         SDEF MPMParticleEmitCS       = DECLARE_CS("Artemis/MPM/MPM.ParticleEmit");
+        SDEF MPMParticleDrainAllCS   = DECLARE_CS("Artemis/MPM/MPM.ParticleDrainAll");
 
         // PBMPM
         SDEF MPMPbMpmResolveConstraintsCS = DECLARE_CS("Artemis/MPM/MPM.PbMpmResolveConstraints");

@@ -28,6 +28,7 @@ namespace MPM{
         TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
         FRWScalarHandle m_ParticleLiquidDensity;
         FParticleCounterHandle m_ParticleCounter;
+        TRWStructuredBufferHandle<float4> m_ParticleColor;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -97,6 +98,8 @@ namespace MPM{
 
         PushConst.m_ParticleDeformationGradDet.Store(ThreadId.x, Math::Determinant(I));
         PushConst.m_ParticleLiquidDensity.Store(ThreadId.x, 1.0f);
+
+        PushConst.m_ParticleColor.Store( float4(1.0f, 1.0f, 1.0f, 1.0f), ThreadId.x);
     }
 
 }}}

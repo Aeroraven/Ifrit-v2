@@ -32,6 +32,9 @@ namespace Ifrit::Runtime::Artemis
         RHI::RhiBufferRef GetParticlePositionBuffer();
         RHI::RhiBufferRef GetParticleCounterBuffer();
 
+        void              RequestClearParticles();
+        void              SetDefaultSize(f32 size);
+
     private:
         MPMSimulatorPrivateData* m_Data = nullptr;
         MPMSimulatorConfig       m_Config;

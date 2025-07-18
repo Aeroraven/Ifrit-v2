@@ -98,6 +98,7 @@ namespace Ifrit::Runtime
         if (!m_PropertyRegistered)
         {
             m_PropertyRegistered = true;
+            AddProperty<bool, EPropertyEditorType::Select>("Enable", m_isEnabled);
             SetupProperties();
         }
 

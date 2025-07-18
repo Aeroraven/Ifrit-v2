@@ -128,7 +128,7 @@ namespace Ifrit
 
             auto material = MakeRef<SyaroDefaultGBufEmitter>(this);
             material->BuildMaterial();
-            auto meshingObject    = node->AddGameObject("Meshing");
+            auto meshingObject    = node->AddGameObject("ProceduralMesh");
             m_ParticleSurfaceMesh = MakeRef<Geometry::ParticleSurfaceProceduralMesh>();
             m_ParticleSurfaceMesh->Init(GetRhi(), 2145141, 2145141, Vector4i(200, 200, 200, 0),
                 Vector3f(-0.01f, -0.01f, -0.01f), Vector3f(1.01f, 1.01f, 1.01f));
@@ -139,6 +139,10 @@ namespace Ifrit
 
             auto defaultEmitter = node->AddGameObject("ParticleEmitter");
             auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();
+            if (GetApplicationState()->m_EditorMode)
+            {
+                emitter->SetEnable(false);
+            }
 
             m_sceneManager->SetActiveScene(scene);
             m_RendererWrapper->SetRenderer(renderer.get());

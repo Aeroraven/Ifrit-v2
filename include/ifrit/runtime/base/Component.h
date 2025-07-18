@@ -20,7 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "AssetReference.h"
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/base/Property.h"
-
+#include "ifrit/core/typing/EnumReflection.h"
+#include "ifrit/core/typing/Traits.h"
 #include <typeinfo>
 
 #define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject, __VA_ARGS__)
@@ -217,6 +218,22 @@ namespace Ifrit::Runtime
         {
             m_Property.push_back(
                 ComponentProperty<T, E>(name, value, PropertyConstraint<E, T>(std::forward<Args>(args)...)));
+        }
+
+        template <typename T,
+            typename U = std::underlying_type<T>::type IF_REQUIRES(std::is_enum_v<T>&& TypeIsAnyOf_v<U, i32, u8, i8>)>
+        inline void AddEnumProperty(const char* name, T& value, const Vec<T>& enumValues)
+        {
+            using TUnderlying = typename std::underlying_type<T>::type;
+            static_assert(std::is_same_v<TUnderlying, U>, "Invalid enum type");
+
+            Vec<Pair<U, String>> enumOptions;
+            for (auto& enumValue : enumValues)
+            {
+                enumOptions.push_back({ GetEnumUnderlyingValue(enumValue), GetEnumName(enumValue) });
+            }
+            m_Property.push_back(ComponentProperty<U, EPropertyEditorType::Select>(
+                name, reinterpret_cast<U&>(value), std::move(enumOptions)));
         }
 
         inline virtual void AddProperty(ComponentPropertyBase prop) final { m_Property.push_back(prop); }
