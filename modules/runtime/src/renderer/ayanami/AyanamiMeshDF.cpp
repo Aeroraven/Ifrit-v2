@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshDF.h"
-#include "ifrit/runtime/base/Mesh.h"
+#include "ifrit/runtime/base/MeshComponent.h"
 
 #define IFRIT_MESHPROC_IMPORT
 #include "ifrit/geomproc/base/MeshDesc.h"

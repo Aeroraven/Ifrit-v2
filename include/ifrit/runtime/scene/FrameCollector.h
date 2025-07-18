@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
-
+#include "ifrit/runtime/forwarding/FwdComponent.h"
 #include "ifrit/runtime/base/Material.h"
 #include "ifrit/runtime/base/Mesh.h"
 #include "ifrit/runtime/base/Object.h"

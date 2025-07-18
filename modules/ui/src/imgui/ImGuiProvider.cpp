@@ -10,6 +10,7 @@
 #include "ifrit/runtime/base/ActorBehavior.h"
 #include "ifrit/runtime/base/Camera.h"
 #include "ifrit/runtime/base/Mesh.h"
+#include "ifrit/runtime/base/MeshComponent.h"
 #include "ifrit/core/typing/Rtti.h"
 
 #include "glfw/glfw3.h"

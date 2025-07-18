@@ -18,7 +18,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
-
 #include "ifrit/runtime/base/AssetReference.h"
 
 namespace Ifrit::Runtime

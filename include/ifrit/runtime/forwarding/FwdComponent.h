@@ -2,6 +2,6 @@
 
 namespace Ifrit::Runtime
 {
-    class Scene;
-    struct PerFrameData;
+    class Mesh;
+    class Transform;
 } // namespace Ifrit::Runtime

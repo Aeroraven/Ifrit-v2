@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ifrit/runtime/physics/artemis/pbd/PBDCloth.h"
-#include "ifrit/runtime/base/Mesh.h"
+#include "ifrit/runtime/base/MeshComponent.h"
 #include "ifrit/core/math/Intrinsics.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Artemis.h"

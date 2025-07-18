@@ -19,8 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/base/Base.h"
-#include "ifrit/runtime/base/Component.h"
-#include "ifrit/runtime/base/Mesh.h"
 
 namespace Ifrit::Runtime::Artemis
 {

@@ -18,9 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
-
 #include "ifrit/runtime/assetmanager/Asset.h"
-#include "ifrit/runtime/base/Mesh.h"
+#include "ifrit/runtime/base/MeshComponent.h"
 
 namespace Ifrit::Runtime
 {

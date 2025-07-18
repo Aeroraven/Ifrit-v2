@@ -68,8 +68,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #if IF_CXX_VERSION >= 201703L
     #define IF_NODISCARD [[nodiscard]]
+    #define IF_MAYBE_UNUSED [[maybe_unused]]
 #else
     #define IF_NODISCARD
+    #define IF_MAYBE_UNUSED
     #error "C++17 or later is required for Ifrit-v2. Please enable C++17 support in your compiler settings."
 #endif
 

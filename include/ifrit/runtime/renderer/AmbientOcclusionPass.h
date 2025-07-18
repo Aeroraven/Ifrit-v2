@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
-#include "ifrit/runtime/base/Scene.h"
 #include "ifrit/runtime/scene/FrameCollector.h"
 
 namespace Ifrit::Runtime

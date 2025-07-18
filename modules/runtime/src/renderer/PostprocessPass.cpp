@@ -1,7 +1,7 @@
 #include "ifrit/runtime/renderer/PostprocessPass.h"
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
-
+#include "ifrit/runtime/scene/FrameCollector.h"
 using namespace Ifrit::RHI;
 namespace Ifrit::Runtime
 {
