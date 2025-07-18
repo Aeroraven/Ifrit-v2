@@ -20,8 +20,8 @@ Some **TOYS** about real-time rendering/simulation. Currently, it contains:
 | <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" /> | ![](docs/img/soft_dx1.png)                                   |
 | **Ayanami / GDF Object Grids + Surface Cache Lookup***      | **Ayanami / Global Distance Field (GDF)\***                  |
 | ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)                          |
-| **Artemis / Position Based Dynamics**                          | **Aria / Volumetric Lighting**                               |
-| ![](docs/img/artemis_pbd1.png)                                 | ![](docs/img/aria_hist2.png)                                 |
+| **Artemis / Position Based Dynamics**                       | **Artemis / PBMPM + Property Editing**                       |
+| ![](docs/img/artemis_pbd1.png)                              | <img src="docs/img/artemis_pbmpm.png" style="zoom:50%;" />   |
 | **Soft Renderer / Profile** (Nsight Compute)                | **Ayanami / Debug (Tracing Hierarchy, Incomplete) \*** (RenderDoc) |
 | <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag.png" style="zoom:80%;" />        |
 
