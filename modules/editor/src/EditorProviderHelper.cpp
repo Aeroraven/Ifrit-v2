@@ -2,7 +2,7 @@
 #include "ifrit/editor/imgui/ImGuiProvider.h"
 namespace Ifrit::Editor
 {
-    IFRIT_APIDECL Owner<EditorProvider> CreateUIProvider(EEditorProviderType type)
+    IFRIT_APIDECL Owner<EditorProvider> CreateEditorProvider(EEditorProviderType type)
     {
         switch (type)
         {

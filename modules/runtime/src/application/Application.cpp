@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/display/presentation/window/WindowSelector.h"
 #include "ifrit/rhi/platform/RhiSelector.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
-
+#include "ifrit/core/hal/HalDisplay.h"
 namespace Ifrit::Runtime
 {
 
@@ -34,6 +34,13 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void Application::Start()
     {
+        //
+        auto dpiScaler = 1.0f;
+        if (m_info.m_EnableDPIScaling)
+        {
+            dpiScaler = HAL::GetDisplayScale();
+            iDebug("!!! Display scale: {}", dpiScaler);
+        }
 
         // Setup Window
         Display::Window::WindowProviderSetupArgs winArgs;
@@ -46,12 +53,12 @@ namespace Ifrit::Runtime
             providerType = Display::Window::WindowProviderType::GLFW;
         }
         m_windowProvider = selector.CreateWindowProvider(providerType, winArgs);
-        m_windowProvider->Setup(m_info.m_width, m_info.m_height);
+        m_windowProvider->Setup(m_info.m_width * dpiScaler, m_info.m_height * dpiScaler);
 
         // Setup RHI
         RHI::RhiInitializeArguments rhiArgs;
-        rhiArgs.m_surfaceWidth                = m_info.m_width;
-        rhiArgs.m_surfaceHeight               = m_info.m_height;
+        rhiArgs.m_surfaceWidth                = m_info.m_width * dpiScaler;
+        rhiArgs.m_surfaceHeight               = m_info.m_height * dpiScaler;
         rhiArgs.m_expectedComputeQueueCount   = m_info.m_rhiComputeQueueCount;
         rhiArgs.m_expectedGraphicsQueueCount  = m_info.m_rhiGraphicsQueueCount;
         rhiArgs.m_expectedTransferQueueCount  = m_info.m_rhiTransferQueueCount;

@@ -28,6 +28,7 @@
 #include "ifrit/runtime/physics/artemis/mpm/MPMParticleEmitter.h"
 #include "ifrit/runtime/physics/artemis/mpm/MPMSimulatorConfigurator.h"
 #include "ifrit/editor/EditorProviderHelper.h"
+#include "ifrit/core/hal/HalDisplay.h"
 
 #define WINDOW_WIDTH 1024
 #define WINDOW_HEIGHT 768
@@ -77,6 +78,9 @@ namespace Ifrit
     public:
         void OnStart() override
         {
+            auto p = HAL::GetDisplayScale();
+            iDebug("Display scale: {}", p);
+
             renderer = MakeRef<BaseForwardRenderer>(this);
             m_MpmSim = MakeRef<Artemis::MPMSimulator>();
 
@@ -188,6 +192,8 @@ int main()
     info.m_name            = "Ifrit-v2";
     info.m_cachePath       = IFRIT_DEMO_CACHE_PATH;
     info.m_rhiDebugMode    = true;
+
+    info.m_EnableDPIScaling = true;
 
     DemoApplicationMpm app;
     app.Run(info);

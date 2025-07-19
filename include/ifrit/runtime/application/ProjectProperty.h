@@ -75,6 +75,8 @@ namespace Ifrit::Runtime
 
         i32                        m_DefaultRTWidth  = -1;
         i32                        m_DefaultRTHeight = -1;
+
+        bool                       m_EnableDPIScaling = false;
     };
 
 } // namespace Ifrit::Runtime

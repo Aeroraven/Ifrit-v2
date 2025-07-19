@@ -46,7 +46,7 @@ set(IFRIT_DEMO_LINK_LIBRARIES
     ifrit.vkgraphics 
     ifrit.runtime 
     ifrit.core
-    ifrit.ui
+    ifrit.editor
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")

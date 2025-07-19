@@ -1,5 +1,6 @@
 #include "ifrit/editor/imgui/ImGuiProvider.h"
 #include "ifrit.internal/editor/imgui/ImGuiStyling.h"
+#include "ifrit.internal/editor/ResourceTable.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
@@ -14,6 +15,7 @@
 #include "ifrit/core/typing/Rtti.h"
 
 #include "glfw/glfw3.h"
+#include "ifrit/core/hal/HalDisplay.h"
 
 #define IMGUI_API IFRIT_APIDECL_IMPORT
 
@@ -29,6 +31,8 @@ namespace Ifrit::Editor
         VkDescriptorSet m_EditorSceneView = VK_NULL_HANDLE;
         ImGuiID         m_DockspaceID     = 0;
         bool            m_IsDockingSetup  = false;
+
+        f32             m_DpiScaler = 1.0f;
     };
 
     static VkFormat imguiColorAttachmentFormats[] = { VK_FORMAT_B8G8R8A8_SRGB };
@@ -301,6 +305,11 @@ namespace Ifrit::Editor
         iAssertion(projectProperty.m_displayProvider == Runtime::AppDisplayProvider::GLFW,
             "ImGuiProvider only supports GLFW display provider");
 
+        if (projectProperty.m_EnableDPIScaling)
+        {
+            m_Data->m_DpiScaler = HAL::GetDisplayScale();
+        }
+
         ImGui::CreateContext();
 
         ImGuiIO& io = ImGui::GetIO();
@@ -310,15 +319,19 @@ namespace Ifrit::Editor
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-        io.DisplaySize.x           = projectProperty.m_width;
-        io.DisplaySize.y           = projectProperty.m_height;
+        io.DisplaySize.x           = projectProperty.m_width * m_Data->m_DpiScaler;
+        io.DisplaySize.y           = projectProperty.m_height * m_Data->m_DpiScaler;
 
         // C:/Windows/Fonts/NotoSans-Regular.ttf
-        io.Fonts->AddFontFromFileTTF(
-            "C:/Windows/Fonts/NotoSans-Regular.ttf", 15.0f, nullptr, io.Fonts->GetGlyphRangesDefault());
+        io.Fonts->AddFontFromFileTTF(Internal::AssetPath::kDefaultFont, 15.0f * m_Data->m_DpiScaler, nullptr,
+            io.Fonts->GetGlyphRangesCyrillic());
 
         // ImGui::StyleColorsDark();
         Internal::ApplyImGuiSytle();
+
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.ScaleAllSizes(m_Data->m_DpiScaler);
+
         ImGui_ImplGlfw_InitForVulkan(reinterpret_cast<GLFWwindow*>(windowObject), true);
 
         ImGui_ImplVulkan_InitInfo init_info   = {};
@@ -352,8 +365,8 @@ namespace Ifrit::Editor
     IFRIT_APIDECL void ImGuiProvider::OnFrameBegin()
     {
         ImGuiIO& io      = ImGui::GetIO();
-        io.DisplaySize.x = m_Application->GetProjectProperty().m_width;
-        io.DisplaySize.y = m_Application->GetProjectProperty().m_height;
+        io.DisplaySize.x = m_Application->GetProjectProperty().m_width * m_Data->m_DpiScaler;
+        io.DisplaySize.y = m_Application->GetProjectProperty().m_height * m_Data->m_DpiScaler;
 
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();

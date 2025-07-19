@@ -29,6 +29,8 @@ add_library(ifrit.editor SHARED ${IFRIT_CORELIB_SOURCE_FILES_CXX} ${IFRIT_CORELI
 set(IFRIT_RUNTIME_INCLUDE_PATH ${IFRIT_PROJECT_DIR}/include/ifrit/editor)
 set(IFRIT_RUNTIME_PCH_HEADER ${IFRIT_RUNTIME_INCLUDE_PATH}/common/Pch.h)
 
+add_definitions(-DIFRIT_EDITOR_SHARED_ASSET_PATH="${IFRIT_PROJECT_DIR}/include/ifrit.asset")
+
 target_precompile_headers(ifrit.editor
 	PRIVATE 
 	$<$<CXX_COMPILER_ID:MSVC>:"${IFRIT_RUNTIME_PCH_HEADER}"> 
