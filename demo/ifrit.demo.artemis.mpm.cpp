@@ -27,7 +27,7 @@
 #include "ifrit/runtime/physics/artemis/mpm/MPMSimulator.h"
 #include "ifrit/runtime/physics/artemis/mpm/MPMParticleEmitter.h"
 #include "ifrit/runtime/physics/artemis/mpm/MPMSimulatorConfigurator.h"
-#include "ifrit/ui/UIProviderHelper.h"
+#include "ifrit/editor/EditorProviderHelper.h"
 
 #define WINDOW_WIDTH 1024
 #define WINDOW_HEIGHT 768
@@ -80,7 +80,7 @@ namespace Ifrit
             renderer = MakeRef<BaseForwardRenderer>(this);
             m_MpmSim = MakeRef<Artemis::MPMSimulator>();
 
-            RegisterSubsystem(UI::CreateUIProvider(UI::EUIProviderType::ImGui));
+            RegisterSubsystem(Editor::CreateEditorProvider(Editor::EEditorProviderType::ImGui));
             EnableRendererWrapper(true);
 
             {

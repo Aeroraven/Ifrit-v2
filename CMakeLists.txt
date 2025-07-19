@@ -161,7 +161,7 @@ ifrit_add_core_component(geomproc)
 ifrit_add_core_component(vkgraphics)
 ifrit_add_core_component(runtime)
 ifrit_add_core_component(rhi)
-ifrit_add_core_component(ui)
+ifrit_add_core_component(editor)
 
 ifrit_add_demo_component(demo)
 
@@ -223,7 +223,7 @@ set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.vkgraphics PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.ui PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+set_target_properties(ifrit.editor PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 
 # print num demoss
 foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
@@ -263,7 +263,7 @@ add_dependencies(ifrit.vkgraphics
     ifrit.shadercompile
     ${FSR2_API_LIBRARIES})
 
-add_dependencies(ifrit.ui 
+add_dependencies(ifrit.editor 
     ifrit.external.imgui
     ifrit.vkgraphics 
     ifrit.runtime)

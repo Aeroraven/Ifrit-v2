@@ -1,7 +1,8 @@
 #pragma once
 #include "imgui.h"
+#include <cmath>
 
-namespace Ifrit::UI::Internal
+namespace Ifrit::Editor::Internal
 {
     inline ImVec4 LinearToSRGB(const ImVec4& color)
     {
@@ -81,4 +82,4 @@ namespace Ifrit::UI::Internal
         style.ItemSpacing       = ImVec2(8, 6);
         style.PopupBorderSize   = 0.f;
     }
-} // namespace Ifrit::UI::Internal
+} // namespace Ifrit::Editor::Internal

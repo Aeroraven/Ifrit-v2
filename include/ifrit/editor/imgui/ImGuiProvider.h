@@ -1,23 +1,25 @@
 #pragma once
 
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/ui/UIBase.h"
-#include "ifrit/runtime/application/Subsystem.h"
+#include "ifrit/editor/EditorProvider.h"
 
-namespace Ifrit::UI
+namespace Ifrit::Editor
 {
-    class IFRIT_UI_API UIProvider : public Ifrit::Runtime::ISubsystem
+    struct ImGuiProviderData;
+    class IFRIT_EDITOR_API ImGuiProvider : public EditorProvider
     {
     protected:
-        Runtime::IApplication* m_Application = nullptr;
+        typedef EditorProvider Super;
+        ImGuiProviderData*     m_Data = nullptr;
 
     public:
+        ImGuiProvider();
+        virtual ~ImGuiProvider();
+
         virtual void                          OnInitialize(Runtime::IApplication* app) override;
         virtual void                          OnShutdown() override;
         virtual void                          OnFrameBegin() override;
         virtual void                          OnFrameEnd() override;
-        virtual Owner<RHI::RhiTaskSubmission> OnPreRendering(RHI::RhiTaskSubmission* prevSubmission) override;
         virtual Owner<RHI::RhiTaskSubmission> OnPostRendering(RHI::RhiTaskSubmission* prevSubmission) override;
         virtual void                          OnUpdate(Runtime::Scene* scene) override;
     };
-} // namespace Ifrit::UI
+} // namespace Ifrit::Editor

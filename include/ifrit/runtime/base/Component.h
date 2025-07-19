@@ -100,9 +100,9 @@ namespace Ifrit::Runtime
             return m_ComponentArray[typeHash];
         }
 
-        template <typename T> ComponentReference CreateComponent(Ref<GameObject> parentObject)
+        template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
+        ComponentReference CreateComponent(Ref<GameObject> parentObject)
         {
-            static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
             auto typeName = TTypeInfo<T>::name;
             auto typeHash = TTypeInfo<T>::hash;
             if (m_ComponentArray.count(typeHash) == 0)
@@ -151,9 +151,8 @@ namespace Ifrit::Runtime
         // DEPRECATING
         static Ref<GameObject> CreatePrefab(IComponentManagerKeeper* managerKeeper);
 
-        template <class T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* AddComponent()
+        template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* AddComponent()
         {
-            static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
             auto componentRef = m_componentManager->CreateComponent<T>(shared_from_this());
             auto typeName     = TTypeInfo<T>::name;
             auto typeHash     = TTypeInfo<T>::hash;
@@ -166,7 +165,7 @@ namespace Ifrit::Runtime
             return m_componentManager->GetComponentFromReference<T>(componentRef);
         }
 
-        template <class T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* GetComponent()
+        template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* GetComponent()
         {
             auto typeHash = TTypeInfo<T>::hash;
             if (m_componentsHashed.count(typeHash) == 0)
@@ -194,7 +193,7 @@ namespace Ifrit::Runtime
         IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_componentsHashed);
     };
 
-    class IFRIT_APIDECL Component : public Ifrit::NonCopyable
+    class IFRIT_APIDECL Component : public NonCopyable
     {
     protected:
         ComponentIdentifier        m_id;

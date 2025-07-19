@@ -1,5 +1,5 @@
-#include "ifrit/ui/imgui/ImGuiProvider.h"
-#include "ifrit.internal/ui/imgui/ImGuiStyling.h"
+#include "ifrit/editor/imgui/ImGuiProvider.h"
+#include "ifrit.internal/editor/imgui/ImGuiStyling.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
@@ -17,7 +17,7 @@
 
 #define IMGUI_API IFRIT_APIDECL_IMPORT
 
-namespace Ifrit::UI
+namespace Ifrit::Editor
 {
     struct ImGuiProviderData
     {
@@ -532,4 +532,4 @@ namespace Ifrit::UI
             },
             { prevSubmission }, {});
     }
-} // namespace Ifrit::UI
+} // namespace Ifrit::Editor
