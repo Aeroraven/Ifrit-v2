@@ -32,18 +32,26 @@ namespace Ifrit::Runtime
         m_children.push_back(node);
         return node;
     }
-    IFRIT_APIDECL Ref<GameObject> SceneNode::AddGameObject(const String& name)
+    IFRIT_APIDECL GameObject* SceneNode::AddGameObject(const String& name)
     {
-        auto obj = MakeRef<GameObject>();
-        obj->Initialize(m_parentScene->GetComponentManager());
+        auto objId = m_parentScene->GetGameObjectManager()->CreateGameObject(name);
+        auto obj   = m_parentScene->GetGameObjectManager()->GetGameObject(objId);
+        obj->Initialize(m_parentScene->GetComponentManager(), m_parentScene->GetGameObjectManager());
         obj->SetName(name);
-        m_gameObjects.push_back(obj);
+        m_GameObjects.push_back(obj);
+        m_GameObjectRefs.push_back(objId);
         return obj;
     }
 
-    IFRIT_APIDECL Ref<GameObject> SceneNode::AddGameObjectTransferred(Ref<GameObject>&& obj)
+    IFRIT_APIDECL GameObject* SceneNode::AddGameObjectTransferred(GameObject* obj)
     {
-        m_gameObjects.push_back(std::move(obj));
+        auto idx = obj->GetManagerId();
+        m_GameObjects.push_back(obj);
+        m_GameObjectRefs.push_back(idx);
+        if (idx == ~0u)
+        {
+            IF_LOG_WARNING("SceneNode", "GameObject transferred without valid manager ID, this may cause issues.");
+        }
         return obj;
     }
 
@@ -53,7 +61,7 @@ namespace Ifrit::Runtime
         {
             child->OnUpdate();
         }
-        for (auto& obj : m_gameObjects)
+        for (auto& obj : m_GameObjects)
         {
             for (auto& comp : obj->GetAllComponents())
             {
@@ -69,7 +77,7 @@ namespace Ifrit::Runtime
         {
             child->OnComponentStart();
         }
-        for (auto& obj : m_gameObjects)
+        for (auto& obj : m_GameObjects)
         {
             for (auto& comp : obj->GetAllComponents())
             {
@@ -84,7 +92,7 @@ namespace Ifrit::Runtime
         {
             child->OnComponentAwake();
         }
-        for (auto& obj : m_gameObjects)
+        for (auto& obj : m_GameObjects)
         {
             for (auto& comp : obj->GetAllComponents())
             {
@@ -99,7 +107,7 @@ namespace Ifrit::Runtime
         {
             child->OnFixedUpdate();
         }
-        for (auto& obj : m_gameObjects)
+        for (auto& obj : m_GameObjects)
         {
             for (auto& comp : obj->GetAllComponents())
             {
@@ -136,10 +144,10 @@ namespace Ifrit::Runtime
         return nullptr;
     }
 
-    IFRIT_APIDECL Vec<Ref<GameObject>> Scene::FilterObjects(Fn<bool(Ref<GameObject>)> filter)
+    IFRIT_APIDECL Vec<GameObject*> Scene::FilterObjects(Fn<bool(GameObject*)> filter)
     {
-        Vec<Ref<GameObject>> result;
-        Vec<SceneNode*>      nodes;
+        Vec<GameObject*> result;
+        Vec<SceneNode*>  nodes;
         nodes.push_back(m_root.get());
         while (!nodes.empty())
         {
@@ -160,30 +168,6 @@ namespace Ifrit::Runtime
         return result;
     }
 
-    IFRIT_APIDECL Vec<GameObject*> Scene::FilterObjectsUnsafe(Fn<bool(GameObject*)> filter)
-    {
-        Vec<GameObject*> result;
-        Vec<SceneNode*>  nodes;
-        nodes.push_back(m_root.get());
-        while (!nodes.empty())
-        {
-            auto node = nodes.back();
-            nodes.pop_back();
-            for (auto& child : node->GetChildren())
-            {
-                nodes.push_back(child.get());
-            }
-            for (auto& obj : node->GetGameObjects())
-            {
-                if (filter(obj.get()))
-                {
-                    result.push_back(obj.get());
-                }
-            }
-        }
-        return result;
-    }
-
     IFRIT_APIDECL void Scene::DepthFirstTraverse(
         Fn<bool(SceneNode*)> fnNode, Fn<void(GameObject*)> fnObject, Fn<void()> fnOnPush, Fn<void()> fnOnPop)
     {
@@ -197,7 +181,7 @@ namespace Ifrit::Runtime
             }
             for (auto& obj : node->GetGameObjects())
             {
-                fnObject(obj.get());
+                fnObject(obj);
             }
         };
         if (m_root)
@@ -248,6 +232,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL Scene::Scene() : m_root(MakeRef<SceneNode>(this)), m_perFrameData(MakeRef<PerFrameData>())
     {
         m_componentManager = MakeRef<ComponentManager>();
+        m_gameObjectManager = MakeRef<GameObjectManager>();
     }
 
 } // namespace Ifrit::Runtime

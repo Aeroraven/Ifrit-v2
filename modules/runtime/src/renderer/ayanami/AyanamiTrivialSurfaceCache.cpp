@@ -188,7 +188,7 @@ namespace Ifrit::Runtime::Ayanami
         using namespace Ifrit::Math;
 
         m_Resources->m_MeshCardTasks.clear();
-        auto objects = scene->FilterObjectsUnsafe(
+        auto objects = scene->FilterObjects(
             [](GameObject* obj) { return obj->GetComponent<AyanamiMeshMarker>() != nullptr; });
 
         for (auto obj : objects)

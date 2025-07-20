@@ -504,7 +504,7 @@ namespace Ifrit::Editor
         ImGui::End();
 
         ImGui::Begin("Inspector");
-        auto objects = scene->FilterObjectsUnsafe([](auto) { return true; });
+        auto objects = scene->FilterObjects([](auto) { return true; });
         m_Data->m_RegisteredGameObjects.clear();
         m_Data->m_RegisteredGameObjectsUUID.clear();
         for (auto& obj : objects)

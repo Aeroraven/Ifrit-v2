@@ -129,7 +129,7 @@ namespace Ifrit::Runtime
         }
 
         // Find lights that represent the sun
-        auto sunLights = scene->FilterObjectsUnsafe([](GameObject* obj) {
+        auto sunLights = scene->FilterObjects([](GameObject* obj) {
             auto light = obj->GetComponent<Light>();
             if (!light)
             {
@@ -155,7 +155,7 @@ namespace Ifrit::Runtime
         }
 
         // Insert light view data, if shadow maps are enabled
-        auto lightWithShadow = scene->FilterObjectsUnsafe([](GameObject* obj) -> bool {
+        auto lightWithShadow = scene->FilterObjects([](GameObject* obj) -> bool {
             auto light = obj->GetComponent<Light>();
             if (!light)
             {

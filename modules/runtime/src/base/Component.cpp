@@ -27,31 +27,30 @@ using namespace Ifrit::Math;
 namespace Ifrit::Runtime
 {
 
-    IFRIT_APIDECL Ref<GameObject> GameObject::CreatePrefab(IComponentManagerKeeper* managerKeeper)
+    // TODO: REMOVING THIS FUNCTION
+    IFRIT_APIDECL GameObject* GameObject::CreatePrefab(IComponentManagerKeeper* managerKeeper)
     {
-        auto prefab = MakeRef<GameObject>();
-        prefab->Initialize(managerKeeper->GetComponentManager());
-        // prefab->AddComponent<Transform>();
+        auto prefabIdx = managerKeeper->GetGameObjectManager()->CreateGameObject("Prefab");
+        auto prefab    = managerKeeper->GetGameObjectManager()->GetGameObject(prefabIdx);
+        prefab->Initialize(managerKeeper->GetComponentManager(), managerKeeper->GetGameObjectManager());
         return prefab;
     }
 
     IFRIT_APIDECL
-    Component::Component(GameObject* parent) : m_ParentObject(parent)
+    Component::Component(GameObject* parent)
     {
-        m_id.m_GUID = GUID::Generate();
-        IntializeComponent();
+        m_id.m_GUID         = GUID::Generate();
+        m_ParentRef         = parent->GetManagerId();
+        m_GameObjectManager = parent->m_GameObjectManager;
     }
 
-    IFRIT_APIDECL void Component::IntializeComponent()
+    IFRIT_APIDECL void GameObject::Initialize(ComponentManager* manager, GameObjectManager* gameObjectManager)
     {
-        // SetupProperties();
-    }
-
-    IFRIT_APIDECL void GameObject::Initialize(ComponentManager* manager)
-    {
-        m_ComponentManager = manager;
+        m_ComponentManager  = manager;
+        m_GameObjectManager = gameObjectManager;
         AddComponent<Transform>();
     }
+
     IFRIT_APIDECL GameObject::GameObject() { m_Identifier.m_GUID = GUID::Generate(); }
 
     IFRIT_APIDECL GameObject::~GameObject()
@@ -86,6 +85,15 @@ namespace Ifrit::Runtime
         }
     }
 
+    IFRIT_APIDECL GameObject* Component::GetParent() const
+    {
+        if (m_GameObjectManager)
+        {
+            return m_GameObjectManager->GetGameObject(m_ParentRef);
+        }
+        IF_LOG_CRITICAL("Component", "GameObjectManager is not set for this component");
+        return nullptr;
+    }
     IFRIT_APIDECL void Component::InvokeAwake()
     {
         if (m_shouldInvokeAwake)
@@ -131,7 +139,7 @@ namespace Ifrit::Runtime
         m_ComponentArray[typeHash][meta.m_ArrayIndex] = std::move(tailCom);
         m_ComponentArray[typeHash].pop_back();
         // Release id
-        m_FreeIdQueue.push(meta.m_ArrayIndex);
+        m_AllocatedComponents--;
     }
 
     IFRIT_APIDECL u32 ComponentManager::AllocateId()
@@ -154,6 +162,48 @@ namespace Ifrit::Runtime
         component->m_id.m_ArrayIndex   = arrayPos;
         component->m_id.m_ManagerIndex = id;
         m_IdToTypeHash[id]             = typeHash;
+    }
+
+    // GameObjectManager
+    IFRIT_APIDECL u32 GameObjectManager::AllocateId()
+    {
+        if (m_FreeIdQueue.empty())
+        {
+            return m_AllocatedObjects++;
+        }
+        else
+        {
+            auto id = m_FreeIdQueue.front();
+            m_FreeIdQueue.pop();
+            return id;
+        }
+    }
+
+    IFRIT_APIDECL GameObjectReference GameObjectManager::CreateGameObject(const String& name)
+    {
+        auto id = AllocateId();
+        if (m_GameObjectNameToIndex.count(name) > 0)
+        {
+            IF_LOG_CRITICAL("GameObjectManager", "GameObject name already exists: {}", name);
+        }
+        m_GameObjectNameToIndex[name] = id;
+
+        auto gameObject = MakeOwner<GameObject>();
+        gameObject->SetName(name);
+        gameObject->SetManagerId(id);
+        m_GameObjectUUIDToIndex[gameObject->GetUUID()] = id;
+        m_GameObjects.push_back(std::move(gameObject));
+        return id;
+    }
+
+    IFRIT_APIDECL GameObject* GameObjectManager::GetGameObject(GameObjectReference ref)
+    {
+        if (ref >= m_GameObjects.size())
+        {
+            IF_LOG_CRITICAL("GameObjectManager", "Invalid GameObject reference: {}", ref);
+            return nullptr;
+        }
+        return m_GameObjects[ref].get();
     }
 
     // Transform

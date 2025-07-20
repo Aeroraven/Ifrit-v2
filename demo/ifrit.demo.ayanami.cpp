@@ -242,7 +242,7 @@ namespace Ifrit
                 transform->SetPosition({ 0.0f, 0.0f, 0.0f });
                 transform->SetScale({ 0.01f, 0.01f, 0.01f });
                 auto mat = transform->GetModelToWorldMatrix();
-                node->AddGameObjectTransferred(std::move(m->m_prefab));
+                node->AddGameObjectTransferred(m->m_prefab);
             }
             IF_LOG_INFO("DemoTest", "Num meshes: {}", numMeshes);
             // Render targets

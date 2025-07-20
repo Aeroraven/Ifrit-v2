@@ -31,20 +31,21 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL SceneNode
     {
     protected:
-        Scene*               m_parentScene;
-        Vec<Ref<SceneNode>>  m_children;
-        Vec<Ref<GameObject>> m_gameObjects;
+        Scene*                   m_parentScene;
+        Vec<Ref<SceneNode>>      m_children;
+        Vec<GameObject*>         m_GameObjects;
+        Vec<GameObjectReference> m_GameObjectRefs;
 
     public:
         SceneNode();
         SceneNode(Scene* parentScene) : m_parentScene(parentScene){};
         virtual ~SceneNode() = default;
         Ref<SceneNode>             AddChildNode();
-        Ref<GameObject>            AddGameObject(const String& name);
-        Ref<GameObject>            AddGameObjectTransferred(Ref<GameObject>&& obj);
+        GameObject*                AddGameObject(const String& name);
+        GameObject*                AddGameObjectTransferred(GameObject* obj);
 
         inline Ref<SceneNode>      GetSceneNode(u32 x) { return m_children.at(x); }
-        inline Ref<GameObject>     GetGameObject(u32 x) { return m_gameObjects.at(x); }
+        inline GameObject*         GetGameObject(u32 x) { return m_GameObjects.at(x); }
         inline Vec<Ref<SceneNode>> GetChildren()
         {
             Vec<Ref<SceneNode>> x;
@@ -54,32 +55,26 @@ namespace Ifrit::Runtime
             }
             return x;
         }
-        inline Vec<Ref<GameObject>> GetGameObjects()
-        {
-            Vec<Ref<GameObject>> x;
-            for (auto& y : m_gameObjects)
-            {
-                x.push_back(y);
-            }
-            return x;
-        }
+        inline Vec<GameObject*> GetGameObjects() { return m_GameObjects; }
 
-        void OnComponentStart();
-        void OnComponentAwake();
-        void OnUpdate();
-        void OnFixedUpdate();
+        void                    OnComponentStart();
+        void                    OnComponentAwake();
+        void                    OnUpdate();
+        void                    OnFixedUpdate();
 
-        IFRIT_STRUCT_SERIALIZE(m_children, m_gameObjects);
+        IFRIT_STRUCT_SERIALIZE(m_children, m_GameObjectRefs);
     };
 
     class IFRIT_APIDECL Scene : public IComponentManagerKeeper
     {
     protected:
-        Ref<ComponentManager> m_componentManager; // This dtor should be called last
-        Ref<SceneNode>        m_root;
-        bool                  m_isAwake       = false;
-        u64                   m_curFixedFrame = 0;
-        Ref<PerFrameData>     m_perFrameData;
+        Ref<ComponentManager>  m_componentManager;  // This dtor should be called in order
+        Ref<GameObjectManager> m_gameObjectManager; // This dtor should be called in order
+
+        Ref<SceneNode>         m_root;
+        bool                   m_isAwake       = false;
+        u64                    m_curFixedFrame = 0;
+        Ref<PerFrameData>      m_perFrameData;
 
     public:
         Scene();
@@ -88,8 +83,7 @@ namespace Ifrit::Runtime
         Camera*               GetMainCamera();
 
         Ref<SceneNode>        AddSceneNode();
-        Vec<Ref<GameObject>>  FilterObjects(Fn<bool(Ref<GameObject>)> filter);
-        Vec<GameObject*>      FilterObjectsUnsafe(Fn<bool(GameObject*)> filter);
+        Vec<GameObject*>      FilterObjects(Fn<bool(GameObject*)> filter);
 
         void                  OnComponentStart();
         void                  OnComponentAwake();
@@ -100,10 +94,11 @@ namespace Ifrit::Runtime
 
         Ref<PerFrameData>     GetPerFrameData() { return m_perFrameData; }
 
-        inline ComponentManager* GetComponentManager() override { return m_componentManager.get(); }
+        inline ComponentManager*  GetComponentManager() override { return m_componentManager.get(); }
+        inline GameObjectManager* GetGameObjectManager() override { return m_gameObjectManager.get(); }
 
-        void                     DepthFirstTraverse(
-                                Fn<bool(SceneNode*)> fnNode, Fn<void(GameObject*)> fnObject, Fn<void()> fnOnPush, Fn<void()> fnOnPop);
+        void                      DepthFirstTraverse(
+                                 Fn<bool(SceneNode*)> fnNode, Fn<void(GameObject*)> fnObject, Fn<void()> fnOnPush, Fn<void()> fnOnPop);
         IFRIT_STRUCT_SERIALIZE(m_root);
     };
 

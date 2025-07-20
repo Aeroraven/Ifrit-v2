@@ -254,7 +254,7 @@ namespace Ifrit
 
                 auto transform = t->GetComponent<Transform>();
                 auto mat       = transform->GetModelToWorldMatrix();
-                node->AddGameObjectTransferred(std::move(m->m_prefab));
+                node->AddGameObjectTransferred(m->m_prefab);
             }
             IF_LOG_INFO("DemoTest", "Num meshes: {}", numMeshes);
             // Render targets

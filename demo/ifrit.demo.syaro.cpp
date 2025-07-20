@@ -149,7 +149,7 @@ public:
             {
                 continue;
             }
-            node->AddGameObjectTransferred(std::move(m->m_prefab));
+            node->AddGameObjectTransferred(m->m_prefab);
         }
 
         // Render targets

@@ -41,9 +41,9 @@ namespace Ifrit::Runtime
         GUID   m_GUID;
         String m_Name;
         u32    m_ArrayIndex   = 0;
-        u32    m_ManagerIndex = 0;
+        u32    m_ManagerIndex = ~0u;
 
-        IFRIT_STRUCT_SERIALIZE(m_GUID, m_Name)
+        IFRIT_STRUCT_SERIALIZE(m_GUID, m_Name, m_ArrayIndex, m_ManagerIndex);
     };
 
     template <class T> class AttributeOwner
@@ -69,6 +69,7 @@ namespace Ifrit::Runtime
     class GameObject;
     class Transform;
     class ComponentManager;
+    class GameObjectManager;
 
     using ComponentTypeHash   = u64;
     using ComponentReference  = Pair<ComponentTypeHash, u32>;
@@ -77,7 +78,8 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL IComponentManagerKeeper
     {
     public:
-        virtual ComponentManager* GetComponentManager() = 0;
+        virtual ComponentManager*  GetComponentManager()  = 0;
+        virtual GameObjectManager* GetGameObjectManager() = 0;
     };
 
     class IFRIT_APIDECL ComponentManager : public NonCopyable
@@ -133,13 +135,23 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL GameObjectManager : public NonCopyable
     {
     private:
+        Queue<u32>             m_FreeIdQueue;
         Vec<Owner<GameObject>> m_GameObjects;
         HashMap<String, u32>   m_GameObjectNameToIndex;
-        HashMap<String, u32>   m_GameObjectUUIDToIndex;
+        HashMap<GUID, u32>     m_GameObjectUUIDToIndex;
+        u32                    m_AllocatedObjects = 0;
+
+    private:
+        u32 AllocateId();
 
     public:
-        // GameObjectManager();
-        // ~GameObjectManager();
+        GameObjectManager()  = default;
+        ~GameObjectManager() = default;
+
+        GameObjectReference CreateGameObject(const String& name);
+        GameObject*         GetGameObject(GameObjectReference ref);
+
+        void                RequestRemove(GameObjectReference ref);
     };
 
     // TODO: for performance considerations, components container is not consistent
@@ -150,17 +162,22 @@ namespace Ifrit::Runtime
     protected:
         ComponentIdentifier             m_Identifier;
         HashMap<ComponentTypeHash, u32> m_ComponentsHashed;
-        ComponentManager*               m_ComponentManager = nullptr;
+        ComponentManager*               m_ComponentManager  = nullptr;
+        GameObjectManager*              m_GameObjectManager = nullptr;
+
+    private:
+        inline void SetManagerId(GameObjectReference id) { m_Identifier.m_ManagerIndex = id; }
 
     public:
         GameObject();
         virtual ~GameObject();
-        void                   Initialize(ComponentManager* manager);
-        inline String          GetName() const { return m_Identifier.m_Name; }
-        inline GUID            GetUUID() const { return m_Identifier.m_GUID; }
+        void                       Initialize(ComponentManager* manager, GameObjectManager* gameObjectManager);
+        inline String              GetName() const { return m_Identifier.m_Name; }
+        inline GUID                GetUUID() const { return m_Identifier.m_GUID; }
+        inline GameObjectReference GetManagerId() const { return m_Identifier.m_ManagerIndex; }
 
         // DEPRECATING
-        static Ref<GameObject> CreatePrefab(IComponentManagerKeeper* managerKeeper);
+        static GameObject*         CreatePrefab(IComponentManagerKeeper* managerKeeper);
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* AddComponent()
         {
@@ -200,6 +217,9 @@ namespace Ifrit::Runtime
             return components;
         }
 
+        friend class GameObjectManager;
+        friend class Component;
+
         inline void SetName(const String& name) { m_Identifier.m_Name = name; }
         IFRIT_STRUCT_SERIALIZE(m_Identifier, m_ComponentsHashed);
     };
@@ -208,7 +228,9 @@ namespace Ifrit::Runtime
     {
     protected:
         ComponentIdentifier        m_id;
-        GameObject*                m_ParentObject;
+        GameObjectReference        m_ParentRef;
+        GameObjectManager*         m_GameObjectManager = nullptr;
+
         Vec<ComponentPropertyBase> m_Property;
         bool                       m_PropertyRegistered = false;
 
@@ -250,13 +272,12 @@ namespace Ifrit::Runtime
         virtual void CallPropertyEditorHandle();
 
     public:
-        Component() { IntializeComponent(); }; // for deserializatioin
+        Component(){}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 
         virtual String               Serialize()   = 0;
         virtual void                 Deserialize() = 0;
-        virtual void                 IntializeComponent();
 
         virtual void                 OnFrameCollecting() {}
         virtual void                 OnAwake() {}
@@ -274,7 +295,7 @@ namespace Ifrit::Runtime
 
         inline String                GetName() const { return m_id.m_Name; }
         inline GUID                  GetGUID() const { return m_id.m_GUID; }
-        inline GameObject*           GetParent() const { return m_ParentObject; }
+        GameObject*                  GetParent() const;
         virtual Vec<AssetReference*> GetAssetRefs() { return {}; }
         inline bool                  IsEnabled() const { return m_isEnabled; }
 

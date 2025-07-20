@@ -1327,7 +1327,7 @@ namespace Ifrit::Runtime::Artemis
     IFRIT_APIDECL void              MPMSimulator::CollectScene(Scene* scene)
     {
         m_Data->m_FrameId++;
-        auto emitters = scene->FilterObjectsUnsafe([](GameObject* obj) {
+        auto emitters = scene->FilterObjects([](GameObject* obj) {
             auto emitter = obj->GetComponent<MPMParticleEmitter>();
             return emitter != nullptr && emitter->IsEnabled();
         });

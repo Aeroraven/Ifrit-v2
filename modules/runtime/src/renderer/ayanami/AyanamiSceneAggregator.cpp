@@ -57,7 +57,7 @@ namespace Ifrit::Runtime::Ayanami
         f32 minX = std::numeric_limits<f32>::max(), maxX = -std::numeric_limits<f32>::max();
         f32 minY = std::numeric_limits<f32>::max(), maxY = -std::numeric_limits<f32>::max();
         f32 minZ = std::numeric_limits<f32>::max(), maxZ = -std::numeric_limits<f32>::max();
-        scene->FilterObjectsUnsafe([&](GameObject* obj) {
+        scene->FilterObjects([&](GameObject* obj) {
             auto       meshDF = obj->GetComponent<AyanamiMeshDF>();
             Vector3f   bboxMin, bboxMax;
             Matrix4x4f modelMat;
