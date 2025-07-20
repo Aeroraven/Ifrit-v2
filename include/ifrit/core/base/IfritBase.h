@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit
 {
     template <typename T, u32 V> using Array                          = std::array<T, V>;
+    template <typename T> using VecView                               = std::span<T>;
     template <typename T> using Vec                                   = std::vector<T>;
     template <typename T> using Ref                                   = std::shared_ptr<T>;
     template <typename T> using Owner                                 = std::unique_ptr<T>;

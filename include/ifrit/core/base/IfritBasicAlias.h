@@ -31,11 +31,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #include <unordered_set>
     #include <vector>
     #include <queue>
+    #include <span>
 #endif
 
 #define IF_SIZEOF_RETURN_TYPE u32
 
 // check if compiler supports C++20, export to IF_CXX20_AVAILABLE
+// UPDATE 250720: forcing c++20 check
 #ifdef _MSVC_LANG
     #define IF_CXX_VERSION _MSVC_LANG
     #define IF_COMPILER_MSVC 1
@@ -61,6 +63,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define IF_LIKELY [[likely]]
     #define IF_UNLIKELY [[unlikely]]
 #else
+    #error "C++20 or later is required for Ifrit-v2. Please enable C++20 support in your compiler settings."
     #define IF_CONSTEVAL IF_CONSTEXPR
     #define IF_LIKELY
     #define IF_UNLIKELY
@@ -72,7 +75,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #else
     #define IF_NODISCARD
     #define IF_MAYBE_UNUSED
-    #error "C++17 or later is required for Ifrit-v2. Please enable C++17 support in your compiler settings."
 #endif
 
 // forceinline

@@ -27,11 +27,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #include <tuple>
-
+#include <chrono>
 #include "ifrit/core/logging/Logging.h"
 
 namespace Ifrit::Logging
 {
+    static Atomic<u32>             sLogEntries = 0;
+    static Vec<InternalLogEntries> sLogEntriesVec(1145141);
+
+    IFRIT_APIDECL VecView<InternalLogEntries> GetLogEntries()
+    {
+        return VecView<InternalLogEntries>(sLogEntriesVec.data(), sLogEntries.load());
+    }
 
     inline void RegisterLoggerModule(const std::string& name)
     {
@@ -88,6 +95,14 @@ namespace Ifrit::Logging
             default:
                 logger->info(message);
         }
+
+        InternalLogEntries entry;
+        entry.m_Time    = std::format("{:%Y-%m-%d %H:%M:%S}", std::chrono::system_clock::now());
+        entry.m_Message = message;
+        entry.m_Level   = level;
+        auto entryId    = sLogEntries.fetch_add(1);
+
+        sLogEntriesVec[entryId] = std::move(entry);
     }
 
     IFRIT_APIDECL String LogAppendModuleInfo(const String& formatted, const char* moduleName, const char* subModuleName)

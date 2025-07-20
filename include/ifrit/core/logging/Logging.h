@@ -33,11 +33,18 @@ namespace Ifrit::Logging
         Error,
         Critical
     };
+    struct InternalLogEntries
+    {
+        String        m_Time;
+        String        m_Message;
+        ELoggingLevel m_Level;
+    };
 
     // v3
     IFRIT_CORE_API void   LogImpl(ELoggingLevel level, const String& message);
     IFRIT_CORE_API String LogAppendModuleInfo(
         const String& formatted, const char* moduleName, const char* subModuleName);
+    IFRIT_CORE_API VecView<InternalLogEntries> GetLogEntries();
 
     template <ELoggingLevel Level, typename... Args>
     inline void LogWrapper(

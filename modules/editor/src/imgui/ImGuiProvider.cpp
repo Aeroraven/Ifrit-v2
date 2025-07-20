@@ -20,6 +20,7 @@
 #include "iconfont/IconFontAwesome.h"
 
 #include "ifrit/runtime/base/ActorBehavior.h"
+#include "ifrit/core/hal/HalWindow.h"
 
 #define IMGUI_API IFRIT_APIDECL_IMPORT
 
@@ -74,6 +75,51 @@ namespace Ifrit::Editor
             }
             ImGui::EndCombo();
         }
+    }
+
+    void PrintingLogs()
+    {
+        VecView<Logging::InternalLogEntries> entries = Logging::GetLogEntries();
+        ImVec4                               color   = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+        for (auto& p : entries)
+        {
+            String tx = p.m_Message;
+            switch (p.m_Level)
+            {
+                case Logging::ELoggingLevel::Critical:
+                    tx    = "[CRITICAL] " + tx;
+                    color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+                    break;
+                case Logging::ELoggingLevel::Error:
+                    tx    = "[ERROR   ] " + tx;
+                    color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+                    break;
+                case Logging::ELoggingLevel::Warning:
+                    tx    = "[WARNING ] " + tx;
+                    color = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
+                    break;
+                case Logging::ELoggingLevel::Info:
+                    tx    = "[INFO    ] " + tx;
+                    color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+                    break;
+                case Logging::ELoggingLevel::Debug:
+                    tx    = "[DEBUG   ] " + tx;
+                    color = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+                    break;
+                case Logging::ELoggingLevel::Trace:
+                    tx    = "[TRACE   ] " + tx;
+                    color = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
+                    break;
+                default:
+                    tx    = "[UNKNOWN ] " + tx;
+                    color = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+                    break;
+            }
+            ImGui::PushStyleColor(ImGuiCol_Text, color);
+            ImGui::Text(tx.c_str());
+            ImGui::PopStyleColor();
+        }
+        ImGui::SetScrollHereY(1.0f);
     }
 
     static void RegisterEditorHandles(ImGuiProvider* provider)
@@ -320,8 +366,8 @@ namespace Ifrit::Editor
         auto projectProperty = app->GetProjectProperty();
         auto rhi             = app->GetRhi();
         auto dq              = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Graphics);
-        IF_LOG_ASSERTION("Editor.ImGui",
-            projectProperty.m_rhiType == Runtime::AppRhiType::Vulkan, "ImGuiProvider only supports Vulkan RHI type");
+        IF_LOG_ASSERTION("Editor.ImGui", projectProperty.m_rhiType == Runtime::AppRhiType::Vulkan,
+            "ImGuiProvider only supports Vulkan RHI type");
         IF_LOG_ASSERTION("Editor.ImGui", projectProperty.m_displayProvider == Runtime::AppDisplayProvider::GLFW,
             "ImGuiProvider only supports GLFW display provider");
 
@@ -513,6 +559,7 @@ namespace Ifrit::Editor
         ImGui::End();
 
         ImGui::Begin("Console");
+        PrintingLogs();
         ImGui::End();
     }
 

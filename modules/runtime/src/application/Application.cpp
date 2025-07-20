@@ -21,8 +21,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/rhi/platform/RhiSelector.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include "ifrit/core/hal/HalDisplay.h"
+#include "ifrit/core/hal/HalWindow.h"
 namespace Ifrit::Runtime
 {
+    struct ApplicationPrivateData
+    {
+        bool m_ConsoleWindowVisible = true;
+    };
+
+    IFRIT_APIDECL      Application::Application() { m_Data = new ApplicationPrivateData(); }
+    IFRIT_APIDECL      Application::~Application() { delete m_Data; }
 
     IFRIT_APIDECL void Application::Run(const ProjectProperty& info)
     {
@@ -161,6 +169,12 @@ namespace Ifrit::Runtime
             }
         }
         m_inputSystem->OnFrameUpdate();
+
+        if (m_Data->m_ConsoleWindowVisible && m_ApplicationState.m_EditorMode)
+        {
+            HAL::HideConsoleWindow();
+            m_Data->m_ConsoleWindowVisible = false;
+        }
     }
 
     IFRIT_APIDECL void Application::End()

@@ -33,7 +33,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime
 {
-
+    struct ApplicationPrivateData;
     class IFRIT_APIDECL Application : public IApplication
     {
         using RhiBackend     = RHI::RhiBackend;
@@ -57,6 +57,7 @@ namespace Ifrit::Runtime
         // for legacy compatibility
         bool                      m_EnableRendererWrapper = false;
         ApplicationState          m_ApplicationState;
+        ApplicationPrivateData*   m_Data;
 
     private:
         void        Start();
@@ -65,6 +66,9 @@ namespace Ifrit::Runtime
         inline bool ApplicationShouldClose() { return true; }
 
     public:
+        Application();
+        virtual ~Application();
+
         virtual void                         OnStart() override {}
         virtual void                         OnUpdate() override {}
         virtual void                         OnEnd() override {}
