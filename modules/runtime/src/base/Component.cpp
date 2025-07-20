@@ -104,10 +104,18 @@ namespace Ifrit::Runtime
             AddProperty<bool, EPropertyEditorType::Select>("Enable", m_isEnabled);
             SetupProperties();
         }
-
+        auto& axuHandles = GetPropertyEditorAxuHandles();
         for (auto& prop : m_Property)
         {
+            if (axuHandles.m_OnPreRegister)
+            {
+                axuHandles.m_OnPreRegister();
+            }
             prop.RegisterEditorHandle();
+            if (axuHandles.m_OnPostRegister)
+            {
+                axuHandles.m_OnPostRegister();
+            }
         }
     }
 

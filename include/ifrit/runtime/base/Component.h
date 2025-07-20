@@ -256,6 +256,7 @@ namespace Ifrit::Runtime
         virtual void                 OnEnd() {}
 
         virtual void                 SetupProperties() = 0;
+        inline u32                   GetNumProperties() const { return SizeCast<u32>(m_Property.size()) + 1; }
 
         inline void                  SetName(const String& name) { m_id.m_name = name; }
         virtual void                 SetAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>>& out) {}

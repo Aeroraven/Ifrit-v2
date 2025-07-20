@@ -30,8 +30,8 @@
 #include "ifrit/editor/EditorProviderHelper.h"
 #include "ifrit/core/hal/HalDisplay.h"
 
-#define WINDOW_WIDTH 1024
-#define WINDOW_HEIGHT 768
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 800
 
 using namespace Ifrit;
 using namespace Ifrit::RHI;

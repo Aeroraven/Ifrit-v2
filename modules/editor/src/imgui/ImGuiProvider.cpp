@@ -1,5 +1,6 @@
 #include "ifrit/editor/imgui/ImGuiProvider.h"
 #include "ifrit.internal/editor/imgui/ImGuiStyling.h"
+#include "ifrit.internal/editor/IconMapping.h"
 #include "ifrit.internal/editor/ResourceTable.h"
 #include "imgui.h"
 #include "imgui_internal.h"
@@ -16,6 +17,9 @@
 
 #include "glfw/glfw3.h"
 #include "ifrit/core/hal/HalDisplay.h"
+#include "iconfont/IconFontAwesome.h"
+
+#include "ifrit/runtime/base/ActorBehavior.h"
 
 #define IMGUI_API IFRIT_APIDECL_IMPORT
 
@@ -74,16 +78,26 @@ namespace Ifrit::Editor
 
     static void RegisterEditorHandles(ImGuiProvider* provider)
     {
+        // Aux
+        auto& handles           = Runtime::GetPropertyEditorAxuHandles();
+        handles.m_OnPreRegister = []() {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+        };
+        handles.m_OnPostRegister = []() {};
+
         // Float32
         auto& f32Handles            = Runtime::GetPropertyEditorHandle<f32>();
         f32Handles.m_SliderCallback = [](const char* name, f32& value, f32 min, f32 max, f32 step) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::SliderFloat((String("##") + name).c_str(), &value, min, max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
         };
         f32Handles.m_TextCallback = [](const char* name, f32& value) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::InputFloat((String("##") + name).c_str(), &value, 0.0f, 0.0f, "%.3f");
         };
 
@@ -91,13 +105,14 @@ namespace Ifrit::Editor
         auto& i32Handles            = Runtime::GetPropertyEditorHandle<i32>();
         i32Handles.m_SliderCallback = [](const char* name, i32& value, i32 min, i32 max, i32 step) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::SliderInt((String("##") + name).c_str(), &value, min, max);
         };
 
         i32Handles.m_TextCallback = [](const char* name, i32& value) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
             ImGui::InputInt((String("##") + name).c_str(), &value);
         };
 
@@ -105,7 +120,8 @@ namespace Ifrit::Editor
         auto& v3fHandles          = Runtime::GetPropertyEditorHandle<Vector3f>();
         v3fHandles.m_TextCallback = [](const char* name, Vector3f& value) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::InputFloat3((String("##") + name).c_str(), &value.x, "%.4f");
         };
 
@@ -113,13 +129,15 @@ namespace Ifrit::Editor
         auto& v4fHandles          = Runtime::GetPropertyEditorHandle<Vector4f>();
         v4fHandles.m_TextCallback = [](const char* name, Vector4f& value) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::InputFloat4((String("##") + name).c_str(), &value.x, "%.4f");
         };
 
         v4fHandles.m_ColorCallback = [](const char* name, Vector4f& value) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::ColorEdit4(
                 (String("##") + name).c_str(), &value.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
         };
@@ -128,7 +146,8 @@ namespace Ifrit::Editor
         auto& i8Handles            = Runtime::GetPropertyEditorHandle<i8>();
         i8Handles.m_SelectCallback = [](const char* name, i8& value, Vec<Pair<i8, String>> options) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
             GeneralSelectableHandle<i8>(name, value, options);
         };
 
@@ -136,7 +155,8 @@ namespace Ifrit::Editor
         auto& u8Handles            = Runtime::GetPropertyEditorHandle<u8>();
         u8Handles.m_SelectCallback = [](const char* name, u8& value, Vec<Pair<u8, String>> options) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
             GeneralSelectableHandle<u8>((String("##") + name).c_str(), value, options);
         };
 
@@ -144,10 +164,11 @@ namespace Ifrit::Editor
         auto& boolHandles            = Runtime::GetPropertyEditorHandle<bool>();
         boolHandles.m_SelectCallback = [](const char* name, bool& value, Vec<Pair<bool, String>> options) {
             ImGui::Text("%s", name);
-            ImGui::SameLine();
+            ImGui::TableNextColumn();
             auto Id = (String("##") + name).c_str();
             ImGui::PushID(Id);
             ImGui::PushID(&value);
+            ImGui::SetNextItemWidth(-FLT_MIN);
             ImGui::Checkbox(Id, &value);
             ImGui::PopID();
             ImGui::PopID();
@@ -197,8 +218,10 @@ namespace Ifrit::Editor
             [&](Runtime::SceneNode* node) {
                 if (node)
                 {
-                    String             nodeName = "SceneNode";
-                    ImGuiTreeNodeFlags flags    = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+                    String nodeName = "SceneNode";
+                    String displayName =
+                        Internal::GetGameObjectIcon(Internal::EGameObjectType::SceneNode) + " " + nodeName;
+                    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 
                     // Check if node has children or game objects
                     bool hasChildren = node->GetChildren().size() > 0 || node->GetGameObjects().size() > 0;
@@ -207,7 +230,7 @@ namespace Ifrit::Editor
                         flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
                     }
 
-                    bool nodeOpen = ImGui::TreeNodeEx(nodeName.c_str(), flags);
+                    bool nodeOpen = ImGui::TreeNodeEx(displayName.c_str(), flags);
                     bool needsPop = nodeOpen && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen);
                     nodeStack.push_back(needsPop);
                     return needsPop;
@@ -222,25 +245,22 @@ namespace Ifrit::Editor
             [&](Runtime::GameObject* obj) {
                 if (obj)
                 {
-                    String objectName = obj->GetName();
-                    String objectUUID = obj->GetUUID();
+                    String                    objectName = obj->GetName();
+                    String                    objectUUID = obj->GetUUID();
+
+                    Internal::EGameObjectType objectIconType = Internal::EGameObjectType::Unspecified;
 
                     if (obj->GetComponent<Runtime::Camera>())
                     {
-                        objectName += " (Camera)";
-                    }
-                    else if (obj->GetComponent<Runtime::ActorBehavior>())
-                    {
-                        objectName += " (Script)";
+                        objectIconType = Internal::EGameObjectType::Camera;
                     }
                     else if (obj->GetComponent<Runtime::MeshFilter>())
                     {
-                        objectName += " (Mesh)";
+                        objectIconType = Internal::EGameObjectType::Mesh;
                     }
-                    else
-                    {
-                        objectName += " (GameObject)";
-                    }
+
+                    String objectIcon  = Internal::GetGameObjectIcon(objectIconType);
+                    String displayText = objectIcon + " " + objectName;
 
                     // Add to our tracking lists
                     data->m_RegisteredGameObjects.push_back(objectName);
@@ -252,7 +272,7 @@ namespace Ifrit::Editor
                         flags |= ImGuiTreeNodeFlags_Selected;
                     }
 
-                    ImGui::TreeNodeEx(objectName.c_str(), flags);
+                    ImGui::TreeNodeEx(displayText.c_str(), flags);
                     if (ImGui::IsItemClicked())
                     {
                         data->m_SelectedGameObjectIndex = currentIndex;
@@ -323,8 +343,12 @@ namespace Ifrit::Editor
         io.DisplaySize.y           = projectProperty.m_height * m_Data->m_DpiScaler;
 
         // C:/Windows/Fonts/NotoSans-Regular.ttf
-        io.Fonts->AddFontFromFileTTF(Internal::AssetPath::kDefaultFont, 15.0f * m_Data->m_DpiScaler, nullptr,
-            io.Fonts->GetGlyphRangesCyrillic());
+        io.Fonts->AddFontFromFileTTF(Internal::AssetPath::kDefaultFont, 12.0f * m_Data->m_DpiScaler, nullptr);
+
+        ImFontConfig config;
+        config.MergeMode        = true;
+        config.GlyphMinAdvanceX = 13.0f;
+        io.Fonts->AddFontFromFileTTF(Internal::AssetPath::kDefaultFAFont, 12.0f * m_Data->m_DpiScaler, &config);
 
         // ImGui::StyleColorsDark();
         Internal::ApplyImGuiSytle();
@@ -444,22 +468,47 @@ namespace Ifrit::Editor
             m_Data->m_RegisteredGameObjectsUUID.push_back(UUID);
             if (UUID == m_Data->m_ActiveGameObjectUUID)
             {
-                ImGui::Text("GameObject: %s", obj->GetName().c_str());
+                ImGui::Text("%s", obj->GetName().c_str());
+                ImGui::TextDisabled("UUID: %s", obj->GetUUID().c_str());
+                ImGui::Separator();
                 auto components = obj->GetAllComponents();
                 for (auto& component : components)
                 {
-                    auto typeName      = GetDynamicTypeNameWithoutNamespace(component);
-                    auto typeNamespace = GetDynamicTypeNamespace(component);
-                    ImGui::SeparatorText(typeName.c_str());
+                    auto   typeName      = GetDynamicTypeNameWithoutNamespace(component);
+                    auto   typeNamespace = GetDynamicTypeNamespace(component);
+                    auto   typeIcon      = Internal::GetComponentIcon(typeName);
+
+                    String displayHeader = typeIcon + " " + typeName;
+
+                    auto   isComponentMenuOpen = ImGui::CollapsingHeader(displayHeader.c_str());
                     ImGui::SetItemTooltip("Component Namespace: %s", typeNamespace.c_str());
-                    component->CallPropertyEditorHandle();
+                    if (isComponentMenuOpen)
+                    {
+                        float availableWidth = ImGui::GetContentRegionAvail().x;
+                        ImGui::PushID(component->GetUuid().c_str());
+                        auto maxRows   = component->GetNumProperties();
+                        f32  rowHeight = ImGui::GetTextLineHeightWithSpacing();
+                        f32  maxHeight = rowHeight * maxRows;
+                        if (ImGui::BeginTable("##properties", 2,
+                                ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp,
+                                ImVec2(availableWidth, maxHeight)))
+                        {
+                            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 0.4f);
+                            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 0.6f);
+                            ImGui::PushItemWidth(-1);
+                            component->CallPropertyEditorHandle();
+                            ImGui::PopItemWidth();
+                            ImGui::EndTable();
+                        }
+
+                        ImGui::PopID();
+                    }
                 }
             }
         }
         ImGui::End();
 
         ImGui::Begin("Scene Hierarchy");
-        // RenderGameObjectListBox(m_Data);
         RenderGameObjectTreeView(m_Data, scene);
         ImGui::End();
 

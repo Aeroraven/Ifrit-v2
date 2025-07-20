@@ -20,7 +20,15 @@ namespace Ifrit::Runtime
         Fn<void(const char* name, T& value)>                               m_TextCallback   = nullptr;
         Fn<void(const char* name, T& value)>                               m_ColorCallback  = nullptr;
     };
+
+    struct PropertyEditorAxuHandles
+    {
+        Fn<void()> m_OnPreRegister  = nullptr;
+        Fn<void()> m_OnPostRegister = nullptr;
+    };
+
     template <typename T> IFRIT_RUNTIME_API PropertyEditorHandle<T>& GetPropertyEditorHandle();
+    IFRIT_RUNTIME_API PropertyEditorAxuHandles&                      GetPropertyEditorAxuHandles();
 
     class ComponentPropertyBase
     {

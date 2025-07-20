@@ -169,7 +169,7 @@ The source files can be decomposed into following parts.
 | ifrit.imaging       | Utilities for image processing<br/>Including some texture compression utilities.<br/>(Dependency: `ktx`) |
 | ifrit.geomproc      | Algorithms for geometry processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh tetrahedralization, mesh auto-lod and mesh-level signed distance field generation<br/>(Dependency: `metis`,`meshoptimizer`,`openvdb`,`tetgen`) |
 | ifrit.rhi           | Backend-agnostic render hardware interface.                  |
-| ifrit.ui            | UI subsystem and debugging components for runtime<br/>Debug purpose only<br/>(Dependency: `imgui`) |
+| ifrit.editor        | Editor subsystem and debugging components for runtime<br/>Debug purpose only<br/>(Dependency: `imgui`) |
 | ifrit.shadercompile | Backend for shader compilation<br/>Contains glslc and slang backend<br/>(Dependency: `glslc`,`slang`) |
 | ifrit.softgraphics  | Implementation of soft renderer, with both MT-CPU and CUDA version<br/>(Dependency: `cuda`) |
 | ifrit.vkgraphics    | Vulkan backend<br/>(Dependency: `vulkan`)                    |

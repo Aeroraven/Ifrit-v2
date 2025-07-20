@@ -10,7 +10,8 @@ namespace Ifrit::Editor::Internal
 {
     namespace AssetPath
     {
-        inline constexpr const char* kDefaultFont = IFRIT_EDITOR_SHARED_ASSET_PATH "/Fonts/DejaVuSans.ttf";
-    }
+        inline IF_CONSTEXPR const char* kDefaultFont   = IFRIT_EDITOR_SHARED_ASSET_PATH "/Fonts/DejaVuSans.ttf";
+        inline IF_CONSTEXPR const char* kDefaultFAFont = IFRIT_EDITOR_SHARED_ASSET_PATH "/Fonts/FaSolid.ttf";
+    } // namespace AssetPath
 
 } // namespace Ifrit::Editor::Internal

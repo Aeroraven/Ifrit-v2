@@ -20,4 +20,10 @@ namespace Ifrit::Runtime
     template IFRIT_APIDECL PropertyEditorHandle<Vector3f>& GetPropertyEditorHandle<Vector3f>();
     template IFRIT_APIDECL PropertyEditorHandle<Vector3f>& GetPropertyEditorHandle<Vector3f>();
 
+    IFRIT_APIDECL PropertyEditorAxuHandles&                GetPropertyEditorAxuHandles()
+    {
+        static PropertyEditorAxuHandles handles;
+        return handles;
+    }
+
 } // namespace Ifrit::Runtime
