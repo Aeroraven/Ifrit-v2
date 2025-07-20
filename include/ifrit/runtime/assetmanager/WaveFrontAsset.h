@@ -34,7 +34,7 @@ namespace Ifrit::Runtime
         {
             m_assetReference.m_fileId     = metadata.m_fileId;
             m_assetReference.m_name       = metadata.m_name;
-            m_assetReference.m_uuid       = metadata.m_uuid;
+            m_assetReference.m_GUID       = metadata.m_GUID;
             m_assetReference.m_usingAsset = true;
             m_usingAsset                  = true;
         }

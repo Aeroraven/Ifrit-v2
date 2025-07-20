@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
-#include "ifrit/core/algo/Identifier.h"
+#include "ifrit/core/algo/GUID.h"
 #include <atomic>
 #include <random>
 
@@ -38,7 +38,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL
     Component::Component(Ref<GameObject> parent) : m_parentObject(parent), m_parentObjectRaw(parent.get())
     {
-        GenerateUuid(m_id.m_uuid);
+        m_id.m_GUID = GUID::Generate();
         IntializeComponent();
     }
 
@@ -49,20 +49,20 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void GameObject::Initialize(ComponentManager* manager)
     {
-        m_componentManager = manager;
+        m_ComponentManager = manager;
         AddComponent<Transform>();
     }
-    IFRIT_APIDECL GameObject::GameObject() { GenerateUuid(m_id.m_uuid); }
+    IFRIT_APIDECL GameObject::GameObject(){ m_Identifier.m_GUID = GUID::Generate(); }
 
     IFRIT_APIDECL GameObject::~GameObject()
     {
-        for (auto& [typeHash, index] : m_componentsHashed)
+        for (auto& [typeHash, index] : m_ComponentsHashed)
         {
-            auto component = m_componentManager->GetComponentFromReference<Component>({ typeHash, index });
+            auto component = m_ComponentManager->GetComponentFromReference<Component>({ typeHash, index });
             if (component)
             {
                 component->OnEnd();
-                m_componentManager->RequestRemove(component);
+                m_ComponentManager->RequestRemove(component);
             }
         }
     }

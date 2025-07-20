@@ -105,7 +105,7 @@ namespace Ifrit::Runtime
             size_t hash = 0;
             for (const auto& ref : effect.m_shaderReferences)
             {
-                hash ^= std::hash<String>()(ref.m_uuid);
+                hash ^= std::hash<String>()(ref.m_GUID.ToString());
             }
             return hash;
         }

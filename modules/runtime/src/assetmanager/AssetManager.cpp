@@ -16,7 +16,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/core/algo/Identifier.h"
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/assetmanager/Asset.h"
 #include "ifrit/runtime/assetmanager/DirectDrawSurfaceAsset.h"
@@ -53,7 +52,7 @@ namespace Ifrit::Runtime
             AssetMetadata metaData;
             metaData.m_fileId = relativePath.generic_string();
             metaData.m_name   = path.filename().generic_string();
-            GenerateUuid(metaData.m_uuid);
+            metaData.m_GUID   = GUID::Generate();
             // check if importer is registered for this file extension
             if (m_extensionImporterMap.find(path.extension().generic_string()) == m_extensionImporterMap.end())
             {
@@ -162,13 +161,13 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL String AssetManager::MetadataSerialization(AssetMetadata& metadata)
     {
         String serialized;
-        Ifrit::Common::Serialization::SerializeBinary(metadata, serialized);
+        Serialization::SerializeBinary(metadata, serialized);
         return serialized;
     }
 
     IFRIT_APIDECL void AssetManager::MetadataDeserialization(const String& serialized, AssetMetadata& metadata)
     {
-        Ifrit::Common::Serialization::DeserializeBinary(serialized, metadata);
+        Serialization::DeserializeBinary(serialized, metadata);
     }
 
     IFRIT_APIDECL void AssetManager::RegisterAsset(std::shared_ptr<Asset> asset)

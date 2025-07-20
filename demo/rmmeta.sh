@@ -1,1 +1,1 @@
-rm Asset/*.meta/*-
+rm Asset/*.meta

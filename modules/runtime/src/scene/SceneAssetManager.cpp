@@ -42,7 +42,7 @@ namespace Ifrit::Runtime
         fileReaded.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         file.close();
         Ref<Scene> x;
-        Ifrit::Common::Serialization::DeserializeBinary(fileReaded, x);
+        Serialization::DeserializeBinary(fileReaded, x);
         asset->m_scene = x;
         auto fileName  = metadata.m_name;
         // remove extension
@@ -50,7 +50,7 @@ namespace Ifrit::Runtime
         m_assetManager->RegisterAsset(asset);
         m_sceneAssetManager->RegisterScene(fileName, asset->GetScene());
 
-        IF_LOG_INFO("Scene", "Imported asset: [Scene] {}", metadata.m_uuid);
+        IF_LOG_INFO("Scene", "Imported asset: [Scene] {}", metadata.m_GUID.ToString());
     }
 
     // Manager
@@ -102,7 +102,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneAssetManager::SaveScenes()
     {
-        using namespace Ifrit::Common::Serialization;
+        using namespace Ifrit::Serialization;
         for (auto& [name, idx] : m_scenesIndex)
         {
             auto   scene = m_scenes[idx];
@@ -117,7 +117,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneAssetManager::LoadScenes()
     {
-        using namespace Ifrit::Common::Serialization;
+        using namespace Ifrit::Serialization;
         for (auto& entry : std::filesystem::directory_iterator(m_sceneDataPath))
         {
             if (entry.is_directory())

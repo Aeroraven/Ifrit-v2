@@ -24,26 +24,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <cereal/types/string.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/vector.hpp>
+#include <cereal/types/array.hpp>
 #include <sstream>
 #include <string>
-
-#define IFRIT_STRUCT_SERIALIZE(...) \
-    template <class Archive> void serialize(Archive& ar) { ar(__VA_ARGS__); }
-
-#define IFRIT_STRUCT_SERIALIZE_COND(cond, ...)           \
-    template <class Archive> void serialize(Archive& ar) \
-    {                                                    \
-        ar(cond);                                        \
-        if (cond)                                        \
-        {                                                \
-            ar(__VA_ARGS__);                             \
-        }                                                \
-    }
+#include "ifrit/core/serialization/SerialDefine.h"
 
 #define IFRIT_DERIVED_REGISTER(x) CEREAL_REGISTER_TYPE(x)
 #define IFRIT_INHERIT_REGISTER(base, derived) CEREAL_REGISTER_POLYMORPHIC_RELATION(base, derived)
 
-namespace Ifrit::Common::Serialization
+namespace Ifrit::Serialization
 {
 
     template <class T> void SerializeBinary(T& src, std::string& dst)
@@ -76,4 +65,4 @@ namespace Ifrit::Common::Serialization
 #define IFRIT_ENUMCLASS_SERIALIZE(enumClass) \
     template <class Archive> void serialize(Archive& ar, enumClass& x) { ar(cereal::make_nvp(#enumClass, x)); }
 
-} // namespace Ifrit::Common::Serialization
+} // namespace Ifrit::Serialization

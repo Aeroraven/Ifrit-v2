@@ -28,12 +28,12 @@ namespace Ifrit::Runtime
     struct AssetReference
     {
         String m_fileId;
-        String m_uuid;
+        GUID   m_GUID;
         String m_name;
         bool   m_usingAsset = false;
-        IFRIT_STRUCT_SERIALIZE(m_fileId, m_uuid, m_name, m_usingAsset)
+        IFRIT_STRUCT_SERIALIZE(m_fileId, m_GUID, m_name, m_usingAsset)
 
-        bool operator==(const AssetReference& other) const { return m_uuid == other.m_uuid && m_name == other.m_name; }
+        bool operator==(const AssetReference& other) const { return m_GUID == other.m_GUID && m_name == other.m_name; }
     };
 
     class IFRIT_APIDECL IAssetCompatible

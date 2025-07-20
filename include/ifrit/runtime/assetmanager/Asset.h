@@ -47,13 +47,13 @@ namespace Ifrit::Runtime
     // Just a placeholder for now
     struct AssetMetadata
     {
-        String                  m_uuid;
+        GUID                    m_GUID;
         String                  m_name;
         String                  m_fileId;
         String                  m_importer;
         Vec<String>             m_dependenciesId;
         HashMap<String, String> m_importerOptions;
-        IFRIT_STRUCT_SERIALIZE(m_uuid, m_name, m_fileId, m_importer, m_importerOptions);
+        IFRIT_STRUCT_SERIALIZE(m_GUID, m_name, m_fileId, m_importer, m_importerOptions);
     };
 
     class AssetImporter;
@@ -67,7 +67,7 @@ namespace Ifrit::Runtime
     public:
         Asset(AssetMetadata metadata, std::filesystem::path path) : m_metadata(metadata), m_path(path) {}
 
-        const String& getUuid() const { return m_metadata.m_uuid; }
+        const GUID& getUuid() const { return m_metadata.m_GUID; }
         const String& GetName() const { return m_metadata.m_name; }
         const String& getFileId() const { return m_metadata.m_fileId; }
         virtual void  _polyHolder() {}
@@ -89,8 +89,8 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL AssetManager
     {
     private:
-        HashMap<String, Ref<Asset>>         m_assets;
-        HashMap<String, String>             m_nameToUuid;
+        HashMap<GUID, Ref<Asset>>           m_assets;
+        HashMap<String, GUID>               m_nameToUuid;
         HashMap<String, Ref<AssetImporter>> m_importers;
         HashMap<String, String>             m_extensionImporterMap;
         std::filesystem::path               basePath;
@@ -120,7 +120,7 @@ namespace Ifrit::Runtime
             return std::dynamic_pointer_cast<T>(asset);
         }
 
-        template <typename T> Ref<T> GetAsset(const String& uuid)
+        template <typename T> Ref<T> GetAsset(const GUID& uuid)
         {
             auto it = m_assets.find(uuid);
             if (it == m_assets.end())

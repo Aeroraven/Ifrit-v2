@@ -153,7 +153,7 @@ namespace Ifrit::Runtime
     {
         if (m_texture == nullptr)
         {
-            auto uuid = m_metadata.m_uuid;
+            auto uuid = m_metadata.m_GUID.ToString();
             m_texture = ParseTex(m_path, m_app, uuid);
         }
         return m_texture;

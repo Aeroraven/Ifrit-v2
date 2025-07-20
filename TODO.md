@@ -1,25 +1,44 @@
 ## Ifrit-v2/TODO
 
-### 4.0 Ongoing Schedule
-- Subproject Artemis: `ifrit.runtime/physics.artemis` (Highest Priority)
-  - Helper Utilities for Miscellaneous Requirements
+### Ongoing Schedule
+
+#### High Priority
+
+- Subproject Artemis: `ifrit.runtime/physics.artemis`
+- Architectural:
+  - Serialization/Reflection
+    - Ownership Reidentification
+    - Refactoring Asset Manager
+      - Dropping Unity-like `meta` file
+    - Scene Saving
+
+#### Normal Priority
+
 - Subproject Ayanami: `ifrit.runtime/render.ayanami`
+
   - Indirect Lighting on Surface Atlas (Debugging Phase)
+
   - Hardware Path Tracer (Reference Purpose)
+
   - Denoising / ReSTIR
+
 - Subproject Syaro: `ifrit.runtime/render.syaro.v2`
   - Refactoring with RDGs
 - Architectural
-  - Shader Rewrite: `ifrit.shader.neo`
+  - Shader System:
+    - Shader Rewrite In `slang/hlsl`: `ifrit.shader.neo`
+    - Better Shader Cache System
   - Multithreaded Rendering
     - Async Compute
   - Streaming
 - Bug Fixing
   - (vkgraphics) Dangling view identifiers after resource destruction
   - (runtime/asset) Potential crash when loading gltf models
+  - (shader/neo) Bindless declarations might violate `spirv-val` (but it does work)
 
 
-### 4.1 Migration of  Project Aria
+
+### Migration of  Project Aria
 
 Following features implemented in Aria/Vulkan might be considered to move into this repository:
 
@@ -38,7 +57,7 @@ Following features implemented in Aria/Vulkan might be considered to move into t
 - Procedural Generator
   - GPU Marching Cubes
 
-### 4.2 Syaro Refactoring
+### Syaro Refactoring
 
 The architecture for subproject Syaro seems to be a little messy, following plans are scheduled:
 
@@ -46,7 +65,7 @@ The architecture for subproject Syaro seems to be a little messy, following plan
 - Redundant Dynamic Uniform Buffer Removal
 - Shader Variants
 
-### 4.3 Interview Feedback 
+### Interview Feedback 
 
 Following features are scheduled, with suggestions given by summer internship interviewers. 
 

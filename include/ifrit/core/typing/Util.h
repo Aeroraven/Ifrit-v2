@@ -145,8 +145,8 @@ namespace Ifrit
 
     template <class T> struct TTypeInfo
     {
-        static IF_CONSTEXPR const char* name = GetFuncName<T>();
-        static IF_CONSTEXPR u64         hash = GetFuncNameHashId<T>();
+        static IF_CONSTEXPR const char* Name = GetFuncName<T>();
+        static IF_CONSTEXPR u64         Hash = GetFuncNameHashId<T>();
     };
 
 } // namespace Ifrit

@@ -31,3 +31,4 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/simd/SimdVectors.h"
 
 #include "ifrit/core/console/ConsoleObject.h"
+#include "ifrit/core/algo/Guid.h"

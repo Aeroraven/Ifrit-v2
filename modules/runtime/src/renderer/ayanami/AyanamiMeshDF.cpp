@@ -135,13 +135,13 @@ namespace Ifrit::Runtime::Ayanami
             {
                 auto serialCompactMeshDFPath = cacheCompactPathStr;
                 auto buffer                  = ReadBinaryFile(serialCompactMeshDFPath);
-                Ifrit::Common::Serialization::DeserializeBinary(buffer, compactSdf);
+                Serialization::DeserializeBinary(buffer, compactSdf);
             }
             else if (hasCachedDF)
             {
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 auto buffer           = ReadBinaryFile(serialMeshDFPath);
-                Ifrit::Common::Serialization::DeserializeBinary(buffer, sdf);
+                Serialization::DeserializeBinary(buffer, sdf);
             }
             else
             {
@@ -154,7 +154,7 @@ namespace Ifrit::Runtime::Ayanami
                 if (shouldGenCachedDF)
                 {
                     String buffer;
-                    Ifrit::Common::Serialization::SerializeBinary(sdf, buffer);
+                    Serialization::SerializeBinary(sdf, buffer);
                     // WriteBinaryFile(serialMeshDFPath, buffer);
                 }
             }
@@ -164,7 +164,7 @@ namespace Ifrit::Runtime::Ayanami
                 CompactSDF(sdf, compactSdf);
                 auto   serialCompactMeshDFPath = cacheCompactPathStr;
                 String buffer;
-                Ifrit::Common::Serialization::SerializeBinary(compactSdf, buffer);
+                Serialization::SerializeBinary(compactSdf, buffer);
                 WriteBinaryFile(serialCompactMeshDFPath, buffer);
             }
             if (shouldGenBC4CompactDF)

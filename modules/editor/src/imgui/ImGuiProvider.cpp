@@ -29,9 +29,9 @@ namespace Ifrit::Editor
     struct ImGuiProviderData
     {
         Vec<String>     m_RegisteredGameObjects;
-        Vec<String>     m_RegisteredGameObjectsUUID;
+        Vec<GUID>       m_RegisteredGameObjectsUUID;
         i32             m_SelectedGameObjectIndex = -1;
-        String          m_ActiveGameObjectUUID;
+         GUID           m_ActiveGameObjectUUID;
 
         VkDescriptorSet m_EditorSceneView = VK_NULL_HANDLE;
         ImGuiID         m_DockspaceID     = 0;
@@ -292,7 +292,7 @@ namespace Ifrit::Editor
                 if (obj)
                 {
                     String                    objectName = obj->GetName();
-                    String                    objectUUID = obj->GetUUID();
+                    GUID                      objectUUID = obj->GetUUID();
 
                     Internal::EGameObjectType objectIconType = Internal::EGameObjectType::Unspecified;
 
@@ -515,7 +515,7 @@ namespace Ifrit::Editor
             if (UUID == m_Data->m_ActiveGameObjectUUID)
             {
                 ImGui::Text("%s", obj->GetName().c_str());
-                ImGui::TextDisabled("UUID: %s", obj->GetUUID().c_str());
+                ImGui::TextDisabled("UUID: %s", obj->GetUUID().ToString().c_str());
                 ImGui::Separator();
                 auto components = obj->GetAllComponents();
                 for (auto& component : components)
@@ -531,7 +531,7 @@ namespace Ifrit::Editor
                     if (isComponentMenuOpen)
                     {
                         float availableWidth = ImGui::GetContentRegionAvail().x;
-                        ImGui::PushID(component->GetUuid().c_str());
+                        ImGui::PushID(component->GetGUID().ToString().c_str());
                         auto maxRows   = component->GetNumProperties();
                         f32  rowHeight = ImGui::GetTextLineHeightWithSpacing();
                         f32  maxHeight = rowHeight * maxRows;

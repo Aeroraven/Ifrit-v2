@@ -102,8 +102,8 @@ namespace Ifrit::Runtime
         }
         // Start loading mesh
         m_selfData = MakeRef<MeshData>();
-        m_selfData->identifier =
-            m_asset->GetMetadata().m_uuid + "_" + std::to_string(m_meshId) + "_" + std::to_string(m_primitiveId);
+        m_selfData->identifier = m_asset->GetMetadata().m_GUID.ToString() + "_" + std::to_string(m_meshId) + "_"
+            + std::to_string(m_primitiveId);
 
         auto& data      = m_asset->GetInternalDataForced()->model;
         auto& mesh      = data.meshes[m_meshId];
