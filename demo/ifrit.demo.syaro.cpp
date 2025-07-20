@@ -75,7 +75,7 @@ public:
         if (inputSystem->IsKeyPressed(InputKeyCode::X))
             m_movRot -= scale * 0.03f;
 
-        auto parent = this->GetParentUnsafe();
+        auto parent = this->GetParent();
         auto camera = parent->GetComponent<Transform>();
         if (camera)
         {

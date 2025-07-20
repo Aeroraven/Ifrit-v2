@@ -78,7 +78,7 @@ public:
         if (inputSystem->IsKeyPressed(InputKeyCode::X))
             m_movRot -= scale * 0.2f;
 
-        auto parent = this->GetParentUnsafe();
+        auto parent = this->GetParent();
         auto camera = parent->GetComponent<Transform>();
         if (camera)
         {
@@ -124,7 +124,7 @@ public:
     void SetInputSystem(InputSystem* inputSystem) { m_inputSystem = inputSystem; }
     void OnUpdate() override
     {
-        auto parent = this->GetParentUnsafe();
+        auto parent = this->GetParent();
         auto light  = parent->GetComponent<Transform>();
         if (light)
         {

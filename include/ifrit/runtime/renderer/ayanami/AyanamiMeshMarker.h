@@ -31,7 +31,7 @@ namespace Ifrit::Runtime::Ayanami
 
     public:
         AyanamiMeshMarker() {}
-        AyanamiMeshMarker(Ref<GameObject> owner) : Component(owner) {}
+        AyanamiMeshMarker(GameObject* owner) : Component(owner) {}
         virtual ~AyanamiMeshMarker() = default;
 
         inline String Serialize() override { return ""; }

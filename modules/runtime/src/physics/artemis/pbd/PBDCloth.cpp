@@ -153,7 +153,7 @@ namespace Ifrit::Runtime::Artemis
 
     IFRIT_APIDECL void PBDCloth::BuildConstraints()
     {
-        auto meshFilter = GetParentUnsafe()->GetComponent<MeshFilter>();
+        auto meshFilter = GetParent()->GetComponent<MeshFilter>();
         IF_LOG_ASSERTION(
             "Artemis.PBD", meshFilter != nullptr, "PBDCloth requires a MeshFilter component on the parent GameObject");
 
@@ -303,7 +303,7 @@ namespace Ifrit::Runtime::Artemis
     IFRIT_APIDECL void PBDCloth::BuildConstraintsVolume()
     {
 
-        auto meshFilter = GetParentUnsafe()->GetComponent<MeshFilter>();
+        auto meshFilter = GetParent()->GetComponent<MeshFilter>();
         IF_LOG_ASSERTION(
             "Artemis.PBD", meshFilter != nullptr, "PBDCloth requires a MeshFilter component on the parent GameObject");
 
@@ -510,7 +510,7 @@ namespace Ifrit::Runtime::Artemis
             &builder.ImportBuffer("PBDCloth.CollisionCounter", m_Data->m_ParticleCollisionsCounter.get());
         m_Data->m_RDGColliderData = &builder.ImportBuffer("PBDCloth.ColliderData", m_Data->m_GPUColliderData.get());
 
-        auto meshFilter = GetParentUnsafe()->GetComponent<MeshFilter>();
+        auto meshFilter = GetParent()->GetComponent<MeshFilter>();
         IF_LOG_ASSERTION(
             "Artemis.PBD", meshFilter != nullptr, "PBDCloth requires a MeshFilter component on the parent GameObject");
         auto meshObject = meshFilter->GetMesh();

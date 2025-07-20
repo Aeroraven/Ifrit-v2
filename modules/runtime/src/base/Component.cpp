@@ -36,7 +36,7 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL
-    Component::Component(Ref<GameObject> parent) : m_parentObject(parent), m_parentObjectRaw(parent.get())
+    Component::Component(GameObject* parent) : m_ParentObject(parent)
     {
         m_id.m_GUID = GUID::Generate();
         IntializeComponent();
@@ -52,7 +52,7 @@ namespace Ifrit::Runtime
         m_ComponentManager = manager;
         AddComponent<Transform>();
     }
-    IFRIT_APIDECL GameObject::GameObject(){ m_Identifier.m_GUID = GUID::Generate(); }
+    IFRIT_APIDECL GameObject::GameObject() { m_Identifier.m_GUID = GUID::Generate(); }
 
     IFRIT_APIDECL GameObject::~GameObject()
     {
@@ -155,6 +155,8 @@ namespace Ifrit::Runtime
         component->m_id.m_ManagerIndex = id;
         m_IdToTypeHash[id]             = typeHash;
     }
+
+    // Transform
 
     IFRIT_APIDECL void Transform::SetupProperties()
     {

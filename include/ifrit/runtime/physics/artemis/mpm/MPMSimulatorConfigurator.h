@@ -17,7 +17,7 @@ namespace Ifrit::Runtime::Artemis
 
     public:
         MPMSimulatorConfigurator();
-        MPMSimulatorConfigurator(Ref<GameObject> owner);
+        MPMSimulatorConfigurator(GameObject* owner);
         virtual ~MPMSimulatorConfigurator();
 
         inline String Serialize() override { return ""; }

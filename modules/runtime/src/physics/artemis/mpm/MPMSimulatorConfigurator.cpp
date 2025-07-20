@@ -19,7 +19,7 @@ namespace Ifrit::Runtime::Artemis
     {
     }
 
-    IFRIT_APIDECL MPMSimulatorConfigurator::MPMSimulatorConfigurator(Ref<GameObject> owner)
+    IFRIT_APIDECL MPMSimulatorConfigurator::MPMSimulatorConfigurator(GameObject* owner)
         : Component(owner), m_Data(new MPMSimulatorConfiguratorPrivateData())
     {
     }

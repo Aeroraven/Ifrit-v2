@@ -38,7 +38,7 @@ namespace Ifrit::Runtime::Ayanami
 
     IFRIT_APIDECL void AyanamiMeshDF::BuildMeshDF(const std::string_view& cachePath, Vector3u sdfSize)
     {
-        auto meshFilter = this->GetParentUnsafe()->GetComponent<MeshFilter>();
+        auto meshFilter = this->GetParent()->GetComponent<MeshFilter>();
         if (meshFilter == nullptr)
         {
             IF_LOG_CRITICAL("Ayanami.MeshDF", "BuildMeshDF() requires mesh to be attached to a object");

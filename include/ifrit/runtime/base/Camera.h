@@ -48,7 +48,7 @@ namespace Ifrit::Runtime
     {
     public:
         Camera() {};
-        Camera(std::shared_ptr<GameObject> owner) : Component(owner), AttributeOwner() {}
+        Camera(GameObject* owner) : Component(owner), AttributeOwner() {}
         virtual ~Camera() = default;
         inline std::string Serialize() override { return SerializeAttribute(); }
         inline void        Deserialize() override { DeserializeAttribute(); }

@@ -80,7 +80,7 @@ namespace Ifrit::Runtime::Artemis
 
     public:
         PBDCloth() { Initialize(); }
-        PBDCloth(Ref<GameObject> parent) : Component(parent), AttributeOwner<PBDClothAttribute>() { Initialize(); }
+        PBDCloth(GameObject* parent) : Component(parent), AttributeOwner<PBDClothAttribute>() { Initialize(); }
         virtual ~PBDCloth();
 
         String       Serialize() override { return SerializeAttribute(); }

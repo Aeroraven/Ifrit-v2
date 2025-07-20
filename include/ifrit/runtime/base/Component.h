@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/typing/Traits.h"
 #include <typeinfo>
 
-#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject, __VA_ARGS__)
+#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, __VA_ARGS__)
 #define IFRIT_COMPONENT_REGISTER(x) \
     IFRIT_DERIVED_REGISTER(x);      \
     IFRIT_INHERIT_REGISTER(Ifrit::Runtime::Component, x);
@@ -70,8 +70,9 @@ namespace Ifrit::Runtime
     class Transform;
     class ComponentManager;
 
-    using ComponentTypeHash  = u64;
-    using ComponentReference = Pair<ComponentTypeHash, u32>;
+    using ComponentTypeHash   = u64;
+    using ComponentReference  = Pair<ComponentTypeHash, u32>;
+    using GameObjectReference = u32;
 
     class IFRIT_APIDECL IComponentManagerKeeper
     {
@@ -100,7 +101,7 @@ namespace Ifrit::Runtime
         }
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
-        ComponentReference CreateComponent(Ref<GameObject> parentObject)
+        ComponentReference CreateComponent(GameObject* parentObject)
         {
             auto typeName = TTypeInfo<T>::Name;
             auto typeHash = TTypeInfo<T>::Hash;
@@ -135,12 +136,16 @@ namespace Ifrit::Runtime
         Vec<Owner<GameObject>> m_GameObjects;
         HashMap<String, u32>   m_GameObjectNameToIndex;
         HashMap<String, u32>   m_GameObjectUUIDToIndex;
+
+    public:
+        // GameObjectManager();
+        // ~GameObjectManager();
     };
 
     // TODO: for performance considerations, components container is not consistent
     // across different build envs.
 
-    class IFRIT_APIDECL GameObject : public NonCopyable, public std::enable_shared_from_this<GameObject>
+    class IFRIT_APIDECL GameObject : public NonCopyable
     {
     protected:
         ComponentIdentifier             m_Identifier;
@@ -159,7 +164,7 @@ namespace Ifrit::Runtime
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* AddComponent()
         {
-            auto componentRef = m_ComponentManager->CreateComponent<T>(shared_from_this());
+            auto componentRef = m_ComponentManager->CreateComponent<T>(this);
             auto typeName     = TTypeInfo<T>::Name;
             auto typeHash     = TTypeInfo<T>::Hash;
             if (m_ComponentsHashed.count(typeHash) > 0)
@@ -203,7 +208,7 @@ namespace Ifrit::Runtime
     {
     protected:
         ComponentIdentifier        m_id;
-        std::weak_ptr<GameObject>  m_parentObject;
+        GameObject*                m_ParentObject;
         Vec<ComponentPropertyBase> m_Property;
         bool                       m_PropertyRegistered = false;
 
@@ -212,7 +217,6 @@ namespace Ifrit::Runtime
         bool                       m_shouldInvokeAwake = true;
 
     private:
-        GameObject*                m_parentObjectRaw = nullptr;
         inline ComponentIdentifier GetMetaData() { return m_id; }
         friend class ComponentManager;
 
@@ -247,7 +251,7 @@ namespace Ifrit::Runtime
 
     public:
         Component() { IntializeComponent(); }; // for deserializatioin
-        Component(Ref<GameObject> parentObject);
+        Component(GameObject* parentObject);
         virtual ~Component() = default;
 
         virtual String               Serialize()   = 0;
@@ -270,18 +274,14 @@ namespace Ifrit::Runtime
 
         inline String                GetName() const { return m_id.m_Name; }
         inline GUID                  GetGUID() const { return m_id.m_GUID; }
-        inline Ref<GameObject>       GetParent() const { return m_parentObject.lock(); }
+        inline GameObject*           GetParent() const { return m_ParentObject; }
         virtual Vec<AssetReference*> GetAssetRefs() { return {}; }
         inline bool                  IsEnabled() const { return m_isEnabled; }
 
         void                         InvokeStart();
         void                         InvokeAwake();
 
-        // This function is intended to be used in performance-critical code.
-        // Use with caution.
-        inline GameObject*           GetParentUnsafe() { return m_parentObjectRaw; }
-
-        IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject);
+        IFRIT_STRUCT_SERIALIZE(m_id);
     };
 
     struct TransformAttribute
@@ -312,7 +312,7 @@ namespace Ifrit::Runtime
 
     public:
         Transform(){};
-        Transform(Ref<GameObject> parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
+        Transform(GameObject* parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
 
         String      Serialize() override { return SerializeAttribute(); }
         void        Deserialize() override { DeserializeAttribute(); }

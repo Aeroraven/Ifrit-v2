@@ -24,7 +24,7 @@ namespace Ifrit::Runtime::Artemis
 
     IFRIT_APIDECL MPMParticleEmitter::MPMParticleEmitter() : m_Data(new MPMParticleEmitterPrivateData()) {}
 
-    IFRIT_APIDECL MPMParticleEmitter::MPMParticleEmitter(Ref<GameObject> owner)
+    IFRIT_APIDECL MPMParticleEmitter::MPMParticleEmitter(GameObject* owner)
         : Component(owner), m_Data(new MPMParticleEmitterPrivateData())
     {
     }

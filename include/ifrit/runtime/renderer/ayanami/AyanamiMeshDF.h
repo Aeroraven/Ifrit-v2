@@ -65,7 +65,7 @@ namespace Ifrit::Runtime::Ayanami
 
     public:
         AyanamiMeshDF() {}
-        AyanamiMeshDF(std::shared_ptr<GameObject> owner) : Component(owner) {}
+        AyanamiMeshDF(GameObject* owner) : Component(owner) {}
         virtual ~AyanamiMeshDF() = default;
 
         inline std::string Serialize() override { return ""; }
