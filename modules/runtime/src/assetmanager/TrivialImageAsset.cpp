@@ -55,12 +55,12 @@ namespace Ifrit::Runtime
 
             if (shouldGenCompressed)
             {
-                iInfo("Compressing image to BCn format: {}", uuid);
+                IF_LOG_INFO("ImageAsset", "Compressing image to BCn format: {}", uuid);
                 // read png file
                 dataRaw = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
                 if (!dataRaw)
                 {
-                    iError("Failed to load image: {}", path.string());
+                    IF_LOG_ERROR("ImageAsset", "Failed to load image: {}", path.string());
                     return nullptr;
                 }
 
@@ -71,14 +71,14 @@ namespace Ifrit::Runtime
                     DiscardBAChannel(inputData, normalRG, width, height, 1, 4, sizeof(u8));
                     WriteTex2DToBlockCompressedFile(
                         normalRG, cacheFile, TextureFormat::RG8_UNORM, width, height, 1, CompressionAlgo::BC5);
-                    iInfo("Compressed image to BC5 format: {}", cacheFile);
+                    IF_LOG_INFO("ImageAsset", "Compressed image to BC5 format: {}", cacheFile);
                 }
                 else
                 {
                     TSizedBuffer inputData(dataRaw, width * height * 4);
                     WriteTex2DToBlockCompressedFile(
                         inputData, cacheFile, TextureFormat::RGBA8_UNORM, width, height, 1, CompressionAlgo::BC7);
-                    iInfo("Compressed image to BC7 format: {}", cacheFile);
+                    IF_LOG_INFO("ImageAsset", "Compressed image to BC7 format: {}", cacheFile);
                 }
                 stbi_image_free(dataRaw);
             }
@@ -101,7 +101,7 @@ namespace Ifrit::Runtime
             dataRaw = stbi_load(path.string().c_str(), &width, &height, &channels, 4);
             if (!dataRaw)
             {
-                iError("Failed to load image: {}", path.string());
+                IF_LOG_ERROR("ImageAsset", "Failed to load image: {}", path.string());
                 return nullptr;
             }
             texSize = width * height * 4;
@@ -133,7 +133,7 @@ namespace Ifrit::Runtime
 
             cmd->AddResourceBarrier({ resBarrier });
         };
-        // iInfo("Loading image: {}", path.string());
+        // IF_LOG_INFO("ImageAsset","Loading image: {}", path.string());
         tq->RunSyncCommand([&](const RhiCommandList* cmd) {
             imageBarrier(cmd, tex.get(), RhiResourceState::Undefined, RhiResourceState::CopyDst, { 0, 0, 1, 1 });
             cmd->CopyBufferToImage(buffer.get(), tex.get(), { 0, 0, 1, 1 });

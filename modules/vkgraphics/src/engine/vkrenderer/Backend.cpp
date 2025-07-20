@@ -150,7 +150,7 @@ namespace Ifrit::RHI::VulkanAdapter
     IFRIT_APIDECL RHI::RhiBufferRef RhiVulkanBackend::CreateBufferDevice(
         const String& name, u32 size, u32 usage, bool addUAV) const
     {
-        iAssertion(size > 0, "Backend: Buffer size should be larger than 0");
+        IF_LOG_ASSERTION("Backend", size > 0, "Backend: Buffer size should be larger than 0");
         BufferCreateInfo ci{};
         ci.size        = size;
         ci.usage       = usage;

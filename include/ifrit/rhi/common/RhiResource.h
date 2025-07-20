@@ -75,7 +75,7 @@ namespace Ifrit::RHI
             {
                 if (allowInvalid)
                     return ~0u;
-                iError("Invalid descriptor handle");
+                IF_LOG_ERROR("RHI","Invalid descriptor handle");
                 std::abort();
                 return ~0u;
             }

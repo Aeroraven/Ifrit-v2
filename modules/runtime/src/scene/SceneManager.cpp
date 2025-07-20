@@ -34,7 +34,7 @@ namespace Ifrit::Runtime
         auto scene = m_activeScene.get();
         if (scene == nullptr)
         {
-            iError("No active scene");
+            IF_LOG_ERROR("Scene", "No active scene");
             std::abort();
         }
         auto& property              = m_app->GetProjectProperty();

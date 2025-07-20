@@ -7,14 +7,15 @@ namespace Ifrit::Runtime::Geometry
     {
         // TODO
         auto meshDataRef = mesh->LoadMesh();
-        iAssertion(meshDataRef != nullptr, "Mesh data is null");
-        iAssertion(meshDataRef->m_GenerationType != MeshGeneratorType::Static,
+        IF_LOG_ASSERTION("MeshUtil", meshDataRef != nullptr, "Mesh data is null");
+        IF_LOG_ASSERTION("MeshUtil", meshDataRef->m_GenerationType != MeshGeneratorType::Static,
             "Static mesh generation is managed by the system");
 
         Mesh::GPUResource meshResource;
         mesh->GetGPUResource(meshResource);
-        iAssertion(meshResource.objectBuffer == nullptr, "Mesh GPU resource has already been allocated.");
-        iAssertion(meshDataRef->m_MeshType == MeshType::Surface, "Surface mesh is required.");
+        IF_LOG_ASSERTION(
+            "MeshUtil", meshResource.objectBuffer == nullptr, "Mesh GPU resource has already been allocated.");
+        IF_LOG_ASSERTION("MeshUtil", meshDataRef->m_MeshType == MeshType::Surface, "Surface mesh is required.");
 
         auto defaultUsage  = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
         auto indexUsage    = defaultUsage | RhiBufferUsage_Index;
@@ -66,4 +67,4 @@ namespace Ifrit::Runtime::Geometry
         });
     }
 
-} // namespace Ifrit::Runtime::Geometry
+} // namespace Ifrit::Runtime::Geometry

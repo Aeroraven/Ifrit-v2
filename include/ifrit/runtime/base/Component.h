@@ -158,7 +158,7 @@ namespace Ifrit::Runtime
             auto typeHash     = TTypeInfo<T>::hash;
             if (m_componentsHashed.count(typeHash) > 0)
             {
-                iError("Component type name conflicted");
+                IF_LOG_ERROR("Component","Component type name conflicted");
                 std::abort();
             }
             m_componentsHashed[typeHash] = componentRef.second;

@@ -248,7 +248,7 @@ namespace Ifrit::RHI::VulkanAdapter
                 "Failed to create semaphore");
         }
 
-        iDebug("Swapchain: Swapchain created");
+        IF_LOG_DEBUG("Swapchain", "Swapchain created");
     }
 
     IFRIT_APIDECL void Swapchain::Destructor()

@@ -161,8 +161,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
         auto& pass = builder.AddPass(name, FrameGraphPassType::Transfer).AddWriteResource(buffer);
         if (buffer.GetType() != FrameGraphResourceType::ResourceBuffer)
         {
-            iError("FrameGraphUtils: Clear UAV pass only supports buffer resources.");
-            std::abort();
+            IF_LOG_CRITICAL("FrameGraph", "Clear UAV pass only supports buffer resources.");
         }
         else
         {
@@ -183,7 +182,7 @@ namespace Ifrit::Runtime::FrameGraphUtils
         auto& pass = builder.AddPass(name, FrameGraphPassType::Transfer).AddWriteResource(texture);
         if (texture.GetType() != FrameGraphResourceType::ResourceTexture)
         {
-            iError("FrameGraphUtils: Clear UAV pass only supports texture resources.");
+            IF_LOG_CRITICAL("FrameGraph", "Clear UAV pass only supports texture resources.");
             std::abort();
         }
         else

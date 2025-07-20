@@ -5,6 +5,6 @@
 namespace Ifrit::Altina
 {
 
-    IFRIT_APIDECL void AlErrorImpl(const char* message) { iError("Alina: {}", message); }
+    IFRIT_APIDECL void AlErrorImpl(const char* message) { IF_LOG_ERROR("Altina:", "{}", message); }
 
 } // namespace Ifrit::Altina

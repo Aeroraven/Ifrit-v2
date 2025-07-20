@@ -34,7 +34,8 @@ namespace Ifrit::GeometryProc::Tetrahedralization
         in.pointlist      = new REAL[in.numberofpoints * 3];
         for (int i = 0; i < mesh.vertexCount; i++)
         {
-            iAssertion(mesh.vertexStride == 12, "Vertex stride must be 12 bytes (3 floats)");
+            IF_LOG_ASSERTION(
+                "MeshTetrahedralizer", mesh.vertexStride == 12, "Vertex stride must be 12 bytes (3 floats)");
             auto vertexPtr = reinterpret_cast<Vector3f*>(mesh.vertexData + mesh.positionOffset + i * mesh.vertexStride);
             in.pointlist[i * 3 + 0] = vertexPtr->x;
             in.pointlist[i * 3 + 1] = vertexPtr->y;
@@ -85,7 +86,8 @@ namespace Ifrit::GeometryProc::Tetrahedralization
             tetrahedralMeshData.m_Indices[i * 4 + 2] = out.tetrahedronlist[i * 4 + 2];
             tetrahedralMeshData.m_Indices[i * 4 + 3] = out.tetrahedronlist[i * 4 + 3];
         }
-        iDebug("Tetrahedralization complete: {} vertices, {} tetrahedra", out.numberofpoints, out.numberoftetrahedra);
+        IF_LOG_DEBUG("MeshTetrahedralizer", "Tetrahedralization complete: {} vertices, {} tetrahedra",
+            out.numberofpoints, out.numberoftetrahedra);
 
         return tetrahedralMeshData;
     }

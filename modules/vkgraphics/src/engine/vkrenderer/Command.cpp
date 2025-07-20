@@ -740,7 +740,7 @@ namespace Ifrit::RHI::VulkanAdapter
                     if (srcState != barrier.m_transition.m_texture->GetState()
                         && srcState != RHI::RhiResourceState::Undefined)
                     {
-                        iError("Texture state mismatch, expected:{} actual:{}", i32(srcState),
+                        IF_LOG_ERROR("CommandList","Texture state mismatch, expected:{} actual:{}", i32(srcState),
                             i32(barrier.m_transition.m_texture->GetState()));
 
                         std::abort();
@@ -783,13 +783,14 @@ namespace Ifrit::RHI::VulkanAdapter
                     if (barrier.m_uav.m_texture->GetState() != RHI::RhiResourceState::Common
                         && barrier.m_uav.m_texture->GetState() != RHI::RhiResourceState::UnorderedAccess)
                     {
-                        iError("Texture state mismatch, expected:{}/{} actual:{}", i32(RHI::RhiResourceState::Common),
+                        IF_LOG_ERROR("CommandList", "Texture state mismatch, expected:{}/{} actual:{}",
+                            i32(RHI::RhiResourceState::Common),
                             i32(RHI::RhiResourceState::UnorderedAccess), i32(barrier.m_uav.m_texture->GetState()));
                         std::abort();
                     }
                     if (barrier.m_uav.m_texture->GetImageFormat() == RHI::RhiImageFormat::RhiImgFmt_D32_SFLOAT)
                     {
-                        iError("Depth texture cannot be used as UAV, texture: {}",
+                        IF_LOG_ERROR("CommandList", "Depth texture cannot be used as UAV, texture: {}",
                             barrier.m_uav.m_texture->GetDebugName());
                         std::abort();
                     }

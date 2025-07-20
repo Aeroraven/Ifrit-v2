@@ -75,13 +75,13 @@ namespace Ifrit::Display::Backend
         if (!success)
         {
             glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-            iError("ERROR::SHADER::VERTEX::COMPILATION_FAILED {}\n", infoLog);
+            IF_LOG_ERROR("OpenGLBackend", "ERROR::SHADER::VERTEX::COMPILATION_FAILED {}\n", infoLog);
         }
         glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
         if (!success)
         {
             glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-            iError("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED {}\n", infoLog);
+            IF_LOG_ERROR("OpenGLBackend", "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED {}\n", infoLog);
         }
 
         shaderProgram = glCreateProgram();
@@ -95,7 +95,7 @@ namespace Ifrit::Display::Backend
         if (!linkSuccess)
         {
             glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-            iError("ERROR::SHADER::PROGRAM::LINKING_FAILED {}\n", infoLog);
+            IF_LOG_ERROR("OpenGLBackend", "ERROR::SHADER::PROGRAM::LINKING_FAILED {}\n", infoLog);
         }
 
         glGenVertexArrays(1, &VAO);

@@ -54,7 +54,7 @@ namespace Ifrit::Runtime
         auto& gltfNode = data->model.nodes[nodeId];
         if (gltfNode.matrix.size())
         {
-            iError("GLTFPrefab: matrix is not supported yet");
+            IF_LOG_ERROR("GLTFAsset", "matrix is not supported yet");
         }
         float posX = 0.0f, posY = 0.0f, posZ = 0.0f;
         float scaleX = 1.0f, scaleY = 1.0f, scaleZ = 1.0f;
@@ -117,26 +117,26 @@ namespace Ifrit::Runtime
 
         bool  tangent3 = false;
 
-        iAssertion(
-            accessorPos.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "GLTFMesh: component type not supported");
-        iAssertion(accessorPos.type == TINYGLTF_TYPE_VEC3, "GLTFMesh: type not supported");
-        iAssertion(
-            accessorNormal.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "GLTFMesh: component type not supported");
-        iAssertion(accessorNormal.type == TINYGLTF_TYPE_VEC3, "GLTFMesh: type not supported");
-        iAssertion(
-            accessorTexcoord.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "GLTFMesh: component type not supported");
-        iAssertion(accessorTexcoord.type == TINYGLTF_TYPE_VEC2, "GLTFMesh: type not supported");
-        iAssertion(
-            accessorTangent.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "GLTFMesh: component type not supported");
+        IF_LOG_ASSERTION(
+            "GLTFAsset", accessorPos.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "component type not supported");
+        IF_LOG_ASSERTION("GLTFAsset", accessorPos.type == TINYGLTF_TYPE_VEC3, "type not supported");
+        IF_LOG_ASSERTION(
+            "GLTFAsset", accessorNormal.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "component type not supported");
+        IF_LOG_ASSERTION("GLTFAsset", accessorNormal.type == TINYGLTF_TYPE_VEC3, "type not supported");
+        IF_LOG_ASSERTION("GLTFAsset", accessorTexcoord.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT,
+            "component type not supported");
+        IF_LOG_ASSERTION("GLTFAsset", accessorTexcoord.type == TINYGLTF_TYPE_VEC2, "type not supported");
+        IF_LOG_ASSERTION("GLTFAsset", accessorTangent.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT,
+            "component type not supported");
         if (accessorTangent.type == TINYGLTF_TYPE_VEC3)
         {
             tangent3 = true;
         }
         else
         {
-            iAssertion(accessorTangent.type == TINYGLTF_TYPE_VEC4, "GLTFMesh: type not supported");
+            IF_LOG_ASSERTION("GLTFAsset", accessorTangent.type == TINYGLTF_TYPE_VEC4, "type not supported");
         }
-        iAssertion(accessorIndices.type == TINYGLTF_TYPE_SCALAR, "GLTFMesh: type not supported");
+        IF_LOG_ASSERTION("GLTFAsset", accessorIndices.type == TINYGLTF_TYPE_SCALAR, "type not supported");
 
         auto& posBufferView      = data.bufferViews[accessorPos.bufferView];
         auto& normalBufferView   = data.bufferViews[accessorNormal.bufferView];
@@ -224,7 +224,7 @@ namespace Ifrit::Runtime
         }
         else
         {
-            iError("GLTFMesh: index component type not supported");
+            IF_LOG_ERROR("GLTFAsset", "index component type not supported");
         }
         m_selfData->m_BoundingBoxMax = maxPos;
         m_selfData->m_BoundingBoxMin = minPos;
@@ -303,11 +303,11 @@ namespace Ifrit::Runtime
         bool               ret = loader.LoadASCIIFromFile(&m_internalData->model, &err, &warn, m_path.string());
         if (!warn.empty())
         {
-            iWarn("GLTFAsset: {}", warn);
+            IF_LOG_WARNING("GLTFAsset", "Internal warning, {}", warn);
         }
         if (!err.empty())
         {
-            iError("GLTFAsset: {}", err);
+            IF_LOG_ERROR("GLTFAsset", "Internal error, {}", err);
         }
         // Create meshes
         CustomHashMap<Pair<u32, u32>, u32, PairwiseHash<u32, u32>> meshHash;
@@ -418,7 +418,7 @@ namespace Ifrit::Runtime
                         auto texCastedBase = std::dynamic_pointer_cast<TextureAsset>(texBase);
                         if (!texCastedBase)
                         {
-                            iWarn("GLTFAsset: invalid texture asset");
+                            IF_LOG_WARNING("GLTFAsset", " invalid texture asset");
                         }
                         else
                         {
@@ -431,7 +431,7 @@ namespace Ifrit::Runtime
                         auto texCastedNormal = std::dynamic_pointer_cast<TextureAsset>(texNormal);
                         if (!texCastedNormal)
                         {
-                            iWarn("GLTFAsset: invalid texture asset");
+                            IF_LOG_WARNING("GLTFAsset", " invalid texture asset");
                         }
                         else
                         {
@@ -488,7 +488,7 @@ namespace Ifrit::Runtime
         auto asset = MakeRef<GLTFAsset>(metadata, path, m_assetManager);
         m_assetManager->RegisterAsset(asset);
 
-        // iInfo("Imported asset: [GLTFObject] {}", metadata.m_uuid);
+        // IF_LOG_INFO"GLTFAsset",("Imported asset: [GLTFObject] {}", metadata.m_uuid);
     }
 
 } // namespace Ifrit::Runtime

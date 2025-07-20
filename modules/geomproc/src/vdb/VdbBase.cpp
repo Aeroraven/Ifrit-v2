@@ -56,19 +56,19 @@ namespace Ifrit::GeometryProc::VDB
 
         openvdb::tools::GridSampler<openvdb::FloatGrid, openvdb::tools::BoxSampler> sampler(*floatGrid);
 
-        iInfo("VDB Meta:");
-        iInfo("  Grid Type: {}", floatGrid->type());
-        iInfo("  Value Type: {}", floatGrid->valueType());
-        iInfo("  Active Voxel Count: {}", activeVoxelCount);
-        iInfo("  Index BBox: min({},{},{}) max({},{},{})", minIndex.x(), minIndex.y(), minIndex.z(), maxIndex.x(),
-            maxIndex.y(), maxIndex.z());
-        iInfo("  World BBox: min({},{},{}) max({},{},{})", minWorld.x(), minWorld.y(), minWorld.z(), maxWorld.x(),
-            maxWorld.y(), maxWorld.z());
+        IF_LOG_INFO("VDBUtil", "VDB Meta:");
+        IF_LOG_INFO("VDBUtil", "  Grid Type: {}", floatGrid->type());
+        IF_LOG_INFO("VDBUtil", "  Value Type: {}", floatGrid->valueType());
+        IF_LOG_INFO("VDBUtil", "  Active Voxel Count: {}", activeVoxelCount);
+        IF_LOG_INFO("VDBUtil", "  Index BBox: min({},{},{}) max({},{},{})", minIndex.x(), minIndex.y(), minIndex.z(),
+            maxIndex.x(), maxIndex.y(), maxIndex.z());
+        IF_LOG_INFO("VDBUtil", "  World BBox: min({},{},{}) max({},{},{})", minWorld.x(), minWorld.y(), minWorld.z(),
+            maxWorld.x(), maxWorld.y(), maxWorld.z());
 
         //
         openvdb::Vec3f worldPos(0, 12, 0);
         auto           pv = sampler.wsSample(worldPos);
-        iInfo("  Sampled Value at World Position (0,0,0): {}", pv);
+        IF_LOG_INFO("VDBUtil", "  Sampled Value at World Position (0,0,0): {}", pv);
     }
 
 } // namespace Ifrit::GeometryProc::VDB

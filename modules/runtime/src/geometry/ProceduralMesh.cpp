@@ -32,26 +32,26 @@ namespace Ifrit::Runtime::Geometry
 
     u32 ProceduralMesh::GetNumIndices()
     {
-        iAssertion(false, "");
+        IF_LOG_ASSERTION("ProceduralMesh", false, "");
         return 0;
     }
 
     u32 ProceduralMesh::GetNumVertices()
     {
-        iAssertion(false, "");
+        IF_LOG_ASSERTION("ProceduralMesh", false, "");
         return 0;
     }
 
     Vec<u32> ProceduralMesh::GetIndexBufferHost()
     {
-        iAssertion(false, "");
+        IF_LOG_ASSERTION("ProceduralMesh", false, "");
         return {};
     }
 
     Vec<Vector3f> ProceduralMesh::GetVertexBufferHost()
     {
-        iAssertion(false, "");
+        IF_LOG_ASSERTION("ProceduralMesh", false, "");
         return {};
     }
 
-} // namespace Ifrit::Runtime::Geometry
+} // namespace Ifrit::Runtime::Geometry

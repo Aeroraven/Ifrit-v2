@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/logging/Logging.h"
 #include <memory>
 #include <cstddef>
+#include <mutex>
 
 namespace Ifrit
 {
@@ -345,7 +346,7 @@ namespace Ifrit
             }
             if (index.m_Ptr >= SizeCast<IntPtr>(m_IdToPtr.size()))
             {
-                iError("RObjectQueue: Invalid index: {}. Max size: {}", index.m_Ptr, m_IdToPtr.size());
+                IF_LOG_ERROR("RObjectQueue","Invalid index: {}. Max size: {}", index.m_Ptr, m_IdToPtr.size());
                 std::abort();
             }
             return m_IdToPtr[index.m_Ptr];
@@ -359,7 +360,7 @@ namespace Ifrit
             }
             if (index.m_Ptr >= SizeCast<IntPtr>(m_IdToPtr.size()))
             {
-                iError("RObjectQueue: Invalid index: {}. Max size: {}", index.m_Ptr, m_IdToPtr.size());
+                IF_LOG_ERROR("RObjectQueue", "Invalid index: {}. Max size: {}", index.m_Ptr, m_IdToPtr.size());
                 std::abort();
             }
             auto obj = m_IdToPtr[index.m_Ptr];

@@ -72,8 +72,7 @@ namespace Ifrit::Runtime::Ayanami
     {
         if (tileSize > 64 || totalMeshDfs > 4096)
         {
-            iError("Tile size or total mesh distance field exceeds the limit.");
-            std::abort();
+            IF_LOG_CRITICAL("Ayanami.Shadow", "Tile size or total mesh distance field exceeds the limit.");
         }
 
         // Prepare the render targets

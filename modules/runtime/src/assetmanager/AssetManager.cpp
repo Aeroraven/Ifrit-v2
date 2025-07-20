@@ -40,7 +40,7 @@ namespace Ifrit::Runtime
         auto relativePath = std::filesystem::relative(path, basePath);
         if (m_nameToUuid.find(relativePath.generic_string()) != m_nameToUuid.end())
         {
-            iWarn("Asset already loaded: {}", path.generic_string());
+            IF_LOG_WARNING("AssetManager", "Asset already loaded: {}", path.generic_string());
             return;
         }
         if (std::filesystem::exists(metaPath))
@@ -57,7 +57,7 @@ namespace Ifrit::Runtime
             // check if importer is registered for this file extension
             if (m_extensionImporterMap.find(path.extension().generic_string()) == m_extensionImporterMap.end())
             {
-                iWarn("No importer found for file: {}", path.generic_string());
+                IF_LOG_WARNING("AssetManager", "No importer found for file: {}", path.generic_string());
                 return;
             }
             auto importerName = m_extensionImporterMap[path.extension().generic_string()];
@@ -78,7 +78,7 @@ namespace Ifrit::Runtime
         // check if importer is registered
         if (m_importers.find(importerName) == m_importers.end())
         {
-            iWarn("Importer not found: {}", importerName);
+            IF_LOG_WARNING("AssetManager", "Importer not found: {}", importerName);
             return;
         }
         auto importer = m_importers[importerName];
@@ -90,7 +90,7 @@ namespace Ifrit::Runtime
         if (!std::filesystem::exists(path))
         {
             auto s = path.generic_string();
-            iWarn("Path does not exist: {}", s);
+            IF_LOG_WARNING("AssetManager", "Path does not exist: {}", s);
         }
         for (auto& entry : std::filesystem::directory_iterator(path))
         {
@@ -120,7 +120,7 @@ namespace Ifrit::Runtime
             LoadAsset(path);
             if (m_nameToUuid.find(relativePath.generic_string()) == m_nameToUuid.end())
             {
-                iError("Asset not found: {}", path.generic_string());
+                IF_LOG_ERROR("AssetManager", "Asset not found: {}", path.generic_string());
                 return nullptr;
             }
         }
@@ -128,7 +128,7 @@ namespace Ifrit::Runtime
         auto it   = m_assets.find(uuid);
         if (it == m_assets.end())
         {
-            iWarn("Asset not found: {}", path.generic_string());
+            IF_LOG_WARNING("AssetManager", "Asset not found: {}", path.generic_string());
             return nullptr;
         }
         return it->second;

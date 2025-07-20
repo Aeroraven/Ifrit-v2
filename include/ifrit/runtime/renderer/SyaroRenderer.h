@@ -217,7 +217,7 @@ namespace Ifrit::Runtime
             auto rhiCapability = m_app->GetRhi()->GetCapabilities();
             if (!rhiCapability.m_MeshShaderEnabled)
             {
-                iErrorWithAbort("SyaroV1 Renderer: Syaro uses mesh shader for mesh processing, "
+                IF_LOG_CRITICAL("SyaroV1","SyaroV1 Renderer: Syaro uses mesh shader for mesh processing, "
                                 "which requires mesh shader support. "
                                 "Your device does not support it, or it is not enabled. "
                                 "Please enable mesh shader support in the RHI settings.");

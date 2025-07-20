@@ -1,4 +1,3 @@
-#pragma once
 #include "ifrit/runtime/renderer/postprocessing/PostFxGlobalFog.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 

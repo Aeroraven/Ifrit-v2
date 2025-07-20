@@ -18,7 +18,7 @@ namespace Ifrit::Runtime::RenderingUtil
         auto data = stbi_load(path, &width, &height, &channels, 4);
         if (data == nullptr)
         {
-            iError("Failed to load blue noise texture");
+            IF_LOG_ERROR("NoiseTexture", "Failed to load blue noise texture");
             return nullptr;
         }
         auto tex = rhi->CreateTexture2D("Noise_Tex2D", width, height, RHI::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM,

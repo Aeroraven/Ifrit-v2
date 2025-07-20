@@ -176,9 +176,10 @@ namespace Ifrit::Runtime::Internal
         // Geometry
         RegisterRuntimeInternalShadersGeometry(shaderRegistry);
 
-        iInfo("Internal: Compiling internal shaders...");
+        IF_LOG_INFO("ShaderRegistry.Internal", "Start internal shader compilation tasks");
         // shaderRegistry->WaitForShaderCompilations();
         // iInfo("Internal: Internal shaders compiled.");
+        IF_LOG_INFO("ShaderRegistry.Internal", "All internal shaders compiled.");
 
 #undef REG_MESH
 #undef REG_FRAGMENT

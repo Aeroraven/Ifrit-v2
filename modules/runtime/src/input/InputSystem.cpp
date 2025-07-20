@@ -50,7 +50,7 @@ namespace Ifrit::Runtime
         auto windowProvider = static_cast<GLFWWindowProvider*>(m_app->GetDisplay());
         auto windowHandle   = static_cast<GLFWwindow*>(windowProvider->GetGLFWWindow());
         windowProvider->RegisterKeyCallback(key_callback_glfw_input_system);
-        iInfo("Input system initialized");
+        IF_LOG_INFO("InputSystem", "Input system initialized");
     }
 
     IFRIT_APIDECL void InputSystem::OnFrameUpdate()

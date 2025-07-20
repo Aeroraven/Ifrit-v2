@@ -40,7 +40,8 @@ namespace Ifrit::ShaderCompile::SlangProc
             if (!m_SlangGlobalSession)
             {
                 slang::createGlobalSession(m_SlangGlobalSession.writeRef());
-                iAssertion(m_SlangGlobalSession != nullptr, "Failed to create Slang global session");
+                IF_LOG_ASSERTION(
+                    "SlangCompiler", m_SlangGlobalSession != nullptr, "Failed to create Slang global session");
             }
             return m_SlangGlobalSession;
         }
@@ -53,7 +54,7 @@ namespace Ifrit::ShaderCompile::SlangProc
         if (diagnosticsBlob != nullptr)
         {
             String diagnosticsString((const char*)diagnosticsBlob->getBufferPointer());
-            iError("Slang diagnose: {}", diagnosticsString);
+            IF_LOG_CRITICAL("SlangCompiler", "Slang diagnose: {}", diagnosticsString);
         }
     }
 
@@ -98,8 +99,8 @@ namespace Ifrit::ShaderCompile::SlangProc
         sessionDesc.compilerOptionEntryCount = SizeCast<u32>(options.size());
 
         ComPtr<slang::ISession> session;
-        iAssertion(
-            slangGlobalSession->createSession(sessionDesc, session.writeRef()) >= 0, "Failed to create Slang session");
+        IF_LOG_ASSERTION("SlangCompiler", slangGlobalSession->createSession(sessionDesc, session.writeRef()) >= 0,
+            "Failed to create Slang session");
 
         slang::IModule* slangModule = nullptr;
         {
@@ -107,14 +108,15 @@ namespace Ifrit::ShaderCompile::SlangProc
             slangModule = session->loadModuleFromSourceString(
                 job.m_Name.c_str(), job.m_Name.c_str(), sourceCode.c_str(), diagnosticBlob.writeRef());
             DiagnoseIfNeeded(diagnosticBlob);
-            iAssertion(slangModule != nullptr, "Failed to load Slang module: {}", job.m_Name);
+            IF_LOG_ASSERTION("SlangCompiler", slangModule != nullptr, "Failed to load Slang module: {}", job.m_Name);
             // std::abort();
         }
 
         ComPtr<slang::IBlob> serializedModule;
         {
             SlangResult result = slangModule->serialize(serializedModule.writeRef());
-            iAssertion(result >= 0, "Failed to serialize Slang module: {}, code:{}", job.m_Name, (i32)result);
+            IF_LOG_ASSERTION(
+                "SlangCompiler", result >= 0, "Failed to serialize Slang module: {}, code:{}", job.m_Name, (i32)result);
         }
         String serializedModuleStr;
         serializedModuleStr.resize(serializedModule->getBufferSize());
@@ -146,7 +148,7 @@ namespace Ifrit::ShaderCompile::SlangProc
             }
             else
             {
-                iError("Failed to read cached Slang module: {}", cachedModulePath);
+                IF_LOG_CRITICAL("SlangCompiler", "Failed to read cached Slang module: {}", cachedModulePath);
                 std::abort();
             }
             output.m_Signature = moduleHash;
@@ -159,7 +161,7 @@ namespace Ifrit::ShaderCompile::SlangProc
             slangModule->findEntryPointByName(job.m_EntryPoint.c_str(), entryPoint.writeRef());
             if (!entryPoint)
             {
-                iError("Failed to find entry point: {}", job.m_EntryPoint);
+                IF_LOG_CRITICAL("SlangCompiler", "Failed to find entry point: {}", job.m_EntryPoint);
                 std::abort();
             }
         }
@@ -171,7 +173,8 @@ namespace Ifrit::ShaderCompile::SlangProc
             SlangResult                 result = session->createCompositeComponentType(
                 componentTypes.data(), componentTypes.size(), composedProgram.writeRef(), diagnosticsBlob.writeRef());
             DiagnoseIfNeeded(diagnosticsBlob);
-            iAssertion(result >= 0, "Failed to create composite component type for slang module: {}", job.m_Name);
+            IF_LOG_ASSERTION("SlangCompiler", result >= 0,
+                "Failed to create composite component type for slang module: {}", job.m_Name);
         }
 
         Slang::ComPtr<slang::IComponentType> linkedProgram;
@@ -179,7 +182,7 @@ namespace Ifrit::ShaderCompile::SlangProc
             Slang::ComPtr<slang::IBlob> diagnosticsBlob;
             SlangResult result = composedProgram->link(linkedProgram.writeRef(), diagnosticsBlob.writeRef());
             DiagnoseIfNeeded(diagnosticsBlob);
-            iAssertion(result >= 0, "Failed to link program for slang module: {}", job.m_Name);
+            IF_LOG_ASSERTION("SlangCompiler", result >= 0, "Failed to link program for slang module: {}", job.m_Name);
         }
 
         Slang::ComPtr<slang::IBlob> spirvCode;
@@ -188,8 +191,9 @@ namespace Ifrit::ShaderCompile::SlangProc
             SlangResult                 result =
                 linkedProgram->getEntryPointCode(0, 0, spirvCode.writeRef(), diagnosticsBlob.writeRef());
             DiagnoseIfNeeded(diagnosticsBlob);
-            iAssertion(result >= 0, "Failed to get SPIR-V code for slang module: {}, entry:{}, code:{}", job.m_Name,
-                job.m_EntryPoint, (i32)result);
+            IF_LOG_ASSERTION("SlangCompiler", result >= 0,
+                "Failed to get SPIR-V code for slang module: {}, entry:{}, code:{}", job.m_Name, job.m_EntryPoint,
+                (i32)result);
         }
 
         ShaderCompileOutput output;
@@ -207,7 +211,7 @@ namespace Ifrit::ShaderCompile::SlangProc
         }
         else
         {
-            iError("Failed to write cached Slang module: {}", cachedModulePath);
+            IF_LOG_CRITICAL("SlangCompiler", "Failed to write cached Slang module: {}", cachedModulePath);
         }
 
         return output;

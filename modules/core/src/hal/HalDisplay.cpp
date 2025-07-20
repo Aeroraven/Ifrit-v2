@@ -9,7 +9,7 @@
 
 namespace Ifrit::HAL
 {
-    IFRIT_APIDECL void SetDPIAwareness()
+    void SetDPIAwareness()
     {
 #ifdef _WIN32
         // Try the newest DPI awareness API first (Windows 10 1703+)
@@ -24,7 +24,6 @@ namespace Ifrit::HAL
             {
                 if (setProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
                 {
-                    iInfo("Set DPI awareness to PER_MONITOR_AWARE_V2");
                     return;
                 }
             }
@@ -33,18 +32,16 @@ namespace Ifrit::HAL
         // Fallback to older method (Windows 8.1+)
         if (SUCCEEDED(SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE)))
         {
-            iInfo("Set DPI awareness to PER_MONITOR_DPI_AWARE");
             return;
         }
 
         // Final fallback (Vista+)
         if (SetProcessDPIAware())
         {
-            iInfo("Set DPI awareness to SYSTEM_DPI_AWARE");
             return;
         }
 
-        iError("Failed to set DPI awareness");
+        IF_LOG_ERROR("HALDisplay", "Failed to set DPI awareness, using default settings");
 #endif
     }
 
@@ -66,7 +63,6 @@ namespace Ifrit::HAL
         UINT     dpiX, dpiY;
         if (SUCCEEDED(GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &dpiX, &dpiY)))
         {
-            iInfo("Display DPI: {}x{}", dpiX, dpiY);
             return static_cast<f32>(dpiX) / 96.0f;
         }
 
@@ -76,11 +72,10 @@ namespace Ifrit::HAL
         {
             int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
             ReleaseDC(NULL, hdc);
-            iInfo("Fallback DPI: {}", dpi);
             return static_cast<f32>(dpi) / 96.0f;
         }
 
-        iError("Failed to get DPI scaling, using default value of 1.0");
+        IF_LOG_ERROR("HALDisplay", "Failed to get display scale, using default value of 1.0");
         return 1.0f;
 #else
         static_assert(false, "GetDisplayScale not implemented for this platform");

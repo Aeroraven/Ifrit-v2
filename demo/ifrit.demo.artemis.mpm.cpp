@@ -79,7 +79,6 @@ namespace Ifrit
         void OnStart() override
         {
             auto p = HAL::GetDisplayScale();
-            iDebug("Display scale: {}", p);
 
             renderer = MakeRef<BaseForwardRenderer>(this);
             m_MpmSim = MakeRef<Artemis::MPMSimulator>();
@@ -92,7 +91,7 @@ namespace Ifrit
                 auto vdbDesc     = VDB::LoadVdbFromString(vdbFileData);
                 VDB::PrintVdbMeta(vdbDesc);
                 m_PointClouds = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.3f, 10);
-                iDebug("Sampled {} points from VDB.", m_PointClouds.size());
+                //iDebug("Sampled {} points from VDB.", m_PointClouds.size());
                 PointCloud::PointCloudDescriptor pcDesc;
                 pcDesc.m_Points = m_PointClouds.data();
                 pcDesc.m_Count  = static_cast<u32>(m_PointClouds.size());

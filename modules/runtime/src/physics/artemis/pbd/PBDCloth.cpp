@@ -154,11 +154,11 @@ namespace Ifrit::Runtime::Artemis
     IFRIT_APIDECL void PBDCloth::BuildConstraints()
     {
         auto meshFilter = GetParentUnsafe()->GetComponent<MeshFilter>();
-        iAssertion(meshFilter != nullptr,
-            "Artemis.PBDCloth: PBDCloth requires a MeshFilter component on the parent GameObject");
+        IF_LOG_ASSERTION(
+            "Artemis.PBD", meshFilter != nullptr, "PBDCloth requires a MeshFilter component on the parent GameObject");
 
         auto meshObject = meshFilter->GetMesh();
-        iAssertion(meshObject != nullptr, "Artemis.PBDCloth: MeshFilter has no mesh data");
+        IF_LOG_ASSERTION("Artemis.PBD", meshObject != nullptr, "MeshFilter has no mesh data");
 
         auto               vertexBuffer = meshObject->GetVertexBufferHost();
         auto               indexBuffer  = meshObject->GetIndexBufferHost();
@@ -304,15 +304,15 @@ namespace Ifrit::Runtime::Artemis
     {
 
         auto meshFilter = GetParentUnsafe()->GetComponent<MeshFilter>();
-        iAssertion(meshFilter != nullptr,
-            "Artemis.PBDCloth: PBDCloth requires a MeshFilter component on the parent GameObject");
+        IF_LOG_ASSERTION(
+            "Artemis.PBD", meshFilter != nullptr, "PBDCloth requires a MeshFilter component on the parent GameObject");
 
         auto meshObject = meshFilter->GetMesh();
-        iAssertion(meshObject != nullptr, "Artemis.PBDCloth: MeshFilter has no mesh data");
+        IF_LOG_ASSERTION("Artemis.PBD", meshObject != nullptr, "MeshFilter has no mesh data");
 
         auto meshData = meshObject->LoadMesh();
-        iAssertion(meshData->m_MeshType == MeshType::Solid,
-            "Artemis.PBDCloth: Tetrahedral mesh is required for volume constraints");
+        IF_LOG_ASSERTION("Artemis.PBD", meshData->m_MeshType == MeshType::Solid,
+            "Tetrahedral mesh is required for volume constraints");
 
         auto solidVertices     = meshObject->GetSolidMeshVertices();
         auto solidIndices      = meshObject->GetSolidMeshIndices();
@@ -396,7 +396,7 @@ namespace Ifrit::Runtime::Artemis
             }
             else
             {
-                iError("Artemis.PBDCloth: Unsupported simulation type");
+                IF_LOG_CRITICAL("Artemis.PBD", "Unsupported simulation type");
                 return;
             }
             Vec<u32> fixedParticles; // Can be compressed
@@ -511,17 +511,17 @@ namespace Ifrit::Runtime::Artemis
         m_Data->m_RDGColliderData = &builder.ImportBuffer("PBDCloth.ColliderData", m_Data->m_GPUColliderData.get());
 
         auto meshFilter = GetParentUnsafe()->GetComponent<MeshFilter>();
-        iAssertion(meshFilter != nullptr,
-            "Artemis.PBDCloth: PBDCloth requires a MeshFilter component on the parent GameObject");
+        IF_LOG_ASSERTION(
+            "Artemis.PBD", meshFilter != nullptr, "PBDCloth requires a MeshFilter component on the parent GameObject");
         auto meshObject = meshFilter->GetMesh();
-        iAssertion(meshObject != nullptr, "Artemis.PBDCloth: MeshFilter has no mesh data");
+        IF_LOG_ASSERTION("Artemis.PBD", meshObject != nullptr, "MeshFilter has no mesh data");
 
         auto vertexBufferDevice = meshObject->m_resource.vertexBuffer;
         auto normalBufferDevice = meshObject->m_resource.normalBuffer;
         auto indexBufferDevice  = meshObject->m_resource.indexBuffer;
 
-        iAssertion(vertexBufferDevice != nullptr, "Artemis.PBDCloth: MeshFilter's mesh has no vertex buffer");
-        iAssertion(normalBufferDevice != nullptr, "Artemis.PBDCloth: MeshFilter's mesh has no normal buffer");
+        IF_LOG_ASSERTION("Artemis.PBD", vertexBufferDevice != nullptr, "MeshFilter's mesh has no vertex buffer");
+        IF_LOG_ASSERTION("Artemis.PBD", normalBufferDevice != nullptr, "MeshFilter's mesh has no normal buffer");
 
         m_Data->m_RDGParticlePositions = &builder.ImportBuffer("PBDCloth.Positions", vertexBufferDevice.get());
         m_Data->m_RDGParticleNormals   = &builder.ImportBuffer("PBDCloth.Normals", normalBufferDevice.get());
@@ -552,9 +552,9 @@ namespace Ifrit::Runtime::Artemis
                 {
                     auto parent     = collider->GetParent();
                     auto meshFilter = parent->GetComponent<MeshFilter>();
-                    iAssertion(meshFilter != nullptr,
-                        "Artemis.PBDCloth: Collider's parent GameObject must have a MeshFilter component");
-                    iAssertion(collider != nullptr, "Artemis.PBDCloth: Collider cannot be null");
+                    IF_LOG_ASSERTION("Artemis.PBD", meshFilter != nullptr,
+                        "Collider's parent GameObject must have a MeshFilter component");
+                    IF_LOG_ASSERTION("Artemis.PBD", collider != nullptr, "Collider cannot be null");
                     FColliderData data;
                     data.m_SdfId              = collider->GetMetaBufferId();
                     data.m_ColliderMeshDataId = meshFilter->GetMesh()->m_resource.objectBuffer->GetDescId();
@@ -599,7 +599,7 @@ namespace Ifrit::Runtime::Artemis
 
     IFRIT_APIDECL void PBDCloth::AddCollider(Ayanami::AyanamiMeshDF* collider)
     {
-        iAssertion(collider != nullptr, "Artemis.PBDCloth: Cannot add a null collider");
+        IF_LOG_ASSERTION("Artemis.PBD", collider != nullptr, "Cannot add a null collider");
         m_Data->m_Colliders.push_back(collider);
     }
 

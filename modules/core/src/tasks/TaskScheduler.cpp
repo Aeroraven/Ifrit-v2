@@ -164,7 +164,7 @@ namespace Ifrit
             m_Attributes->m_Workers.emplace_back(workerRef);
             m_Attributes->m_Workers[i]->Launch();
         }
-        iInfo("FTaskScheduler: Created {} worker threads.", numThreads);
+        IF_LOG_INFO("TaskScheduler", "Created {} worker threads.", numThreads);
     }
 
     IFRIT_APIDECL void FTaskScheduler::DereferenceTask(FIndexedPtr taskId)
@@ -172,8 +172,7 @@ namespace Ifrit
         auto task = m_Attributes->m_JobAlive[taskId.Ptr()];
         if (task.Get() == nullptr)
         {
-            iError("FTaskScheduler: Task not found in alive task list.");
-            std::abort();
+            IF_LOG_CRITICAL("TaskScheduler", "Task not found in alive task list. Task ID: {}", taskId.Ptr());
         }
         m_Attributes->m_JobAlive.erase(taskId.Ptr());
     }
@@ -185,8 +184,7 @@ namespace Ifrit
         FSpinLockGuard lockParent(parent->m_ContinuationLock);
         if (parent->m_State.load() == ETaskState::Idle)
         {
-            iError("FTaskScheduler: To prevent circular dependency, the task is not allowed to be idle.");
-            std::abort();
+            IF_LOG_CRITICAL("TaskScheduler", "To prevent circular dependency, the task is not allowed to be idle.");
         }
         if (parent->m_State.load() != ETaskState::Completed || parent->m_State.load() != ETaskState::Failed)
         {
@@ -212,8 +210,7 @@ namespace Ifrit
         }
         else
         {
-            iError("FTaskScheduler: Worker is not alive.");
-            std::abort();
+            IF_LOG_CRITICAL("TaskScheduler", "Worker is not alive. Task ID: {} will not be scheduled.", taskId.Ptr());
         }
     }
 
@@ -222,8 +219,7 @@ namespace Ifrit
         auto task = m_Attributes->m_JobAlive[taskId.Ptr()];
         if (task.Get() == nullptr)
         {
-            iError("FTaskScheduler: Task not found in alive task list.");
-            std::abort();
+            IF_LOG_CRITICAL("TaskScheduler", "Task not found in alive task list. Task ID: {}", taskId.Ptr());
         }
         ScheduleTask(task);
     }
@@ -272,7 +268,7 @@ namespace Ifrit
         {
             worker->m_Attributes->m_State = EFTaskWorkerState::Terminating;
         }
-        iInfo("FTaskScheduler: Waiting for all workers to finish...");
+        IF_LOG_INFO("TaskScheduler", "Waiting for all workers to finish...");
         for (auto& worker : m_Attributes->m_Workers)
         {
             while (worker->m_Attributes->m_State.load() != EFTaskWorkerState::Terminated)
@@ -280,7 +276,7 @@ namespace Ifrit
                 std::this_thread::yield();
             }
         }
-        iInfo("FTaskScheduler: All workers finished.");
+        IF_LOG_INFO("TaskScheduler", "All workers finished.");
     }
 
     IFRIT_APIDECL FTaskScheduler* GetFTaskScheduler()

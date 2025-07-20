@@ -63,7 +63,6 @@ namespace Ifrit
     public:
         void OnStart() override
         {
-            iInfo("DemoApplication::OnStart()");
 
             renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
             renderConfig.m_AntiAliasingType           = AntiAliasingType::None;

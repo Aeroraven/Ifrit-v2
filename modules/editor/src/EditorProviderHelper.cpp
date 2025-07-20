@@ -9,7 +9,7 @@ namespace Ifrit::Editor
             case EEditorProviderType::ImGui:
                 return MakeOwner<ImGuiProvider>();
             default:
-                iAssertion(false, "Unsupported Editor provider type: {}", static_cast<int>(type));
+                IF_LOG_CRITICAL("EditorProviderHelper", "Unsupported Editor provider type: {}", static_cast<int>(type));
                 return nullptr;
         }
     }

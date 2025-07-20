@@ -34,7 +34,7 @@ namespace Ifrit
         const char* name, Owner<IFConsoleVariableRegistryEntry>& ptr)
     {
         m_Data->m_CVars[name] = std::move(ptr);
-        iDebug("ConsoleVariableRegistry: Registered console variable: {}", name);
+        IF_LOG_DEBUG("ConsoleVariableRegistry", "Registered console variable: {}", name);
     }
 
     IFRIT_APIDECL void FConsoleVariableRegistry::UnregisterVariable(const char* name) { m_Data->m_CVars.erase(name); }

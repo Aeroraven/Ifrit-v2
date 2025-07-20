@@ -125,7 +125,7 @@ namespace Ifrit::RHI::VulkanAdapter
         std::ifstream cache(cacheFile, std::ios::binary);
         if (!cache.is_open())
         {
-            iError("Failed to open shader reflection cache file: {}", cacheFile);
+            IF_LOG_ERROR("Shader", "Failed to open shader reflection cache file: {}", cacheFile);
             std::abort();
         }
         u32 numDescSets = 0;
@@ -215,7 +215,7 @@ namespace Ifrit::RHI::VulkanAdapter
                 case RHI::RhiShaderStage::Task:
                     return ShaderCompile::ShaderCompileStage::AmplificationShader;
                 default:
-                    iError("Unsupported shader stage: {}", static_cast<u32>(stage));
+                    IF_LOG_ERROR("Shader", "Unsupported shader stage: {}", static_cast<u32>(stage));
                     std::abort();
                     return ShaderCompile::ShaderCompileStage::VertexShader; // Fallback
             }
@@ -231,7 +231,7 @@ namespace Ifrit::RHI::VulkanAdapter
                 case RHI::RhiShaderSourceType::HLSLCode:
                     return ShaderCompile::ShaderSourceFormat::HLSL; // Fallback
                 default:
-                    iError("Unsupported shader source type: {}", static_cast<u32>(sourceType));
+                    IF_LOG_ERROR("Shader", "Unsupported shader source type: {}", static_cast<u32>(sourceType));
                     std::abort();
                     return ShaderCompile::ShaderSourceFormat::GLSL; // Fallback
             }
@@ -284,7 +284,8 @@ namespace Ifrit::RHI::VulkanAdapter
     {
         if (m_MultiCompileIds.size() >= 12)
         {
-            iError("Multi compile shaders are limited to 12 permutations, please reduce the number of permutations.");
+            IF_LOG_ERROR("Shader",
+                "Multi compile shaders are limited to 12 permutations, please reduce the number of permutations.");
             return;
         }
         PrecompileMultiCompileShadersImpl(0, 0);
@@ -316,7 +317,7 @@ namespace Ifrit::RHI::VulkanAdapter
             }
             else
             {
-                iError("Shader define {} not found in shader collection {}", define, m_CI.m_FileName);
+                IF_LOG_ERROR("Shader", "Shader define {} not found in shader collection {}", define, m_CI.m_FileName);
                 std::abort();
             }
         }
@@ -331,7 +332,7 @@ namespace Ifrit::RHI::VulkanAdapter
         }
         else
         {
-            iError("Shader variant {} not found in shader collection {}", permId, m_CI.m_FileName);
+            IF_LOG_ERROR("Shader", "Shader variant {} not found in shader collection {}", permId, m_CI.m_FileName);
             std::abort();
         }
     }

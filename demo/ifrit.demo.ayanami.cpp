@@ -100,8 +100,8 @@ public:
             {
                 auto pos = camera->GetPosition();
                 auto rot = camera->GetRotation();
-                iInfo("Camera Position: {}, {}, {}", pos.x, pos.y, pos.z);
-                iInfo("Camera Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
+                IF_LOG_INFO("DemoTest", "Camera Position: {}, {}, {}", pos.x, pos.y, pos.z);
+                IF_LOG_INFO("DemoTest", "Camera Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
             }
         }
     }
@@ -132,8 +132,8 @@ public:
             {
                 auto pos = light->GetPosition();
                 auto rot = light->GetRotation();
-                iInfo("Light Position: {}, {}, {}", pos.x, pos.y, pos.z);
-                iInfo("Light Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
+                IF_LOG_INFO("DemoTest", "Light Position: {}, {}, {}", pos.x, pos.y, pos.z);
+                IF_LOG_INFO("DemoTest", "Light Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
             }
             if (m_inputSystem->IsKeyPressed(InputKeyCode::U))
             {
@@ -170,7 +170,6 @@ namespace Ifrit
     public:
         void OnStart() override
         {
-            iInfo("DemoApplication::OnStart()");
 
             Ayanami::AyanamiRenderConfig ayaConfig;
             ayaConfig.m_GlobalDFClipmapLevels       = 1;
@@ -245,7 +244,7 @@ namespace Ifrit
                 auto mat = transform->GetModelToWorldMatrix();
                 node->AddGameObjectTransferred(std::move(m->m_prefab));
             }
-            iInfo("Num meshes: {}", numMeshes);
+            IF_LOG_INFO("DemoTest", "Num meshes: {}", numMeshes);
             // Render targets
             auto rt         = m_rhiLayer.get();
             depthImage      = rt->CreateDepthTexture("Demo_Depth", WINDOW_WIDTH, WINDOW_HEIGHT, false);

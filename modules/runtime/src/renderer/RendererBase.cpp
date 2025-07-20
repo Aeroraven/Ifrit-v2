@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/MeshComponent.h"
 #include "ifrit/runtime/renderer/util/NoiseUtils.h"
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"
-
+#include <chrono>
 #include <mutex>
 
 using Ifrit::SizeCast;
@@ -54,7 +54,7 @@ namespace Ifrit::Runtime
     {
         using Ifrit::SizeCast;
 
-        iAssertion(m_config != nullptr, "Renderer config is not set");
+        IF_LOG_ASSERTION("RendererBase", m_config != nullptr, "Renderer config is not set");
         // Filling per frame data
         if (camera == nullptr)
         {
@@ -140,7 +140,7 @@ namespace Ifrit::Runtime
         });
         if (sunLights.size() > 1)
         {
-            iError("Multiple sun lights found");
+            IF_LOG_ERROR("RendererBase", "Multiple sun lights found");
             throw std::runtime_error("Multiple sun lights found");
         }
         if (sunLights.size() == 1)
@@ -678,7 +678,7 @@ namespace Ifrit::Runtime
                 mesh->GetGPUResource(meshResource);
                 if (meshResource.objectBuffer == nullptr || mesh->m_resourceDirty)
                 {
-                    iAssertion(meshDataRef->m_GenerationType == MeshGeneratorType::Static,
+                    IF_LOG_ASSERTION("RendererBase", meshDataRef->m_GenerationType == MeshGeneratorType::Static,
                         "Mesh generation type must be static for GPU resource creation");
                     requireUpdate                             = true;
                     mesh->m_resourceDirty                     = false;
@@ -745,7 +745,7 @@ namespace Ifrit::Runtime
                     else
                     {
                         meshResource.materialDataBuffer = nullptr;
-                        iWarn("Material data not found for mesh {}", i);
+                        IF_LOG_WARNING("RendererBase", "Material data not found for mesh {}", i);
                     }
 
                     // Indices in bindless descriptors

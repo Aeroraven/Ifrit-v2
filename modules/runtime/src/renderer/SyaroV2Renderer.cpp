@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/SyaroV2Renderer.h"
 #include "ifrit/runtime/renderer/RendererUtil.h"
+#include <chrono>
 using namespace Ifrit::RHI;
 
 namespace Ifrit::Runtime
@@ -83,8 +84,7 @@ namespace Ifrit::Runtime
                 return &view;
             }
         }
-        iError("No primary view found in PerFrameData.");
-        std::abort();
+        IF_LOG_CRITICAL("SyaroV2", "No primary view found in PerFrameData.");
         return &perframeData.m_views[0];
     }
 

@@ -75,9 +75,10 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
         if (p2Width > FFTConv2DConfig::cMaxSupportedTextureSize || p2Height > FFTConv2DConfig::cMaxSupportedTextureSize)
         {
-            iInfo("Padded image size is: {}x{}", imagePaddedX, imagePaddedY);
-            iError("FFTConv2d: Image size too large, max {}x{}. Got {}x{}", FFTConv2DConfig::cMaxSupportedTextureSize,
-                FFTConv2DConfig::cMaxSupportedTextureSize, p2Width, p2Height);
+            IF_LOG_ERROR("PostFx.FFTConv2D", "Padded image size is: {}x{}", imagePaddedX, imagePaddedY);
+            IF_LOG_ERROR("PostFx.FFTConv2D", "Image size too large, max {}x{}. Got {}x{}",
+                FFTConv2DConfig::cMaxSupportedTextureSize, FFTConv2DConfig::cMaxSupportedTextureSize, p2Width,
+                p2Height);
             return;
         }
         bool firstTime = false;
@@ -185,7 +186,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
         if (logP2Height != logP2Width)
         {
-            iError("FFTConv2d: Image size must be square");
+            IF_LOG_ERROR("PostFx.FFTConv2D", "Image size must be square");
             return;
         }
         auto wgX = Ifrit::Math::DivRoundUp(p2Width / 2, FFTConv2DConfig::cThreadGroupSizeX);

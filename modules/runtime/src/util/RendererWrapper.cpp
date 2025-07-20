@@ -65,7 +65,8 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void RendererWrapper::SetRenderer(RendererBase* renderer) { m_Data->m_Renderer = renderer; }
     IFRIT_APIDECL void RendererWrapper::BeginFrame()
     {
-        iAssertion(m_Data->m_Renderer != nullptr, "RendererWrapper: Renderer must be set before beginning frame.");
+        IF_LOG_ASSERTION("RendererWrapper", m_Data->m_Renderer != nullptr,
+            "RendererWrapper: Renderer must be set before beginning frame.");
         m_Data->m_LastEnqueuedTasks = m_Data->m_Renderer->BeginFrame();
     }
 
@@ -106,7 +107,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void RendererWrapper::EndFrame()
     {
-        iAssertion(m_Data->m_Renderer != nullptr, "RendererWrapper: Renderer must be set before ending frame.");
+        IF_LOG_ASSERTION("RendererWrapper", m_Data->m_Renderer != nullptr,
+            "RendererWrapper: Renderer must be set before ending frame.");
         if (m_Data->m_LastEnqueuedTasks)
         {
             m_Data->m_Renderer->EndFrame({ m_Data->m_LastEnqueuedTasks.get() });
@@ -120,8 +122,9 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void RendererWrapper::EnqueueGeneralTask(
         Fn<Owner<RHI::RhiTaskSubmission>(RHI::RhiTaskSubmission*)> taskFn)
     {
-        iAssertion(m_Data->m_Renderer != nullptr, "RendererWrapper: Renderer must be set before enqueuing tasks.");
-        iAssertion(taskFn != nullptr, "RendererWrapper: Task function must not be null.");
+        IF_LOG_ASSERTION("RendererWrapper", m_Data->m_Renderer != nullptr,
+            "RendererWrapper: Renderer must be set before enqueuing tasks.");
+        IF_LOG_ASSERTION("RendererWrapper", taskFn != nullptr, "RendererWrapper: Task function must not be null.");
         if (m_Data->m_LastEnqueuedTasks)
         {
             // If there are already tasks enqueued, we can chain the new task
@@ -141,7 +144,8 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void RendererWrapper::EnqueueRendererTask(
         Scene* scene, Camera* camera, RHI::RhiRenderTargets* renderTargets, const RendererConfig& config)
     {
-        iAssertion(m_Data->m_Renderer != nullptr, "RendererWrapper: Renderer must be set before enqueuing tasks.");
+        IF_LOG_ASSERTION("RendererWrapper", m_Data->m_Renderer != nullptr,
+            "RendererWrapper: Renderer must be set before enqueuing tasks.");
         if (m_Data->m_LastEnqueuedTasks)
         {
             m_Data->m_LastEnqueuedTasks =

@@ -23,7 +23,7 @@ namespace Ifrit::Test
 
     public:
         Cat(int id, String name) : m_id(id), m_name(name) {}
-        void Print() const { iInfo("Cat id: {}, name: {}", m_id, m_name); }
+        void Print() const { IF_LOG_INFO("DemoTest","Cat id: {}, name: {}", m_id, m_name); }
         int  GetId() const { return m_id; }
     };
 } // namespace Ifrit::Test
@@ -52,7 +52,7 @@ void taskTest()
 {
     FTaskScheduler  scheduler(8);
     Vec<TaskHandle> tasks;
-    iInfo("Starting task test");
+    IF_LOG_INFO("DemoTest", "Starting task test");
     for (int i = 0; i < 100; i++)
     {
         auto task = scheduler.EnqueueTask(
@@ -96,11 +96,11 @@ void vdbTest()
             outFile << point.x << " " << point.y << " " << point.z << "\n";
         }
         outFile.close();
-        iInfo("Saved sampled points to D:/vdb_points.txt");
+        IF_LOG_INFO("DemoTest", "Saved sampled points to D:/vdb_points.txt");
     }
     else
     {
-        iError("Failed to open file for writing sampled points.");
+        IF_LOG_INFO("DemoTest", "Failed to open file for writing sampled points.");
     }
 }
 

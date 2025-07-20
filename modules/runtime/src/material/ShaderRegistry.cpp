@@ -69,8 +69,9 @@ namespace Ifrit::Runtime
         auto   rhiCapability = m_Data->m_App->GetRhi()->GetCapabilities();
         if (!rhiCapability.m_MeshShaderEnabled && (stage == ShaderType::Mesh || stage == ShaderType::Task))
         {
-            iWarn("ShaderRegistry: Shader `{}` requires mesh shader support. But your device does not support it,"
-                  "or it is not enabled. Error will be raised when trying to use this shader.",
+            IF_LOG_WARNING("ShaderRegistry",
+                "Shader `{}` requires mesh shader support. But your device does not support it,"
+                "or it is not enabled. Error will be raised when trying to use this shader.",
                 sName);
             return;
         }
@@ -79,8 +80,8 @@ namespace Ifrit::Runtime
                 || stage == ShaderType::RTClosestHit || stage == ShaderType::RTIntersection
                 || stage == ShaderType::RTCallable))
         {
-            iWarn(
-                "ShaderRegistry: Shader `{}` requires hardware ray tracing support. But your device does not support it,"
+            IF_LOG_WARNING("ShaderRegistry",
+                "Shader `{}` requires hardware ray tracing support.But your device does not support it, "
                 "or it is not enabled. Error will be raised when trying to use this shader.",
                 sName);
             return;
@@ -108,13 +109,13 @@ namespace Ifrit::Runtime
                     }
                     else
                     {
-                        iErrorWithAbort("ShaderRegistry: Unsupported shader file extension: {}", fileExtension);
+                        IF_LOG_CRITICAL("ShaderRegistry", "Unsupported shader file extension: {}", fileExtension);
                     }
 
                     auto shaderCode = ReadTextFile(shaderPath);
                     if (shaderCode.size() == 0)
                     {
-                        iErrorWithAbort("ShaderRegistry: Cannot read shader file {}", shaderPath.c_str());
+                        IF_LOG_CRITICAL("ShaderRegistry", "Cannot read shader file {}", shaderPath.c_str());
                     }
                     auto shaderCodeVec = Vec<char>(shaderCode.begin(), shaderCode.end());
                     auto rhi           = m_Data->m_App->GetRhi();
@@ -124,7 +125,7 @@ namespace Ifrit::Runtime
                     m_Data->m_ShaderMap[sName].m_Status.store(
                         ShaderRegistryData::ShaderStatus::Compiled, std::memory_order::release);
                     m_Data->m_CompilingShaders.fetch_sub(1, std::memory_order::acq_rel);
-                    iInfo("ShaderRegistry: Compiled shader `{}`", sName);
+                    IF_LOG_INFO("ShaderRegistry", "Compiled shader `{}`", sName);
                 },
                 {}, nullptr);
         }
@@ -150,7 +151,7 @@ namespace Ifrit::Runtime
             {
                 if (!loadingTip)
                 {
-                    iInfo("ShaderRegistry: Waiting for shader `{}` to be compiled...", name);
+                    IF_LOG_INFO("ShaderRegistry", "Waiting for shader `{}` to be compiled...", name);
                     loadingTip = true;
                 }
                 std::this_thread::yield();
@@ -159,7 +160,7 @@ namespace Ifrit::Runtime
         }
         else
         {
-            iErrorWithAbort("ShaderRegistry: Shader {} not found", name);
+            IF_LOG_CRITICAL("ShaderRegistry", "Shader {} not found", name);
             return nullptr;
         }
     }

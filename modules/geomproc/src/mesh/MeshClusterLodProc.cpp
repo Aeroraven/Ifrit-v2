@@ -267,7 +267,7 @@ namespace Ifrit::GeometryProc::MeshProcess
             }
         }
         if (a)
-            iWarn("Total METIS abnormalities found in graph cut: {}", a);
+            IF_LOG_WARNING("MeshClusterLod", "Total METIS abnormalities found in graph cut: {}", a);
     }
 
     void ConnectivityCheck(const Vec<Vec<int>>& adj)
@@ -398,8 +398,7 @@ namespace Ifrit::GeometryProc::MeshProcess
             ubvec, options, &edgeCut, ctx.graphPartition.data());
         if (result != METIS_OK)
         {
-            iError("METIS partition failed, error code: {}", result);
-            std::abort();
+            IF_LOG_CRITICAL("MeshClusterLod", "METIS partition failed, error code: {}", result);
         }
         // MetisValidation(ctx);
     }
@@ -454,15 +453,15 @@ namespace Ifrit::GeometryProc::MeshProcess
             Vec<u32> simplifiedIndexBuffer(aggregatedIndexBuffer.size());
             if (simplifiedIndexBuffer.size() == 0)
             {
-                iInfo("MeshletR size: {}", meshletsR.size());
+                IF_LOG_ERROR("MeshClusterLod", "MeshletR size: {}", meshletsR.size());
                 for (auto i : meshletsR)
                 {
                     // Copy the index buffer
                     auto base  = ctx.meshletsRaw[i].triangle_offset;
                     auto count = ctx.meshletsRaw[i].triangle_count;
-                    iInfo("Meshlet {} has {} triangles", i, count);
+                    IF_LOG_ERROR("MeshClusterLod", "Meshlet {} has {} triangles", i, count);
                 }
-                iError("Empty meshlet found in cluster group {}", key);
+                IF_LOG_ERROR("MeshClusterLod", "Empty meshlet found in cluster group {}", key);
             }
             f32    simplifyError;
             // option: lockborder
@@ -489,9 +488,10 @@ namespace Ifrit::GeometryProc::MeshProcess
 
             if (simplifiedSize == 0)
             {
-                iError("Simplified size is 0, targetIndexCount: {}, targetError: {}", targetIndexCount, targetError);
-                iInfo("SimplifiedIndexBuffer size: {}", simplifiedIndexBuffer.size());
-                iInfo("AggregatedIndexBuffer size: {}", aggregatedIndexBuffer.size());
+                IF_LOG_ERROR("MeshClusterLod", "Simplified size is 0, targetIndexCount: {}, targetError: {}",
+                    targetIndexCount, targetError);
+                IF_LOG_ERROR("MeshClusterLod", "SimplifiedIndexBuffer size: {}", simplifiedIndexBuffer.size());
+                IF_LOG_ERROR("MeshClusterLod", "AggregatedIndexBuffer size: {}", aggregatedIndexBuffer.size());
                 std::abort();
             }
             simplifiedIndexBuffer.resize(simplifiedSize);
@@ -671,8 +671,7 @@ namespace Ifrit::GeometryProc::MeshProcess
             outCtx.meshletsInClusterGroups.resize(prevlevelMeshletInGroupCount + ctx[i].meshletsInClusterGroups.size());
             if (ctx[i].meshletsInClusterGroups.size() != ctx[i].totalMeshlets)
             {
-                iError("Inconsistent data");
-                std::abort();
+                IF_LOG_CRITICAL("MeshClusterLod", "Inconsistent data");
             }
             for (int j = 0; j < ctx[i].clusterGroups.size(); j++)
             {
@@ -682,8 +681,7 @@ namespace Ifrit::GeometryProc::MeshProcess
             }
             if (prevlevelMeshletInGroupCount != prevlevelMeshletCount)
             {
-                iError("Inconsistent meshlet data");
-                std::abort();
+                IF_LOG_CRITICAL("MeshClusterLod", "Inconsistent meshlet data");
             }
 
             for (int j = 0; j < ctx[i].totalMeshlets; j++)
@@ -716,7 +714,7 @@ namespace Ifrit::GeometryProc::MeshProcess
             prevlevelClusterGroupCount += Ifrit::SizeCast<i32>(ctx[i].clusterGroups.size());
             prevlevelMeshletInGroupCount += Ifrit::SizeCast<i32>(ctx[i].meshletsInClusterGroups.size());
         }
-        iInfo("Total cluster groups: {}", outCtx.clusterGroups.size());
+        IF_LOG_DEBUG("MeshClusterLod", "Total cluster groups: {}", outCtx.clusterGroups.size());
     }
 
     // Runtime LoD selection starts, using BVH8(or BVH4) to cull cluster groups
@@ -905,7 +903,7 @@ namespace Ifrit::GeometryProc::MeshProcess
             q.push_back(leftSubTree);
             q.push_back(rightSubTree);
         }
-        iDebug("Raw BVH Nodes:{}", totalNodes);
+        IF_LOG_DEBUG("MeshClusterLod", "Raw BVH Nodes:{}", totalNodes);
     }
 
     // utils for bvh collapse
@@ -982,7 +980,7 @@ namespace Ifrit::GeometryProc::MeshProcess
             }
             curNode->curChildren = Ifrit::SizeCast<u32>(indChild.childNodes.size());
         }
-        iDebug("Total Nodes, after collapse:{}", totalNodes);
+        IF_LOG_DEBUG("MeshClusterLod", "Total Nodes, after collapse:{}", totalNodes);
 
         // After collapse, dfs for subtree size
         struct DFSRet

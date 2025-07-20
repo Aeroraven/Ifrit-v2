@@ -279,9 +279,9 @@ namespace Ifrit::GeometryProc::MeshSDFProcess
         {
             if (node->endIdx - node->startIdx > 128)
             {
-                iWarn("Large BVH node with {} children, leftIdx:{}, rightIdx:{} | st:{}, ed:{}",
+                IF_LOG_WARNING("MeshSDF", "Large BVH node with {} children, leftIdx:{}, rightIdx:{} | st:{}, ed:{}",
                     node->endIdx - node->startIdx, leftIdx, rightIdx, node->startIdx, node->endIdx);
-                iWarn("AvgMid: {}", avgMid);
+                IF_LOG_WARNING("MeshSDF", "AvgMid: {}", avgMid);
             }
             return;
         }
@@ -515,7 +515,7 @@ namespace Ifrit::GeometryProc::MeshSDFProcess
         // M is the number of triangles, although AS approach is used. However, mesh df is generated offline. Better
         // approach like "Jump Flooding" should be considered later.
 
-        iDebug("Converting mesh to SDF: V={} I={}", meshDesc.vertexCount, meshDesc.indexCount);
+        IF_LOG_DEBUG("MeshSDF", "Converting mesh to SDF: V={} I={}", meshDesc.vertexCount, meshDesc.indexCount);
 
         Mesh2SDFTempData data;
         data.bboxMin        = SVector3f(FLT_MAX);
@@ -554,7 +554,7 @@ namespace Ifrit::GeometryProc::MeshSDFProcess
             sdfWidth  = expectedX;
             sdfHeight = expectedY;
             sdfDepth  = expectedZ;
-            iDebug("Auto SDF size: {}x{}x{}", sdfWidth, sdfHeight, sdfDepth);
+            IF_LOG_DEBUG("MeshSDF", "Auto SDF size: {}x{}x{}", sdfWidth, sdfHeight, sdfDepth);
         }
 
         // dilate the bbox by a small amount, like 5%
@@ -681,6 +681,6 @@ namespace Ifrit::GeometryProc::MeshSDFProcess
             f32 ratio             = (dist - minDist) / (maxDist - minDist) * 255.0f;
             compactSdf.sdfData[i] = static_cast<u8>(std::round(ratio));
         }
-        iInfo("Compact SDF: minDist: {}, maxDist: {}", minDist, maxDist);
+        IF_LOG_DEBUG("MeshSDF", "Compact SDF: minDist: {}, maxDist: {}", minDist, maxDist);
     }
 } // namespace Ifrit::GeometryProc::MeshSDFProcess

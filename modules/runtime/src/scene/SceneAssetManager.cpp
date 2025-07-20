@@ -50,14 +50,14 @@ namespace Ifrit::Runtime
         m_assetManager->RegisterAsset(asset);
         m_sceneAssetManager->RegisterScene(fileName, asset->GetScene());
 
-        iInfo("Imported asset: [Scene] {}", metadata.m_uuid);
+        IF_LOG_INFO("Scene", "Imported asset: [Scene] {}", metadata.m_uuid);
     }
 
     // Manager
     IFRIT_APIDECL void SceneAssetManager::AttachAssetResources(Ref<Scene>& scene)
     {
         Vec<Component*> components;
-        Vec<SceneNode*>     nodes;
+        Vec<SceneNode*> nodes;
         nodes.push_back(scene->GetRootNode().get());
         while (!nodes.empty())
         {

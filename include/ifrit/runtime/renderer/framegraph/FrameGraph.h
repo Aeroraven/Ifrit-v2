@@ -117,8 +117,8 @@ namespace Ifrit::Runtime
             {
                 if (selfBuffer == nullptr)
                 {
-                    iError(
-                        "FrameGraphBuilder: GetBuffer() called on buffer resource that is not created. Lifetime is corrupted.");
+                    IF_LOG_ERROR("FrameGraph",
+                        "GetBuffer() called on buffer resource that is not created. Lifetime is corrupted.");
                     std::abort();
                 }
                 return selfBuffer;
@@ -134,8 +134,8 @@ namespace Ifrit::Runtime
             {
                 if (selfTexture == nullptr)
                 {
-                    iError(
-                        "FrameGraphBuilder: GetTexture() called on texture resource that is not created. Lifetime is corrupted.");
+                    IF_LOG_ERROR("FrameGraph",
+                        "GetTexture() called on texture resource that is not created. Lifetime is corrupted.");
                     std::abort();
                 }
                 return selfTexture;
@@ -148,7 +148,7 @@ namespace Ifrit::Runtime
         {
             if (type == FrameGraphResourceType::ResourceBuffer)
             {
-                iError("FrameGraphBuilder: GetTextureFormat() called on buffer resource.");
+                IF_LOG_ERROR("FrameGraph", "FrameGraphBuilder: GetTextureFormat() called on buffer resource.");
                 std::abort();
             }
             if (isImported)
@@ -165,7 +165,7 @@ namespace Ifrit::Runtime
         {
             if (type == FrameGraphResourceType::ResourceBuffer)
             {
-                iError("FrameGraphBuilder: GetHeight() called on buffer resource.");
+                IF_LOG_ERROR("FrameGraph", "FrameGraphBuilder: GetHeight() called on buffer resource.");
                 std::abort();
             }
             if (isImported)
@@ -182,7 +182,7 @@ namespace Ifrit::Runtime
         {
             if (type == FrameGraphResourceType::ResourceBuffer)
             {
-                iError("FrameGraphBuilder: GetWidth() called on buffer resource.");
+                IF_LOG_ERROR("FrameGraph", "FrameGraphBuilder: GetWidth() called on buffer resource.");
                 std::abort();
             }
             if (isImported)
@@ -199,7 +199,7 @@ namespace Ifrit::Runtime
         {
             if (type == FrameGraphResourceType::ResourceBuffer)
             {
-                iError("FrameGraphBuilder: GetDepth() called on buffer resource.");
+                IF_LOG_ERROR("FrameGraph", "FrameGraphBuilder: GetDepth() called on buffer resource.");
                 std::abort();
             }
             if (isImported)

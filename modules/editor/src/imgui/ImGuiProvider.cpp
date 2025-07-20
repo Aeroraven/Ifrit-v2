@@ -45,7 +45,7 @@ namespace Ifrit::Editor
     {
         if (err == VK_SUCCESS)
             return;
-        iAssertion(false, "ImGui Vulkan error: {}", (int)err);
+        IF_LOG_ASSERTION("Editor.ImGui", false, "ImGui Vulkan error: {}", (int)err);
     }
 
     template <typename T>
@@ -320,9 +320,9 @@ namespace Ifrit::Editor
         auto projectProperty = app->GetProjectProperty();
         auto rhi             = app->GetRhi();
         auto dq              = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Graphics);
-        iAssertion(
+        IF_LOG_ASSERTION("Editor.ImGui",
             projectProperty.m_rhiType == Runtime::AppRhiType::Vulkan, "ImGuiProvider only supports Vulkan RHI type");
-        iAssertion(projectProperty.m_displayProvider == Runtime::AppDisplayProvider::GLFW,
+        IF_LOG_ASSERTION("Editor.ImGui", projectProperty.m_displayProvider == Runtime::AppDisplayProvider::GLFW,
             "ImGuiProvider only supports GLFW display provider");
 
         if (projectProperty.m_EnableDPIScaling)
@@ -583,7 +583,7 @@ namespace Ifrit::Editor
                 }
                 else
                 {
-                    iWarn("ImGui draw data is not valid, skipping rendering.");
+                    IF_LOG_WARNING("Editor.ImGui", "ImGui draw data is not valid, skipping rendering.");
                 }
                 vkCmdEndRendering(vkcmd);
                 texBarrier.m_transition.m_srcState = RHI::RhiResourceState::AutoTraced;

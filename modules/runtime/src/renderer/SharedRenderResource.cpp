@@ -45,13 +45,17 @@ namespace Ifrit::Runtime
         m_Data->m_NearestRepeatSampler =
             rhi->CreateSampler(RhiSamplerFilter::Nearest, RhiSamplerWrapMode::Repeat, true);
 
-        iAssertion(m_Data->m_LinearClampSampler->GetDescId() == SamplerUtils::sLinearClamp,
+        IF_LOG_ASSERTION("SharedRenderResource",
+            m_Data->m_LinearClampSampler->GetDescId() == SamplerUtils::sLinearClamp,
             "Sampler ID for `sLinearClamp` mismatches!");
-        iAssertion(m_Data->m_NearestClampSampler->GetDescId() == SamplerUtils::sNearestClamp,
+        IF_LOG_ASSERTION("SharedRenderResource",
+            m_Data->m_NearestClampSampler->GetDescId() == SamplerUtils::sNearestClamp,
             "Sampler ID for `sNearestClamp` mismatches!");
-        iAssertion(m_Data->m_LinearRepeatSampler->GetDescId() == SamplerUtils::sLinearRepeat,
+        IF_LOG_ASSERTION("SharedRenderResource",
+            m_Data->m_LinearRepeatSampler->GetDescId() == SamplerUtils::sLinearRepeat,
             "Sampler ID for `sLinearRepeat` mismatches!");
-        iAssertion(m_Data->m_NearestRepeatSampler->GetDescId() == SamplerUtils::sNearestRepeat,
+        IF_LOG_ASSERTION("SharedRenderResource",
+            m_Data->m_NearestRepeatSampler->GetDescId() == SamplerUtils::sNearestRepeat,
             "Sampler ID for `sNearestRepeat` mismatches!");
     }
 

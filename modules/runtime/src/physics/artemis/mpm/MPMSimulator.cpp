@@ -778,7 +778,7 @@ namespace Ifrit::Runtime::Artemis
                     }
                     else
                     {
-                        iAssertion(false,
+                        IF_LOG_ASSERTION("Artemis.MPM", false,
                             "MPMSimulator: Initial particle locations must be of type Vec<Vector2f> "
                             "for 2D simulations.");
                     }
@@ -792,7 +792,7 @@ namespace Ifrit::Runtime::Artemis
                     }
                     else
                     {
-                        iAssertion(false,
+                        IF_LOG_ASSERTION("Artemis.MPM", false,
                             "MPMSimulator: Initial particle locations must be of type Vec<Vector4f> "
                             "for 3D simulations.");
                     }
@@ -852,7 +852,8 @@ namespace Ifrit::Runtime::Artemis
 
     u32 MPMSimulatorPrivateData::GetNumGrids() const
     {
-        iAssertion(m_Config, "MPMSimulator: Config must be set before getting the number of grids.");
+        IF_LOG_ASSERTION(
+            "Artemis.MPM", m_Config, "MPMSimulator: Config must be set before getting the number of grids.");
         if (m_Config->m_Dimension == MPMSimulatorProblemDimension::TwoDimensional)
             return m_Config->m_GridSize.x * m_Config->m_GridSize.y;
         else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
@@ -866,7 +867,7 @@ namespace Ifrit::Runtime::Artemis
         using VecTp = Vec<EleTp>;
         for (auto& emitRequest : m_EmissionInfos)
         {
-            iAssertion(m_EmissionInfos.size() == 1,
+            IF_LOG_ASSERTION("Artemis.MPM", m_EmissionInfos.size() == 1,
                 "MPMSimulator: Manual particle emission is only supported for a single emission request at a time.");
             if (std::holds_alternative<VecTp>(emitRequest.m_InitialParticleLocations))
             {
@@ -876,14 +877,12 @@ namespace Ifrit::Runtime::Artemis
                 tq->RunSyncCommand([&](const RhiCommandList* cmd) {
                     stagedLocation->CmdCopyToDevice(cmd, locations.data(), locations.size() * sizeof(EleTp), 0);
                 });
-                iDebug("Emit start!");
                 ParticleEmit(builder, emitRequest.m_EmissionArgs, locations.size());
-                iDebug("Emit end!");
                 m_Config->m_DefaultNumParticles += static_cast<u32>(locations.size());
             }
             else
             {
-                iAssertion(false, "MPMSimulator: particle dimension mismatches.");
+                IF_LOG_ASSERTION("Artemis.MPM", false, "MPMSimulator: particle dimension mismatches.");
             }
         }
         m_EmissionInfos.clear();
@@ -892,7 +891,8 @@ namespace Ifrit::Runtime::Artemis
     template <u32 Dimension> void MPMSimulatorPrivateData::InitGPUResources(RhiBackend* RHI)
     {
         using MTypes = MPMSimulatorTypes<Dimension>;
-        iAssertion(m_Config, "MPMSimulator: Config must be set before initializing GPU resources.");
+        IF_LOG_ASSERTION(
+            "Artemis.MPM", m_Config, "MPMSimulator: Config must be set before initializing GPU resources.");
         static_assert(Dimension == 2 || Dimension == 3, "MPMSimulator: Invalid dimension specified.");
 
         auto numParticles = m_Config->m_MaxParticles;
@@ -1010,7 +1010,7 @@ namespace Ifrit::Runtime::Artemis
             else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
                 InitGPUResources<3>(rhi);
             else IF_UNLIKELY
-                iAssertion(false, "MPMSimulator: Invalid problem dimension specified.");
+                IF_LOG_ASSERTION("Artemis.MPM", false, "MPMSimulator: Invalid problem dimension specified.");
         }
         InitRDGResources(builder);
         if (isFirstRun) IF_UNLIKELY
@@ -1254,7 +1254,7 @@ namespace Ifrit::Runtime::Artemis
         }
         else
         {
-            iAssertion(false, "MPMSimulator: Invalid problem dimension specified for rendering.");
+            IF_LOG_ASSERTION("Artemis.MPM", false, "MPMSimulator: Invalid problem dimension specified for rendering.");
         }
     }
 
@@ -1264,7 +1264,7 @@ namespace Ifrit::Runtime::Artemis
         IF_CONSTEXPR auto TAlignedDim = Dimension + (Dimension == 3 ? 1 : 0);
         using TAlignedVec             = TGenericVector<f32, TAlignedDim>;
 
-        iAssertion(locations.size() > 0, "MPMSimulator: No particles found");
+        IF_LOG_ASSERTION("Artemis.MPM", locations.size() > 0, "MPMSimulator: No particles found");
 
         Vec<TAlignedVec> alignedLocations(locations.size());
         for (u32 i = 0; i < locations.size(); ++i)

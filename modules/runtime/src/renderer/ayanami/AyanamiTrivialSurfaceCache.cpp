@@ -200,21 +200,18 @@ namespace Ifrit::Runtime::Ayanami
 
             if (meshFilter == nullptr)
             {
-                iError("MeshFilter is nullptr");
-                std::abort();
+                IF_LOG_CRITICAL("Ayanami.SurfaceCache", "MeshFilter is nullptr");
             }
 
             if (meshRenderer == nullptr)
             {
-                iError("MeshRenderer is nullptr");
-                std::abort();
+                IF_LOG_CRITICAL("Ayanami.SurfaceCache", "MeshRenderer is nullptr");
             }
 
             auto material = meshRenderer->GetMaterial();
             if (material == nullptr)
             {
-                iError("Material is nullptr");
-                std::abort();
+                IF_LOG_CRITICAL("Ayanami.SurfaceCache", "Material is nullptr");
             }
 
             // TODO: Batcher should be used to batch the meshes with same material
@@ -245,8 +242,7 @@ namespace Ifrit::Runtime::Ayanami
 
                 if (vertexBuffer == nullptr || indexBuffer == nullptr)
                 {
-                    iError("Vertex buffer or index buffer is nullptr");
-                    std::abort();
+                    IF_LOG_CRITICAL("Ayanami.SurfaceCache", "Vertex buffer or index buffer is nullptr");
                 }
 
                 auto            objectBufferId = meshResource.objectBuffer->GetDescId();

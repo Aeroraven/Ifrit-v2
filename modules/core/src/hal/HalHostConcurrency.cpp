@@ -1,5 +1,6 @@
 #include "ifrit/core/hal/HalHostConcurrency.h"
 #include "ifrit/core/logging/Logging.h"
+#include <thread>
 
 namespace Ifrit::HAL
 {
@@ -8,7 +9,7 @@ namespace Ifrit::HAL
     {
         if (sCurrentThreadId == ~0u)
         {
-            iWarn("HAL: Current thread ID is not set, using default value.");
+            IF_LOG_WARNING("HalHostConcurrency", "Current thread ID is not set, using default value.");
         }
         return sCurrentThreadId;
     }

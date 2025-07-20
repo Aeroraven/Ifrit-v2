@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/rhi/platform/RhiSelector.h"
 #include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
+#include "ifrit/core/logging/Logging.h"
 namespace Ifrit::RHI::VulkanAdapter
 {
     extern IFRIT_APIDECL_IMPORT void GetRhiBackendBuilder_Vulkan(Owner<RHI::RhiBackendFactory>& ptr);
@@ -33,7 +34,7 @@ namespace Ifrit::RHI
             VulkanAdapter::GetRhiBackendBuilder_Vulkan(factory);
             return factory->CreateBackend(args);
         }
-        printf("RhiSelector: Backend not found\n");
+        IF_LOG_CRITICAL("RhiSelector", "Unsupported RHI backend type: {}", static_cast<int>(type));
         return nullptr;
     }
 } // namespace Ifrit::RHI

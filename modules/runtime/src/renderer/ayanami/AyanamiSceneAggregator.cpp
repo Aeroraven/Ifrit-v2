@@ -67,8 +67,8 @@ namespace Ifrit::Runtime::Ayanami
                 auto transform = obj->GetComponent<Transform>();
                 if (transform == nullptr)
                 {
-                    iError("AyanamiSceneAggregator::CollectScene() requires transform to be attached to a object");
-                    std::abort();
+                    IF_LOG_CRITICAL(
+                        "Ayanami.SceneCollector", "CollectScene() requires transform to be attached to a object");
                 }
                 // Collect mesh df data
                 meshDF->BuildGPUResource(m_rhi);
@@ -130,7 +130,7 @@ namespace Ifrit::Runtime::Ayanami
         if (m_sceneResources->m_mdfAllInstances != nullptr
             && m_sceneResources->m_m_mdfAllInstancesAllocSize != m_sceneResources->m_meshMetaIds.size())
         {
-            iError("AyanamiSceneAggregator::CollectScene() does not support dynamic scene now");
+            IF_LOG_CRITICAL("Ayanami.SceneCollector", "CollectScene() does not support dynamic scene now");
             std::abort();
         }
 

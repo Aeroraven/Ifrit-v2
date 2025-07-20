@@ -9,8 +9,8 @@ namespace Ifrit::Imaging::Compress
     IFRIT_IMAGING_API void DiscardBAChannel(
         const TSizedBuffer& in, TSizedBuffer& out, u32 width, u32 height, u32 depth, u32 inChannels, u32 channelWidth)
     {
-        iAssertion(in.GetSize() > 0, "Compress: size is 0");
-        iAssertion(inChannels == 4, "Compress: only RGBA format is supported");
+        IF_LOG_ASSERTION("TexCompression", in.GetSize() > 0, "Compress: size is 0");
+        IF_LOG_ASSERTION("TexCompression", inChannels == 4, "Compress: only RGBA format is supported");
 
         out = TSizedBuffer(width * height * depth * 2);
         Vec<u8> outData(width * height * depth * 2);
@@ -25,7 +25,7 @@ namespace Ifrit::Imaging::Compress
     IFRIT_IMAGING_API void WriteTex2DToBlockCompressedFile(const TSizedBuffer& in, const String& outFile,
         TextureFormat fmt, u32 baseWidth, u32 baseHeight, u32 baseDepth, CompressionAlgo algo)
     {
-        iAssertion(in.GetSize() > 0, "Compress: size is 0");
+        IF_LOG_ASSERTION("TexCompression", in.GetSize() > 0, "Compress: size is 0");
 
         ktxTexture2*         texture;
         ktxTextureCreateInfo createInfo;
@@ -52,7 +52,7 @@ namespace Ifrit::Imaging::Compress
                 channels            = 1;
                 break;
             default:
-                iAssertion(false, "Compress: Unsupported format");
+                IF_LOG_ASSERTION("TexCompression", false, "Compress: Unsupported format");
                 break;
         }
         createInfo.baseWidth       = baseWidth;
@@ -86,20 +86,20 @@ namespace Ifrit::Imaging::Compress
         if (algo == CompressionAlgo::BC7)
         {
             result = ktxTexture2_CompressBasisEx(texture, &params);
-            iAssertion(channels == 4, "Compress: BC7 requires RGBA format");
+            IF_LOG_ASSERTION("TexCompression", channels == 4, "Compress: BC7 requires RGBA format");
             result = ktxTexture2_TranscodeBasis(texture, KTX_TTF_BC7_RGBA, 0);
         }
         else if (algo == CompressionAlgo::BC5)
         {
             params.normalMap = KTX_TRUE;
             result           = ktxTexture2_CompressBasisEx(texture, &params);
-            iAssertion(channels == 2, "Compress: BC5 requires RG format");
+            IF_LOG_ASSERTION("TexCompression", channels == 2, "Compress: BC5 requires RG format");
             result = ktxTexture2_TranscodeBasis(texture, KTX_TTF_BC5_RG, 0);
         }
         else if (algo == CompressionAlgo::BC4)
         {
             result = ktxTexture2_CompressBasisEx(texture, &params);
-            iAssertion(channels == 1, "Compress: BC4 requires R format");
+            IF_LOG_ASSERTION("TexCompression", channels == 1, "Compress: BC4 requires R format");
             result = ktxTexture2_TranscodeBasis(texture, KTX_TTF_BC4_R, 0);
         }
 

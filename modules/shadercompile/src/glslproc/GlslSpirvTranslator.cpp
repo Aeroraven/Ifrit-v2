@@ -76,8 +76,8 @@ namespace Ifrit::ShaderCompile::GLSLProc
         {
             // std::cerr << source << std::endl;
             // std::cerr << precompiledModule.GetErrorMessage();
-            iError("Failed to precompile shader: {}", source);
-            iError("{}", precompiledModule.GetErrorMessage());
+            IF_LOG_ERROR("GlslCompiler", "Failed to precompile shader: {}", source);
+            IF_LOG_ERROR("GlslCompiler", "{}", precompiledModule.GetErrorMessage());
             std::abort();
         }
 
@@ -96,8 +96,8 @@ namespace Ifrit::ShaderCompile::GLSLProc
             compiler.PreprocessGlsl(source, kind, source_name.c_str(), options);
         if (precompiledModule.GetCompilationStatus() != shaderc_compilation_status_success)
         {
-            iError("Failed to precompile shader: {}", source_name);
-            iError("{}", precompiledModule.GetErrorMessage());
+            IF_LOG_ERROR("GlslCompiler", "Failed to precompile shader: {}", source_name);
+            IF_LOG_ERROR("GlslCompiler", "{}", precompiledModule.GetErrorMessage());
             std::abort();
         }
 
@@ -111,8 +111,8 @@ namespace Ifrit::ShaderCompile::GLSLProc
 
         if (module.GetCompilationStatus() != shaderc_compilation_status_success)
         {
-            iError("Failed to compile shader: {}", source_name);
-            iError("{}", module.GetErrorMessage());
+            IF_LOG_ERROR("GlslCompiler", "Failed to compile shader: {}", source_name);
+            IF_LOG_ERROR("GlslCompiler", "{}", module.GetErrorMessage());
 
             std::abort();
             return Vec<u32>();
@@ -138,7 +138,7 @@ namespace Ifrit::ShaderCompile::GLSLProc
             case ShaderCompileStage::AmplificationShader:
                 return shaderc_glsl_task_shader;
             default:
-                iAssertion(false, "Unsupported shader stage for GlslSpirvTranslator");
+                IF_LOG_ASSERTION("GlslCompiler", false, "Unsupported shader stage for GlslSpirvTranslator");
                 return shaderc_glsl_infer_from_source; // This should never be reached
         };
     }
@@ -149,9 +149,9 @@ namespace Ifrit::ShaderCompile::GLSLProc
         ShaderCompileOutput output;
 
         // todo
-        iAssertion(
-            job.m_Source.m_Format == ShaderSourceFormat::GLSL, "GlslSpirvTranslator can only compile GLSL source code");
-        iAssertion(job.m_EntryPoint == "main",
+        IF_LOG_ASSERTION("GlslCompiler", job.m_Source.m_Format == ShaderSourceFormat::GLSL,
+            "GlslSpirvTranslator can only compile GLSL source code");
+        IF_LOG_ASSERTION("GlslCompiler", job.m_EntryPoint == "main",
             "GlslSpirvTranslator only supports 'main' as the entry point for GLSL source code");
 
         // add permutations preprocessor definitions

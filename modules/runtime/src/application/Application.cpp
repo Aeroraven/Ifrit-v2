@@ -39,7 +39,7 @@ namespace Ifrit::Runtime
         if (m_info.m_EnableDPIScaling)
         {
             dpiScaler = HAL::GetDisplayScale();
-            iDebug("!!! Display scale: {}", dpiScaler);
+            IF_LOG_INFO("Application", "DPI scaling enabled: {:.2f}", dpiScaler);
         }
 
         // Setup Window
@@ -66,7 +66,7 @@ namespace Ifrit::Runtime
         rhiArgs.m_enableValidationLayer       = m_info.m_rhiDebugMode;
         if (!m_info.m_rhiDebugMode)
         {
-            iWarn("Debug mode is disabled, validation layers are not enabled");
+            IF_LOG_WARNING("Application", "Debug mode is disabled, validation layers are not enabled");
         }
 #ifdef _WIN32
         rhiArgs.m_win32.m_hInstance = GetModuleHandle(NULL);
@@ -85,7 +85,8 @@ namespace Ifrit::Runtime
                 rhiType = RHI::RhiBackendType::Vulkan;
                 break;
             default:
-                throw std::runtime_error("RHI not supported");
+                IF_LOG_CRITICAL("Application", "Unsupported RHI type: {}", static_cast<int>(m_info.m_rhiType));
+                return;
         }
         m_rhiLayer = rhiSelector.CreateBackend(rhiType, rhiArgs);
 
@@ -103,7 +104,8 @@ namespace Ifrit::Runtime
         m_assetManager      = MakeRef<AssetManager>(m_info.m_assetPath, this);
         m_sceneAssetManager = MakeRef<SceneAssetManager>(m_info.m_scenePath, m_assetManager.get());
         m_assetManager->LoadAssetDirectory();
-        iInfo("AssetManager: loaded assets");
+        IF_LOG_INFO("Application", "Asset directory loaded from: {}", m_info.m_assetPath);
+
         m_sceneManager = MakeRef<SceneManager>(this);
 
         // Input System

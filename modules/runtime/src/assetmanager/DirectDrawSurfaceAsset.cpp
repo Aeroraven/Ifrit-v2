@@ -85,7 +85,7 @@ namespace Ifrit::Runtime
         ifs.open(path, std::ios::binary);
         if (!ifs.is_open())
         {
-            iError("Failed to open file: {}", path.generic_string());
+            IF_LOG_ERROR("DDSAsset", "Failed to open file: {}", path.generic_string());
             return nullptr;
         }
         ifs.seekg(0, std::ios::end);
@@ -101,8 +101,7 @@ namespace Ifrit::Runtime
         u32 magic      = *reinterpret_cast<u32*>(data.data());
         if (magic != 0x20534444)
         {
-            iError("Invalid magic number: {}", magic);
-            std::abort();
+            IF_LOG_CRITICAL("DDSAsset", "Invalid magic number: {}", magic);
         }
 
         DDS_HEADER*       header         = reinterpret_cast<DDS_HEADER*>(data.data() + 4);
@@ -117,10 +116,11 @@ namespace Ifrit::Runtime
         // Check DX10 header
         if (header->ddspf.dwFourCC == MAKEFOURCC('D', 'X', '1', '0'))
         {
-            iInfo("DX10 header detected");
+            IF_LOG_INFO("DDSAsset", "DX10 header detected");
             header10 = reinterpret_cast<DDS_HEADER_DXT10*>(data.data() + 4 + sizeof(DDS_HEADER));
-            iInfo("DX10 Header: dxgiFormat: {}, resourceDimension: {}, miscFlag: {}, "
-                  "arraySize: {}, miscFlags2: {}",
+            IF_LOG_INFO("DDSAsset",
+                "DX10 Header: dxgiFormat: {}, resourceDimension: {}, miscFlag: {}, "
+                "arraySize: {}, miscFlags2: {}",
                 header10->dxgiFormat, header10->resourceDimension, header10->miscFlag, header10->arraySize,
                 header10->miscFlags2);
             bodyOffset += sizeof(DDS_HEADER_DXT10);
@@ -176,7 +176,7 @@ namespace Ifrit::Runtime
             fourcc[2] = (header->ddspf.dwFourCC >> 16) & 0xFF;
             fourcc[3] = (header->ddspf.dwFourCC >> 24) & 0xFF;
             fourcc[4] = '\0';
-            iError("Unsupported FourCC: {}", fourcc);
+            IF_LOG_ERROR("DDSAsset", "Unsupported FourCC: {}", fourcc);
             std::abort();
         }
 
@@ -189,7 +189,7 @@ namespace Ifrit::Runtime
         auto requiredBodySize = header->dwPitchOrLinearSize * header->dwHeight;
         if (format == RhiImageFormat::RhiImgFmt_UNDEFINED)
         {
-            iError("Invalid format");
+            IF_LOG_ERROR("DDSAsset", "Invalid format");
             std::abort();
         }
         else
@@ -199,7 +199,7 @@ namespace Ifrit::Runtime
         }
         if (totalBodySize < requiredBodySize)
         {
-            iError("Invalid body size: {}, required: {}", totalBodySize, requiredBodySize);
+            IF_LOG_ERROR("DDSAsset", "Invalid body size: {}, required: {}", totalBodySize, requiredBodySize);
             std::abort();
         }
         auto buffer =
@@ -261,7 +261,7 @@ namespace Ifrit::Runtime
     {
         auto asset = MakeRef<DirectDrawSurfaceAsset>(metadata, path, m_assetManager->GetApplication());
         m_assetManager->RegisterAsset(asset);
-        // iInfo("Imported asset: [DDSTexture] {}", metadata.m_uuid);
+        // IF_LOG_INFO("DDSAsset","Imported asset: [DDSTexture] {}", metadata.m_uuid);
     }
 
 } // namespace Ifrit::Runtime

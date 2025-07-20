@@ -28,7 +28,7 @@ namespace Ifrit::Runtime::RenderingUtil::CascadeShadowMapping
 
         using namespace Ifrit::Math;
 
-        iAssertion(splitCount <= 4, "Split count should be less than 4");
+        IF_LOG_ASSERTION("CSM", splitCount <= 4, "Split count should be less than 4");
 
         // Prepare splits
         Vec<float> splitStartMeter;

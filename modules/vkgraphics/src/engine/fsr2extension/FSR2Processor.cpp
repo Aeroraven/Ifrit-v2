@@ -30,16 +30,16 @@ namespace Ifrit::RHI::VulkanAdapter::FSR2
         std::string msg(message, message + wcslen(message));
         if (type == FFX_FSR2_MESSAGE_TYPE_ERROR)
         {
-            iError("FSR2_API_DEBUG_ERROR: {}", msg);
+            IF_LOG_ERROR("FSR2", "FSR2_API_DEBUG_ERROR: {}", msg);
             std::abort();
         }
         else if (type == FFX_FSR2_MESSAGE_TYPE_WARNING)
         {
-            iWarn("FSR2_API_DEBUG_WARNING: {}", msg);
+            IF_LOG_WARNING("FSR2", "FSR2_API_DEBUG_WARNING: {}", msg);
         }
         else
         {
-            iInfo("FSR2_API_DEBUG_INFO: {}", msg);
+            IF_LOG_INFO("FSR2", "FSR2_API_DEBUG_INFO: {}", msg);
         }
     }
 
@@ -53,7 +53,7 @@ namespace Ifrit::RHI::VulkanAdapter::FSR2
             m_context->scratchSize, m_engineContext->GetPhysicalDevice(), vkGetDeviceProcAddr);
         if (errorCode != FFX_OK)
         {
-            iError("Failed to get FSR2 interface, error code: {}", int(errorCode));
+            IF_LOG_ERROR("FSR2", "Failed to get FSR2 interface, error code: {}", int(errorCode));
             std::abort();
         }
     }
@@ -73,7 +73,7 @@ namespace Ifrit::RHI::VulkanAdapter::FSR2
         auto errorCode = ffxFsr2ContextCreate(&m_context->fsr2ctx, &m_context->initContext);
         if (errorCode != FFX_OK)
         {
-            iError("Failed to create FSR2 context, error code: {}", int(errorCode));
+            IF_LOG_ERROR("FSR2", "Failed to create FSR2 context, error code: {}", int(errorCode));
             std::abort();
         }
         m_context->fsr2Initialized = true;
@@ -189,7 +189,7 @@ namespace Ifrit::RHI::VulkanAdapter::FSR2
         auto errorCode = ffxFsr2ContextDispatch(&m_context->fsr2ctx, &dispatchParams);
         if (errorCode != FFX_OK)
         {
-            iError("Failed to dispatch FSR2, error code: {}", int(errorCode));
+            IF_LOG_ERROR("FSR2", "Failed to dispatch FSR2, error code: {}", int(errorCode));
             std::abort();
         }
     }
@@ -208,7 +208,7 @@ namespace Ifrit::RHI::VulkanAdapter::FSR2
             auto errorCode = ffxFsr2ContextDestroy(&m_context->fsr2ctx);
             if (errorCode != FFX_OK)
             {
-                iError("Failed to destroy FSR2 context, error code: {}", int(errorCode));
+                IF_LOG_ERROR("FSR2", "Failed to destroy FSR2 context, error code: {}", int(errorCode));
             }
         }
         delete m_context;

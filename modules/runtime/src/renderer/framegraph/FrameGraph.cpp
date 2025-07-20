@@ -131,13 +131,12 @@ namespace Ifrit::Runtime
 
         if (m_RhiColorRTs.size() == 0 && m_RhiDepthRT == nullptr)
         {
-            iError("FrameGraph: No render targets are set for the pass: {}.", name);
+            IF_LOG_CRITICAL("FrameGraph", "No render targets are set for the pass: {}.", name);
             std::abort();
         }
         if (m_Scissor.width == 0 && m_Scissor.height == 0)
         {
-            iError("FrameGraph: No render area is set for the pass: {}.", name);
-            std::abort();
+            IF_LOG_CRITICAL("FrameGraph", "No render area is set for the pass: {}.", name);
         }
         m_RTComposed = true;
     }
@@ -147,8 +146,7 @@ namespace Ifrit::Runtime
     {
         if (res.GetType() != FrameGraphResourceType::ResourceTexture)
         {
-            iError("FrameGraph: Render target must be a texture resource.");
-            std::abort();
+            IF_LOG_CRITICAL("FrameGraph", "Render target must be a texture resource.");
         }
         auto resPtr = &res;
         m_RenderTarget.push_back(resPtr);
@@ -163,8 +161,7 @@ namespace Ifrit::Runtime
     {
         if (res.GetType() != FrameGraphResourceType::ResourceTexture)
         {
-            iError("FrameGraph: Depth target must be a texture resource.");
-            std::abort();
+            IF_LOG_CRITICAL("FrameGraph", "Depth target must be a texture resource.");
         }
         auto resPtr   = &res;
         m_DepthTarget = resPtr;
@@ -297,7 +294,7 @@ namespace Ifrit::Runtime
     {
         if (!texture)
         {
-            iAssertion(false, "FrameGraphBuilder: ImportTexture called with null texture.");
+            IF_LOG_ASSERTION("FrameGraph", false, "ImportTexture called with null texture.");
         }
         auto& node = AddResource(name);
         node.SetImportedResource(texture, subResource);
@@ -307,7 +304,7 @@ namespace Ifrit::Runtime
     {
         if (!buffer)
         {
-            iAssertion(false, "FrameGraphBuilder: ImportBuffer called with null buffer.");
+            IF_LOG_ASSERTION("FrameGraph", false, "ImportBuffer called with null buffer.");
         }
         auto& node = AddResource(name);
         node.SetImportedResource(buffer);
@@ -329,20 +326,19 @@ namespace Ifrit::Runtime
         }
         if (res.type == FrameGraphResourceType::ResourceBuffer)
         {
-            iAssertion(res.selfBuffer,
-                "FrameGraphBuilder: GetUAV() called on buffer resource that is not created. Lifetime is corrupted. Resource: {}",
+            IF_LOG_ASSERTION("FrameGraph", res.selfBuffer,
+                "GetUAV() called on buffer resource that is not created. Lifetime is corrupted. Resource: {}",
                 res.name);
             return m_Rhi->GetUAVDescriptor(res.selfBuffer);
         }
         else if (res.type == FrameGraphResourceType::ResourceTexture)
         {
-            iAssertion(res.selfTexture,
-                "FrameGraphBuilder: GetUAV() called on texture resource that is not created. Lifetime is corrupted. Resource: {}",
+            IF_LOG_ASSERTION("FrameGraph", res.selfTexture,
+                "GetUAV() called on texture resource that is not created. Lifetime is corrupted. Resource: {}",
                 res.name);
             return m_Rhi->GetUAVDescriptor(res.selfTexture);
         }
-        iError("FrameGraphBuilder: GetUAV() called on resource that is not a buffer or texture.");
-        std::abort();
+        IF_LOG_CRITICAL("FrameGraph", "GetUAV() called on resource that is not a buffer or texture.");
         return 0;
     }
 
@@ -361,17 +357,17 @@ namespace Ifrit::Runtime
         }
         if (res.type == FrameGraphResourceType::ResourceBuffer)
         {
-            iAssertion(res.selfBuffer,
-                "FrameGraphBuilder: GetSRV() called on buffer resource that is not created. Lifetime is corrupted.");
+            IF_LOG_ASSERTION("FrameGraph", res.selfBuffer,
+                "GetSRV() called on buffer resource that is not created. Lifetime is corrupted.");
             return m_Rhi->GetSRVDescriptor(res.selfBuffer);
         }
         else if (res.type == FrameGraphResourceType::ResourceTexture)
         {
-            iAssertion(res.selfTexture,
-                "FrameGraphBuilder: GetSRV() called on texture resource that is not created. Lifetime is corrupted.");
+            IF_LOG_ASSERTION("FrameGraph", res.selfTexture,
+                "GetSRV() called on texture resource that is not created. Lifetime is corrupted.");
             return m_Rhi->GetSRVDescriptor(res.selfTexture);
         }
-        iError("FrameGraphBuilder: GetSRV() called on resource that is not a buffer or texture.");
+        IF_LOG_CRITICAL("FrameGraph", "GetSRV() called on resource that is not a buffer or texture.");
         std::abort();
         return 0;
     }
@@ -387,11 +383,11 @@ namespace Ifrit::Runtime
         }
         if (res.type == FrameGraphResourceType::ResourceBuffer)
         {
-            iAssertion(res.selfBuffer,
-                "FrameGraphBuilder: GetCBV() called on buffer resource that is not created. Lifetime is corrupted.");
+            IF_LOG_ASSERTION("FrameGraph", res.selfBuffer,
+                "GetCBV() called on buffer resource that is not created. Lifetime is corrupted.");
             return m_Rhi->GetCBVDescriptor(res.selfBuffer);
         }
-        iError("FrameGraphBuilder: GetCBV() called on resource that is not a buffer.");
+        IF_LOG_CRITICAL("FrameGraph", "GetCBV() called on resource that is not a buffer.");
         std::abort();
         return 0;
     }
@@ -510,7 +506,7 @@ namespace Ifrit::Runtime
 
         if (graph.m_compileMode == FrameGraphCompileMode::Unordered)
         {
-            iError("Not supported any longer.");
+            IF_LOG_CRITICAL("FrameGraph", "Not supported any longer.");
             std::abort();
         }
 
@@ -767,13 +763,13 @@ namespace Ifrit::Runtime
             {
                 if (res.type == FrameGraphResourceType::ResourceBuffer)
                 {
-                    iAssertion(res.importedBuffer,
+                    IF_LOG_ASSERTION("FrameGraph", res.importedBuffer,
                         "FrameGraphExecutor: Imported buffer resource is null. Lifetime is corrupted.");
                     resBarrier.m_transition.m_buffer = res.importedBuffer;
                 }
                 else
                 {
-                    iAssertion(res.importedTexture,
+                    IF_LOG_ASSERTION("FrameGraph", res.importedTexture,
                         "FrameGraphExecutor: Imported texture resource is null. Lifetime is corrupted.");
                     resBarrier.m_transition.m_texture     = res.importedTexture;
                     resBarrier.m_transition.m_subResource = res.subResource;
@@ -783,12 +779,14 @@ namespace Ifrit::Runtime
             {
                 if (res.type == FrameGraphResourceType::ResourceBuffer)
                 {
-                    iAssertion(res.selfBuffer, "FrameGraphExecutor: Buffer resource is null. Lifetime is corrupted.");
+                    IF_LOG_ASSERTION("FrameGraph", res.selfBuffer,
+                        "FrameGraphExecutor: Buffer resource is null. Lifetime is corrupted.");
                     resBarrier.m_transition.m_buffer = res.selfBuffer;
                 }
                 else
                 {
-                    iAssertion(res.selfTexture, "FrameGraphExecutor: Texture resource is null. Lifetime is corrupted.");
+                    IF_LOG_ASSERTION("FrameGraph", res.selfTexture,
+                        "FrameGraphExecutor: Texture resource is null. Lifetime is corrupted.");
                     resBarrier.m_transition.m_texture     = res.selfTexture;
                     resBarrier.m_transition.m_subResource = res.subResource;
                 }
@@ -808,14 +806,14 @@ namespace Ifrit::Runtime
             {
                 if (res.type == FrameGraphResourceType::ResourceBuffer)
                 {
-                    iAssertion(
-                        res.importedBuffer, "FrameGraphExecutor: Buffer resource is null. Lifetime is corrupted.");
+                    IF_LOG_ASSERTION("FrameGraph", res.importedBuffer,
+                        "FrameGraphExecutor: Buffer resource is null. Lifetime is corrupted.");
                     resBarrier.m_uav.m_buffer = res.importedBuffer;
                 }
                 else
                 {
-                    iAssertion(
-                        res.importedTexture, "FrameGraphExecutor: Texture resource is null. Lifetime is corrupted.");
+                    IF_LOG_ASSERTION("FrameGraph", res.importedTexture,
+                        "FrameGraphExecutor: Texture resource is null. Lifetime is corrupted.");
                     resBarrier.m_uav.m_texture = res.importedTexture;
                 }
             }
@@ -823,12 +821,14 @@ namespace Ifrit::Runtime
             {
                 if (res.type == FrameGraphResourceType::ResourceBuffer)
                 {
-                    iAssertion(res.selfBuffer, "FrameGraphExecutor: Buffer resource is null. Lifetime is corrupted.");
+                    IF_LOG_ASSERTION("FrameGraph", res.selfBuffer,
+                        "FrameGraphExecutor: Buffer resource is null. Lifetime is corrupted.");
                     resBarrier.m_uav.m_buffer = res.selfBuffer;
                 }
                 else
                 {
-                    iAssertion(res.selfTexture, "FrameGraphExecutor: Texture resource is null. Lifetime is corrupted.");
+                    IF_LOG_ASSERTION("FrameGraph", res.selfTexture,
+                        "FrameGraphExecutor: Texture resource is null. Lifetime is corrupted.");
                     resBarrier.m_uav.m_texture = res.selfTexture;
                 }
             }
@@ -861,7 +861,7 @@ namespace Ifrit::Runtime
             for (u32 i = 0; i < pass->m_ResourceCreateRequest.size(); i++)
             {
                 auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceCreateRequest[i]].get();
-                iAssertion(!res->isImported, "Resource should not be imported.");
+                IF_LOG_ASSERTION("FrameGraph", !res->isImported, "Resource should not be imported.");
                 // iInfo("FrameGraphExecutor: Allocating {} ({})", res->name,res->id);
                 if (res->type == FrameGraphResourceType::ResourceBuffer)
                 {
@@ -903,7 +903,7 @@ namespace Ifrit::Runtime
             for (u32 i = 0; i < pass->m_ResourceReleaseRequest.size(); i++)
             {
                 auto res = compiledGraph.m_graph->m_resources[pass->m_ResourceReleaseRequest[i]].get();
-                iAssertion(!res->isImported, "Resource should not be imported.");
+                IF_LOG_ASSERTION("FrameGraph", !res->isImported, "Resource should not be imported.");
                 // iInfo("FrameGraphExecutor: Recycling {} ({})", res->name, res->id);
                 if (res->type == FrameGraphResourceType::ResourceBuffer)
                 {

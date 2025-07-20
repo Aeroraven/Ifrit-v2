@@ -15,6 +15,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
+#ifndef FMT_UNICODE
+    #define FMT_UNICODE 0
+#endif
+
+#if FMT_UNICODE
+    #undef FMT_UNICODE
+    #define FMT_UNICODE 0
+#endif
+
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
+#include <tuple>
+
 #include "ifrit/core/logging/Logging.h"
 
 namespace Ifrit::Logging
@@ -22,16 +35,14 @@ namespace Ifrit::Logging
 
     inline void RegisterLoggerModule(const std::string& name)
     {
-
-        spdlog::set_pattern("[%H:%M:%S %z] [%n] [%^%l%$] %v");
         auto stdoutSink = MakeRef<spdlog::sinks::stdout_color_sink_mt>();
         auto logger     = MakeRef<spdlog::logger>(name, stdoutSink);
-        logger->set_pattern("[%Y/%m/%d %H:%M:%S %z] [%^%-7l%$] [%n] %v");
+        logger->set_pattern("[%Y/%m/%d %H:%M:%S %z] [%^%-7l%$] %v");
         logger->set_level(spdlog::level::trace);
         spdlog::register_logger(logger);
     }
 
-    IFRIT_APIDECL std::shared_ptr<spdlog::logger> GetLoggerModule(const std::string& name)
+    std::shared_ptr<spdlog::logger> GetLoggerModule(const std::string& name)
     {
         auto logger = spdlog::get(name);
         if (!logger)
@@ -41,14 +52,48 @@ namespace Ifrit::Logging
             logger = spdlog::get(name);
             if (logger)
             {
-                logger->set_pattern("[%Y/%m/%d %H:%M:%S %z] [%^%-7l%$] [%n] %v");
+                logger->set_pattern("[%Y/%m/%d %H:%M:%S %z] [%^%-7l%$] %v");
                 return logger;
             }
             RegisterLoggerModule(name);
-            // printf("Registered logger module: %s\n", name.c_str());
             return spdlog::get(name);
         }
-        logger->set_pattern("[%Y/%m/%d %H:%M:%S %z] [%^%-7l%$] [%n] %v");
+        logger->set_pattern("[%Y/%m/%d %H:%M:%S %z] [%^%-7l%$] %v");
         return logger;
     }
+
+    IFRIT_APIDECL void LogImpl(ELoggingLevel level, const String& message)
+    {
+        auto logger = GetLoggerModule("IfritLogger");
+        switch (level)
+        {
+            case ELoggingLevel::Trace:
+                logger->trace(message);
+                break;
+            case ELoggingLevel::Debug:
+                logger->debug(message);
+                break;
+            case ELoggingLevel::Info:
+                logger->info(message);
+                break;
+            case ELoggingLevel::Warning:
+                logger->warn(message);
+                break;
+            case ELoggingLevel::Error:
+                logger->error(message);
+                break;
+            case ELoggingLevel::Critical:
+                logger->critical(message);
+                break;
+            default:
+                logger->info(message);
+        }
+    }
+
+    IFRIT_APIDECL String LogAppendModuleInfo(const String& formatted, const char* moduleName, const char* subModuleName)
+    {
+        String ret = std::format("[{}] ({}) {}", moduleName, subModuleName, formatted);
+        return ret;
+    }
+
 } // namespace Ifrit::Logging

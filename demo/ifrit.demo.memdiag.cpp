@@ -93,8 +93,8 @@ public:
             {
                 auto pos = camera->GetPosition();
                 auto rot = camera->GetRotation();
-                iInfo("Camera Position: {}, {}, {}", pos.x, pos.y, pos.z);
-                iInfo("Camera Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
+                IF_LOG_INFO("DemoTest", "Camera Position: {}, {}, {}", pos.x, pos.y, pos.z);
+                IF_LOG_INFO("DemoTest", "Camera Rotation: {}, {}, {}", rot.x, rot.y, rot.z);
             }
         }
     }
@@ -118,7 +118,6 @@ namespace Ifrit
     public:
         void OnStart() override
         {
-            iInfo("DemoApplication::OnStart()");
 
             Ayanami::AyanamiRenderConfig ayaConfig;
             ayaConfig.m_GlobalDFClipmapLevels     = 1;
@@ -172,7 +171,6 @@ namespace Ifrit
             renderTargets->SetRenderArea(scissor);
 
             m_sceneManager->SetActiveScene(s);
-            iInfo("Done");
         }
 
         void OnUpdate() override

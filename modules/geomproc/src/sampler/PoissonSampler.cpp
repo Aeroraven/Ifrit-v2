@@ -59,7 +59,7 @@ namespace Ifrit::GeometryProc::Sampler
             // iDebug("Poisson sample {}: ({}, {}, {})", i, x, y, z);
             offset += 3 * sizeof(f32);
         }
-        iInfo("Loaded {} samples from Poisson sampler references.", refs.m_Samples.size());
+        IF_LOG_DEBUG("GeometrySampler", "Loaded {} samples from Poisson sampler references.", refs.m_Samples.size());
         return refs;
     }
 

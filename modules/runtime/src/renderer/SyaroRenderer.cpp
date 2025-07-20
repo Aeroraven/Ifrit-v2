@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"
 #include <algorithm>
 #include <bit>
+#include <chrono>
 
 #include "ifrit.shader/Syaro/Syaro.SharedConst.h"
 
@@ -1194,7 +1195,7 @@ namespace Ifrit::Runtime
             else if (m_config->m_OverrideMaterialCulling == OverrideMaterialCulling::ForcedCullFront)
             {
                 pcPersistCull.m_ConeCullMode = 1;
-                iWarn("Forced culling front is not supported yet. Defaulting to back culling.");
+                IF_LOG_WARNING("SyaroV1", "Forced culling front is not supported yet. Defaulting to back culling.");
             }
             else if (m_config->m_OverrideMaterialCulling == OverrideMaterialCulling::ForcedCullBack)
             {
@@ -1554,7 +1555,7 @@ namespace Ifrit::Runtime
                 }
                 else if (perView.m_viewType == PerFrameData::ViewType::Shadow)
                 {
-                    iError("Shadow view has no size");
+                    IF_LOG_CRITICAL("SyaroV1", "Shadow view has no size");
                     std::abort();
                 }
             }
@@ -2286,7 +2287,7 @@ namespace Ifrit::Runtime
 
         auto end      = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        iDebug("CPU time, frame rendering: {} ms", duration.count());
+        // iDebug("CPU time, frame rendering: {} ms", duration.count());
         return ret;
     }
 

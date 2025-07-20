@@ -55,7 +55,7 @@ namespace Ifrit::Runtime::PostprocessPassCollection
 
         if (p2Width > 512 || p2Height > 512)
         {
-            iError("Stockham DFT2: Image size too large, max 512x512");
+            IF_LOG_ERROR("PostFx.StockhamDFT2", "Image size too large, max 512x512");
             return;
         }
 

@@ -60,8 +60,9 @@ namespace Ifrit::Runtime::Artemis
     IFRIT_APIDECL void TetrahedralMesh::BuildMesh()
     {
         auto meshData = m_TriangularMesh->LoadMesh();
-        iAssertion(meshData != nullptr, "Mesh data is null");
-        iAssertion(meshData->m_MeshType == MeshType::Surface || meshData->m_MeshType == MeshType::VirtualGeometry,
+        IF_LOG_ASSERTION("TetrahedralMesh", meshData != nullptr, "Mesh data is null");
+        IF_LOG_ASSERTION("TetrahedralMesh",
+            meshData->m_MeshType == MeshType::Surface || meshData->m_MeshType == MeshType::VirtualGeometry,
             "Mesh type must be Surface");
 
         auto           indexBuffer  = m_TriangularMesh->GetIndexBufferHost();

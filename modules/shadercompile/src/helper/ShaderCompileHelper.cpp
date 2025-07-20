@@ -37,7 +37,7 @@ namespace Ifrit::ShaderCompile
         }
         else
         {
-            iError("Unsupported shader source format ");
+            IF_LOG_CRITICAL("ShaderCompiler", "Unsupported shader source format ");
             std::abort();
             return {};
         }
@@ -74,7 +74,7 @@ namespace Ifrit::ShaderCompile
         }
         else
         {
-            iError("Unsupported shader source format: {}", extension);
+            IF_LOG_CRITICAL("ShaderCompiler", "Unsupported shader source format: {}", extension);
             std::abort();
             return {};
         }
@@ -109,7 +109,7 @@ namespace Ifrit::ShaderCompile
         }
         else
         {
-            iError("Unsupported shader compile stage: {}", stageName);
+            IF_LOG_CRITICAL("ShaderCompiler", "Unsupported shader compile stage: {}", stageName);
             std::abort();
             return {};
         }
@@ -149,7 +149,7 @@ namespace Ifrit::ShaderCompile
         }
         else
         {
-            iError("Unsupported shader source format: {}", extension);
+            IF_LOG_CRITICAL("ShaderCompiler", "Unsupported shader source format: {}", extension);
             std::abort();
             return ShaderSourceFormat::GLSL; // Default fallback
         }

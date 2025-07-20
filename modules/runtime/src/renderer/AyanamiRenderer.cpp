@@ -102,10 +102,11 @@ namespace Ifrit::Runtime
         auto rhiCapability = m_app->GetRhi()->GetCapabilities();
         if (!rhiCapability.m_MeshShaderEnabled)
         {
-            iErrorWithAbort("Ayanami.Renderer: Ayanami uses SyaroV1 as the GBuffer generator,"
-                            "which requires mesh shader support. "
-                            "Your device does not support it, or it is not enabled. "
-                            "Please enable mesh shader support in the RHI settings.");
+            IF_LOG_CRITICAL("Ayanami",
+                "Ayanami.Renderer: Ayanami uses SyaroV1 as the GBuffer generator,"
+                "which requires mesh shader support. "
+                "Your device does not support it, or it is not enabled. "
+                "Please enable mesh shader support in the RHI settings.");
         }
 
         m_Resources                  = new AyanamiRendererResources();
@@ -144,9 +145,6 @@ namespace Ifrit::Runtime
         auto rtWidth  = renderTargets->GetRenderArea().width;
         auto rtHeight = renderTargets->GetRenderArea().height;
         auto rhi      = m_app->GetRhi();
-
-        if IF_CONSTEXPR (false)
-            iWarn("Just here to make clang-format happy");
 
         // Init
         m_Resources->m_SurfaceCache->InitContext(builder);
@@ -234,9 +232,8 @@ namespace Ifrit::Runtime
 
         if (sceneLights.m_LightFronts.size() != 1)
         {
-            iError("AyanamiRenderer: temporarily only support one light for now, got {}",
-                sceneLights.m_LightFronts.size());
-            std::abort();
+            IF_LOG_CRITICAL(
+                "Ayanami", "temporarily only support one light for now, got {}", sceneLights.m_LightFronts.size());
         }
         auto sceneLight = sceneLights.m_LightFronts[0];
         m_Resources->m_DFLighting->DistanceFieldShadowTileScatter(builder,

@@ -41,8 +41,7 @@ namespace Ifrit::Runtime::Ayanami
         auto meshFilter = this->GetParentUnsafe()->GetComponent<MeshFilter>();
         if (meshFilter == nullptr)
         {
-            iError("AyanamiMeshDF::BuildMeshDF() requires mesh to be attached to a object");
-            std::abort();
+            IF_LOG_CRITICAL("Ayanami.MeshDF", "BuildMeshDF() requires mesh to be attached to a object");
         }
         auto meshContainer = meshFilter->GetMesh();
         auto meshData      = meshContainer->GetBaseMesh();
@@ -146,7 +145,7 @@ namespace Ifrit::Runtime::Ayanami
             }
             else
             {
-                iInfo("Building mesh distance field for {}", meshData->identifier);
+                IF_LOG_INFO("Ayanami.MeshDF", "Building mesh distance field for {}", meshData->identifier);
 
                 ConvertMeshToSDF(meshDesc, sdf, sdfSize.x, sdfSize.y, sdfSize.z,
                     GeometryProc::MeshSDFProcess::SDFGenerateMethod::RayTracing, false);
@@ -161,7 +160,7 @@ namespace Ifrit::Runtime::Ayanami
             }
             if (shouldGenCompactDF)
             {
-                iInfo("Building compact mesh distance field for {}", meshData->identifier);
+                IF_LOG_INFO("Ayanami.MeshDF", "Building compact mesh distance field for {}", meshData->identifier);
                 CompactSDF(sdf, compactSdf);
                 auto   serialCompactMeshDFPath = cacheCompactPathStr;
                 String buffer;
@@ -171,7 +170,7 @@ namespace Ifrit::Runtime::Ayanami
             if (shouldGenBC4CompactDF)
             {
                 // TODO:
-                iInfo("Building BC4 compact mesh distance field for {}", meshData->identifier);
+                IF_LOG_INFO("Ayanami.MeshDF", "Building BC4 compact mesh distance field for {}", meshData->identifier);
                 auto         serialCompactMeshDFPath = cacheBC4CompactPathStr;
                 TSizedBuffer bufferIn(compactSdf.sdfData);
                 WriteTex2DToBlockCompressedFile(bufferIn, cacheBC4CompactPathStr, TextureFormat::R8_UNORM,
@@ -204,7 +203,7 @@ namespace Ifrit::Runtime::Ayanami
 
             if (Any(Abs(m_sdBoxMax - m_sdBoxMin) < 1e-1f))
             {
-                iWarn("Mesh SDF BBox is too small, please check the mesh data.");
+                IF_LOG_WARNING("Ayanami.MeshDF", "Mesh SDF BBox is too small, please check the mesh data.");
             }
         }
     }
@@ -215,8 +214,7 @@ namespace Ifrit::Runtime::Ayanami
         {
             if (m_isBuilt == false)
             {
-                iError("AyanamiMeshDF::BuildGPUResource() requires mesh to be built first");
-                std::abort();
+                IF_LOG_CRITICAL("Ayanami.MeshDF", "BuildGPUResource() requires mesh to be built first");
             }
             m_gpuResource = MakeOwner<AyanamiMeshDFResource>();
             using namespace Ifrit::RHI;

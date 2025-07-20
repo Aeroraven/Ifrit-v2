@@ -22,7 +22,8 @@ namespace Ifrit::Runtime
 {
     IFRIT_APIDECL SceneNode::SceneNode() : m_parentScene(nullptr)
     {
-        iWarn("SceneNode constructor called without parent scene! Serialization system is under development.");
+        IF_LOG_WARNING(
+            "Scene", "SceneNode constructor called without parent scene! Serialization system is under development.");
     }
 
     IFRIT_APIDECL Ref<SceneNode> SceneNode::AddChildNode()

@@ -36,7 +36,7 @@ namespace Ifrit::RHI::VulkanAdapter
             m_DeleteQueue.pop();
             m_FrameIdToDelete.pop();
             if (!resource->GetDebugName().empty())
-                iDebug("Deleting resource: {}", resource->GetDebugName());
+                IF_LOG_DEBUG("EngineContext", "Deleting resource: {}", resource->GetDebugName());
             delete resource;
             count++;
         }
@@ -125,17 +125,17 @@ namespace Ifrit::RHI::VulkanAdapter
         {
             // print all available extensions
 
-            iInfo("Available extensions:");
+            IF_LOG_INFO("EngineContext", "Available extensions:");
             for (auto ext : availableExtensions)
             {
                 vkrLog(ext.extensionName);
             }
-            iError("Extension not found: {}", extension);
+            IF_LOG_ERROR("EngineContext", "Extension not found: {}", extension);
             std::abort();
         }
         else
         {
-            iWarn("Extension is not supported: {}", extension);
+            IF_LOG_WARNING("EngineContext", "Extension is not supported: {}", extension);
         }
         return false;
     }
@@ -152,7 +152,7 @@ namespace Ifrit::RHI::VulkanAdapter
         }
         if (mandatory)
         {
-            iError("Layer not found: {}", layer);
+            IF_LOG_ERROR("EngineContext", "Layer not found: {}", layer);
         }
         return false;
     }
@@ -183,8 +183,8 @@ namespace Ifrit::RHI::VulkanAdapter
             {
                 return VK_FALSE;
             }
-            iError("Validation layer called");
-            iError("Error:{}", pCallbackData->pMessage);
+            IF_LOG_ERROR("EngineContext", "Validation layer called");
+            IF_LOG_ERROR("EngineContext", "Error:{}", pCallbackData->pMessage);
 
             // This fixes Nsight bug for GPU Trace
             if (pCallbackData->messageIdNumber != 0x8ebf0028)
@@ -192,8 +192,8 @@ namespace Ifrit::RHI::VulkanAdapter
         }
         else
         {
-            iWarn("Validation layer called");
-            iWarn(pCallbackData->pMessage);
+            IF_LOG_WARNING("EngineContext", "Validation layer called");
+            IF_LOG_WARNING("EngineContext", "{}", pCallbackData->pMessage);
         }
 
         return VK_FALSE;
@@ -204,7 +204,7 @@ namespace Ifrit::RHI::VulkanAdapter
         extf = (T)vkGetDeviceProcAddr(device, name);
         if (!extf)
         {
-            iError("Failed to load extension function: {}", name);
+            IF_LOG_ERROR("EngineContext", "Failed to load extension function: {}", name);
         }
     }
 
@@ -252,7 +252,7 @@ namespace Ifrit::RHI::VulkanAdapter
             LoadExtFunc(m_extf.p_vkCreateRayTracingPipelinesKHR, "vkCreateRayTracingPipelinesKHR", m_device);
         }
 
-        iDebug("EngineContext: Extension functions loaded");
+        IF_LOG_DEBUG("EngineContext", " Extension functions loaded");
     }
     IFRIT_APIDECL
     EngineContext::EngineContext(const RHI::RhiInitializeArguments& args) : m_args(args) { Init(); }
@@ -326,7 +326,7 @@ namespace Ifrit::RHI::VulkanAdapter
         instanceCI.ppEnabledLayerNames = targetLayers.data();
 
         vkrVulkanAssert(vkCreateInstance(&instanceCI, nullptr, &m_instance), "Failed to create Vulkan instance");
-        iDebug("EngineContext: Vulkan instance created");
+        IF_LOG_DEBUG("EngineContext", "Vulkan instance created");
 
         // Debug Messenger
         if (m_args.m_enableValidationLayer)
@@ -380,7 +380,7 @@ namespace Ifrit::RHI::VulkanAdapter
             vkrError("No suitable physical device found");
         }
         m_physicalDevice = bestDevice;
-        iDebug("EngineContext: Using physical device: {}", bestName);
+        IF_LOG_DEBUG("EngineContext", "Using physical device: {}", bestName);
 
         // Physical Device Propertie
         vkGetPhysicalDeviceProperties(m_physicalDevice, &m_phyDeviceProperties);
@@ -429,7 +429,7 @@ namespace Ifrit::RHI::VulkanAdapter
         }
         if (m_args.m_enableHardwareRayTracing)
         {
-            iInfo("EngineContext: Hardware ray tracing enabled");
+            IF_LOG_INFO("EngineContext", "EngineContext: Hardware ray tracing enabled");
             m_Capability.m_HardwareRayTracingEnabled = true;
             for (auto extension : m_deviceExtensionsExtended)
             {
@@ -439,19 +439,19 @@ namespace Ifrit::RHI::VulkanAdapter
         else
         {
             m_Capability.m_HardwareRayTracingEnabled = false;
-            iInfo("EngineContext: Hardware ray tracing disabled");
+            IF_LOG_INFO("EngineContext", "EngineContext: Hardware ray tracing disabled");
         }
 
         // Device
         void* pLinklistHead = nullptr;
-#define ADD_TO_FEATURES(next, pNextChain, name)            \
-    {                                                      \
-        next.pNext    = pLinklistHead;                     \
-        pLinklistHead = &next;                             \
-        iInfo("EngineContext: Feature Enabled: {}", name); \
+#define ADD_TO_FEATURES(next, pNextChain, name)                                   \
+    {                                                                             \
+        next.pNext    = pLinklistHead;                                            \
+        pLinklistHead = &next;                                                    \
+        IF_LOG_INFO("EngineContext", "EngineContext: Feature Enabled: {}", name); \
     }
 
-#define SKIP_FEATURES(name) iWarn("EngineContext: Feature Not Supported: {}", name);
+#define SKIP_FEATURES(name) IF_LOG_WARNING("EngineContext", "EngineContext: Feature Not Supported: {}", name);
 
         VkPhysicalDeviceFeatures                               deviceFeatures                      = {};
         VkPhysicalDeviceVulkan11Features                       deviceFeatures11                    = {};
@@ -671,7 +671,7 @@ namespace Ifrit::RHI::VulkanAdapter
 
         LoadExtensionFunction();
 
-        iInfo("EngineContext: Graphics backend initialized");
+        IF_LOG_INFO("EngineContext", "EngineContext: Graphics backend initialized");
     }
 
     void EngineContext::Destructor()
