@@ -287,8 +287,8 @@ void enqueueClusterGroupSingleMeshlet(uint meshletRef, uint objId, uint meshletI
     Meshlet meshlet = GetResource(bMeshlet,meshletRef).data[meshletId];
     uint instId = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].instanceDataRef;
     uint trans = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].transformRef;
-    mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
-    float maxScale = GetResource(bLocalTransform,trans).m_maxScale;
+    mat4 model = GetResource(bModelTransform,trans).m_Data.m_LocalToWorld;
+    float maxScale = GetResource(bModelTransform,trans).m_Data.m_MaxScale.x; //TODO: maxScale definition changed -0721 !!!
     mat4 view = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_worldToView;
     mat4 mv = view * model;
 
@@ -452,7 +452,7 @@ void main(){
     float viewCamType = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_viewCameraType;
 
     uint trans = GetResource(bPerObjectRef,pConst.m_InstanceDataUAV).data[objId].transformRef;
-    mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
+    mat4 model = GetResource(bModelTransform,trans).m_Data.m_LocalToWorld;
     mat4 view = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_worldToView;
     mat4 mv = view * model;
 
@@ -475,7 +475,7 @@ void main(){
     float cullOrthoX = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cullCamOrthoSizeX;
     float cullOrthoY = GetResource(bPerframeView,pConst.m_CurFrameDataCBV).data.m_cullCamOrthoSizeY;
 
-    float maxScale = GetResource(bLocalTransform,trans).m_maxScale;
+    float maxScale = GetResource(bModelTransform,trans).m_Data.m_MaxScale.x; //TODO: maxScale definition changed -0721 !!!
 
     if(cPersistentCullParallelStg == cPersistentCullParallelStg_PersistThread){
         if(threadId == 0){

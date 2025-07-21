@@ -74,9 +74,7 @@ RegisterStorage(BAyaShared_MeshDFMeta,{
 });
 
 RegisterStorage(BAyaShared_LocalTransform,{
-    mat4 m_LocalToWorld;
-    mat4 m_WorldToLocal;
-    vec4 m_MaxScale;
+    FLocalTransformData m_Data;
 });
 
 
@@ -102,19 +100,19 @@ MeshDFMeta AyaShared_GetMeshDFData(uint MeshDescId,uint MDFId){
 mat4 AyaShared_GetLocalToWorld(uint MeshDescId,uint MDFId){
     MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, MeshDescId).m_Data[MDFId];
     uint TransformId = MeshDesc.m_TransformId;
-    return GetResource(BAyaShared_LocalTransform, TransformId).m_LocalToWorld;
+    return GetResource(BAyaShared_LocalTransform, TransformId).m_Data.m_LocalToWorld;
 }
 
 mat4 AyaShared_GetWorldToLocalMesh(uint MeshDescId,uint MDFId){
     MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, MeshDescId).m_Data[MDFId];
     uint TransformId = MeshDesc.m_TransformId;
-    return GetResource(BAyaShared_LocalTransform, TransformId).m_WorldToLocal;
+    return GetResource(BAyaShared_LocalTransform, TransformId).m_Data.m_WorldToLocal;
 }
 
 vec3 AyaShared_GetMeshDFScale(uint MeshDescId,uint MDFId){
     MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, MeshDescId).m_Data[MDFId];
     uint TransformId = MeshDesc.m_TransformId;
-    vec4 Scale = GetResource(BAyaShared_LocalTransform, TransformId).m_MaxScale;
+    vec4 Scale = GetResource(BAyaShared_LocalTransform, TransformId).m_Data.m_MaxScale;
     return Scale.xyz;
 }
 
@@ -251,7 +249,7 @@ void AyaShared_SampleMeshCards(uint MeshId, vec3 HitPosWS, vec3 HitNormalWS, uin
     uint MdfMetaId = MeshDesc.m_MdfMetaId;
     MeshDFMeta MeshMeta = GetResource(BAyaShared_MeshDFMeta, MdfMetaId).m_Data;
     bool IsTwoSided = MeshMeta.m_IsTwoSided != 0;
-    mat4 WorldToLocal = GetResource(BAyaShared_LocalTransform, TransformId).m_WorldToLocal;
+    mat4 WorldToLocal = GetResource(BAyaShared_LocalTransform, TransformId).m_Data.m_WorldToLocal;
 
     vec3 HitPosMS = (WorldToLocal * vec4(HitPosWS, 1.0)).xyz;
     vec3 HitNormalMS = (WorldToLocal * vec4(HitNormalWS, 0.0)).xyz;
@@ -526,7 +524,7 @@ mat4 AyaShared_GetCardMeshLocalToWorld(uint CardId, uint AllMeshDFDataId){
     MeshDFDesc MeshDesc = GetResource(BAyaShared_MeshDFDesc, AllMeshDFDataId).m_Data[MeshDFId];
     MeshDFMeta MeshMeta = GetResource(BAyaShared_MeshDFMeta, AllMeshDFDataId).m_Data;
     uint TransformId = MeshDesc.m_TransformId;
-    return GetResource(BAyaShared_LocalTransform, TransformId).m_LocalToWorld;
+    return GetResource(BAyaShared_LocalTransform, TransformId).m_Data.m_LocalToWorld;
 }
 
 mat4 AyaShared_GetCardViewVPToWorld(uint CardId, uint AllCardObjDataId){

@@ -345,7 +345,7 @@ gbcomp_TriangleData gbcomp_GetTriangleData(uvec2 clusterTriangleId, uvec2 pxPos)
     vec4 v2 = vec4(GetResource(bVertices, vertexRef).data[v2Idx].xyz, 1.0);
 
     uint transRef = GetResource(bPerObjectRef, uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef;
-    mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
+    mat4 localToWorld = GetResource(bModelTransform, transRef).m_Data.m_LocalToWorld;
     mat4 worldToView = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_worldToView;
     mat4 localToView = worldToView * localToWorld;
 
@@ -431,7 +431,7 @@ gbcomp_TriangleDataShared gbcomp_GetTriangleDataImp(uvec2 clusterTriangleId, uve
     uint v2Idx = _gbcomp_readVertexIndex_2(objMeshletId, v2Tx,mviRef,meshletOffset);
 
     uint transRef = GetResource(bPerObjectRef, uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef;
-    mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
+    mat4 localToWorld = GetResource(bModelTransform, transRef).m_Data.m_LocalToWorld;
     mat4 worldToClip = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_worldToClip;
     mat4 localToClip = worldToClip * localToWorld;
 
@@ -525,7 +525,7 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
 
         // make this to be in view space. TODO: inverse transform
         mat4 worldToView = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_worldToView;
-        mat4 localToWorld = GetResource(bLocalTransform, GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef).m_localToWorld;
+        mat4 localToWorld = GetResource(bModelTransform, GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef).m_Data.m_LocalToWorld;
         mat4 localToView = worldToView * localToWorld;
 
         data.vpNormalVS = normalize(data.vpNormalVS);
@@ -534,7 +534,7 @@ gbcomp_TriangleData gbcomp_GetTriangleDataReused(gbcomp_TriangleDataShared lastD
 
         //data.vpNormalVS = normalize(vec3(1.0,0.0,-1.0));
     }else{
-        mat4 localToWorld = GetResource(bLocalTransform, GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef).m_localToWorld;
+        mat4 localToWorld = GetResource(bModelTransform, GetResource(bPerObjectRef,uEmitGBufferPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef).m_Data.m_LocalToWorld;
         mat4 worldToView = GetResource(bPerframeView, uEmitGBufferPushConstant.m_CurFrameDataCBV).data.m_worldToView;
         mat4 localToView = worldToView * localToWorld;
         vec4 normalVS = localToView * vec4(normalLocal,0.0);

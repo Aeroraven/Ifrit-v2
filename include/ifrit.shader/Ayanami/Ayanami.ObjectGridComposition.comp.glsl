@@ -49,10 +49,8 @@ RegisterStorage(BMeshDFMeta,{
     MeshDFMeta m_Data;
 });
 
-RegisterStorage(BLocalTransform,{
-    mat4 m_LocalToWorld;
-    mat4 m_WorldToLocal;
-    vec4 m_MaxScale;
+RegisterStorage(BModelTransform,{
+    FLocalTransformData m_Data;
 });
 
 RegisterStorage(BObjectCell,{
@@ -193,7 +191,7 @@ void main(){
         for(i=startId+LocalId; i<endId; i+= LocalSize){
             MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[i];
             MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
-            mat4 LocalToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
+            mat4 LocalToWorld = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_LocalToWorld;
 
             vec3 BoxLT = MdfMeta.bboxMin.xyz;
             vec3 BoxRB = MdfMeta.bboxMax.xyz;
@@ -201,7 +199,7 @@ void main(){
             vec3 BoxExtentMS = (BoxRB - BoxLT);
 
             vec3 BoxCenterWS = (LocalToWorld * vec4(BoxCenterMS, 1.0)).xyz;
-            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
+            vec3 BoxExtentWS = BoxExtentMS * GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(TileCenterCoord, TileExtent, BoxCenterWS, BoxExtentWS);
             if(SqDist < CullingAcceptThSq){
@@ -218,20 +216,20 @@ void main(){
             uint MeshId = LocalSharedCullResult[i];
             MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
             MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
-            mat4 LocalToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
-            mat4 WorldToLocal = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_WorldToLocal;
+            mat4 LocalToWorld = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_LocalToWorld;
+            mat4 WorldToLocal = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_WorldToLocal;
             vec3 BoxLT = MdfMeta.bboxMin.xyz;
             vec3 BoxRB = MdfMeta.bboxMax.xyz;
             vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
             vec3 BoxExtentMS = (BoxRB - BoxLT);
 
             vec3 BoxCenterWS = (LocalToWorld * vec4(BoxCenterMS, 1.0)).xyz;
-            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
+            vec3 BoxExtentWS = BoxExtentMS * GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
             if(SqDist < CellCullingAcceptThSq){
                 //might be a candidate to this grid
-                vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
+                vec3 MeshMaxScale = vec3(GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz);
                 float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
                 AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius * 0.5);
             }
@@ -245,20 +243,20 @@ void main(){
         uint MeshId = i;
         MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
         MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
-        mat4 LocalToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
-        mat4 WorldToLocal = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_WorldToLocal;
+        mat4 LocalToWorld = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_LocalToWorld;
+        mat4 WorldToLocal = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_WorldToLocal;
         vec3 BoxLT = MdfMeta.bboxMin.xyz;
         vec3 BoxRB = MdfMeta.bboxMax.xyz;
         vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
         vec3 BoxExtentMS = (BoxRB - BoxLT);
 
         vec4 BoxCenterWS = (LocalToWorld * vec4(BoxCenterMS, 1.0));
-        vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
+        vec3 BoxExtentWS = BoxExtentMS * GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz;
 
         float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
         if(SqDist < CellCullingAcceptThSq){
             //might be a candidate to this grid
-            vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
+            vec3 MeshMaxScale = vec3(GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz);
             float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
             AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius*0.5 );
         }

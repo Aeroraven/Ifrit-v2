@@ -64,8 +64,8 @@ namespace Ifrit::Runtime::Artemis
         return m_SelfData.get();
     }
 
-    IFRIT_APIDECL u32 TessellatedRectMesh::GetNumIndices() { return m_SelfData->m_indices.size(); }
-    IFRIT_APIDECL u32 TessellatedRectMesh::GetNumVertices() { return m_SelfData->m_vertices.size(); }
+    IFRIT_APIDECL u32 TessellatedRectMesh::GetNumIndices() {return SizeCast<u32>(m_SelfData->m_indices.size()); }
+    IFRIT_APIDECL u32 TessellatedRectMesh::GetNumVertices() {return SizeCast<u32>(m_SelfData->m_vertices.size()); }
     IFRIT_APIDECL Vec<u32> TessellatedRectMesh::GetIndexBufferHost()
     {
         if (m_Loaded)

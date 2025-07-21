@@ -51,13 +51,6 @@ RegisterStorage(BAllCardData,{
 });
 
 
-
-RegisterStorage(BLocalTransform,{
-    mat4 m_LocalToWorld;
-    mat4 m_WorldToLocal;
-    vec4 m_MaxScale;
-});
-
 layout(push_constant) uniform UPushConstant{
     vec4 m_GlobalDFBoxMin;
     vec4 m_GlobalDFBoxMax;

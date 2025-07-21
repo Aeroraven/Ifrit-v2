@@ -16,6 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #include "ifrit/runtime/physics/artemis/ArtemisSimulator.h"
+#include "ifrit/runtime/physics/artemis/ArtemisSceneCollecting.h"
 
 using namespace Ifrit::Math;
 using namespace Ifrit::RHI;
@@ -27,7 +28,7 @@ namespace Ifrit::Runtime::Artemis
         Owner<FrameGraphCompiler>   m_FgCompiler;
         Owner<FrameGraphExecutor>   m_FgExecutor;
         Ref<FrameGraphResourcePool> m_ResourcePool;
-        Vec<IArtemisSolver*>        m_SolversExpliciteEuler;
+        Vec<IArtemisSolver*>        m_Solvers;
     };
 
     ArtemisSimulator::ArtemisSimulator(IApplication* app) : m_App(app)
@@ -47,14 +48,17 @@ namespace Ifrit::Runtime::Artemis
         }
     }
 
-    Owner<RHI::RhiTaskSubmission> ArtemisSimulator::Update(f32 deltaTime, Vec<RHI::RhiTaskSubmission*> waitFor)
+    IFRIT_APIDECL void ArtemisSimulator::CollectScene(Scene* scene) { CollectPhysicsSceneData(scene, m_App->GetRhi()); }
+
+    IFRIT_APIDECL Owner<RHI::RhiTaskSubmission> ArtemisSimulator::Update(
+        f32 deltaTime, Vec<RHI::RhiTaskSubmission*> waitFor)
     {
         auto rhi   = m_App->GetRhi();
         auto queue = rhi->GetQueue(RhiQueueCapability::RhiQueue_Graphics);
         auto task  = queue->RunAsyncCommand(
             [&](const RhiCommandList* cmdList) {
                 FrameGraphBuilder builder(m_App->GetShaderRegistry(), m_App->GetRhi(), m_Data->m_ResourcePool.get());
-                for (auto& solver : m_Data->m_SolversExpliciteEuler)
+                for (auto& solver : m_Data->m_Solvers)
                 {
                     solver->RunSolverStep(builder, deltaTime);
                 }
@@ -69,7 +73,7 @@ namespace Ifrit::Runtime::Artemis
     {
         if (solver)
         {
-            m_Data->m_SolversExpliciteEuler.push_back(solver);
+            m_Data->m_Solvers.push_back(solver);
         }
     }
 } // namespace Ifrit::Runtime::Artemis

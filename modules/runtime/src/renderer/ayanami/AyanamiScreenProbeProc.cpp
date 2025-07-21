@@ -725,7 +725,7 @@ namespace Ifrit::Runtime::Ayanami
     {
         // todo
         auto curFrameId        = m_SharedContext->m_FrameIdx % 32;
-        auto jitter            = Hammersley2d(curFrameId, 32);
+        auto jitter            = Hammersley2d(SizeCast<u32>(curFrameId), 32);
         jitter                 = jitter - Vector2f(0.5f, 0.5f); // center jitter
         m_Private->m_RayJitter = jitter;
     }

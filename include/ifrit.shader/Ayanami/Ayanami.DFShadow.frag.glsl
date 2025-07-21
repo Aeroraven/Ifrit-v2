@@ -60,10 +60,8 @@ RegisterStorage(BTileScatter,{
     uint m_Data[];
 });
 
-RegisterStorage(BLocalTransform,{
-    mat4 m_localToWorld;
-    mat4 m_worldToLocal;
-    vec4 m_maxScale;
+RegisterStorage(BModelTransform,{
+    FLocalTransformData m_Data;
 });
 
 RegisterStorage(BPerFrameData,{
@@ -74,7 +72,7 @@ RegisterStorage(BPerFrameData,{
 float RayMarchingForObject(uint meshDFId, vec3 rayOriginWS){
     MeshDFDesc desc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[meshDFId];
     MeshDFMeta meta = GetResource(BMeshDFMeta, desc.m_MdfMetaId).m_Data;
-    mat4 worldToLocal = GetResource(BLocalTransform, desc.m_TransformId).m_worldToLocal;
+    mat4 worldToLocal = GetResource(BModelTransform, desc.m_TransformId).m_Data.m_WorldToLocal;
 
     uint sdfId = meta.sdfId;
     vec3 lb = meta.bboxMin.xyz;

@@ -20,12 +20,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/algo/Parallel.h"
 #include "ifrit/runtime/base/Light.h"
 #include "ifrit/runtime/base/MeshComponent.h"
+#include "ifrit/runtime/base/Transform.h"
 #include "ifrit/runtime/renderer/util/NoiseUtils.h"
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"
 #include <chrono>
 #include <mutex>
 
-using Ifrit::SizeCast;
+#include "ifrit/runtime/scene/FrameComponentUpdate.h"
+
 namespace Ifrit::Runtime
 {
 
@@ -135,7 +137,6 @@ namespace Ifrit::Runtime
             {
                 return false;
             }
-            // printf("Light:%p\n", light);
             return light->GetAffectPbrSky();
         });
         if (sunLights.size() > 1)
@@ -248,6 +249,10 @@ namespace Ifrit::Runtime
                 auto meshRenderer = obj->GetComponent<MeshRenderer>();
                 auto meshFilter   = obj->GetComponent<MeshFilter>();
                 if (!meshRenderer || !meshFilter)
+                {
+                    continue;
+                }
+                if (meshRenderer->IsEnabled() == false || meshFilter->IsEnabled() == false)
                 {
                     continue;
                 }
@@ -605,66 +610,12 @@ namespace Ifrit::Runtime
             for (int i = 0; i < shaderEffect.m_materials.size(); i++)
             {
                 // Setup transform buffers
-                auto                                 transform           = shaderEffect.m_transforms[i];
-                std::shared_ptr<RhiMultiBuffer>      transformBuffer     = nullptr;
-                std::shared_ptr<RhiMultiBuffer>      transformBufferLast = nullptr;
-                std::shared_ptr<RhiDescHandleLegacy> bindlessRef         = nullptr;
-                std::shared_ptr<RhiDescHandleLegacy> bindlessRefLast     = nullptr;
-                transform->GetGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
-                bool initLastFrameMatrix = false;
-                if (transformBuffer == nullptr)
+                auto transform            = shaderEffect.m_transforms[i];
+                auto transformUpdateState = UpdateTransformGPUData(transform, rhi);
+                if (transformUpdateState.m_Changed)
                 {
-                    transformBuffer =
-                        rhi->CreateBufferCoherent(sizeof(MeshInstanceTransform), RhiBufferUsage::RhiBufferUsage_SSBO);
-                    bindlessRef = rhi->RegisterStorageBufferShared(transformBuffer.get());
-                    transform->SetGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
-                    initLastFrameMatrix = true;
-                    transformBufferLast =
-                        rhi->CreateBufferCoherent(sizeof(MeshInstanceTransform), RhiBufferUsage::RhiBufferUsage_SSBO);
-                    bindlessRefLast = rhi->RegisterStorageBufferShared(transformBufferLast.get());
-                    transform->SetGPUResource(transformBuffer, transformBufferLast, bindlessRef, bindlessRefLast);
-                }
-
-                // update uniform buffer, TODO: dirty flag
-                auto transformDirty = transform->GetDirtyFlag();
-                if (transformDirty.changed || transformDirty.lastChanged)
-                {
-                    MeshInstanceTransform model;
-                    // Transpose is required because glsl uses column major matrices
-                    model.model    = Math::Transpose(transform->GetModelToWorldMatrix());
-                    model.invModel = Math::Transpose(Math::Inverse(transform->GetModelToWorldMatrix()));
-                    auto scale     = transform->GetScale();
-                    model.maxScale =
-                        Vector4f(scale.x, scale.y, scale.z, 0.0); // std::max(scale.x, std::max(scale.y, scale.z));
-
-                    auto buf = transformBuffer->GetActiveBuffer();
-                    buf->MapMemory();
-                    buf->WriteBuffer(&model, sizeof(MeshInstanceTransform), 0);
-                    buf->FlushBuffer();
-                    buf->UnmapMemory();
-                    shaderEffect.m_objectData[i].transformRef     = bindlessRef->GetActiveId();
-                    shaderEffect.m_objectData[i].transformRefLast = bindlessRefLast->GetActiveId();
-                }
-
-                if (initLastFrameMatrix)
-                {
-                    // transform->OnFrameCollecting();
-                }
-
-                if (initLastFrameMatrix || transformDirty.lastChanged)
-                {
-                    MeshInstanceTransform modelLast;
-                    modelLast.model    = Math::Transpose(transform->GetModelToWorldMatrix());
-                    modelLast.invModel = Math::Transpose(Math::Inverse(transform->GetModelToWorldMatrix()));
-                    auto lastScale     = transform->GetScaleLast();
-                    modelLast.maxScale = Vector4f(lastScale.x, lastScale.y, lastScale.z,
-                        0.0); // std::max(lastScale.x, std::max(lastScale.y, lastScale.z));
-                    auto bufLast       = transformBufferLast->GetActiveBuffer();
-                    bufLast->MapMemory();
-                    bufLast->WriteBuffer(&modelLast, sizeof(MeshInstanceTransform), 0);
-                    bufLast->FlushBuffer();
-                    bufLast->UnmapMemory();
-                    transform->OnFrameCollecting();
+                    shaderEffect.m_objectData[i].transformRef     = transformUpdateState.m_TransformRef;
+                    shaderEffect.m_objectData[i].transformRefLast = transformUpdateState.m_TransformRefLast;
                 }
 
                 // Setup mesh buffers

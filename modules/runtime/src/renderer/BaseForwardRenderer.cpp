@@ -114,7 +114,7 @@ namespace Ifrit::Runtime
 
                     if (meshData->m_GenerationType == MeshGeneratorType::Static)
                     {
-                        auto indexCount = shaderEffects.m_meshes[i]->LoadMeshUnsafe()->m_indices.size();
+                        auto indexCount = SizeCast<u32>(shaderEffects.m_meshes[i]->LoadMeshUnsafe()->m_indices.size());
 
                         if (indexCount != 0)
                         {

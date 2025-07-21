@@ -157,6 +157,11 @@ namespace Math{
         return transpose(m);
     }
 
+    float4x4 Transpose(float4x4 m)
+    {
+        return transpose(m);
+    }
+
     bool HasNaN(float3x3 m)
     {
         return isnan(m._11) || isnan(m._12) || isnan(m._13) ||

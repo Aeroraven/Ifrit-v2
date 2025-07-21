@@ -5,15 +5,22 @@
 
 namespace Ifrit
 {
-    template <typename T IF_REQUIRES(std::is_enum_v<T>)> IF_FORCEINLINE String GetEnumName(T value)
+    template <typename T IF_REQUIRES(std::is_enum_v<T>)> IF_CONSTEXPR IF_FORCEINLINE String GetEnumName(T value)
     {
         String ret = String{ magic_enum::enum_name(value) };
         return ret;
     }
 
-    template <typename E> IF_CONSTEXPR typename std::underlying_type<E>::type GetEnumUnderlyingValue(E e) noexcept
+    template <typename T IF_REQUIRES(std::is_enum_v<T>)>
+    IF_CONSTEXPR IF_FORCEINLINE typename std::underlying_type<T>::type GetEnumUnderlyingValue(T e) noexcept
     {
-        return static_cast<typename std::underlying_type<E>::type>(e);
+        return static_cast<typename std::underlying_type<T>::type>(e);
     }
 
-} // namespace Ifrit
+    template <typename T IF_REQUIRES(std::is_enum_v<T>)> IF_CONSTEXPR IF_FORCEINLINE T GetEnumFromName(StringView name)
+    {
+        auto enumValue = magic_enum::enum_cast<T>(name);
+        return enumValue.value();
+    }
+
+} // namespace Ifrit

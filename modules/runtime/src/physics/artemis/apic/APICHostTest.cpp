@@ -446,7 +446,7 @@ namespace Ifrit::Runtime::Artemis
             cmd->AttachIndexBuffer(m_Data->m_GPUIndexBuffer.get());
             cmd->SetCullMode(RhiCullMode::None);
             cmd->SetPushConst(&pc, 0, sizeof(PushConst));
-            cmd->DrawIndexed(m_Data->m_Particles.size(), 1, 0, 0, 0);
+            cmd->DrawIndexed(SizeCast<u32>(m_Data->m_Particles.size()), 1, 0, 0, 0);
         });
 
         pass.AddRenderTarget(*renderTarget);

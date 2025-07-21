@@ -157,7 +157,7 @@ void main(){
     uint mi = getMeshletId();
 
     uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
-    mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
+    mat4 model = GetResource(bModelTransform,trans).m_Data.m_LocalToWorld;
     mat4 worldToClip = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToClip;
     mat4 mvp = worldToClip * model;
 

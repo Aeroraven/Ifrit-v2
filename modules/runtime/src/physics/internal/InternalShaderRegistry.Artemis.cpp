@@ -108,6 +108,9 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTArtemis.MPMParticleEmitCS, "Artemis/MPM/MPM.ParticleEmit", "MpmParticleEmitCS");
         REG_COMPUTE_NEO(ISTArtemis.MPMParticleDrainAllCS, "Artemis/MPM/MPM.ParticleDrainAll", "MpmParticleDrainAllCS");
 
+        // Rigid
+        REG_COMPUTE_NEO(ISTArtemis.RigidMotionTestCS, "Artemis/Rigid/Rigid.MotionTest", "RigidMotionTestCS");
+
 #undef REG_MESH
 #undef REG_FRAGMENT
 #undef REG_VERTEX

@@ -36,6 +36,7 @@ namespace Ifrit
     template <typename T> using Atomic                                = std::atomic<T>;
     template <typename T, typename U> using Pair                      = std::pair<T, U>;
     using String                                                      = std::string;
+    using StringView                                                  = std::string_view;
     template <typename T> using Queue                                 = std::queue<T>;
     using IntPtr                                                      = std::intptr_t;
 

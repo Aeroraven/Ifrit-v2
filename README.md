@@ -91,15 +91,21 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive 
 ```
 
+> Some breaking changes are made in `dev` branch recently (Refer to  [TODO.md](./TODO.md) for more details). 
+>
+> It's recommend to switch to branch `checkpoint/v4` to run `Syaro/Ayanami Demo`, and `checkpoint/v1` to run `Software Renderer`. 
+
 ### 2. Install Dependencies
 
 **Base Requirements:**
+
 - OpenGL 4.6+
 - CMake 3.25+
 - MSVC 19.29+
 - Python 3
 
 **Setup script:**
+
 ```bash
 bash InstallPrerequisite.sh  # Use Git Bash on Windows
 ```

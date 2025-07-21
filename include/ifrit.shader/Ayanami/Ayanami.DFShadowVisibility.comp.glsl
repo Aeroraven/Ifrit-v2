@@ -43,10 +43,8 @@ RegisterStorage(BAllWorldData,{
     uint m_TransformId[];
 });
 
-RegisterStorage(BLocalTransform,{
-    mat4 m_LocalToWorld;
-    mat4 m_WorldToLocal;
-    float m_MaxScale;
+RegisterStorage(BModelTransform,{
+    FLocalTransformData m_Data;
 });
 
 RegisterStorage(BTileScatter,{
@@ -94,7 +92,7 @@ float DistanceFieldShadowInObj(vec3 rayOriginWS, uint meshDFId){
 
     MeshDFDesc desc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[meshDFId];
     MeshDFMeta meta = GetResource(BMeshDFMeta, desc.m_MdfMetaId).m_Data;
-    mat4 worldToLocal = GetResource(BLocalTransform, desc.m_TransformId).m_WorldToLocal;
+    mat4 worldToLocal = GetResource(BModelTransform, desc.m_TransformId).m_Data.m_WorldToLocal;
 
     vec2 MeshDFQuantScale = AyaShared_GetSdfQuantScale(meta);
 
@@ -200,7 +198,7 @@ void main(){
 
     mat4 atlasToLocal = GetResource(BAllCardData, PushConst.m_CardDataId).m_Mats[cardIndex].m_VPInv;
     uint transformId = GetResource(BAllWorldData, PushConst.m_WorldObjId).m_TransformId[cardIndex];
-    mat4 localToWorld = GetResource(BLocalTransform, transformId).m_LocalToWorld;
+    mat4 localToWorld = GetResource(BModelTransform, transformId).m_Data.m_LocalToWorld;
     mat4 atlasToWorld = localToWorld * atlasToLocal;
 
     vec2 tileOffsetToNDCxy = (vec2(tileOffset)+0.5) / vec2(PushConst.m_CardResolution);

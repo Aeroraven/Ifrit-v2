@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
+#include "ifrit/runtime/base/Transform.h"
 #include "ifrit/core/algo/GUID.h"
 #include <atomic>
 #include <random>
@@ -204,33 +205,6 @@ namespace Ifrit::Runtime
             return nullptr;
         }
         return m_GameObjects[ref].get();
-    }
-
-    // Transform
-
-    IFRIT_APIDECL void Transform::SetupProperties()
-    {
-        AddProperty<Vector3f, EPropertyEditorType::Text>("Position", m_attributes.m_position);
-        AddProperty<Vector3f, EPropertyEditorType::Text>("Rotation", m_attributes.m_rotation);
-        AddProperty<Vector3f, EPropertyEditorType::Text>("Scale", m_attributes.m_scale);
-    }
-
-    IFRIT_APIDECL Matrix4x4f Transform::GetModelToWorldMatrix()
-    {
-        Matrix4x4f model = Identity<f32, 4>();
-        model            = MatMul(Scale3D(m_attributes.m_scale), model);
-        model            = MatMul(EulerAngleToMatrix(m_attributes.m_rotation), model);
-        model            = MatMul(Translate3D(m_attributes.m_position), model);
-        return model;
-    }
-
-    IFRIT_APIDECL Matrix4x4f Transform::GetModelToWorldMatrixLast()
-    {
-        Matrix4x4f model = Identity<f32, 4>();
-        model            = MatMul(Scale3D(m_lastFrame.m_scale), model);
-        model            = MatMul(EulerAngleToMatrix(m_lastFrame.m_rotation), model);
-        model            = MatMul(Translate3D(m_lastFrame.m_position), model);
-        return model;
     }
 
 } // namespace Ifrit::Runtime

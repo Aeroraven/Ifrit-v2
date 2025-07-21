@@ -61,12 +61,12 @@ namespace Ifrit::Runtime
             providerType = Display::Window::WindowProviderType::GLFW;
         }
         m_windowProvider = selector.CreateWindowProvider(providerType, winArgs);
-        m_windowProvider->Setup(m_info.m_width * dpiScaler, m_info.m_height * dpiScaler);
+        m_windowProvider->Setup(static_cast<usize>(m_info.m_width * dpiScaler), static_cast<usize>(m_info.m_height * dpiScaler));
 
         // Setup RHI
         RHI::RhiInitializeArguments rhiArgs;
-        rhiArgs.m_surfaceWidth                = m_info.m_width * dpiScaler;
-        rhiArgs.m_surfaceHeight               = m_info.m_height * dpiScaler;
+        rhiArgs.m_surfaceWidth                = static_cast<u32>(m_info.m_width * dpiScaler);
+        rhiArgs.m_surfaceHeight               = static_cast<u32>(m_info.m_height * dpiScaler);
         rhiArgs.m_expectedComputeQueueCount   = m_info.m_rhiComputeQueueCount;
         rhiArgs.m_expectedGraphicsQueueCount  = m_info.m_rhiGraphicsQueueCount;
         rhiArgs.m_expectedTransferQueueCount  = m_info.m_rhiTransferQueueCount;

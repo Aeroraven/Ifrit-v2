@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #pragma once
 #include "ifrit/runtime/physics/artemis/ArtemisIntegrator.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/runtime/forwarding/FwdScene.h"
 
 namespace Ifrit::Runtime::Artemis
 {
@@ -34,6 +35,7 @@ namespace Ifrit::Runtime::Artemis
         ArtemisSimulator(IApplication* app);
         virtual ~ArtemisSimulator();
 
+        void                          CollectScene(Scene* scene);
         Owner<RHI::RhiTaskSubmission> Update(f32 deltaTime, Vec<RHI::RhiTaskSubmission*> waitFor);
 
         void                          RegisterSolver(IArtemisSolver* solver);

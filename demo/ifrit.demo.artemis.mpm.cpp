@@ -30,6 +30,8 @@
 #include "ifrit/editor/EditorProviderHelper.h"
 #include "ifrit/core/hal/HalDisplay.h"
 
+#include "ifrit/runtime/geometry/preset/Circle2D.h"
+
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 800
 
@@ -91,7 +93,7 @@ namespace Ifrit
                 auto vdbDesc     = VDB::LoadVdbFromString(vdbFileData);
                 VDB::PrintVdbMeta(vdbDesc);
                 m_PointClouds = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.3f, 10);
-                //iDebug("Sampled {} points from VDB.", m_PointClouds.size());
+                // iDebug("Sampled {} points from VDB.", m_PointClouds.size());
                 PointCloud::PointCloudDescriptor pcDesc;
                 pcDesc.m_Points = m_PointClouds.data();
                 pcDesc.m_Count  = static_cast<u32>(m_PointClouds.size());
@@ -118,27 +120,28 @@ namespace Ifrit
 
             auto cameraGameObject = node->AddGameObject("Camera");
             auto camera           = cameraGameObject->AddComponent<Camera>();
-            camera->SetCameraType(CameraType::Perspective);
+            camera->SetCameraType(CameraType::Orthographic);
             camera->SetMainCamera(true);
             camera->SetAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
-            camera->SetFov(60.0f / 180.0f * std::numbers::pi_v<float>);
+            camera->SetOrthoSpaceSize(2.0f);
             camera->SetFar(20.0f);
             camera->SetNear(0.10f);
 
             auto cameraTransform = cameraGameObject->GetComponent<Transform>();
             cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
-            cameraTransform->SetPosition({ 0.5f, 0.5f, -1.0f });
+            cameraTransform->SetPosition({ 0.0f, 0.0f, -1.0f });
 
-            auto material = MakeRef<SyaroDefaultGBufEmitter>(this);
+            auto material = MakeRef<DefaultMaterial>(this);
             material->BuildMaterial();
-            auto meshingObject    = node->AddGameObject("ProceduralMesh");
-            m_ParticleSurfaceMesh = MakeRef<Geometry::ParticleSurfaceProceduralMesh>();
-            m_ParticleSurfaceMesh->Init(GetRhi(), 2145141, 2145141, Vector4i(200, 200, 200, 0),
-                Vector3f(-0.01f, -0.01f, -0.01f), Vector3f(1.01f, 1.01f, 1.01f));
-            auto meshFilter = meshingObject->AddComponent<MeshFilter>();
-            meshFilter->SetMesh(m_ParticleSurfaceMesh);
-            auto meshRenderer = meshingObject->AddComponent<MeshRenderer>();
-            meshRenderer->SetMaterial(material);
+
+            auto rigid      = node->AddGameObject("RigidCollider");
+            auto circleMesh = MakeRef<Geometry::Circle2D>(0.1f, 32);
+            auto rigidMesh  = rigid->AddComponent<MeshFilter>();
+            rigidMesh->SetMesh(circleMesh);
+            auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
+            rigidRenderer->SetMaterial(material);
+            auto rigidTransform = rigid->GetComponent<Transform>();
+            rigidTransform->SetDevice(TransformUpdateDevice::GPU);
 
             auto defaultEmitter = node->AddGameObject("ParticleEmitter");
             auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();
@@ -154,8 +157,9 @@ namespace Ifrit
         void OnUpdate() override
         {
             m_FrameIdx++;
-            m_ParticleSurfaceMesh->SetParticleData(
-                m_MpmSim->GetParticlePositionBuffer(), m_MpmSim->GetParticleCounterBuffer());
+
+            m_RendererWrapper->EnqueueRendererTask(m_sceneManager->GetActiveScene().get(), nullptr,
+                m_RendererWrapper->GetDefaultRenderTargets(), renderConfig);
 
             m_RendererWrapper->EnqueueRDGTask(
                 [&](FrameGraphBuilder* builder) {
@@ -165,12 +169,6 @@ namespace Ifrit
                     m_MpmSim->Render(*builder, rt);
                 },
                 m_FrameGraphResourcePool.get());
-
-            if (0)
-            {
-                m_RendererWrapper->EnqueueRendererTask(m_sceneManager->GetActiveScene().get(), nullptr,
-                    m_RendererWrapper->GetDefaultRenderTargets(), renderConfig);
-            }
         }
 
         void OnEnd() override {}

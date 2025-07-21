@@ -48,4 +48,6 @@ namespace Ifrit::Runtime
         inline u32  GetAlbedoId() const { return m_materialData.m_albedoId; }
         inline u32  GetNormalMapId() const { return m_materialData.m_normalMapId; }
     };
+
+    using DefaultMaterial = SyaroDefaultGBufEmitter;
 } // namespace Ifrit::Runtime

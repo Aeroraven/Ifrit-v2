@@ -83,6 +83,9 @@ namespace Ifrit::Runtime::Internal
         SDEF MPMPbMpmResolveConstraintsCS = DECLARE_CS("Artemis/MPM/MPM.PbMpmResolveConstraints");
         SDEF MPMPbMpmParticleIntegrateCS  = DECLARE_CS("Artemis/MPM/MPM.PbMpmParticleIntegrate");
 
+        // Rigid
+        SDEF RigidMotionTestCS = DECLARE_CS("Artemis/Rigid/MotionTest");
+
     } kIntShaderTableArtemis;
 
 #undef SDEF

@@ -29,10 +29,8 @@ struct Meshlet {
     vec4 selfErrorSphere;
 };
 
-RegisterStorage(bLocalTransform,{
-    mat4 m_localToWorld;
-    mat4 m_worldToLocal;
-    float m_maxScale;
+RegisterStorage(bModelTransform,{
+    FLocalTransformData m_Data;
 });
 RegisterStorage(bMeshDataRef,{
     vec4 boundingSphere;

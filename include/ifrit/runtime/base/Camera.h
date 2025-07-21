@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/VectorDefs.h"
 #include "ifrit/core/serialization/MathTypeSerialization.h"
 #include "ifrit/core/serialization/SerialInterface.h"
-
+#include "ifrit/core/serialization/SerialEnumDefine.h"
 #include "ifrit/core/typing/Util.h"
 
 namespace Ifrit::Runtime

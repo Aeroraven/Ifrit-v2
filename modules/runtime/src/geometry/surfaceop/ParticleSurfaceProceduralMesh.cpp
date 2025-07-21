@@ -131,7 +131,7 @@ namespace Ifrit::Runtime::Geometry
         {
             u32 m_ParticleCounterSrc; // SRV!
             u32 m_ParticleCounterDst; // UAV!
-        } pc;
+        } pc{};
 
         AddComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.PrepareDispArgs",
             ShaderVariantDesc(Internal::InternalShaderTableGeometry::SurfReconPrepareDispArgsCS, {}), Vector3i(1, 1, 1),
@@ -187,7 +187,7 @@ namespace Ifrit::Runtime::Geometry
             RHI::RhiUAVDesc m_ActiveGridBlockCounter;
             RHI::RhiUAVDesc m_ActiveGridBlockList;
             RHI::RhiSRVDesc m_Grid; // SRV
-        } pc;
+        } pc{};
 
         Vector3i dispatchArgs = m_NumBlocksPerAxis;
         dispatchArgs.x = DivRoundUp(dispatchArgs.x, IfritShader::Meshing::SurfRecon::kSurfReconFilterBlockTGSz3D);
@@ -215,7 +215,7 @@ namespace Ifrit::Runtime::Geometry
         {
             RHI::RhiSRVDesc m_ActiveGridBlockList;
             RHI::RhiSRVDesc m_Grid; // SRV
-        } pc;
+        } pc{};
 
         AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.FilterCells",
             ShaderVariantDesc(Internal::kIntShaderTableGeometry.SurfReconFilterCellsCS, {}), *m_RDGActiveBlockCounter,
@@ -248,7 +248,7 @@ namespace Ifrit::Runtime::Geometry
             RHI::RhiUAVDesc m_UVBuffer;
 
             RHI::RhiUAVDesc m_TriangleCounter;
-        } pc;
+        } pc{};
 
         AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.VoxelMeshing",
             ShaderVariantDesc(Internal::kIntShaderTableGeometry.SurfReconVoxelMeshingCS, {}), *m_RDGActiveBlockCounter,
@@ -283,7 +283,7 @@ namespace Ifrit::Runtime::Geometry
         {
             RHI::RhiSRVDesc m_TriangleCounter;
             RHI::RhiUAVDesc m_TargetIndirectIndexedDrawArgs;
-        } pc;
+        } pc{};
 
         AddComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.PrepareDrawArgs",
             ShaderVariantDesc(Internal::kIntShaderTableGeometry.SurfReconPrepareDrawArgsCS, {}), Vector3i(1, 1, 1), pc,
@@ -328,8 +328,8 @@ namespace Ifrit::Runtime::Geometry
         AllocateMeshGPUResources(rhi, this, maxParticles, maxIndices);
         ForceMeshObjectBufferSync(rhi, this);
 
-        auto debugSz       = maxParticles * sizeof(u32) * 16;
-        auto indirectArgSz = sizeof(u32) * 4;
+        auto debugSz       = SizeCast<u32>(maxParticles * sizeof(u32) * 16);
+        auto indirectArgSz = SizeCast<u32>(sizeof(u32) * 4);
         auto indirectUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_Indirect | RhiBufferUsage_SSBO;
 
         m_Data->m_GridData.m_MinBound              = Vector4f(minBound, 0.0f);
@@ -342,16 +342,16 @@ namespace Ifrit::Runtime::Geometry
             * DivRoundUp(gridSize.y, m_Data->m_GridData.m_BlockWidthInCellUnits)
             * DivRoundUp(gridSize.z, m_Data->m_GridData.m_BlockWidthInCellUnits);
         auto totalVertexCells = (gridSize.x + 1) * (gridSize.y + 1) * (gridSize.z + 1);
-        auto gridDataSz       = sizeof(FSurfReconGridData);
+        auto gridDataSz       = SizeCast<u32>(sizeof(FSurfReconGridData));
 
         m_Data->m_NumBlocks        = totalGrids;
         m_Data->m_NumBlocksPerAxis = Vector3i(DivRoundUp(gridSize.x, m_Data->m_GridData.m_BlockWidthInCellUnits),
             DivRoundUp(gridSize.y, m_Data->m_GridData.m_BlockWidthInCellUnits),
             DivRoundUp(gridSize.z, m_Data->m_GridData.m_BlockWidthInCellUnits));
 
-        auto cellParticleCountSz  = totalCells * sizeof(u32);
-        auto activeCellsInBlockSz = totalGrids * sizeof(u32);
-        auto surfaceVertexSz      = totalVertexCells * sizeof(u32);
+        auto cellParticleCountSz  = SizeCast<u32>(totalCells * sizeof(u32));
+        auto activeCellsInBlockSz = SizeCast<u32>(totalGrids * sizeof(u32));
+        auto surfaceVertexSz      = SizeCast<u32>(totalVertexCells * sizeof(u32));
         auto uavUsage             = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
 
         m_Data->m_ParticleDataCopyDispArgs =
@@ -395,4 +395,4 @@ namespace Ifrit::Runtime::Geometry
         }
     }
 
-} // namespace Ifrit::Runtime::Geometry
+} // namespace Ifrit::Runtime::Geometry

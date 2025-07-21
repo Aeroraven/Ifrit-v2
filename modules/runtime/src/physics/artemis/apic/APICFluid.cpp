@@ -1,6 +1,7 @@
 #include "ifrit/runtime/physics/artemis/apic/APICFluid.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Artemis.h"
+#include "ifrit/core/typing/Util.h"
 
 #include "ifrit.shader.neo/Artemis/APIC/APICFluid.Utility.hlsli"
 
@@ -69,12 +70,12 @@ namespace Ifrit::Runtime::Artemis
     void APICFluidPrivateData::PrepareGPUResources(FrameGraphBuilder& builder)
     {
         auto rhi              = builder.GetRhi();
-        auto numGrids         = m_GridSize * m_GridSize;
-        auto numParticles     = m_NumParticles;
+        auto numGrids         = SizeCast<u32>(m_GridSize * m_GridSize);
+        auto numParticles     = SizeCast<u32>(m_NumParticles);
         auto bufferUsage      = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
         auto bufferUsageIndex = bufferUsage | RhiBufferUsage::RhiBufferUsage_Index;
-        auto bufferSizeBaseG  = sizeof(u32) * numGrids;
-        auto bufferSizeBaseP  = sizeof(f32) * numParticles;
+        auto bufferSizeBaseG  = SizeCast<u32>(sizeof(u32) * numGrids);
+        auto bufferSizeBaseP  = SizeCast<u32>(sizeof(f32) * numParticles);
 
         m_GridStates      = rhi->CreateBufferDevice("APICFluid.GridStates", bufferSizeBaseG, bufferUsage, true);
         m_GridVelocities  = rhi->CreateBufferDevice("APICFluid.GridVelocities", bufferSizeBaseG * 2, bufferUsage, true);
@@ -491,7 +492,7 @@ namespace Ifrit::Runtime::Artemis
         } pc;
 
         pc.m_PositionId = 0;
-        pc.m_GridRange  = m_GridSize * m_GridSize;
+        pc.m_GridRange  = SizeCast<f32>(m_GridSize * m_GridSize);
 
         auto& pass = builder.AddGraphicsPass("APICFluid.Draw",
             ShaderVariantDesc(Internal::kIntShaderTableArtemis.ParticleRender2dVS, {}),
@@ -507,7 +508,7 @@ namespace Ifrit::Runtime::Artemis
 
             PushConst pc;
             pc.m_PositionId  = ctx.m_FgDesc->GetUAV(*m_RDGParticleLocation);
-            pc.m_GridRange   = m_GridSize;
+            pc.m_GridRange   = static_cast<f32>(m_GridSize);
             pc.m_AspectRatio = (f32)rtWidth / (f32)rtHeight;
 
             cmd->AttachIndexBuffer(m_ParticleIndex.get());

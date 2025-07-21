@@ -58,10 +58,8 @@ RegisterStorage(BAllWorldData,{
     uint m_TransformId[];
 });
 
-RegisterStorage(BLocalTransform,{
-    mat4 m_LocalToWorld;
-    mat4 m_WorldToLocal;
-    float m_MaxScale;
+RegisterStorage(BModelTransform,{
+    FLocalTransformData m_Data;
 });
 
 
@@ -177,7 +175,7 @@ void main(){
 
     mat4 AtlasToLocal = GetResource(BAllCardData, PushConst.CardDataId).m_Mats[CardIndex].m_VPInv;
     uint transformId = GetResource(BAllWorldData, PushConst.WorldObjId).m_TransformId[CardIndex];
-    mat4 LocalToWorld = GetResource(BLocalTransform, transformId).m_LocalToWorld;
+    mat4 LocalToWorld = GetResource(BModelTransform, transformId).m_Data.m_LocalToWorld;
     mat4 AtlasToWorld = LocalToWorld * AtlasToLocal;
     
     vec2 TileOffsetToNDCxy = (vec2(TileOffset)+0.5) / vec2(PushConst.CardResolution);

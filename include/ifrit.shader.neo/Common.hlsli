@@ -135,6 +135,8 @@ namespace IfritShader{
         float4x4 m_LocalToWorld;
         float4x4 m_WorldToLocal;
         float4 m_MaxScale;
+        float4 m_Position;
+        float4 m_Rotation; // Euler!
     };
 
     IFSHADER_TEMPLATE<typename T>

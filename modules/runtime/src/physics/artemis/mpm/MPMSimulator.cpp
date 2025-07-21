@@ -173,7 +173,7 @@ namespace Ifrit::Runtime::Artemis
         {
             u32 m_ParticleCounter;
 
-        } pc;
+        } pc{};
 
         AddComputePass<PushConst>(builder, "MPMSimulator.ParticleDrainAll",
             GetShader(Internal::kIntShaderTableArtemis.MPMParticleDrainAllCS), Vector3i(1, 1, 1), pc,
@@ -762,10 +762,11 @@ namespace Ifrit::Runtime::Artemis
         auto stagedPosition = RHI->CreateStagedSingleBuffer(m_ParticlePosition.get());
         auto stagedCounter  = RHI->CreateStagedSingleBuffer(m_ParticleCount.get());
         tq->RunSyncCommand([&](const RhiCommandList* cmd) {
-            stagedIndex->CmdCopyToDevice(cmd, particleIndexData.data(), particleIndexData.size() * sizeof(u32), 0);
+            stagedIndex->CmdCopyToDevice(
+                cmd, particleIndexData.data(), SizeCast<u32>(particleIndexData.size() * sizeof(u32)), 0);
             stagedGridAttr->CmdCopyToDevice(cmd, &gridAttr, sizeof(MPMSimulatorGridAttribute), 0);
             stagedCounter->CmdCopyToDevice(
-                cmd, particleDataSection.data(), particleDataSection.size() * sizeof(u32), 0);
+                cmd, particleDataSection.data(), SizeCast<u32>(particleDataSection.size() * sizeof(u32)), 0);
 
             if (m_HasInitParticleLocations)
             {
@@ -774,7 +775,8 @@ namespace Ifrit::Runtime::Artemis
                     if (std::holds_alternative<Vec<Vector2f>>(m_InitParticleLocations))
                     {
                         auto& initLocs = std::get<Vec<Vector2f>>(m_InitParticleLocations);
-                        stagedPosition->CmdCopyToDevice(cmd, initLocs.data(), initLocs.size() * sizeof(Vector2f), 0);
+                        stagedPosition->CmdCopyToDevice(
+                            cmd, initLocs.data(), SizeCast<u32>(initLocs.size() * sizeof(Vector2f)), 0);
                     }
                     else
                     {
@@ -788,7 +790,8 @@ namespace Ifrit::Runtime::Artemis
                     if (std::holds_alternative<Vec<Vector4f>>(m_InitParticleLocations))
                     {
                         auto& initLocs = std::get<Vec<Vector4f>>(m_InitParticleLocations);
-                        stagedPosition->CmdCopyToDevice(cmd, initLocs.data(), initLocs.size() * sizeof(Vector4f), 0);
+                        stagedPosition->CmdCopyToDevice(
+                            cmd, initLocs.data(), SizeCast<u32>(initLocs.size() * sizeof(Vector4f)), 0);
                     }
                     else
                     {
@@ -858,6 +861,7 @@ namespace Ifrit::Runtime::Artemis
             return m_Config->m_GridSize.x * m_Config->m_GridSize.y;
         else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
             return m_Config->m_GridSize.x * m_Config->m_GridSize.y * m_Config->m_GridSize.z;
+        return 0;
     }
 
     template <u32 Dimension> void MPMSimulatorPrivateData::HandleManualParticleEmit(FrameGraphBuilder& builder)
@@ -875,9 +879,10 @@ namespace Ifrit::Runtime::Artemis
                 auto  tq             = rhi->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
                 auto& locations      = std::get<VecTp>(emitRequest.m_InitialParticleLocations);
                 tq->RunSyncCommand([&](const RhiCommandList* cmd) {
-                    stagedLocation->CmdCopyToDevice(cmd, locations.data(), locations.size() * sizeof(EleTp), 0);
+                    stagedLocation->CmdCopyToDevice(
+                        cmd, locations.data(), SizeCast<u32>(locations.size() * sizeof(EleTp)), 0);
                 });
-                ParticleEmit(builder, emitRequest.m_EmissionArgs, locations.size());
+                ParticleEmit(builder, emitRequest.m_EmissionArgs, SizeCast<u32>(locations.size()));
                 m_Config->m_DefaultNumParticles += static_cast<u32>(locations.size());
             }
             else
@@ -898,26 +903,26 @@ namespace Ifrit::Runtime::Artemis
         auto numParticles = m_Config->m_MaxParticles;
         auto numGrids     = GetNumGrids();
 
-        auto particleCountSz = sizeof(u32) * 4;
+        auto particleCountSz = SizeCast<u32>(sizeof(u32) * 4);
 
         auto particlePosSz           = numParticles * MTypes::kFSpatialVectorAlignedSize;
-        auto particleColorSz         = numParticles * sizeof(Vector4f);
+        auto particleColorSz         = SizeCast<u32>(numParticles * sizeof(Vector4f));
         auto particleVelSz           = numParticles * MTypes::kFSpatialVectorAlignedSize;
         auto particleMassSz          = numParticles * MTypes::kFScalarSize;
         auto particleDeformGradSz    = numParticles * MTypes::kFSpatialTransformAlignedSize;
         auto particleJSz             = numParticles * MTypes::kFScalarSize;
         auto particleVolSz           = numParticles * MTypes::kFScalarSize;
-        auto particleApicBSz         = numParticles * MTypes::kFSpatialTransformAlignedSize;
-        auto particleIndexSz         = numParticles * sizeof(u32);
-        auto particleDebugSz         = numParticles * 64;
-        auto particleStressContribSz = numParticles * MTypes::kFSpatialTransformAlignedSize;
-        auto particleMatPropertySz   = numParticles * sizeof(MPMParticleMaterials);
-        auto particleLiquidSz        = numParticles * sizeof(f32);
+        auto particleApicBSz         = SizeCast<u32>(numParticles * MTypes::kFSpatialTransformAlignedSize);
+        auto particleIndexSz         = SizeCast<u32>(numParticles * sizeof(u32));
+        auto particleDebugSz         = SizeCast<u32>(numParticles * 64);
+        auto particleStressContribSz = SizeCast<u32>(numParticles * MTypes::kFSpatialTransformAlignedSize);
+        auto particleMatPropertySz   = SizeCast<u32>(numParticles * sizeof(MPMParticleMaterials));
+        auto particleLiquidSz        = SizeCast<u32>(numParticles * sizeof(f32));
 
         auto gridForceSz = numGrids * MTypes::kFSpatialVectorAlignedSize;
         auto gridVelSz   = numGrids * MTypes::kFSpatialVectorAlignedSize;
         auto gridMassSz  = numGrids * MTypes::kFScalarSize;
-        auto gridAttrSz  = sizeof(MPMSimulatorGridAttribute);
+        auto gridAttrSz  = SizeCast<u32>(sizeof(MPMSimulatorGridAttribute));
 
         auto inddrawSz = sizeof(u32) * 4;
 
@@ -953,7 +958,7 @@ namespace Ifrit::Runtime::Artemis
         m_GridAttribute = RHI->CreateBufferDevice("MPM_GridAttribute", gridAttrSz, defaultUsage, true);
 
         m_RenderParticleIndDrawBuffer =
-            RHI->CreateBufferDevice("MPM_RenderParticleIndDraw", inddrawSz, indirectUsage, true);
+            RHI->CreateBufferDevice("MPM_RenderParticleIndDraw", SizeCast<u32>(inddrawSz), indirectUsage, true);
 
         PrepareInitialGPUData(RHI);
     }
@@ -1031,12 +1036,12 @@ namespace Ifrit::Runtime::Artemis
 
         if (isPbMpm)
         {
-            for (auto i = 0; i < m_Config->m_Substeps; ++i)
+            for (auto i = 0u; i < m_Config->m_Substeps; ++i)
             {
                 {
                     IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmSubstep");
 
-                    for (auto j = 0; j < m_Config->m_PbMpmIterations; ++j)
+                    for (auto j = 0u; j < m_Config->m_PbMpmIterations; ++j)
                     {
                         bool isLastIteration  = (j == m_Config->m_PbMpmIterations - 1);
                         bool isFirstIteration = (j == 0);
@@ -1063,7 +1068,7 @@ namespace Ifrit::Runtime::Artemis
         }
         else
         {
-            for (auto i = 0; i < m_Config->m_Substeps; ++i)
+            for (auto i = 0u; i < m_Config->m_Substeps; ++i)
             {
                 {
                     IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.MpmSubstep");
@@ -1108,7 +1113,7 @@ namespace Ifrit::Runtime::Artemis
         {
             u32 m_CounterId;
             u32 m_IndirectDrawId;
-        } pci;
+        } pci{};
         AddComputePass<PushConst_PrepareInd>(builder, "MPMSimulator.ParticleRenderPrepareIndirect",
             GetShader(Internal::kIntShaderTableArtemis.ParticleIndDrawBufferPrepCS), Vector3i(1, 1, 1), pci,
             [this](PushConst_PrepareInd pc, const FrameGraphPassContext& ctx) {
@@ -1154,7 +1159,7 @@ namespace Ifrit::Runtime::Artemis
             // cmd->DrawIndexed(m_Config->m_DefaultNumParticles, 1, 0, 0, 0);
             cmd->DrawIndirect(m_RenderParticleIndDrawBuffer.get(), 0);
         });
-        pass.AddRenderTarget(*renderTarget)
+        pass.AddRenderTarget(*renderTarget, RHI::RhiRenderTargetLoadOp::Load)
             .AddReadResource(*m_RDGRenderParticleIndDrawBuffer)
             .AddReadResource(*m_RDGParticlePosition)
             .AddReadResource(*m_RDGParticleColor);
@@ -1188,7 +1193,7 @@ namespace Ifrit::Runtime::Artemis
         {
             Matrix4x4f m_MVP;
             u32        m_PositionId;
-        } pc;
+        };
 
         auto& pass = builder.AddGraphicsPass("MPMSimulator.ParticleRender3D",
             ShaderVariantDesc(Internal::kIntShaderTableArtemis.ParticleRender3dVS, {}),

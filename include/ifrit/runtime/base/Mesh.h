@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Material.h"
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/geomproc/mesh/MeshClusterBase.h"
+#include "ifrit/runtime/base/MeshTransform.h"
 
 namespace Ifrit::Runtime
 {
@@ -94,13 +95,7 @@ namespace Ifrit::Runtime
         IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
     };
 
-    struct MeshInstanceTransform
-    {
-        Matrix4x4f model;
-        Matrix4x4f invModel;
-        Vector4f   maxScale;
-    };
-
+    
     class IFRIT_APIDECL Mesh : public AssetReferenceContainer, public IAssetCompatible
     {
         using GPUBuffer = RHI::RhiBufferRef;

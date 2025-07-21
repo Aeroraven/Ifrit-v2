@@ -37,10 +37,8 @@ RegisterStorage(BMeshDFMeta,{
     MeshDFMeta m_Data;
 });
 
-RegisterStorage(BLocalTransform,{
-    mat4 m_LocalToWorld;
-    mat4 m_WorldToLocal;
-    vec4 m_MaxScale;
+RegisterStorage(BModelTransform,{
+    FLocalTransformData m_Data;
 });
 
 layout(push_constant) uniform UPushConstant{
@@ -80,7 +78,7 @@ void main(){
     MeshDFMeta mdfMeta = GetResource(BMeshDFMeta, mdfDesc.m_MdfMetaId).m_Data;
     vec4 bboxMin = mdfMeta.bboxMin;
     vec4 bboxMax = mdfMeta.bboxMax;
-    mat4 localToWorld = GetResource(BLocalTransform, mdfDesc.m_TransformId).m_LocalToWorld;
+    mat4 localToWorld = GetResource(BModelTransform, mdfDesc.m_TransformId).m_Data.m_LocalToWorld;
 
     mat4 localToScr = PushConst.m_VP * localToWorld;
 

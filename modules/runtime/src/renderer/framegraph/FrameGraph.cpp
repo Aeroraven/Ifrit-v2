@@ -396,7 +396,7 @@ namespace Ifrit::Runtime
     {
         Owner<FrameGraphScope> scope = MakeOwner<FrameGraphScope>();
         scope->m_Name                = name;
-        scope->m_StartingPassId      = m_passes.size();
+        scope->m_StartingPassId      = SizeCast<u32>(m_passes.size());
         auto scopeId                 = SizeCast<u32>(m_scopes.size());
         scope->m_ScopeId             = scopeId;
         auto ptr                     = scope.get();

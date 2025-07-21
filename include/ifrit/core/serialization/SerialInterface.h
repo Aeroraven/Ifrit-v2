@@ -62,7 +62,4 @@ namespace Ifrit::Serialization
         }
     }
 
-#define IFRIT_ENUMCLASS_SERIALIZE(enumClass) \
-    template <class Archive> void serialize(Archive& ar, enumClass& x) { ar(cereal::make_nvp(#enumClass, x)); }
-
 } // namespace Ifrit::Serialization

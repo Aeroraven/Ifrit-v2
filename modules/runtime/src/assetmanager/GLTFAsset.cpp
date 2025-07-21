@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/assetmanager/GLTFAsset.h"
 #include "ifrit/runtime/common/Pch.h"
-
+#include "ifrit/runtime/base/Transform.h"
 #include "ifrit/core/algo/Hash.h"
 #include "ifrit/runtime/assetmanager/TextureAsset.h"
 #include "ifrit/runtime/material/SyaroDefaultGBufEmitter.h"

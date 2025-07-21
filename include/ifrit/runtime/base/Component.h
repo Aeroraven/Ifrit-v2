@@ -1,21 +1,3 @@
-
-/*
-Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
 #include "AssetReference.h"
 #include "ifrit/runtime/common/Pch.h"
@@ -51,7 +33,7 @@ namespace Ifrit::Runtime
     protected:
         T m_attributes{};
 
-    public:
+    protected:
         inline String SerializeAttribute()
         {
             String serialized;
@@ -272,7 +254,7 @@ namespace Ifrit::Runtime
         virtual void CallPropertyEditorHandle();
 
     public:
-        Component(){}; // for deserializatioin
+        Component() {}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 
@@ -305,107 +287,4 @@ namespace Ifrit::Runtime
         IFRIT_STRUCT_SERIALIZE(m_id);
     };
 
-    struct TransformAttribute
-    {
-        Vector3f m_position = Vector3f{ 0.0f, 0.0f, 0.0f };
-        Vector3f m_rotation = Vector3f{ 0.0f, 0.0f, 0.0f };
-        Vector3f m_scale    = Vector3f{ 1.0f, 1.0f, 1.0f };
-
-        IFRIT_STRUCT_SERIALIZE(m_position, m_rotation, m_scale);
-    };
-
-    class IFRIT_APIDECL Transform : public Component, public AttributeOwner<TransformAttribute>
-    {
-    private:
-        using GPUUniformBuffer                     = Ifrit::RHI::RhiMultiBuffer;
-        using GPUBindId                            = Ifrit::RHI::RhiDescHandleLegacy;
-        Ref<GPUUniformBuffer> m_gpuBuffer          = nullptr;
-        Ref<GPUUniformBuffer> m_gpuBufferLast      = nullptr;
-        Ref<GPUBindId>        m_gpuBindlessRef     = nullptr;
-        Ref<GPUBindId>        m_gpuBindlessRefLast = nullptr;
-        TransformAttribute    m_lastFrame;
-
-        struct DirtyFlag
-        {
-            bool changed     = true;
-            bool lastChanged = true;
-        } m_dirty;
-
-    public:
-        Transform(){};
-        Transform(GameObject* parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
-
-        String      Serialize() override { return SerializeAttribute(); }
-        void        Deserialize() override { DeserializeAttribute(); }
-
-        void        SetupProperties() override;
-
-        inline void OnFrameCollecting()
-        {
-            if (m_dirty.changed)
-            {
-                m_lastFrame = m_attributes;
-            }
-            m_dirty.lastChanged = m_dirty.changed;
-            m_dirty.changed     = false;
-        }
-
-        // getters
-        inline Vector3f GetPosition() const { return m_attributes.m_position; }
-        inline Vector3f GetRotation() const { return m_attributes.m_rotation; }
-        inline Vector3f GetScale() const { return m_attributes.m_scale; }
-
-        // setters
-        inline void     SetPosition(const Vector3f& pos)
-        {
-            m_attributes.m_position = pos;
-            m_dirty.changed         = true;
-        }
-        inline void SetRotation(const Vector3f& rot)
-        {
-            m_attributes.m_rotation = rot;
-            m_dirty.changed         = true;
-        }
-        inline void SetScale(const Vector3f& scale)
-        {
-            m_attributes.m_scale = scale;
-            m_dirty.changed      = true;
-        }
-
-        inline void      markUnchanged() { m_dirty.changed = false; }
-
-        inline DirtyFlag GetDirtyFlag() { return m_dirty; }
-        Matrix4x4f       GetModelToWorldMatrix();
-        Matrix4x4f       GetModelToWorldMatrixLast();
-        inline Vector3f  GetScaleLast() { return m_lastFrame.m_scale; }
-        inline void      SetGPUResource(Ref<GPUUniformBuffer> buffer, Ref<GPUUniformBuffer> last,
-                 Ref<GPUBindId>& bindlessRef, Ref<GPUBindId>& bindlessRefLast)
-        {
-            m_gpuBuffer          = buffer;
-            m_gpuBufferLast      = last;
-            m_gpuBindlessRef     = bindlessRef;
-            m_gpuBindlessRefLast = bindlessRefLast;
-        }
-        inline void GetGPUResource(Ref<GPUUniformBuffer>& buffer, Ref<GPUUniformBuffer>& last,
-            Ref<GPUBindId>& bindlessRef, Ref<GPUBindId>& bindlessRefLast)
-        {
-            buffer          = m_gpuBuffer;
-            last            = m_gpuBufferLast;
-            bindlessRef     = m_gpuBindlessRef;
-            bindlessRefLast = m_gpuBindlessRefLast;
-        }
-        inline u32 GetActiveResourceId()
-        {
-            if (m_gpuBindlessRef != nullptr)
-            {
-                return m_gpuBindlessRef->GetActiveId();
-            }
-            std::abort();
-            return 0;
-        }
-        IFRIT_COMPONENT_SERIALIZE(m_attributes);
-    };
-
 } // namespace Ifrit::Runtime
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::Transform);

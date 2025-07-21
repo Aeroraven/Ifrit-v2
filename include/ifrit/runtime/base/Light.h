@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "Component.h"
 #include "ifrit/runtime/common/Pch.h"
+#include "ifrit/core/serialization/SerialEnumDefine.h"
 
 namespace Ifrit::Runtime
 {

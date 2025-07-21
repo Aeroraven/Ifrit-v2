@@ -360,7 +360,7 @@ namespace Ifrit::Runtime
                 resSCLighting, cardSize, cardAtlasSize);
 
             m_Resources->m_ScreenProbe->ProbeGDFTrace(builder, primaryViewCBV, &resGDepth, &resGlobalDFGen,
-                clipmapRange, allCardData, resSCDepth, resSCLighting, cardSize, cardAtlasSize, gdfResolution,
+                static_cast<u32>(clipmapRange), allCardData, resSCDepth, resSCLighting, cardSize, cardAtlasSize, gdfResolution,
                 voxelsPerWidth, &resGlobalObjectGrid, m_Resources->m_SceneAggregator->GetGatheredBufferId());
             m_Resources->m_ScreenProbe->ProbeOctMappingBorderFix(builder);
             m_Resources->m_ScreenProbe->ProbeIntegrate(builder);

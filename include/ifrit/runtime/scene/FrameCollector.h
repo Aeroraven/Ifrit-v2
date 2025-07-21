@@ -331,6 +331,9 @@ namespace Ifrit::Runtime
         Ref<GPURTs>                                        m_deferShadowMaskRTs;
 
         SRVDesc                                            m_deferShadowMaskId;
+
+        // Extra data
+        HashMap<String, Ref<void>>                         m_ExtraData;
     };
 
 } // namespace Ifrit::Runtime

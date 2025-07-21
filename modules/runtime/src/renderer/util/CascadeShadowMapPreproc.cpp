@@ -16,6 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/util/CascadeShadowMapPreproc.h"
+#include "ifrit/runtime/base/Transform.h"
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/math/linalg/GeometryFunctions.h"
 

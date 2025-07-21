@@ -158,7 +158,7 @@ void main(){
     vec4 v2 = vec4(GetResource(bVertices, vertexRef).data[v2Idx].xyz, 1.0);
 
     uint transRef = GetResource(bPerObjectRef, uEmitDepthTargetPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRef;
-    mat4 localToWorld = GetResource(bLocalTransform, transRef).m_localToWorld;
+    mat4 localToWorld = GetResource(bModelTransform, transRef).m_Data.m_LocalToWorld;
     vec4 v0ws = localToWorld * v0;
     vec4 v1ws = localToWorld * v1;
     vec4 v2ws = localToWorld * v2;
@@ -172,7 +172,7 @@ void main(){
 
     // Motion vector
     uint transLastRef = GetResource(bPerObjectRef, uEmitDepthTargetPushConstant.m_InstanceDataUAV).data[objMeshletId.x].transformRefLast;
-    mat4 localToWorldLast = GetResource(bLocalTransform, transLastRef).m_localToWorld;
+    mat4 localToWorldLast = GetResource(bModelTransform, transLastRef).m_Data.m_LocalToWorld;
     mat4 worldToViewLast = GetResource(bPerframeView, uEmitDepthTargetPushConstant.m_PrevFrameDataCBV).data.m_worldToView;
     mat4 projectionLast = GetResource(bPerframeView, uEmitDepthTargetPushConstant.m_PrevFrameDataCBV).data.m_perspective;
     mat4 projNow = GetResource(bPerframeView, uEmitDepthTargetPushConstant.m_CurFrameDataCBV).data.m_perspective;

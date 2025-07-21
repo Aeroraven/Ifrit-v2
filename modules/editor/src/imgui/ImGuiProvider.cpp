@@ -22,8 +22,6 @@
 #include "ifrit/runtime/base/ActorBehavior.h"
 #include "ifrit/core/hal/HalWindow.h"
 
-#define IMGUI_API IFRIT_APIDECL_IMPORT
-
 namespace Ifrit::Editor
 {
     struct ImGuiProviderData
@@ -31,7 +29,7 @@ namespace Ifrit::Editor
         Vec<String>     m_RegisteredGameObjects;
         Vec<GUID>       m_RegisteredGameObjectsUUID;
         i32             m_SelectedGameObjectIndex = -1;
-         GUID           m_ActiveGameObjectUUID;
+        GUID            m_ActiveGameObjectUUID;
 
         VkDescriptorSet m_EditorSceneView = VK_NULL_HANDLE;
         ImGuiID         m_DockspaceID     = 0;
@@ -385,8 +383,9 @@ namespace Ifrit::Editor
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
         io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-        io.DisplaySize.x           = projectProperty.m_width * m_Data->m_DpiScaler;
-        io.DisplaySize.y           = projectProperty.m_height * m_Data->m_DpiScaler;
+
+        io.DisplaySize.x = static_cast<f32>(projectProperty.m_width * m_Data->m_DpiScaler);
+        io.DisplaySize.y = static_cast<f32>(projectProperty.m_height * m_Data->m_DpiScaler);
 
         // C:/Windows/Fonts/NotoSans-Regular.ttf
         io.Fonts->AddFontFromFileTTF(Internal::AssetPath::kDefaultFont, 12.0f * m_Data->m_DpiScaler, nullptr);
@@ -435,8 +434,8 @@ namespace Ifrit::Editor
     IFRIT_APIDECL void ImGuiProvider::OnFrameBegin()
     {
         ImGuiIO& io      = ImGui::GetIO();
-        io.DisplaySize.x = m_Application->GetProjectProperty().m_width * m_Data->m_DpiScaler;
-        io.DisplaySize.y = m_Application->GetProjectProperty().m_height * m_Data->m_DpiScaler;
+        io.DisplaySize.x = static_cast<f32>(m_Application->GetProjectProperty().m_width * m_Data->m_DpiScaler);
+        io.DisplaySize.y = static_cast<f32>(m_Application->GetProjectProperty().m_height * m_Data->m_DpiScaler);
 
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();

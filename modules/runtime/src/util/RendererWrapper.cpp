@@ -87,7 +87,7 @@ namespace Ifrit::Runtime
                 struct PushConst
                 {
                     RHI::RhiSRVDesc m_SrcTex;
-                } pc;
+                } pc{};
 
                 FrameGraphUtils::AddPostProcessPass<PushConst>(builder, "DrawToScreen",
                     ShaderVariantDesc(Internal::kIntShaderTable.Common.ResolveToSwapchainPS, {}), pc,

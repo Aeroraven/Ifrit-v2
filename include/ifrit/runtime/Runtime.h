@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/Material.h"
 #include "ifrit/runtime/base/Mesh.h"
 #include "ifrit/runtime/base/Scene.h"
+#include "ifrit/runtime/base/Transform.h"
 #include "ifrit/runtime/renderer/AyanamiRenderer.h"
 #include "ifrit/runtime/renderer/SyaroRenderer.h"
 #include "ifrit/runtime/scene/FrameCollector.h"
