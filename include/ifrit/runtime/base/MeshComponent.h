@@ -21,8 +21,7 @@ namespace Ifrit::Runtime
         MeshFilter() { m_instance = MakeRef<MeshInstance>(); }
         MeshFilter(GameObject* owner) : Component(owner) { m_instance = MakeRef<MeshInstance>(); }
         virtual ~MeshFilter() = default;
-        inline String Serialize() override { return ""; }
-        inline void   Deserialize() override {}
+
         inline void   SetupProperties() override {}
 
         void          LoadMesh();
@@ -64,8 +63,7 @@ namespace Ifrit::Runtime
         MeshRenderer() {} // for deserialization
         MeshRenderer(GameObject* owner) : Component(owner) {}
         virtual ~MeshRenderer() = default;
-        inline String        Serialize() override { return ""; }
-        inline void          Deserialize() override {}
+
         inline void          SetupProperties() override {}
         inline Ref<Material> GetMaterial() { return m_material; }
         inline void          SetMaterial(Ref<Material> p) { m_material = p; }

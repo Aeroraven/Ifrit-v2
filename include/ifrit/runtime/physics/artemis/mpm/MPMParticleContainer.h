@@ -28,8 +28,6 @@ namespace Ifrit::Runtime::Artemis
         MPMParticleContainer(GameObject* owner);
         virtual ~MPMParticleContainer();
 
-        String Serialize() override;
-        void   Deserialize() override;
         void   SetupProperties() override;
 
         IFRIT_COMPONENT_SERIALIZE(m_attributes);

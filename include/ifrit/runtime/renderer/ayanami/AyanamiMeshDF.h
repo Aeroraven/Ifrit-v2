@@ -68,8 +68,6 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiMeshDF(GameObject* owner) : Component(owner) {}
         virtual ~AyanamiMeshDF() = default;
 
-        inline std::string Serialize() override { return ""; }
-        inline void        Deserialize() override {}
         inline void        SetupProperties() override {}
 
     public:

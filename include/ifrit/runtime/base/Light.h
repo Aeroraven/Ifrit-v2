@@ -43,8 +43,6 @@ namespace Ifrit::Runtime
         Light() {};
         Light(GameObject* owner) : Component(owner), AttributeOwner() {}
         virtual ~Light() = default;
-        inline String    Serialize() override { return SerializeAttribute(); }
-        inline void      Deserialize() override { DeserializeAttribute(); }
         inline void      SetupProperties() override {}
 
         // getters

@@ -50,8 +50,7 @@ namespace Ifrit::Runtime
         Camera() {};
         Camera(GameObject* owner) : Component(owner), AttributeOwner() {}
         virtual ~Camera() = default;
-        inline std::string Serialize() override { return SerializeAttribute(); }
-        inline void        Deserialize() override { DeserializeAttribute(); }
+
         void               SetupProperties() override;
 
         Matrix4x4f         GetWorldToCameraMatrix() const;

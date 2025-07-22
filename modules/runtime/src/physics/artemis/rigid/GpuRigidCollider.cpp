@@ -2,8 +2,7 @@
 
 namespace Ifrit::Runtime::Artemis
 {
-    IFRIT_APIDECL String GPURigidCollider::Serialize() { return SerializeAttribute(); }
-    IFRIT_APIDECL void   GPURigidCollider::Deserialize() { DeserializeAttribute(); }
+
     IFRIT_APIDECL void   GPURigidCollider::SetupProperties()
     {
         AddProperty<f32, EPropertyEditorType::Text>("Radius", m_attributes.m_Radius);

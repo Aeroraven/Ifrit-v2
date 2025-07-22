@@ -20,8 +20,6 @@ namespace Ifrit::Runtime::Artemis
         MPMParticleEmitter(GameObject* owner);
         virtual ~MPMParticleEmitter();
 
-        inline String       Serialize() override { return ""; }
-        inline void         Deserialize() override {}
         void                SetupProperties() override;
 
         MPMParticleEmitArgs GetEmitArgs();

@@ -44,8 +44,6 @@ namespace Ifrit::Runtime
         Transform() {};
         Transform(GameObject* parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
 
-        String                       Serialize() override;
-        void                         Deserialize() override;
 
         void                         SetupProperties() override;
         void                         OnFrameCollecting();
@@ -82,4 +80,4 @@ namespace Ifrit::Runtime
 } // namespace Ifrit::Runtime
 
 IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::Transform);
-IFRIT_ENUMCLASS_SERIALIZE(Ifrit::Runtime::TransformUpdateDevice)
+IFRIT_ENUMCLASS_SERIALIZE(Ifrit::Runtime::TransformUpdateDevice)

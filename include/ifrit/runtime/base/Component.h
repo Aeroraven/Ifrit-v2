@@ -16,6 +16,9 @@
 // It's the pity that the messy ownership identification is found by @AEMShana
 // I am changing the ownership of Component to be unique.
 
+// Change log at 2025-07-23:
+// Temporarily droping (sealing) the manual serialization for Component. It's not user friendly to use
+
 namespace Ifrit::Runtime
 {
 
@@ -33,19 +36,6 @@ namespace Ifrit::Runtime
     {
     protected:
         T m_attributes{};
-
-    protected:
-        inline String SerializeAttribute()
-        {
-            String serialized;
-            Serialization::SerializeBinary(m_attributes, serialized);
-            return serialized;
-        }
-        inline void DeserializeAttribute()
-        {
-            String serialized;
-            Serialization::DeserializeBinary(serialized, m_attributes);
-        }
     };
 
     class Component;
@@ -260,8 +250,8 @@ namespace Ifrit::Runtime
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 
-        virtual String               Serialize()   = 0;
-        virtual void                 Deserialize() = 0;
+        virtual String               Serialize() final { return ""; }
+        virtual void                 Deserialize() final {}
 
         virtual void                 OnFrameCollecting() {}
         virtual void                 OnAwake() {}

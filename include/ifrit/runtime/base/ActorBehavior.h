@@ -35,9 +35,6 @@ namespace Ifrit::Runtime
         ActorBehavior() : Component() {}
         ActorBehavior(GameObject* parent) : Component(parent), AttributeOwner<ActorBehaviorAttribute>() {}
 
-        String Serialize() override { return SerializeAttribute(); }
-        void   Deserialize() override { DeserializeAttribute(); }
-
         IFRIT_COMPONENT_SERIALIZE(m_attributes);
     };
 } // namespace Ifrit::Runtime

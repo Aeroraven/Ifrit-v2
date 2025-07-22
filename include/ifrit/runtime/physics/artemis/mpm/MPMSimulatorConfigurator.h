@@ -20,8 +20,6 @@ namespace Ifrit::Runtime::Artemis
         MPMSimulatorConfigurator(GameObject* owner);
         virtual ~MPMSimulatorConfigurator();
 
-        inline String Serialize() override { return ""; }
-        inline void   Deserialize() override {}
         void          SetupProperties() override;
 
         void          SetActiveSimulator(MPMSimulator* sim);

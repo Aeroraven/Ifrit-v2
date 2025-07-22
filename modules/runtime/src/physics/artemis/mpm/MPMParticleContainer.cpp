@@ -24,8 +24,6 @@ namespace Ifrit::Runtime::Artemis
         m_Data = nullptr;
     }
 
-    IFRIT_APIDECL String                          MPMParticleContainer::Serialize() { return SerializeAttribute(); }
-    IFRIT_APIDECL void                            MPMParticleContainer::Deserialize() { DeserializeAttribute(); }
     IFRIT_APIDECL void                            MPMParticleContainer::SetupProperties() {}
 
     IFRIT_APIDECL MPMGpuParticleBufferCollection* MPMParticleContainer::GetDeviceData()

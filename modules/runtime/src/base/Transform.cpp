@@ -122,9 +122,6 @@ namespace Ifrit::Runtime
         m_DeviceOnlyBuffer = deviceOnlyBuffer;
     }
 
-    IFRIT_APIDECL String Transform::Serialize() { return SerializeAttribute(); }
-    IFRIT_APIDECL void   Transform::Deserialize() { DeserializeAttribute(); }
-
     IFRIT_APIDECL void   Transform::MarkUnchanged() { m_dirty.changed = false; }
 
 } // namespace Ifrit::Runtime

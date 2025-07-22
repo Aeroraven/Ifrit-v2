@@ -23,8 +23,7 @@ namespace Ifrit::Runtime::Artemis
         GPURigidCollider() {};
         GPURigidCollider(GameObject* parent) : Component(parent), AttributeOwner<GPURigidColliderProperty>() {}
 
-        String Serialize() override;
-        void   Deserialize() override;
+
         void   SetupProperties() override;
 
         f32    GetRadius() const;
