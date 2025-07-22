@@ -24,9 +24,6 @@
 #include "ifrit/rhi/common/RhiStructHelper.h"
 #include "ifrit/geomproc/vdb/VdbSampler.h"
 #include "ifrit/geomproc/pointcloud/PointCloudTransforms.h"
-#include "ifrit/runtime/physics/artemis/mpm/MPMSimulator.h"
-#include "ifrit/runtime/physics/artemis/mpm/MPMParticleEmitter.h"
-#include "ifrit/runtime/physics/artemis/mpm/MPMSimulatorConfigurator.h"
 #include "ifrit/editor/EditorProviderHelper.h"
 #include "ifrit/core/hal/HalDisplay.h"
 
@@ -46,7 +43,7 @@ namespace Ifrit
 {
     static f32 sTimestep = 1.0f / 1500.0f;
 
-    class MpmTiming : public ActorBehavior
+    class MPMTiming : public ActorBehavior
     {
         using ActorBehavior::ActorBehavior;
 
@@ -65,25 +62,32 @@ namespace Ifrit
     class DemoApplicationMpm : public Runtime::Application
     {
     private:
-        Ref<BaseForwardRenderer>                     renderer;
-        RendererConfig                               renderConfig;
+        Owner<BaseForwardRenderer>                   m_Renderer;
+        RendererConfig                               m_RenderConfig;
 
-        Ref<Artemis::MPMSimulator>                   m_MpmSim;
-        Ref<FrameGraphResourcePool>                  m_FrameGraphResourcePool;
+        Owner<Artemis::MPMSimulator>                 m_MpmSim;
+        Owner<Artemis::ArtemisSimulator>             m_ArtemisSim;
+        Owner<Artemis::RigidSimulator>               m_RigidSim;
         Vec<Vector3f>                                m_PointClouds;
 
         u32                                          m_FrameIdx = 0;
-
+        Ref<FrameGraphResourcePool>                  m_FrameGraphResourcePool;
         // Debug
         Ref<Geometry::ParticleSurfaceProceduralMesh> m_ParticleSurfaceMesh;
 
     public:
         void OnStart() override
         {
-            auto p = HAL::GetDisplayScale();
+            m_Renderer                               = MakeOwner<BaseForwardRenderer>(this);
+            m_RenderConfig.m_AntiAliasingType        = AntiAliasingType::None;
+            m_RenderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;
 
-            renderer = MakeRef<BaseForwardRenderer>(this);
-            m_MpmSim = MakeRef<Artemis::MPMSimulator>();
+            m_MpmSim     = MakeOwner<Artemis::MPMSimulator>();
+            m_RigidSim   = MakeOwner<Artemis::RigidSimulator>();
+            m_ArtemisSim = MakeOwner<Artemis::ArtemisSimulator>(this);
+
+            m_ArtemisSim->RegisterSolver(m_MpmSim.get());
+            m_ArtemisSim->RegisterSolver(m_RigidSim.get());
 
             RegisterSubsystem(Editor::CreateEditorProvider(Editor::EEditorProviderType::ImGui));
             EnableRendererWrapper(true);
@@ -103,33 +107,32 @@ namespace Ifrit
                 // m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
             }
 
-            renderConfig.m_ShadowConfig.m_maxDistance = 20.0f;
-            renderConfig.m_AntiAliasingType           = AntiAliasingType::None;
-            renderConfig.m_OverrideMaterialCulling    = OverrideMaterialCulling::ForcedCullNone;
-
             auto scene               = m_sceneAssetManager->CreateScene("TestScene2");
             auto node                = scene->AddSceneNode();
             m_FrameGraphResourcePool = MakeRef<FrameGraphResourcePool>(GetRhi());
 
             auto timeControl = node->AddGameObject("MPMTimeControl");
-            timeControl->AddComponent<MpmTiming>();
+            timeControl->AddComponent<MPMTiming>();
 
             auto mpmGlobalConfig = node->AddGameObject("MPMGlobalConfig");
             auto mpmConfig       = mpmGlobalConfig->AddComponent<Artemis::MPMSimulatorConfigurator>();
             mpmConfig->SetActiveSimulator(m_MpmSim.get());
+
+            auto mpmContainer          = node->AddGameObject("MPMParticleContainer");
+            auto mpmContainerComponent = mpmContainer->AddComponent<Artemis::MPMParticleContainer>();
 
             auto cameraGameObject = node->AddGameObject("Camera");
             auto camera           = cameraGameObject->AddComponent<Camera>();
             camera->SetCameraType(CameraType::Orthographic);
             camera->SetMainCamera(true);
             camera->SetAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
-            camera->SetOrthoSpaceSize(2.0f);
+            camera->SetOrthoSpaceSize(1.0f);
             camera->SetFar(20.0f);
             camera->SetNear(0.10f);
 
             auto cameraTransform = cameraGameObject->GetComponent<Transform>();
             cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
-            cameraTransform->SetPosition({ 0.0f, 0.0f, -1.0f });
+            cameraTransform->SetPosition({ 0.5f, 0.5f, -1.0f });
 
             auto material = MakeRef<DefaultMaterial>(this);
             material->BuildMaterial();
@@ -141,7 +144,10 @@ namespace Ifrit
             auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
             rigidRenderer->SetMaterial(material);
             auto rigidTransform = rigid->GetComponent<Transform>();
+            rigidTransform->SetPosition({ 0.5f, 0.5f, 0.0f });
             rigidTransform->SetDevice(TransformUpdateDevice::GPU);
+            auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
+            rigidCollider->SetRadius(0.1f);
 
             auto defaultEmitter = node->AddGameObject("ParticleEmitter");
             auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();
@@ -151,7 +157,7 @@ namespace Ifrit
             }
 
             m_sceneManager->SetActiveScene(scene);
-            m_RendererWrapper->SetRenderer(renderer.get());
+            m_RendererWrapper->SetRenderer(m_Renderer.get());
         }
 
         void OnUpdate() override
@@ -159,16 +165,11 @@ namespace Ifrit
             m_FrameIdx++;
 
             m_RendererWrapper->EnqueueRendererTask(m_sceneManager->GetActiveScene().get(), nullptr,
-                m_RendererWrapper->GetDefaultRenderTargets(), renderConfig);
-
-            m_RendererWrapper->EnqueueRDGTask(
-                [&](FrameGraphBuilder* builder) {
-                    auto rt = &builder->ImportTexture("DemoRT", m_RendererWrapper->GetDefaultColorImage().get());
-                    m_MpmSim->CollectScene(m_sceneManager->GetActiveScene().get());
-                    m_MpmSim->RunSolverStep(*builder, sTimestep);
-                    m_MpmSim->Render(*builder, rt);
-                },
-                m_FrameGraphResourcePool.get());
+                m_RendererWrapper->GetDefaultRenderTargets(), m_RenderConfig);
+            m_MpmSim->SetDebugRenderTarget(m_RendererWrapper->GetDefaultColorImage().get());
+            m_ArtemisSim->CollectScene(m_sceneManager->GetActiveScene().get());
+            m_RendererWrapper->EnqueueGeneralTask(
+                [&](RHI::RhiTaskSubmission* submission) { return m_ArtemisSim->Update(sTimestep, { submission }); });
         }
 
         void OnEnd() override {}

@@ -10,11 +10,14 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void Transform::SetupProperties()
     {
-        AddEnumProperty<TransformUpdateDevice>(
-            "Device", m_attributes.m_UpdateDevice, { TransformUpdateDevice::CPU, TransformUpdateDevice::GPU });
-        AddProperty<Vector3f, EPropertyEditorType::Text>("Position", m_attributes.m_Position);
-        AddProperty<Vector3f, EPropertyEditorType::Text>("Rotation", m_attributes.m_Rotation);
-        AddProperty<Vector3f, EPropertyEditorType::Text>("Scale", m_attributes.m_Scale);
+        AddEnumProperty<TransformUpdateDevice>("Device", m_attributes.m_UpdateDevice,
+            { TransformUpdateDevice::CPU, TransformUpdateDevice::GPU }, [&]() { return false; });
+        AddProperty<Vector3f, EPropertyEditorType::Text>("Position", m_attributes.m_Position,
+            [&]() { return m_attributes.m_UpdateDevice == TransformUpdateDevice::CPU; });
+        AddProperty<Vector3f, EPropertyEditorType::Text>("Rotation", m_attributes.m_Rotation,
+            [&]() { return m_attributes.m_UpdateDevice == TransformUpdateDevice::CPU; });
+        AddProperty<Vector3f, EPropertyEditorType::Text>(
+            "Scale", m_attributes.m_Scale, [&]() { return m_attributes.m_UpdateDevice == TransformUpdateDevice::CPU; });
     }
 
     IFRIT_APIDECL Matrix4x4f Transform::GetModelToWorldMatrix() const
@@ -124,4 +127,4 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void   Transform::MarkUnchanged() { m_dirty.changed = false; }
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

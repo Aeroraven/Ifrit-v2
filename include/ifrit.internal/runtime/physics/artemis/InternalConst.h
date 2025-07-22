@@ -4,4 +4,5 @@
 namespace Ifrit::Runtime::Artemis::Internal
 {
     IF_CONSTEXPR const char* kArtemisSceneDataKey = "ArtemisSceneData";
-} // namespace Ifrit::Runtime::Artemis::Internal
+    IF_CONSTEXPR u32         kArtemisMaxColliders = 114514;
+} // namespace Ifrit::Runtime::Artemis::Internal

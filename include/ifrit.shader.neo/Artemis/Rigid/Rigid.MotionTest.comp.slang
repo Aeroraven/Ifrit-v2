@@ -6,8 +6,11 @@ namespace Rigid{
 
     struct PushConst_T
     {
+        float4 m_Gravity;
+        float m_TimeStep;
         int m_NumColliders;
-        TRWStructuredBufferHandle<FRigidColliderEntry> m_ColliderEntries;
+        TStructuredBufferHandle<FRigidColliderEntry> m_ColliderEntries;
+        TRWStructuredBufferHandle<FRigidColliderEntryRuntimeData> m_ColliderEntriesRuntime;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -22,10 +25,13 @@ namespace Rigid{
             return;
 
         FRigidColliderEntry Collider = PushConst.m_ColliderEntries.Load(ThreadId.x);
+        FRigidColliderEntryRuntimeData ColliderRuntime = PushConst.m_ColliderEntriesRuntime.Load(Collider.m_RuntimeId);
         FInstanceLocalTransform InstanceTransform = Collider.m_Transform.Load();
 
+        float3 Displacement = ColliderRuntime.m_Displacement.xyz + PushConst.m_Gravity.xyz * PushConst.m_TimeStep * PushConst.m_TimeStep;
+
         float3 Position = InstanceTransform.m_Position.xyz;
-        Position = Position + float3(0.0f, -0.01f, 0.0f);
+        Position = Position + Displacement;
         InstanceTransform.m_Position.xyz = Position;
 
         InstanceTransform.m_LocalToWorld = Math::GetModelToWorldMatrix(InstanceTransform.m_Position.xyz,
@@ -33,6 +39,9 @@ namespace Rigid{
                                                                  InstanceTransform.m_MaxScale.xyz);
         InstanceTransform.m_WorldToLocal = Math::Inverse(InstanceTransform.m_LocalToWorld);
         Collider.m_Transform.Store(InstanceTransform);
+        ColliderRuntime.m_Displacement.xyz = Displacement;
+
+        PushConst.m_ColliderEntriesRuntime.Store(ColliderRuntime, ThreadId.x);
     }
 
-}}} 
+}}} 

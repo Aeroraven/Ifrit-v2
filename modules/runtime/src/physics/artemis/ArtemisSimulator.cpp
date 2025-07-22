@@ -48,7 +48,14 @@ namespace Ifrit::Runtime::Artemis
         }
     }
 
-    IFRIT_APIDECL void ArtemisSimulator::CollectScene(Scene* scene) { CollectPhysicsSceneData(scene, m_App->GetRhi()); }
+    IFRIT_APIDECL void ArtemisSimulator::CollectScene(Scene* scene)
+    {
+        CollectPhysicsSceneData(scene, m_App->GetRhi());
+        for (auto& solver : m_Data->m_Solvers)
+        {
+            solver->CollectScene(scene);
+        }
+    }
 
     IFRIT_APIDECL Owner<RHI::RhiTaskSubmission> ArtemisSimulator::Update(
         f32 deltaTime, Vec<RHI::RhiTaskSubmission*> waitFor)

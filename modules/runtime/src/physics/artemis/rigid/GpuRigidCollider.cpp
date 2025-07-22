@@ -18,4 +18,7 @@ namespace Ifrit::Runtime::Artemis
     IFRIT_APIDECL void GPURigidCollider::OnFrameCollecting() { m_IsDirty = false; }
     IFRIT_APIDECL bool GPURigidCollider::GetIsDirty() const { return m_IsDirty; }
 
-} // namespace Ifrit::Runtime::Artemis
+    IFRIT_APIDECL void GPURigidCollider::SetInternalRigidId(u32 id) { m_InternalRigidId = id; }
+    IFRIT_APIDECL u32  GPURigidCollider::GetInternalRigidId() { return m_InternalRigidId; }
+
+} // namespace Ifrit::Runtime::Artemis

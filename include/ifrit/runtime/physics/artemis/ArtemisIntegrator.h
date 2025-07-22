@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 #include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
+#include "ifrit/runtime/forwarding/FwdScene.h"
 
 namespace Ifrit::Runtime::Artemis
 {
@@ -25,6 +26,7 @@ namespace Ifrit::Runtime::Artemis
     {
     public:
         virtual void RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime) = 0;
+        virtual void CollectScene(Scene* scene)                               = 0;
     };
 
 } // namespace Ifrit::Runtime::Artemis

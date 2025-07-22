@@ -37,8 +37,7 @@ namespace Ifrit::Runtime
         return prefab;
     }
 
-    IFRIT_APIDECL
-    Component::Component(GameObject* parent)
+    IFRIT_APIDECL Component::Component(GameObject* parent)
     {
         m_id.m_GUID         = GUID::Generate();
         m_ParentRef         = parent->GetManagerId();
@@ -113,17 +112,17 @@ namespace Ifrit::Runtime
             AddProperty<bool, EPropertyEditorType::Select>("Enable", m_isEnabled);
             SetupProperties();
         }
-        auto& axuHandles = GetPropertyEditorAxuHandles();
+        auto& auxHandles = GetPropertyEditorAuxHandles();
         for (auto& prop : m_Property)
         {
-            if (axuHandles.m_OnPreRegister)
+            if (auxHandles.m_OnPreRegister)
             {
-                axuHandles.m_OnPreRegister();
+                auxHandles.m_OnPreRegister();
             }
             prop.RegisterEditorHandle();
-            if (axuHandles.m_OnPostRegister)
+            if (auxHandles.m_OnPostRegister)
             {
-                axuHandles.m_OnPostRegister();
+                auxHandles.m_OnPostRegister();
             }
         }
     }

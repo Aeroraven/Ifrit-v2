@@ -78,6 +78,8 @@ namespace Ifrit::Runtime::Artemis
         void                 GenerateCollisionConstraints(FrameGraphBuilder& builder);
         void                 UpdateVelocityCollision(FrameGraphBuilder& builder);
 
+        void                 CollectScene(Scene* scene) override;
+
     public:
         PBDCloth() { Initialize(); }
         PBDCloth(GameObject* parent) : Component(parent), AttributeOwner<PBDClothAttribute>() { Initialize(); }

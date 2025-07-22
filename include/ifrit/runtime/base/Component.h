@@ -6,7 +6,7 @@
 #include "ifrit/core/typing/Traits.h"
 #include <typeinfo>
 
-#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, __VA_ARGS__)
+#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, __VA_ARGS__)
 #define IFRIT_COMPONENT_REGISTER(x) \
     IFRIT_DERIVED_REGISTER(x);      \
     IFRIT_INHERIT_REGISTER(Ifrit::Runtime::Component, x);
@@ -234,7 +234,8 @@ namespace Ifrit::Runtime
 
         template <typename T,
             typename U = std::underlying_type<T>::type IF_REQUIRES(std::is_enum_v<T>&& TypeIsAnyOf_v<U, i32, u8, i8>)>
-        inline void AddEnumProperty(const char* name, T& value, const Vec<T>& enumValues)
+        inline void AddEnumProperty(
+            const char* name, T& value, const Vec<T>& enumValues, Fn<bool()> predicate = PropertyPredicateAlwaysTrue)
         {
             using TUnderlying = typename std::underlying_type<T>::type;
             static_assert(std::is_same_v<TUnderlying, U>, "Invalid enum type");
@@ -244,8 +245,8 @@ namespace Ifrit::Runtime
             {
                 enumOptions.push_back({ GetEnumUnderlyingValue(enumValue), GetEnumName(enumValue) });
             }
-            m_Property.push_back(ComponentProperty<U, EPropertyEditorType::Select>(
-                name, reinterpret_cast<U&>(value), std::move(enumOptions)));
+            m_Property.push_back(ComponentProperty<U, EPropertyEditorType::Select>(name, reinterpret_cast<U&>(value),
+                PropertyConstraint<EPropertyEditorType::Select, U>(enumOptions, predicate)));
         }
 
         inline virtual void AddProperty(ComponentPropertyBase prop) final { m_Property.push_back(prop); }

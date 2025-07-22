@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "ifrit.shader.neo/Artemis/PBD/PBDCloth.Shared.hlsli"
 #include "ifrit/runtime/physics/artemis/geometry/TetrahedralMesh.h"
+#include "ifrit/runtime/base/Scene.h"
 
 using namespace Ifrit::Math;
 using namespace Ifrit::RHI;
@@ -1095,5 +1096,7 @@ namespace Ifrit::Runtime::Artemis
                          .AddReadResource(*m_Data->m_RDGParticleCollisions)
                          .AddReadResource(*m_Data->m_RDGParticleCollisionsCounter);
     }
+
+    IFRIT_APIDECL void PBDCloth::CollectScene(Scene* scene) {}
 
 } // namespace Ifrit::Runtime::Artemis

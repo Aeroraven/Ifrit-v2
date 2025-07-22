@@ -3,6 +3,8 @@
 #include "ifrit.shader.neo/Artemis/MPM/MPM.Common.hlsli"
 #include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/runtime/physics/artemis/mpm/MPMParticleEmitter.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMParticleData.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMParticleContainer.h"
 #include <variant>
 
 using namespace Ifrit::Math;
@@ -81,24 +83,11 @@ namespace Ifrit::Runtime::Artemis
 
         std::variant<Vec<Vector2f>, Vec<Vector4f>> m_InitParticleLocations;
         Vec<MPMEmissionInfo>                       m_EmissionInfos;
+        RHI::RhiTexture*                           m_DebugRenderTarget = nullptr;
 
         // Persistent data
-        RhiBufferRef                               m_ParticleCount;
         RhiBufferRef                               m_ParticleEmitLocations;
-
-        RhiBufferRef                               m_ParticlePosition;
-        RhiBufferRef                               m_ParticleVelocity;
-        RhiBufferRef                               m_ParticleColor;
-        RhiBufferRef                               m_ParticleMass;
-        RhiBufferRef                               m_ParticleDeformGrad;
-        RhiBufferRef                               m_ParticleDeformGradDet;
-        RhiBufferRef                               m_ParticleVolume;
-        RhiBufferRef                               m_ParticleApicB;
-        RhiBufferRef                               m_ParticleIndex;
-        RhiBufferRef                               m_ParticleDebug;
-        RhiBufferRef                               m_ParticleStressContrib;
-        RhiBufferRef                               m_ParticleMatProperty;
-        RhiBufferRef                               m_ParticleLiquidDensity; // For PBMPM
+        MPMGpuParticleBufferCollection*            m_ParticleData = nullptr;
 
         RhiBufferRef                               m_GridForce;
         RhiBufferRef                               m_GridVelocity;
@@ -131,6 +120,8 @@ namespace Ifrit::Runtime::Artemis
         FGBufferNodeRef                            m_RDGGridAttribute;
 
         FGBufferNodeRef                            m_RDGRenderParticleIndDrawBuffer;
+
+        FGTextureNodeRef                           m_RDGRenderTarget;
 
         // Transient data
         FGBufferNodeRef                            m_RDGValidGridCounter;
@@ -757,10 +748,10 @@ namespace Ifrit::Runtime::Artemis
         gridAttr.m_GridSpacing  = m_Config->m_GridSpacing;
 
         auto tq             = RHI->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
-        auto stagedIndex    = RHI->CreateStagedSingleBuffer(m_ParticleIndex.get());
+        auto stagedIndex    = RHI->CreateStagedSingleBuffer(m_ParticleData->m_ParticleIndex.get());
         auto stagedGridAttr = RHI->CreateStagedSingleBuffer(m_GridAttribute.get());
-        auto stagedPosition = RHI->CreateStagedSingleBuffer(m_ParticlePosition.get());
-        auto stagedCounter  = RHI->CreateStagedSingleBuffer(m_ParticleCount.get());
+        auto stagedPosition = RHI->CreateStagedSingleBuffer(m_ParticleData->m_ParticlePosition.get());
+        auto stagedCounter  = RHI->CreateStagedSingleBuffer(m_ParticleData->m_ParticleCount.get());
         tq->RunSyncCommand([&](const RhiCommandList* cmd) {
             stagedIndex->CmdCopyToDevice(
                 cmd, particleIndexData.data(), SizeCast<u32>(particleIndexData.size() * sizeof(u32)), 0);
@@ -930,26 +921,35 @@ namespace Ifrit::Runtime::Artemis
         auto indexUsage    = defaultUsage | RhiBufferUsage::RhiBufferUsage_Index;
         auto indirectUsage = defaultUsage | RhiBufferUsage::RhiBufferUsage_Indirect;
 
-        m_ParticleCount    = RHI->CreateBufferDevice("MPM_ParticleCount", particleCountSz, indirectUsage, true);
-        m_ParticleColor    = RHI->CreateBufferDevice("MPM_ParticleColor", particleColorSz, defaultUsage, true);
-        m_ParticlePosition = RHI->CreateBufferDevice("MPM_ParticlePosition", particlePosSz, defaultUsage, true);
+        m_ParticleData->m_ParticleCount =
+            RHI->CreateBufferDevice("MPM_ParticleCount", particleCountSz, indirectUsage, true);
+        m_ParticleData->m_ParticleColor =
+            RHI->CreateBufferDevice("MPM_ParticleColor", particleColorSz, defaultUsage, true);
+        m_ParticleData->m_ParticlePosition =
+            RHI->CreateBufferDevice("MPM_ParticlePosition", particlePosSz, defaultUsage, true);
         m_ParticleEmitLocations =
             RHI->CreateBufferDevice("MPM_ParticleEmitLocations", particlePosSz, defaultUsage, true);
-        m_ParticleVelocity = RHI->CreateBufferDevice("MPM_ParticleVelocity", particleVelSz, defaultUsage, true);
-        m_ParticleMass     = RHI->CreateBufferDevice("MPM_ParticleMass", particleMassSz, defaultUsage, true);
-        m_ParticleDeformGrad =
+        m_ParticleData->m_ParticleVelocity =
+            RHI->CreateBufferDevice("MPM_ParticleVelocity", particleVelSz, defaultUsage, true);
+        m_ParticleData->m_ParticleMass =
+            RHI->CreateBufferDevice("MPM_ParticleMass", particleMassSz, defaultUsage, true);
+        m_ParticleData->m_ParticleDeformGrad =
             RHI->CreateBufferDevice("MPM_ParticleDeformGradient", particleDeformGradSz, defaultUsage, true);
-        m_ParticleDeformGradDet =
+        m_ParticleData->m_ParticleDeformGradDet =
             RHI->CreateBufferDevice("MPM_ParticleDeformGradientDeterminant", particleJSz, defaultUsage, true);
-        m_ParticleVolume = RHI->CreateBufferDevice("MPM_ParticleVolume", particleVolSz, defaultUsage, true);
-        m_ParticleApicB  = RHI->CreateBufferDevice("MPM_ParticleApicB", particleApicBSz, defaultUsage, true);
-        m_ParticleIndex  = RHI->CreateBufferDevice("MPM_ParticleIndex", particleIndexSz, indexUsage, true);
-        m_ParticleDebug  = RHI->CreateBufferDevice("MPM_ParticleDebug", particleDebugSz, defaultUsage, true);
-        m_ParticleStressContrib =
+        m_ParticleData->m_ParticleVolume =
+            RHI->CreateBufferDevice("MPM_ParticleVolume", particleVolSz, defaultUsage, true);
+        m_ParticleData->m_ParticleApicB =
+            RHI->CreateBufferDevice("MPM_ParticleApicB", particleApicBSz, defaultUsage, true);
+        m_ParticleData->m_ParticleIndex =
+            RHI->CreateBufferDevice("MPM_ParticleIndex", particleIndexSz, indexUsage, true);
+        m_ParticleData->m_ParticleDebug =
+            RHI->CreateBufferDevice("MPM_ParticleDebug", particleDebugSz, defaultUsage, true);
+        m_ParticleData->m_ParticleStressContrib =
             RHI->CreateBufferDevice("MPM_ParticleStressContrib", particleStressContribSz, defaultUsage, true);
-        m_ParticleMatProperty =
+        m_ParticleData->m_ParticleMatProperty =
             RHI->CreateBufferDevice("MPM_ParticleMaterialProperty", particleMatPropertySz, defaultUsage, true);
-        m_ParticleLiquidDensity =
+        m_ParticleData->m_ParticleLiquidDensity =
             RHI->CreateBufferDevice("MPM_ParticleLiquiddDensity", particleLiquidSz, defaultUsage, true);
 
         m_GridForce     = RHI->CreateBufferDevice("MPM_GridForce", gridForceSz, defaultUsage, true);
@@ -966,21 +966,25 @@ namespace Ifrit::Runtime::Artemis
     void MPMSimulatorPrivateData::InitRDGResources(FrameGraphBuilder& builder)
     {
         // Persistent
-        m_RDGParticleCount         = &builder.ImportBuffer("MPM_ParticleCount", m_ParticleCount.get());
-        m_RDGParticleColor         = &builder.ImportBuffer("MPM_ParticleColor", m_ParticleColor.get());
-        m_RDGParticlePosition      = &builder.ImportBuffer("MPM_ParticlePosition", m_ParticlePosition.get());
+        m_RDGParticleCount    = &builder.ImportBuffer("MPM_ParticleCount", m_ParticleData->m_ParticleCount.get());
+        m_RDGParticleColor    = &builder.ImportBuffer("MPM_ParticleColor", m_ParticleData->m_ParticleColor.get());
+        m_RDGParticlePosition = &builder.ImportBuffer("MPM_ParticlePosition", m_ParticleData->m_ParticlePosition.get());
         m_RDGParticleEmitLocations = &builder.ImportBuffer("MPM_ParticleEmitLocations", m_ParticleEmitLocations.get());
-        m_RDGParticleVelocity      = &builder.ImportBuffer("MPM_ParticleVelocity", m_ParticleVelocity.get());
-        m_RDGParticleMass          = &builder.ImportBuffer("MPM_ParticleMass", m_ParticleMass.get());
-        m_RDGParticleDeformGrad    = &builder.ImportBuffer("MPM_ParticleDeformGradient", m_ParticleDeformGrad.get());
-        m_RDGParticleDeformGradDet =
-            &builder.ImportBuffer("MPM_ParticleDeformGradientDeterminant", m_ParticleDeformGradDet.get());
-        m_RDGParticleVolume        = &builder.ImportBuffer("MPM_ParticleVolume", m_ParticleVolume.get());
-        m_RDGParticleApicB         = &builder.ImportBuffer("MPM_ParticleApicB", m_ParticleApicB.get());
-        m_RDGParticleDebug         = &builder.ImportBuffer("MPM_ParticleDebug", m_ParticleDebug.get());
-        m_RDGParticleStressContrib = &builder.ImportBuffer("MPM_ParticleStressContrib", m_ParticleStressContrib.get());
-        m_RDGParticleMatProperty   = &builder.ImportBuffer("MPM_ParticleMaterialProperty", m_ParticleMatProperty.get());
-        m_RDGParticleLiquidDensity = &builder.ImportBuffer("MPM_ParticleLiquidDensity", m_ParticleLiquidDensity.get());
+        m_RDGParticleVelocity = &builder.ImportBuffer("MPM_ParticleVelocity", m_ParticleData->m_ParticleVelocity.get());
+        m_RDGParticleMass     = &builder.ImportBuffer("MPM_ParticleMass", m_ParticleData->m_ParticleMass.get());
+        m_RDGParticleDeformGrad =
+            &builder.ImportBuffer("MPM_ParticleDeformGradient", m_ParticleData->m_ParticleDeformGrad.get());
+        m_RDGParticleDeformGradDet = &builder.ImportBuffer(
+            "MPM_ParticleDeformGradientDeterminant", m_ParticleData->m_ParticleDeformGradDet.get());
+        m_RDGParticleVolume = &builder.ImportBuffer("MPM_ParticleVolume", m_ParticleData->m_ParticleVolume.get());
+        m_RDGParticleApicB  = &builder.ImportBuffer("MPM_ParticleApicB", m_ParticleData->m_ParticleApicB.get());
+        m_RDGParticleDebug  = &builder.ImportBuffer("MPM_ParticleDebug", m_ParticleData->m_ParticleDebug.get());
+        m_RDGParticleStressContrib =
+            &builder.ImportBuffer("MPM_ParticleStressContrib", m_ParticleData->m_ParticleStressContrib.get());
+        m_RDGParticleMatProperty =
+            &builder.ImportBuffer("MPM_ParticleMaterialProperty", m_ParticleData->m_ParticleMatProperty.get());
+        m_RDGParticleLiquidDensity =
+            &builder.ImportBuffer("MPM_ParticleLiquidDensity", m_ParticleData->m_ParticleLiquidDensity.get());
 
         m_RDGGridForce     = &builder.ImportBuffer("MPM_GridForce", m_GridForce.get());
         m_RDGGridVelocity  = &builder.ImportBuffer("MPM_GridVelocity", m_GridVelocity.get());
@@ -989,6 +993,11 @@ namespace Ifrit::Runtime::Artemis
 
         m_RDGRenderParticleIndDrawBuffer =
             &builder.ImportBuffer("MPM_RenderParticleIndDraw", m_RenderParticleIndDrawBuffer.get());
+
+        if (m_DebugRenderTarget)
+        {
+            m_RDGRenderTarget = &builder.ImportTexture("MPM_DebugRenderTarget", m_DebugRenderTarget);
+        }
 
         // Transient
         // TODO: make imported !!!
@@ -1034,6 +1043,7 @@ namespace Ifrit::Runtime::Artemis
             m_HasGlobalDrain = false;
         }
 
+        f32 deltaTimePerSubstep = deltaTime / static_cast<f32>(m_Config->m_Substeps);
         if (isPbMpm)
         {
             for (auto i = 0u; i < m_Config->m_Substeps; ++i)
@@ -1051,18 +1061,18 @@ namespace Ifrit::Runtime::Artemis
                         {
                             IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmIteration");
                             GridReset(builder, isFirstRun, isFirstIteration);
-                            PbMpmResolveConstraints(builder, deltaTime);
-                            ParticleToGridTransfer(builder, deltaTime, firstOrLastRun);
+                            PbMpmResolveConstraints(builder, deltaTimePerSubstep);
+                            ParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
                             if (isFirstIteration)
                             {
                                 GridVelocityNormalize(builder);
                             }
-                            GridVelocityUpdate(builder, deltaTime, isFirstIteration);
-                            GridToParticleTransfer(builder, deltaTime);
+                            GridVelocityUpdate(builder, deltaTimePerSubstep, isFirstIteration);
+                            GridToParticleTransfer(builder, deltaTimePerSubstep);
                         }
                         isFirstRun = false;
                     }
-                    PbMpmParticleIntegrate(builder, deltaTime);
+                    PbMpmParticleIntegrate(builder, deltaTimePerSubstep);
                 }
             }
         }
@@ -1073,13 +1083,13 @@ namespace Ifrit::Runtime::Artemis
                 {
                     IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.MpmSubstep");
                     GridReset(builder, isFirstRun, true);
-                    ParticleToGridTransfer(builder, deltaTime, false);
+                    ParticleToGridTransfer(builder, deltaTimePerSubstep, false);
                     GridVelocityNormalize(builder);
                     GridForceUpdate(builder);
                     GridGravityApply(builder);
-                    GridVelocityUpdate(builder, deltaTime, false);
-                    GridToParticleTransfer(builder, deltaTime);
-                    ParticleAdvect(builder, deltaTime);
+                    GridVelocityUpdate(builder, deltaTimePerSubstep, false);
+                    GridToParticleTransfer(builder, deltaTimePerSubstep);
+                    ParticleAdvect(builder, deltaTimePerSubstep);
                 }
                 isFirstRun = false;
             }
@@ -1153,7 +1163,7 @@ namespace Ifrit::Runtime::Artemis
             pc.m_AspectRatio = (f32)rtWidth / (f32)rtHeight;
             pc.m_PointSize   = m_ParticleRenderSize;
 
-            cmd->AttachIndexBuffer(m_ParticleIndex.get());
+            cmd->AttachIndexBuffer(m_ParticleData->m_ParticleIndex.get());
             cmd->SetCullMode(RhiCullMode::None);
             cmd->SetPushConst(&pc, 0, sizeof(PushConst));
             // cmd->DrawIndexed(m_Config->m_DefaultNumParticles, 1, 0, 0, 0);
@@ -1211,7 +1221,7 @@ namespace Ifrit::Runtime::Artemis
             pc.m_PositionId = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
             pc.m_MVP        = mvp;
 
-            cmd->AttachIndexBuffer(m_ParticleIndex.get());
+            cmd->AttachIndexBuffer(m_ParticleData->m_ParticleIndex.get());
             cmd->SetCullMode(RhiCullMode::None);
             cmd->SetPushConst(&pc, 0, sizeof(PushConst));
             cmd->DrawIndexed(m_Config->m_DefaultNumParticles, 1, 0, 0, 0);
@@ -1243,8 +1253,20 @@ namespace Ifrit::Runtime::Artemis
 
     IFRIT_APIDECL void                MPMSimulator::RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime)
     {
-        IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.SolverStep");
-        m_Data->RunSolverStep(builder, deltaTime);
+        if (!m_Data->m_ParticleData)
+        {
+            return;
+        }
+
+        {
+            IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.SolverStep");
+            m_Data->RunSolverStep(builder, deltaTime);
+        }
+
+        if (m_Data->m_DebugRenderTarget)
+        {
+            Render(builder, m_Data->m_RDGRenderTarget);
+        }
     }
 
     IFRIT_APIDECL void MPMSimulator::Render(FrameGraphBuilder& builder, FGTextureNode* renderTarget)
@@ -1323,15 +1345,23 @@ namespace Ifrit::Runtime::Artemis
     template IFRIT_APIDECL void MPMSimulator::EmitParticles<3>(
         const Vec<TGenericVector<f32, 3>>& locations, const MPMParticleEmitArgs& args);
 
-    IFRIT_APIDECL RHI::RhiBufferRef MPMSimulator::GetParticlePositionBuffer() { return m_Data->m_ParticlePosition; }
-    IFRIT_APIDECL RHI::RhiBufferRef MPMSimulator::GetParticleCounterBuffer() { return m_Data->m_ParticleCount; }
+    IFRIT_APIDECL RHI::RhiBufferRef MPMSimulator::GetParticlePositionBuffer()
+    {
+        return m_Data->m_ParticleData->m_ParticlePosition;
+    }
+    IFRIT_APIDECL RHI::RhiBufferRef MPMSimulator::GetParticleCounterBuffer()
+    {
+        return m_Data->m_ParticleData->m_ParticleCount;
+    }
 
-    IFRIT_APIDECL void              MPMSimulator::RequestClearParticles() { m_Data->m_HasGlobalDrain = true; }
-    void                            MPMSimulator::SetDefaultSize(f32 size) { m_Data->m_ParticleRenderSize = size; }
+    IFRIT_APIDECL void MPMSimulator::RequestClearParticles() { m_Data->m_HasGlobalDrain = true; }
+    void               MPMSimulator::SetDefaultSize(f32 size) { m_Data->m_ParticleRenderSize = size; }
 
-    IFRIT_APIDECL void              MPMSimulator::CollectScene(Scene* scene)
+    IFRIT_APIDECL void MPMSimulator::CollectScene(Scene* scene)
     {
         m_Data->m_FrameId++;
+
+        // Emitters
         auto emitters = scene->FilterObjects([](GameObject* obj) {
             auto emitter = obj->GetComponent<MPMParticleEmitter>();
             return emitter != nullptr && emitter->IsEnabled();
@@ -1346,6 +1376,35 @@ namespace Ifrit::Runtime::Artemis
                 EmitParticles<2>(particleLoc, emitArgs);
             }
         }
+
+        // Particle Containers
+        auto containers = scene->FilterObjects([](GameObject* obj) {
+            auto container = obj->GetComponent<MPMParticleContainer>();
+            return container != nullptr && container->IsEnabled();
+        });
+        IF_LOG_ASSERTION("Artemis.MPM", containers.size() <= 1,
+            "MPMSimulator: Multiple MPMParticleContainer components found in the scene. "
+            "Only one is allowed at a time.");
+
+        if (containers.size() != 0)
+        {
+            auto& containerComponent = *containers[0]->GetComponent<MPMParticleContainer>();
+            m_Data->m_ParticleData   = containerComponent.GetDeviceData();
+            if (!containerComponent.GetIsDeviceDataReady())
+            {
+                m_Data->m_RebuildGPUResources = true;
+                containerComponent.SetIsDeviceDataReady(true);
+            }
+        }
+        else IF_UNLIKELY
+        {
+            m_Data->m_ParticleData = nullptr;
+            IF_LOG_WARNING("Artemis.MPM",
+                "MPMSimulator: No MPMParticleContainer found in the scene. "
+                "Please add one to manage particle data.");
+        }
     }
+
+    IFRIT_APIDECL void MPMSimulator::SetDebugRenderTarget(RHI::RhiTexture* rt) { m_Data->m_DebugRenderTarget = rt; }
 
 } // namespace Ifrit::Runtime::Artemis

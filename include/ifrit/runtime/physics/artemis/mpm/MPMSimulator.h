@@ -20,7 +20,7 @@ namespace Ifrit::Runtime::Artemis
         MPMSimulatorConfig& GetActiveConfig();
 
         virtual void        RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime) override;
-        void                CollectScene(Scene* scene);
+        void                CollectScene(Scene* scene) override;
         void                Render(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
 
         template <u32 Dimension IF_REQUIRES(Dimension == 2 || Dimension == 3)>
@@ -34,6 +34,8 @@ namespace Ifrit::Runtime::Artemis
 
         void              RequestClearParticles();
         void              SetDefaultSize(f32 size);
+
+        void              SetDebugRenderTarget(RHI::RhiTexture* rt);
 
     private:
         MPMSimulatorPrivateData* m_Data = nullptr;

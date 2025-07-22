@@ -57,7 +57,14 @@ namespace Ifrit::RHI::VulkanAdapter
         m_stagingBuffer->WriteBuffer((void*)data, size, 0);
         m_stagingBuffer->FlushBuffer();
         m_stagingBuffer->UnmapMemory();
-        cmd->CopyBuffer(m_stagingBuffer.get(), m_buffer, size, 0, localOffset);
+        if (size == 0) IF_UNLIKELY
+        {
+            IF_LOG_WARNING("StagedMemResource", "Copy operation ignored for region size == 0");
+        }
+        else {
+            cmd->CopyBuffer(m_stagingBuffer.get(), m_buffer, size, 0, localOffset);
+        }
+        
     }
 
     IFRIT_APIDECL StagedSingleImage::StagedSingleImage(EngineContext* ctx, SingleDeviceImage* image)

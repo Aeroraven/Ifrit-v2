@@ -23,6 +23,17 @@ namespace Ifrit::Runtime::Artemis
         // find all rigid bodies
         auto rigidObjects = scene->FilterObjects([](GameObject* obj) { return obj->GetComponent<GPURigidCollider>(); });
         auto numRigids    = SizeCast<u32>(rigidObjects.size());
+        bool shouldInitRuntimeData = false;
+
+        if (physicsData->m_GpuColliderDataBufferRuntime == nullptr)
+        {
+            shouldInitRuntimeData = true;
+            u32 requiredBufferSize =
+                std::max(1u, SizeCast<u32>(sizeof(ArtemisColliderElementRuntimeData) * Internal::kArtemisMaxColliders));
+            auto bufferUsage = RHI::RhiBufferUsage::RhiBufferUsage_SSBO | RHI::RhiBufferUsage::RhiBufferUsage_CopyDst;
+            physicsData->m_GpuColliderDataBufferRuntime =
+                rhi->CreateBufferDevice("ArtemisColliderDataBufferRuntime", requiredBufferSize, bufferUsage, true);
+        }
 
         if ((physicsData->m_NumGpuColliders != numRigids || physicsData->m_GpuColliderDataBuffer == nullptr))
         {
@@ -46,13 +57,26 @@ namespace Ifrit::Runtime::Artemis
             physicsData->m_ColliderData[i].m_TransformRef = transformRet.m_TransformRef;
             physicsData->m_ColliderData[i].m_Radius       = rigidCollider->GetRadius();
 
+            if (rigidCollider->GetInternalRigidId() == ~0u)
+            {
+                rigidCollider->SetInternalRigidId(physicsData->m_AllocatedRuntimeIds++);
+            }
+            physicsData->m_ColliderData[i].m_RuntimeId = rigidCollider->GetInternalRigidId();
+
             rigidCollider->OnFrameCollecting();
         }
         auto tq            = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Transfer);
         auto stagingBuffer = rhi->CreateStagedSingleBuffer(physicsData->m_GpuColliderDataBuffer.get());
         tq->RunSyncCommand([&](const RHI::RhiCommandList* cmd) {
-            stagingBuffer->CmdCopyToDevice(cmd, physicsData->m_ColliderData.data(),
-                SizeCast<u32>(physicsData->m_ColliderData.size() * sizeof(ArtemisColliderElement)), 0);
+            if (physicsData->m_ColliderData.size())
+            {
+                stagingBuffer->CmdCopyToDevice(cmd, physicsData->m_ColliderData.data(),
+                    SizeCast<u32>(physicsData->m_ColliderData.size() * sizeof(ArtemisColliderElement)), 0);
+                if (shouldInitRuntimeData)
+                {
+                    cmd->BufferClear(physicsData->m_GpuColliderDataBufferRuntime.get(), 0);
+                }
+            }
         });
     }
-} // namespace Ifrit::Runtime::Artemis
+} // namespace Ifrit::Runtime::Artemis

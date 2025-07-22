@@ -17,11 +17,11 @@ namespace Ifrit::Runtime::Artemis
         void             SetConfig(const RigidBaseConfig& cfg);
         RigidBaseConfig& GetActiveConfig();
 
-        void             CollectScene(Scene* scene);
+        void             CollectScene(Scene* scene) override;
         virtual void     RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime) override;
 
     private:
         RigidSimulatorPrivateData* m_Data = nullptr;
         RigidBaseConfig            m_Config;
     };
-} // namespace Ifrit::Runtime::Artemis
+} // namespace Ifrit::Runtime::Artemis

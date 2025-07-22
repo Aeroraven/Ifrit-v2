@@ -1,6 +1,7 @@
 #pragma once
 #include "ifrit/runtime/base/Base.h"
 #include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/math/VectorDefs.h"
 
 namespace Ifrit::Runtime
 {
@@ -12,23 +13,26 @@ namespace Ifrit::Runtime
         Color
     };
 
+    inline bool PropertyPredicateAlwaysTrue() { return true; }
+
     template <typename T> class PropertyEditorHandle
     {
     public:
-        Fn<void(const char* name, T& value, T min, T max, T step)>         m_SliderCallback = nullptr;
-        Fn<void(const char* name, T& value, Vec<Pair<T, String>> options)> m_SelectCallback = nullptr;
-        Fn<void(const char* name, T& value)>                               m_TextCallback   = nullptr;
-        Fn<void(const char* name, T& value)>                               m_ColorCallback  = nullptr;
+        Fn<void(const char* name, T& value, T min, T max, T step, Fn<bool()> predicate)> m_SliderCallback = nullptr;
+        Fn<void(const char* name, T& value, Vec<Pair<T, String>> options, Fn<bool()> predicate)> m_SelectCallback =
+            nullptr;
+        Fn<void(const char* name, T& value, Fn<bool()> predicate)> m_TextCallback  = nullptr;
+        Fn<void(const char* name, T& value, Fn<bool()> predicate)> m_ColorCallback = nullptr;
     };
 
-    struct PropertyEditorAxuHandles
+    struct PropertyAuxHandles
     {
         Fn<void()> m_OnPreRegister  = nullptr;
         Fn<void()> m_OnPostRegister = nullptr;
     };
 
     template <typename T> IFRIT_RUNTIME_API PropertyEditorHandle<T>& GetPropertyEditorHandle();
-    IFRIT_RUNTIME_API PropertyEditorAxuHandles&                      GetPropertyEditorAxuHandles();
+    IFRIT_RUNTIME_API PropertyAuxHandles&                            GetPropertyEditorAuxHandles();
 
     class ComponentPropertyBase
     {
@@ -56,16 +60,20 @@ namespace Ifrit::Runtime
         requires std::is_arithmetic_v<T>
     struct PropertyConstraint<EPropertyEditorType::Range, T>
     {
-        T m_Min;
-        T m_Max;
-        T m_Step;
-        PropertyConstraint(T min, T max, T step = T(1)) : m_Min(min), m_Max(max), m_Step(step) {}
+        T          m_Min;
+        T          m_Max;
+        T          m_Step;
+        Fn<bool()> m_Predicate;
+        PropertyConstraint(T min, T max, T step = T(1), Fn<bool()> predicate = PropertyPredicateAlwaysTrue)
+            : m_Min(min), m_Max(max), m_Step(step), m_Predicate(predicate)
+        {
+        }
         IF_FORCEINLINE Fn<void()> GetEditorHandle(const char* name, T& value)
         {
-            return [name, &value, m_Min = m_Min, m_Max = m_Max, m_Step = m_Step]() {
+            return [name, &value, m_Min = m_Min, m_Max = m_Max, m_Step = m_Step, m_Predicate = m_Predicate]() {
                 auto handle = GetPropertyEditorHandle<T>();
                 if (handle.m_SliderCallback)
-                    handle.m_SliderCallback(name, value, m_Min, m_Max, m_Step);
+                    handle.m_SliderCallback(name, value, m_Min, m_Max, m_Step, m_Predicate);
             };
         }
     };
@@ -73,52 +81,60 @@ namespace Ifrit::Runtime
     template <typename T> struct PropertyConstraint<EPropertyEditorType::Select, T>
     {
         Vec<Pair<T, String>> m_Options;
-        PropertyConstraint(Vec<Pair<T, String>> options) : m_Options(std::move(options)) {}
+        Fn<bool()>           m_Predicate;
+
+        PropertyConstraint(Vec<Pair<T, String>> options, Fn<bool()> predicate = PropertyPredicateAlwaysTrue)
+            : m_Options(std::move(options)), m_Predicate(predicate)
+        {
+        }
         IF_FORCEINLINE Fn<void()> GetEditorHandle(const char* name, T& value)
         {
-            return [name, &value, options = m_Options]() {
+            return [name, &value, options = m_Options, predicate = m_Predicate]() {
                 auto handle = GetPropertyEditorHandle<T>();
                 if (handle.m_SelectCallback)
-                    handle.m_SelectCallback(name, value, options);
+                    handle.m_SelectCallback(name, value, options, predicate);
             };
         }
     };
 
     template <> struct PropertyConstraint<EPropertyEditorType::Select, bool>
     {
-        PropertyConstraint() {}
+        Fn<bool()> m_Predicate;
+        PropertyConstraint(Fn<bool()> predicate = PropertyPredicateAlwaysTrue) : m_Predicate(predicate) {}
         IF_FORCEINLINE Fn<void()> GetEditorHandle(const char* name, bool& value)
         {
-            return [name, &value]() {
+            return [name, &value, predicate = m_Predicate]() {
                 auto handle = GetPropertyEditorHandle<bool>();
                 if (handle.m_SelectCallback)
-                    handle.m_SelectCallback(name, value, { { true, "True" }, { false, "False" } });
+                    handle.m_SelectCallback(name, value, { { true, "True" }, { false, "False" } }, predicate);
             };
         }
     };
 
     template <typename T> struct PropertyConstraint<EPropertyEditorType::Text, T>
     {
-        PropertyConstraint() {}
+        Fn<bool()> m_Predicate;
+        PropertyConstraint(Fn<bool()> predicate = PropertyPredicateAlwaysTrue) : m_Predicate(predicate) {}
         IF_FORCEINLINE Fn<void()> GetEditorHandle(const char* name, T& value)
         {
-            return [name, &value]() {
+            return [name, &value, predicate = m_Predicate]() {
                 auto handle = GetPropertyEditorHandle<T>();
                 if (handle.m_TextCallback)
-                    handle.m_TextCallback(name, value);
+                    handle.m_TextCallback(name, value, predicate);
             };
         }
     };
 
     template <> struct PropertyConstraint<EPropertyEditorType::Color, Vector4f>
     {
-        PropertyConstraint() {}
+        Fn<bool()> m_Predicate;
+        PropertyConstraint(Fn<bool()> predicate = PropertyPredicateAlwaysTrue) : m_Predicate(predicate) {}
         IF_FORCEINLINE Fn<void()> GetEditorHandle(const char* name, Vector4f& value)
         {
-            return [name, &value]() {
+            return [name, &value, predicate = m_Predicate]() {
                 auto handle = GetPropertyEditorHandle<Vector4f>();
                 if (handle.m_ColorCallback)
-                    handle.m_ColorCallback(name, value);
+                    handle.m_ColorCallback(name, value, predicate);
             };
         }
     };

@@ -5,6 +5,30 @@
 namespace IfritShader{
 namespace Math{
 
+    // Begin wrappers
+    float3 Cross(float3 a, float3 b)
+    {
+        return cross(a, b);
+    }
+
+    float Cross(float a, float b)
+    {
+        return a * b;
+    }
+
+    float3 Mul(float3x3 a, float3 b)
+    {
+        return mul(a, b);
+    }
+
+    float Mul(float a, float b)
+    {
+        return a * b;
+    }
+
+
+    // End wrappers
+
     float3x3 OuterProduct(float3 a, float3 b)
     {
         return float3x3(
@@ -69,6 +93,11 @@ namespace Math{
         return m._11 * (m._22 * m._33 - m._23 * m._32) -
                m._12 * (m._21 * m._33 - m._23 * m._31) +
                m._13 * (m._21 * m._32 - m._22 * m._31);
+    }
+
+    float Inverse(float m)
+    {
+        return rcp(m);
     }
 
     float3x3 Inverse(float3x3 m)

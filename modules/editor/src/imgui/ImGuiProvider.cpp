@@ -120,10 +120,27 @@ namespace Ifrit::Editor
         ImGui::SetScrollHereY(1.0f);
     }
 
+    static void RegisterSingleEditorHandle(const char* name, Fn<bool()> predicate, Fn<void()> handle)
+    {
+        ImGui::Text("%s", name);
+        ImGui::TableNextColumn();
+        ImGui::SetNextItemWidth(-FLT_MIN);
+        bool isActive = predicate();
+        if (!isActive)
+        {
+            ImGui::BeginDisabled();
+        }
+        handle();
+        if (!isActive)
+        {
+            ImGui::EndDisabled();
+        }
+    }
+
     static void RegisterEditorHandles(ImGuiProvider* provider)
     {
         // Aux
-        auto& handles           = Runtime::GetPropertyEditorAxuHandles();
+        auto& handles           = Runtime::GetPropertyEditorAuxHandles();
         handles.m_OnPreRegister = []() {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
@@ -132,90 +149,78 @@ namespace Ifrit::Editor
 
         // Float32
         auto& f32Handles            = Runtime::GetPropertyEditorHandle<f32>();
-        f32Handles.m_SliderCallback = [](const char* name, f32& value, f32 min, f32 max, f32 step) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::SliderFloat((String("##") + name).c_str(), &value, min, max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+        f32Handles.m_SliderCallback = [](const char* name, f32& value, f32 min, f32 max, f32 step,
+                                          Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(name, predicate, [&]() {
+                ImGui::SliderFloat(
+                    (String("##") + name).c_str(), &value, min, max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+            });
         };
-        f32Handles.m_TextCallback = [](const char* name, f32& value) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::InputFloat((String("##") + name).c_str(), &value, 0.0f, 0.0f, "%.3f");
+        f32Handles.m_TextCallback = [](const char* name, f32& value, Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(name, predicate,
+                [&]() { ImGui::InputFloat((String("##") + name).c_str(), &value, 0.0f, 0.0f, "%.3f"); });
         };
 
         // Int32
         auto& i32Handles            = Runtime::GetPropertyEditorHandle<i32>();
-        i32Handles.m_SliderCallback = [](const char* name, i32& value, i32 min, i32 max, i32 step) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::SliderInt((String("##") + name).c_str(), &value, min, max);
+        i32Handles.m_SliderCallback = [](const char* name, i32& value, i32 min, i32 max, i32 step,
+                                          Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(
+                name, predicate, [&]() { ImGui::SliderInt((String("##") + name).c_str(), &value, min, max); });
         };
 
-        i32Handles.m_TextCallback = [](const char* name, i32& value) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            ImGui::InputInt((String("##") + name).c_str(), &value);
+        i32Handles.m_TextCallback = [](const char* name, i32& value, Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(
+                name, predicate, [&]() { ImGui::InputInt((String("##") + name).c_str(), &value); });
         };
 
         // Vector3f
         auto& v3fHandles          = Runtime::GetPropertyEditorHandle<Vector3f>();
-        v3fHandles.m_TextCallback = [](const char* name, Vector3f& value) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::InputFloat3((String("##") + name).c_str(), &value.x, "%.4f");
+        v3fHandles.m_TextCallback = [](const char* name, Vector3f& value, Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(
+                name, predicate, [&]() { ImGui::InputFloat3((String("##") + name).c_str(), &value.x, "%.4f"); });
         };
 
         // Vector4f
         auto& v4fHandles          = Runtime::GetPropertyEditorHandle<Vector4f>();
-        v4fHandles.m_TextCallback = [](const char* name, Vector4f& value) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::InputFloat4((String("##") + name).c_str(), &value.x, "%.4f");
+        v4fHandles.m_TextCallback = [](const char* name, Vector4f& value, Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(
+                name, predicate, [&]() { ImGui::InputFloat4((String("##") + name).c_str(), &value.x, "%.4f"); });
         };
 
-        v4fHandles.m_ColorCallback = [](const char* name, Vector4f& value) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::ColorEdit4(
-                (String("##") + name).c_str(), &value.x, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel);
+        v4fHandles.m_ColorCallback = [](const char* name, Vector4f& value, Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(name, predicate,
+                [&]() { ImGui::ColorEdit4((String("##") + name).c_str(), &value.x, ImGuiColorEditFlags_NoInputs); });
         };
 
         // Int8
         auto& i8Handles            = Runtime::GetPropertyEditorHandle<i8>();
-        i8Handles.m_SelectCallback = [](const char* name, i8& value, Vec<Pair<i8, String>> options) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            GeneralSelectableHandle<i8>(name, value, options);
+        i8Handles.m_SelectCallback = [](const char* name, i8& value, Vec<Pair<i8, String>> options,
+                                         Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(
+                name, predicate, [&]() { GeneralSelectableHandle<i8>((String("##") + name).c_str(), value, options); });
         };
 
         // UInt8
         auto& u8Handles            = Runtime::GetPropertyEditorHandle<u8>();
-        u8Handles.m_SelectCallback = [](const char* name, u8& value, Vec<Pair<u8, String>> options) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            GeneralSelectableHandle<u8>((String("##") + name).c_str(), value, options);
+        u8Handles.m_SelectCallback = [](const char* name, u8& value, Vec<Pair<u8, String>> options,
+                                         Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(
+                name, predicate, [&]() { GeneralSelectableHandle<u8>((String("##") + name).c_str(), value, options); });
         };
 
         // Bool
         auto& boolHandles            = Runtime::GetPropertyEditorHandle<bool>();
-        boolHandles.m_SelectCallback = [](const char* name, bool& value, Vec<Pair<bool, String>> options) {
-            ImGui::Text("%s", name);
-            ImGui::TableNextColumn();
-            auto Id = (String("##") + name).c_str();
-            ImGui::PushID(Id);
-            ImGui::PushID(&value);
-            ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::Checkbox(Id, &value);
-            ImGui::PopID();
-            ImGui::PopID();
+        boolHandles.m_SelectCallback = [](const char* name, bool& value, Vec<Pair<bool, String>> options,
+                                           Fn<bool()> predicate) {
+            RegisterSingleEditorHandle(name, predicate, [&]() {
+                auto Id = (String("##") + name).c_str();
+                ImGui::PushID(Id);
+                ImGui::PushID(&value);
+                ImGui::Checkbox(Id, &value);
+                ImGui::PopID();
+                ImGui::PopID();
+            });
         };
     }
 

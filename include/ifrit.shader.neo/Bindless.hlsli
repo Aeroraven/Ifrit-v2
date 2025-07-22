@@ -17,6 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
   
 
 // Bindless.hlsli
+
+#ifdef __cplusplus
+    #error "This file should not be included in C++ code."
+#endif
+
 #pragma once
 #include "ifrit.shader.neo/Common.hlsli"
 #include "ifrit.shader.neo/Samplers.hlsli"

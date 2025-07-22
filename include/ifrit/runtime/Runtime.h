@@ -48,3 +48,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/physics/artemis/geometry/TetrahedralMesh.h"
 
 #include "ifrit/runtime/geometry/surfaceop/ParticleSurfaceProceduralMesh.h"
+
+#include "ifrit/runtime/physics/artemis/rigid/RigidSimulator.h"
+#include "ifrit/runtime/physics/artemis/rigid/GpuRigidCollider.h"
+
+#include "ifrit/runtime/physics/artemis/mpm/MPMParticleContainer.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMSimulator.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMSimulatorConfigurator.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMParticleEmitter.h"
