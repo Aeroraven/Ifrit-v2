@@ -19,8 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include <cereal/cereal.hpp>
 #include <cereal/types/polymorphic.hpp>
-#include <sstream>
-#include <string>
 #include "ifrit/core/serialization/SerialDefine.h"
 
 #define IFRIT_DERIVED_REGISTER(x) CEREAL_REGISTER_TYPE(x)

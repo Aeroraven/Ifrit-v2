@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/forwarding/FwdComponent.h"
 #include "ifrit/runtime/base/Material.h"
 #include "ifrit/runtime/base/Mesh.h"
-#include "ifrit/runtime/base/Object.h"
 
 namespace Ifrit::Runtime
 {

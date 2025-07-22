@@ -19,8 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/platform/ApiConv.h"
-#include <memory>
-#include <stdexcept>
+#ifdef _DEBUG
+    #include <stdexcept>
+#endif
 
 namespace Ifrit
 {
