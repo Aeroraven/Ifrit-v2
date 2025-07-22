@@ -20,23 +20,41 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/Component.h"
 namespace Ifrit::Runtime
 {
-    IFRIT_APIDECL SceneNode::SceneNode() : m_parentScene(nullptr)
-    {
-        IF_LOG_WARNING(
-            "Scene", "SceneNode constructor called without parent scene! Serialization system is under development.");
-    }
+    IFRIT_APIDECL            SceneNode::SceneNode() : m_Parent(nullptr) {}
 
-    IFRIT_APIDECL Ref<SceneNode> SceneNode::AddChildNode()
+    IFRIT_APIDECL SceneNode* SceneNode::AddChildNode()
     {
-        auto node = MakeRef<SceneNode>(m_parentScene);
-        m_children.push_back(node);
+        auto nodeId = m_Parent->AllocateSceneNode();
+        auto node   = m_Parent->GetSceneNode(nodeId);
+        m_Children.push_back(nodeId);
         return node;
     }
+
+    IFRIT_APIDECL SceneNode* SceneNode::GetSceneNode(u32 x)
+    {
+        if (x < m_Children.size())
+        {
+            return m_Parent->GetSceneNode(m_Children[x]);
+        }
+        IF_LOG_CRITICAL("SceneNode", "Invalid SceneNode ID: {}", x);
+        return nullptr;
+    }
+
+    IFRIT_APIDECL Vec<SceneNode*> SceneNode::GetChildren()
+    {
+        Vec<SceneNode*> result;
+        for (auto& childId : m_Children)
+        {
+            result.push_back(m_Parent->GetSceneNode(childId));
+        }
+        return result;
+    }
+
     IFRIT_APIDECL GameObject* SceneNode::AddGameObject(const String& name)
     {
-        auto objId = m_parentScene->GetGameObjectManager()->CreateGameObject(name);
-        auto obj   = m_parentScene->GetGameObjectManager()->GetGameObject(objId);
-        obj->Initialize(m_parentScene->GetComponentManager(), m_parentScene->GetGameObjectManager());
+        auto objId = m_Parent->GetGameObjectManager()->CreateGameObject(name);
+        auto obj   = m_Parent->GetGameObjectManager()->GetGameObject(objId);
+        obj->Initialize(m_Parent->GetComponentManager(), m_Parent->GetGameObjectManager());
         obj->SetName(name);
         m_GameObjects.push_back(obj);
         m_GameObjectRefs.push_back(objId);
@@ -57,8 +75,9 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneNode::OnUpdate()
     {
-        for (auto& child : m_children)
+        for (auto& childId : m_Children)
         {
+            auto child = m_Parent->GetSceneNode(childId);
             child->OnUpdate();
         }
         for (auto& obj : m_GameObjects)
@@ -73,8 +92,9 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneNode::OnComponentStart()
     {
-        for (auto& child : m_children)
+        for (auto& childId : m_Children)
         {
+            auto child = m_Parent->GetSceneNode(childId);
             child->OnComponentStart();
         }
         for (auto& obj : m_GameObjects)
@@ -88,8 +108,9 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneNode::OnComponentAwake()
     {
-        for (auto& child : m_children)
+        for (auto& childId : m_Children)
         {
+            auto child = m_Parent->GetSceneNode(childId);
             child->OnComponentAwake();
         }
         for (auto& obj : m_GameObjects)
@@ -103,8 +124,9 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneNode::OnFixedUpdate()
     {
-        for (auto& child : m_children)
+        for (auto& childId : m_Children)
         {
+            auto child = m_Parent->GetSceneNode(childId);
             child->OnFixedUpdate();
         }
         for (auto& obj : m_GameObjects)
@@ -116,20 +138,42 @@ namespace Ifrit::Runtime
             }
         }
     }
+    IFRIT_APIDECL u32 Scene::AllocateSceneNode()
+    {
+        auto node = MakeOwner<SceneNode>(this);
+        m_SceneNodes.push_back(std::move(node));
+        return static_cast<u32>(m_SceneNodes.size() - 1);
+    }
 
-    IFRIT_APIDECL Ref<SceneNode> Scene::AddSceneNode() { return m_root->AddChildNode(); }
+    IFRIT_APIDECL SceneNode* Scene::GetSceneNode(u32 id)
+    {
+        if (id < m_SceneNodes.size())
+        {
+            return m_SceneNodes[id].get();
+        }
+        IF_LOG_CRITICAL("Scene", "Invalid SceneNode ID: {}", id);
+        return nullptr;
+    }
 
-    IFRIT_APIDECL Camera*        Scene::GetMainCamera()
+    IFRIT_APIDECL SceneNode*         Scene::GetRootNode() { return m_Root.get(); }
+
+    IFRIT_APIDECL ComponentManager*  Scene::GetComponentManager() { return m_ComponentManager.get(); }
+
+    IFRIT_APIDECL GameObjectManager* Scene::GetGameObjectManager() { return m_GameObjectManager.get(); }
+
+    IFRIT_APIDECL SceneNode*         Scene::AddSceneNode() { return m_Root->AddChildNode(); }
+
+    IFRIT_APIDECL Camera*            Scene::GetMainCamera()
     {
         Vec<SceneNode*> nodes;
-        nodes.push_back(m_root.get());
+        nodes.push_back(m_Root.get());
         while (!nodes.empty())
         {
             auto node = nodes.back();
             nodes.pop_back();
             for (auto& child : node->GetChildren())
             {
-                nodes.push_back(child.get());
+                nodes.push_back(child);
             }
             for (auto& obj : node->GetGameObjects())
             {
@@ -148,14 +192,14 @@ namespace Ifrit::Runtime
     {
         Vec<GameObject*> result;
         Vec<SceneNode*>  nodes;
-        nodes.push_back(m_root.get());
+        nodes.push_back(m_Root.get());
         while (!nodes.empty())
         {
             auto node = nodes.back();
             nodes.pop_back();
             for (auto& child : node->GetChildren())
             {
-                nodes.push_back(child.get());
+                nodes.push_back(child);
             }
             for (auto& obj : node->GetGameObjects())
             {
@@ -175,8 +219,8 @@ namespace Ifrit::Runtime
             for (auto& child : node->GetChildren())
             {
                 fnOnPush();
-                if (fnNode(child.get()))
-                    dfsFunc(child.get());
+                if (fnNode(child))
+                    dfsFunc(child);
                 fnOnPop();
             }
             for (auto& obj : node->GetGameObjects())
@@ -184,22 +228,20 @@ namespace Ifrit::Runtime
                 fnObject(obj);
             }
         };
-        if (m_root)
+        if (m_Root)
         {
-            // fnOnPush();
-            dfsFunc(m_root.get());
-            // fnOnPop();
+            dfsFunc(m_Root.get());
         }
     }
-    IFRIT_APIDECL void Scene::OnUpdate() { m_root->OnUpdate(); }
-    IFRIT_APIDECL void Scene::OnComponentAwake() { m_root->OnComponentAwake(); }
-    IFRIT_APIDECL void Scene::OnComponentStart() { m_root->OnComponentStart(); }
+    IFRIT_APIDECL void Scene::OnUpdate() { m_Root->OnUpdate(); }
+    IFRIT_APIDECL void Scene::OnComponentAwake() { m_Root->OnComponentAwake(); }
+    IFRIT_APIDECL void Scene::OnComponentStart() { m_Root->OnComponentStart(); }
 
     IFRIT_APIDECL void Scene::OnFixedUpdate(TimingRecorder* stopwatch, u32 fixedUpdateRate, u32 maxCompensationFrames)
     {
         auto lastTimeStamp = stopwatch->GetCurTimeUs();
         auto totalFrames   = lastTimeStamp / fixedUpdateRate;
-        auto sourceFrame   = m_curFixedFrame;
+        auto sourceFrame   = m_CurFixedFrame;
 
         if (sourceFrame >= totalFrames)
         {
@@ -212,9 +254,9 @@ namespace Ifrit::Runtime
         }
         for (u32 i = 0; i < framesToUpdate; i++)
         {
-            m_root->OnFixedUpdate();
+            m_Root->OnFixedUpdate();
         }
-        m_curFixedFrame = totalFrames;
+        m_CurFixedFrame = totalFrames;
     }
 
     IFRIT_APIDECL void Scene::InvokeFrameUpdate()
@@ -229,10 +271,12 @@ namespace Ifrit::Runtime
         OnUpdate();
     }
 
-    IFRIT_APIDECL Scene::Scene() : m_root(MakeRef<SceneNode>(this)), m_perFrameData(MakeRef<PerFrameData>())
+    IFRIT_APIDECL Scene::Scene() : m_Root(MakeOwner<SceneNode>(this)), m_PerFrameData(MakeOwner<PerFrameData>())
     {
-        m_componentManager = MakeRef<ComponentManager>();
-        m_gameObjectManager = MakeRef<GameObjectManager>();
+        m_ComponentManager  = MakeOwner<ComponentManager>();
+        m_GameObjectManager = MakeOwner<GameObjectManager>();
     }
+
+    IFRIT_APIDECL PerFrameData* Scene::GetPerFrameData() { return m_PerFrameData.get(); }
 
 } // namespace Ifrit::Runtime

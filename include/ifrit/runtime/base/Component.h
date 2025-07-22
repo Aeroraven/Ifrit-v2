@@ -6,7 +6,8 @@
 #include "ifrit/core/typing/Traits.h"
 #include <typeinfo>
 
-#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, __VA_ARGS__)
+#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef, __VA_ARGS__)
+#define IFRIT_COMPONENT_SERIALIZE_EMPTY() IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef)
 #define IFRIT_COMPONENT_REGISTER(x) \
     IFRIT_DERIVED_REGISTER(x);      \
     IFRIT_INHERIT_REGISTER(Ifrit::Runtime::Component, x);
@@ -255,7 +256,7 @@ namespace Ifrit::Runtime
         virtual void CallPropertyEditorHandle();
 
     public:
-        Component() {}; // for deserializatioin
+        Component(){}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 

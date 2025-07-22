@@ -58,7 +58,7 @@ namespace Ifrit::Runtime
     {
         Vec<Component*> components;
         Vec<SceneNode*> nodes;
-        nodes.push_back(scene->GetRootNode().get());
+        nodes.push_back(scene->GetRootNode());
         while (!nodes.empty())
         {
             auto node = nodes.back();
@@ -66,7 +66,7 @@ namespace Ifrit::Runtime
             auto children = node->GetChildren();
             for (const auto& child : children)
             {
-                nodes.push_back(child.get());
+                nodes.push_back(child);
             }
             for (auto& obj : node->GetGameObjects())
             {

@@ -235,14 +235,14 @@ namespace Ifrit::Runtime
         std::vector<MeshInstance*> instances;
 
         std::vector<SceneNode*>    nodes;
-        nodes.push_back(scene->GetRootNode().get());
+        nodes.push_back(scene->GetRootNode());
         while (!nodes.empty())
         {
             auto node = nodes.back();
             nodes.pop_back();
             for (auto& child : node->GetChildren())
             {
-                nodes.push_back(child.get());
+                nodes.push_back(child);
             }
             for (auto& obj : node->GetGameObjects())
             {

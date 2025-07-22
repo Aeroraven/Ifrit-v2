@@ -51,7 +51,7 @@ namespace Ifrit::Runtime
         }
         inline Ref<Mesh>         GetMesh() { return m_attribute; }
         inline Ref<MeshInstance> GetMeshInstance() { return m_instance; }
-        IFRIT_COMPONENT_SERIALIZE(m_rawData, m_meshReference);
+        IFRIT_COMPONENT_SERIALIZE_EMPTY();
     };
 
     class MeshRenderer : public Component
@@ -70,7 +70,7 @@ namespace Ifrit::Runtime
         inline Ref<Material> GetMaterial() { return m_material; }
         inline void          SetMaterial(Ref<Material> p) { m_material = p; }
 
-        IFRIT_COMPONENT_SERIALIZE(m_materialReference);
+        IFRIT_COMPONENT_SERIALIZE_EMPTY();
     };
 
 } // namespace Ifrit::Runtime

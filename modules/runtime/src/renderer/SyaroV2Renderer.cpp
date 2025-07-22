@@ -120,7 +120,7 @@ namespace Ifrit::Runtime
 
         m_Res->m_RendererConfig     = config;
         m_config                    = &m_Res->m_RendererConfig;
-        m_Res->m_ActivePerFrameData = scene->GetPerFrameData().get();
+        m_Res->m_ActivePerFrameData = scene->GetPerFrameData();
 
         auto& perFrameData                         = *m_Res->m_ActivePerFrameData;
         auto  frameId                              = perFrameData.m_frameId;

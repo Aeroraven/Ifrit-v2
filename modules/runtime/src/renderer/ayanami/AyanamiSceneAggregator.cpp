@@ -116,7 +116,7 @@ namespace Ifrit::Runtime::Ayanami
 
             // TODO: non-directional light
             AggregatedLights  lights;
-            Ref<PerFrameData> perFrameData = scene->GetPerFrameData();
+            PerFrameData*     perFrameData = scene->GetPerFrameData();
             for (u32 i = 0; auto& v : perFrameData->m_shadowData2.m_LightFronts)
             {
                 lights.m_LightFronts.push_back(v);
