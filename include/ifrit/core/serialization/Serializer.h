@@ -1,0 +1,62 @@
+
+/*
+Ifrit-v2
+Copyright (C) 2024 funkybirds(Aeroraven)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+#pragma once
+#include <cereal/archives/binary.hpp>
+#include <cereal/cereal.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/array.hpp>
+#include <sstream>
+#include <string>
+#include "ifrit/core/serialization/SerialDefine.h"
+
+namespace Ifrit::Serialization
+{
+
+    template <class T> void SerializeBinary(T& src, std::string& dst)
+    {
+        std::ostringstream oss;
+        {
+            try
+            {
+                cereal::BinaryOutputArchive ar(oss);
+                ar(src);
+            }
+            catch (const std::exception& e)
+            {
+                printf("Error: %s\n", e.what());
+                std::abort();
+            }
+        }
+        dst = oss.str();
+    }
+
+    template <class T> void DeserializeBinary(const std::string& src, T& dst)
+    {
+        std::istringstream iss(src);
+        {
+            cereal::BinaryInputArchive ar(iss);
+            ar(dst);
+        }
+    }
+
+} // namespace Ifrit::Serialization

@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/core/file/FileOps.h"
 #include <filesystem>
+#include "ifrit/core/serialization/Serializer.h"
 
 using namespace Ifrit::Math::SIMD;
 

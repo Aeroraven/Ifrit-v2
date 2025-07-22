@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/assetmanager/TrivialImageAsset.h"
 #include "ifrit/runtime/assetmanager/WaveFrontAsset.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/core/serialization/Serializer.h"
 #include <fstream>
 #include <stdexcept>
 

@@ -28,6 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <filesystem>
 
 #include "ifrit/imaging/compress/CompressedTextureUtil.h"
+#include "ifrit/core/serialization/Serializer.h"
 
 using namespace Ifrit::Math;
 
