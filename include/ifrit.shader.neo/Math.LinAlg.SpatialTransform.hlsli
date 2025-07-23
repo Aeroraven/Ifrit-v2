@@ -65,4 +65,11 @@ namespace Math {
         return Model;
     }
     
-}}
+
+    float2x2 GetRotationMatrix(float Angle)
+    {
+        float c = cos(Angle);
+        float s = sin(Angle);
+        return float2x2(c, -s, s, c);
+    }
+}}

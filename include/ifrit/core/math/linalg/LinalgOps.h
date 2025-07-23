@@ -251,8 +251,8 @@ namespace Ifrit::Math
     IF_FORCEINLINE Matrix4x4f LookAt(Vector3f eye, Vector3f center, Vector3f up)
     {
         Vector3f   f = Normalize((center - eye));
-        Vector3f   s = Normalize(Cross(f, up));
-        Vector3f   u = Cross(s, f);
+        Vector3f   s = Normalize(Cross(up, f));
+        Vector3f   u = Cross(f, s);
         Matrix4x4f result;
         result[0][0] = s.x;
         result[0][1] = s.y;

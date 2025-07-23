@@ -108,7 +108,7 @@ namespace MPM{
         }
 
         FSpatialVector Gravity = ToSpatialVector(PushConst.m_Gravity);
-        FSpatialVector GravityDisplacement = Gravity * PushConst.m_DeltaTime * PushConst.m_DeltaTime;
+        FSpatialVector GravityDisplacement = Gravity * PushConst.m_DeltaTime * PushConst.m_DeltaTime * 0.5f;
         FSpatialVector OverallDisplacement = ParticleDisplacement + GravityDisplacement;
 
         PushConst.m_ParticleLocation.Store(ThreadId.x, NewParticleLocation);

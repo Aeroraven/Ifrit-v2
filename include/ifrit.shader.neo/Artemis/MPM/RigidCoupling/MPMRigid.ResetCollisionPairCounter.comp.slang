@@ -9,6 +9,7 @@ namespace MPM{
     struct PushConst_T
     {
         TAtomicRWStructuredBufferHandle<int> m_CollisionPairCounter;
+        TAtomicRWStructuredBufferHandle<int> m_BoundaryPairCounter;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -20,9 +21,14 @@ namespace MPM{
                                          uint3 GroupThreadId:SV_GroupThreadID)
     {
         PushConst.m_CollisionPairCounter.Store(0, 0);
-        PushConst.m_CollisionPairCounter.Store(1, 1);
+        PushConst.m_CollisionPairCounter.Store(0, 1);
         PushConst.m_CollisionPairCounter.Store(1, 2);
         PushConst.m_CollisionPairCounter.Store(1, 3);
+
+        PushConst.m_BoundaryPairCounter.Store(0, 0);
+        PushConst.m_BoundaryPairCounter.Store(0, 1);
+        PushConst.m_BoundaryPairCounter.Store(1, 2);
+        PushConst.m_BoundaryPairCounter.Store(1, 3);
     }
 
-}}}
+}}}

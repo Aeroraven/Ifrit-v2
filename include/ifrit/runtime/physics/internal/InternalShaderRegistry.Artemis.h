@@ -33,7 +33,7 @@ namespace Ifrit::Runtime::Internal
 
     static struct InternalShaderTableArtemis
     {
-
+        // PBD
         SDEF PBDClothApplyCorrectionCS           = DECLARE_CS("Artemis/PBDCloth.ApplyCorrection");
         SDEF PBDClothUpdateVelocityPostCS        = DECLARE_CS("Artemis/PBDCloth.UpdateVelocityPost");
         SDEF PBDClothUpdateVelocityPreCS         = DECLARE_CS("Artemis/PBDCloth.UpdateVelocityPre");
@@ -50,12 +50,14 @@ namespace Ifrit::Runtime::Internal
 
         SDEF PBDClothVolumeConstraintProjectCS = DECLARE_CS("Artemis/PBDCloth.VolumeConstraintProject");
 
+        // Particle Render
         SDEF ParticleRender2dVS          = DECLARE_VS("Artemis/ParticleRender2D");
         SDEF ParticleRender2dFS          = DECLARE_FS("Artemis/ParticleRender2D");
         SDEF ParticleRender3dVS          = DECLARE_VS("Artemis/ParticleRender3D");
         SDEF ParticleRender3dFS          = DECLARE_FS("Artemis/ParticleRender3D");
         SDEF ParticleIndDrawBufferPrepCS = DECLARE_CS("Artemis/ParticleRender.IndirectDrawBufferPrep");
 
+        // APIC
         SDEF APICFluidG2PCS                 = DECLARE_CS("Artemis/APICFluid.G2P");
         SDEF APICFluidGridResetCS           = DECLARE_CS("Artemis/APICFluid.GridReset");
         SDEF APICFluidGridProjectionApplyCS = DECLARE_CS("Artemis/APICFluid.GridProjectionApply");
@@ -67,6 +69,7 @@ namespace Ifrit::Runtime::Internal
         SDEF APICFluidParticleInitCS   = DECLARE_CS("Artemis/APICFluid.ParticleInit");
         SDEF APICFluidParticleUpdateCS = DECLARE_CS("Artemis/APICFluid.ParticleUpdate");
 
+        // MPM
         SDEF MPMG2PCS                = DECLARE_CS("Artemis/MPM/MPM.G2P");
         SDEF MPMGridResetCS          = DECLARE_CS("Artemis/MPM/MPM.GridReset");
         SDEF MPMGridForceUpdateCS    = DECLARE_CS("Artemis/MPM/MPM.GridForceUpdate");
@@ -79,12 +82,25 @@ namespace Ifrit::Runtime::Internal
         SDEF MPMParticleEmitCS       = DECLARE_CS("Artemis/MPM/MPM.ParticleEmit");
         SDEF MPMParticleDrainAllCS   = DECLARE_CS("Artemis/MPM/MPM.ParticleDrainAll");
 
+        // MPM Rigid Coupling
+        SDEF MPMRigidContactConstraintResolveCS =
+            DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.ContactConstraintResolve");
+        SDEF MPMRigidResetCollisionPairCounterCS =
+            DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.ResetCollisionPairCounter");
+        SDEF MPMRigidCollectCollisionPairsCS  = DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.CollectCollisionPairs");
+        SDEF MPMRigidCollectBoundaryContactCS = DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.CollectBoundaryContact");
+        SDEF MPMRigidBoundaryConstraintResolveCS =
+            DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.BoundaryConstraintResolve");
+
         // PBMPM
         SDEF MPMPbMpmResolveConstraintsCS = DECLARE_CS("Artemis/MPM/MPM.PbMpmResolveConstraints");
         SDEF MPMPbMpmParticleIntegrateCS  = DECLARE_CS("Artemis/MPM/MPM.PbMpmParticleIntegrate");
 
         // Rigid
-        SDEF RigidMotionTestCS = DECLARE_CS("Artemis/Rigid/MotionTest");
+        SDEF RigidMotionTestCS      = DECLARE_CS("Artemis/Rigid/MotionTest");
+        SDEF RigidPostStateUpdateCS = DECLARE_CS("Artemis/Rigid/PostStateUpdate");
+        SDEF RigidSyncTransformCS   = DECLARE_CS("Artemis/Rigid/SyncTransform");
+        SDEF RigidLoadTransformCS   = DECLARE_CS("Artemis/Rigid/LoadTransform");
 
     } kIntShaderTableArtemis;
 

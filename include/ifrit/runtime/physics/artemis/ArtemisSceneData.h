@@ -9,11 +9,12 @@ namespace Ifrit::Runtime::Artemis
         u32 m_RuntimeId    = 0;
         u32 m_TransformRef = 0;
         f32 m_Radius       = 1.0f;
+        f32 m_RigidMass    = 1.14514f;
     };
 
     struct ArtemisColliderElementRuntimeData
     {
-        Vector4f m_Displacement = Vector4f(0.0f, 0.0f, 0.0f, 1.0f);
+        u32 m_DataSection[36] = { 0 };
     };
 
     struct ArtemisSceneData

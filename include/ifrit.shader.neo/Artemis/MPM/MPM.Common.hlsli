@@ -86,6 +86,16 @@ namespace MPM{
         }
     };
 
+    struct FSpatialVectorHandle
+    {
+        TStructuredBufferHandle<FSpatialVectorAligned> SpatialVectors;
+
+        FSpatialVector Load(uint Index)
+        {
+            return SpatialVectors.Load(Index).xyz;
+        }
+    };
+
     struct FRWSpatialVectorHandle
     {
         TRWStructuredBufferHandle<FSpatialVectorAligned> SpatialVectors;
@@ -575,12 +585,28 @@ namespace MPM{
             return ToSpatialVector(m_GridTranslation);
         }
 
+        FSpatialVector GetMinBoundWithBoundary()
+        {
+            FSpatialVector MinBound = ToSpatialVector(m_GridTranslation);
+            FSpatialIndex BoundaryWidth = ToSpatialIndex(m_GridBoundaryWidth.x, m_GridBoundaryWidth.y, m_GridBoundaryWidth.z);
+            return MinBound + FSpatialVector(m_GridSpacing) * FSpatialVector(BoundaryWidth);
+        }
+
+        
         FSpatialVector GetMaxBound()
         {
             FScalar GridSpacing = m_GridSpacing;
             FSpatialVector GridSize = ToSpatialVector(m_GridSize);
             return ToSpatialVector(m_GridTranslation) + GridSize * GridSpacing;
         }
+
+        FSpatialVector GetMaxBoundWithBoundary()
+        {
+            FSpatialVector MaxBound = GetMaxBound();
+            FSpatialIndex BoundaryWidth = ToSpatialIndex(m_GridBoundaryWidth.x, m_GridBoundaryWidth.y, m_GridBoundaryWidth.z);
+            return MaxBound - FSpatialVector(m_GridSpacing) * FSpatialVector(BoundaryWidth);
+        }
+
     };
 
     struct FDenseGridStructureHandle
@@ -592,6 +618,15 @@ namespace MPM{
             return m_Data.Load(0);
         }
     };
+
+    float4 SpatialVectorToFloat4(FSpatialVector Vec)
+    {
+#ifdef IFSHADER_MPM_3D
+        return float4(Vec.x, Vec.y, Vec.z, 0.0f);
+#else
+        return float4(Vec.x, Vec.y, 0.0f, 0.0f);
+#endif
+    }
 
     // ==========================================
     // Grid Block

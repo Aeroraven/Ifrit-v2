@@ -60,6 +60,7 @@ namespace Ifrit::Runtime::Artemis
         MPMSimulatorVariant          m_Variant    = MPMSimulatorVariant::PBMPM;
 
         u32                          m_MaxParticles = 614514;
+        u32                          m_MaxContacts  = 1919810;
         Vector3u                     m_GridSize     = Vector3u(kDefaultGridSizeX, kDefaultGridSizeX, kDefaultGridSizeX);
         Vector3f                     m_GridOffset   = Vector3f(0.0f);
         Vector3u                     m_GridBoundaryWidth = Vector3u(3, 3, 3);
@@ -73,7 +74,7 @@ namespace Ifrit::Runtime::Artemis
         f32                          m_DefaultViscoPlasticity = 0.7f;
         u32                          m_DefaultNumParticles    = 11451;
         u32                          m_Substeps               = 5;
-        MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Fluid;
+        MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Jelly;
 
         // PBMPM
         u32                          m_PbMpmIterations                           = 4;
@@ -81,6 +82,9 @@ namespace Ifrit::Runtime::Artemis
         f32                          m_PbMpmDefaultElasticityRelaxationFactor    = 1.5f;
         f32                          m_PbMpmDefaultLiquidViscosity               = 0.000f;
         f32                          m_PbMpmDefaultLiquidRelaxation              = 1.1f;
+
+        // Rigid Coupling
+        bool                         m_EnableRigidCoupling = true;
     };
 
     struct MPMParticleEmitArgs

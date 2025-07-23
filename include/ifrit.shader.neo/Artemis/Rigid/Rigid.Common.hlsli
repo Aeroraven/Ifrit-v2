@@ -27,6 +27,7 @@ namespace Rigid{
         int m_RuntimeId;
         TRWStructuredBufferHandle<FInstanceLocalTransform> m_Transform;
         float m_ColliderRadius;
+        float m_RigidMass;
     };
 
 #ifdef IFSHADER_RIGID_DYNAMICS_3D
@@ -37,6 +38,8 @@ namespace Rigid{
     IFSHADER_TYPEALIAS(FAngularRotation, Math::FQuaternion);
     IFSHADER_TYPEALIAS(FAngularMatrix, float3x3);
 
+    IFSHADER_DEFINE_CONST_INT32(kSizeofColliderDynamicsDataInF32, 3+3+4+4+3+9);
+    
 #else
     IFSHADER_TYPEALIAS(FSpatialVector, float2);
     IFSHADER_TYPEALIAS(FSpatialMatrix, float2x2);
@@ -44,17 +47,19 @@ namespace Rigid{
     IFSHADER_TYPEALIAS(FAngularRotation, float);
     IFSHADER_TYPEALIAS(FAngularMatrix, float);
 
+    IFSHADER_DEFINE_CONST_INT32(kSizeofColliderDynamicsDataInF32, 2+2+4);
+
 #endif
     struct FRigidColliderDynamicsData
     {
-        FSpatialVector m_Position;
         FSpatialVector m_Displacement;
+        FSpatialVector m_Position;
         FAngularRotation m_Rotation;
         FAngularRotation m_RotationLast;
         FAngularValue m_AngularVelocity;
         FAngularMatrix m_InertiaTensor;
-        float m_Mass; //TODO: not make this here!
     };
+
 
     FSpatialVector ToSpatialVector(float4 v)
     {

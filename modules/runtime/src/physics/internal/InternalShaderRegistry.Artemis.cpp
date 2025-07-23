@@ -108,8 +108,24 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTArtemis.MPMParticleEmitCS, "Artemis/MPM/MPM.ParticleEmit", "MpmParticleEmitCS");
         REG_COMPUTE_NEO(ISTArtemis.MPMParticleDrainAllCS, "Artemis/MPM/MPM.ParticleDrainAll", "MpmParticleDrainAllCS");
 
+        // MPM Rigid Coupling
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidContactConstraintResolveCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.ContactConstraintResolve", "MPMRigidContactConstraintResolveCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidResetCollisionPairCounterCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.ResetCollisionPairCounter", "MPMRigidResetCollisionPairCounterCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidCollectCollisionPairsCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.CollectCollisionPairs", "MPMRigidCollectCollisionPairsCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidCollectBoundaryContactCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.CollectBoundaryContact", "MPMRigidCollectBoundaryContactCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidBoundaryConstraintResolveCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.BoundaryConstraintResolve", "MPMRigidBoundaryConstraintResolveCS");
+
         // Rigid
         REG_COMPUTE_NEO(ISTArtemis.RigidMotionTestCS, "Artemis/Rigid/Rigid.MotionTest", "RigidMotionTestCS");
+        REG_COMPUTE_NEO(
+            ISTArtemis.RigidPostStateUpdateCS, "Artemis/Rigid/Rigid.PostStateUpdate", "RigidPostStateUpdateCS");
+        REG_COMPUTE_NEO(ISTArtemis.RigidSyncTransformCS, "Artemis/Rigid/Rigid.SyncTransform", "RigidSyncTransformCS");
+        REG_COMPUTE_NEO(ISTArtemis.RigidLoadTransformCS, "Artemis/Rigid/Rigid.LoadTransform", "RigidLoadTransformCS");
 
 #undef REG_MESH
 #undef REG_FRAGMENT

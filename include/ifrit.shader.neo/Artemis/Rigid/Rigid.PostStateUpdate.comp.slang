@@ -37,7 +37,8 @@ namespace Rigid{
 
         FRigidColliderEntry ColliderEntry = PushConst.m_ColliderEntries.Load(ThreadId.x);
         FRigidColliderDynamicsData DynamicsData = PushConst.m_ColliderDynamics.Load(ThreadId.x);
-
+        
+        DynamicsData.m_Position += DynamicsData.m_Displacement;
         // v<-v+h*fext/m;
         // dx<-dx+h*h*fext/(2*m);
         FSpatialVector Gravity = ToSpatialVector(PushConst.m_Gravity);
@@ -77,4 +78,4 @@ namespace Rigid{
         PushConst.m_ColliderDynamics.Store(DynamicsData, ThreadId.x);
     }
 
-}}}
+}}}

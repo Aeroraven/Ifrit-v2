@@ -41,7 +41,8 @@ using namespace Ifrit::GeometryProc;
 
 namespace Ifrit
 {
-    static f32 sTimestep = 1.0f / 1500.0f;
+    inline constexpr f32 kDefaultTimestep = 100.0f;
+    static f32           sTimestep        = 1.0f / kDefaultTimestep;
 
     class MPMTiming : public ActorBehavior
     {
@@ -49,12 +50,12 @@ namespace Ifrit
 
     private:
         typedef ActorBehavior Super;
-        f32                   m_InvTimestep = 1500.0f;
+        f32                   m_InvTimestep = kDefaultTimestep;
 
     public:
         void SetupProperties() override
         {
-            AddProperty<f32, EPropertyEditorType::Range>("Time Interval", m_InvTimestep, 500.0f, 5000.0f, 0.001f);
+            AddProperty<f32, EPropertyEditorType::Range>("Time Interval", m_InvTimestep, 60.0f, 2000.0f, 0.001f);
         }
         void OnUpdate() override { sTimestep = 1.0f / m_InvTimestep; }
     };
@@ -87,7 +88,7 @@ namespace Ifrit
             m_ArtemisSim = MakeOwner<Artemis::ArtemisSimulator>(this);
 
             m_ArtemisSim->RegisterSolver(m_MpmSim.get());
-            m_ArtemisSim->RegisterSolver(m_RigidSim.get());
+            // m_ArtemisSim->RegisterSolver(m_RigidSim.get());
 
             RegisterSubsystem(Editor::CreateEditorProvider(Editor::EEditorProviderType::ImGui));
             EnableRendererWrapper(true);
@@ -138,16 +139,17 @@ namespace Ifrit
             material->BuildMaterial();
 
             auto rigid      = node->AddGameObject("RigidCollider");
-            auto circleMesh = MakeRef<Geometry::Circle2D>(0.1f, 32);
+            auto circleMesh = MakeRef<Geometry::Circle2D>(0.05f, 32);
             auto rigidMesh  = rigid->AddComponent<MeshFilter>();
             rigidMesh->SetMesh(circleMesh);
             auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
             rigidRenderer->SetMaterial(material);
             auto rigidTransform = rigid->GetComponent<Transform>();
-            rigidTransform->SetPosition({ 0.5f, 0.5f, 0.0f });
+            rigidTransform->SetPosition({ 0.5f, 0.8f, 0.0f });
             rigidTransform->SetDevice(TransformUpdateDevice::GPU);
             auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
-            rigidCollider->SetRadius(0.1f);
+            rigidCollider->SetRadius(0.05f);
+            rigidCollider->SetEnable(false);
 
             auto defaultEmitter = node->AddGameObject("ParticleEmitter");
             auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();

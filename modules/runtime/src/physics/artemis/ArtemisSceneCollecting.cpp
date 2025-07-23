@@ -21,8 +21,11 @@ namespace Ifrit::Runtime::Artemis
             CheckedPointerCast<ArtemisSceneData>(perframeData->m_ExtraData[Internal::kArtemisSceneDataKey]);
 
         // find all rigid bodies
-        auto rigidObjects = scene->FilterObjects([](GameObject* obj) { return obj->GetComponent<GPURigidCollider>(); });
-        auto numRigids    = SizeCast<u32>(rigidObjects.size());
+        auto rigidObjects          = scene->FilterObjects([](GameObject* obj) {
+            auto fv = obj->GetComponent<GPURigidCollider>();
+            return fv ? fv->IsEnabled() : false;
+        });
+        auto numRigids             = SizeCast<u32>(rigidObjects.size());
         bool shouldInitRuntimeData = false;
 
         if (physicsData->m_GpuColliderDataBufferRuntime == nullptr)
@@ -56,6 +59,7 @@ namespace Ifrit::Runtime::Artemis
             auto transformRet                             = UpdateTransformGPUData(transformComponent, rhi);
             physicsData->m_ColliderData[i].m_TransformRef = transformRet.m_TransformRef;
             physicsData->m_ColliderData[i].m_Radius       = rigidCollider->GetRadius();
+            physicsData->m_ColliderData[i].m_RigidMass    = rigidCollider->GetRigidMass();
 
             if (rigidCollider->GetInternalRigidId() == ~0u)
             {
