@@ -1,7 +1,6 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_3D
 #pragma ifrit.multi_compile IFSHADER_MPM_MLS
 #pragma ifrit.multi_compile IFSHADER_MPM_PBMPM
-#pragma ifrit.multi_compile IFSHADER_MPM_CPIC
 
 #include "ifrit.shader.neo/Artemis/MPM/MPM.Common.hlsli"
 #include "ifrit.shader.neo/Artemis/MPM/MPM.MlsParticleIntegrateUtil.hlsli"

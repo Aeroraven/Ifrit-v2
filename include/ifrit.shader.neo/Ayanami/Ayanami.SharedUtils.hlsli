@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader.neo/Math.MonteCarlo.hlsli"
 #include "ifrit.shader.neo/Math.Transforms.hlsli"
 
+#include "ifrit.shader.neo/Shared/SharedTypes.h"
+
 namespace IfritShader{
 namespace Ayanami{
 

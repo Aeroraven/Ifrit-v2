@@ -103,6 +103,9 @@ namespace Ifrit::Runtime
         }
 
         friend class GameObject;
+
+    public:
+        IFRIT_STRUCT_SERIALIZE(m_FreeIdQueue, m_ComponentArray, m_IdToTypeHash, m_AllocatedComponents);
     };
 
     class IFRIT_APIDECL GameObjectManager : public NonCopyable
@@ -125,6 +128,9 @@ namespace Ifrit::Runtime
         GameObject*         GetGameObject(GameObjectReference ref);
 
         void                RequestRemove(GameObjectReference ref);
+
+        IFRIT_STRUCT_SERIALIZE(
+            m_FreeIdQueue, m_GameObjects, m_GameObjectNameToIndex, m_GameObjectUUIDToIndex, m_AllocatedObjects);
     };
 
     // TODO: for performance considerations, components container is not consistent
@@ -246,12 +252,9 @@ namespace Ifrit::Runtime
         virtual void CallPropertyEditorHandle();
 
     public:
-        Component(){}; // for deserializatioin
+        Component() {}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
-
-        virtual String               Serialize() final { return ""; }
-        virtual void                 Deserialize() final {}
 
         virtual void                 OnFrameCollecting() {}
         virtual void                 OnAwake() {}

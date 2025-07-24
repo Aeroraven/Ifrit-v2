@@ -17,6 +17,23 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+
+#include <cstdint>
+#ifdef __cplusplus
+    #include <array>
+    #include <atomic>
+    #include <functional>
+    #include <map>
+    #include <memory>
+    #include <set>
+    #include <string>
+    #include <unordered_map>
+    #include <unordered_set>
+    #include <vector>
+    #include <queue>
+    #include <span>
+#endif
+
 #include "ifrit/core/base/IfritBasicAlias.h"
 
 #ifdef __cplusplus

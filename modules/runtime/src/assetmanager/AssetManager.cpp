@@ -161,14 +161,16 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL String AssetManager::MetadataSerialization(AssetMetadata& metadata)
     {
-        String serialized;
-        Serialization::SerializeBinary(metadata, serialized);
+        using namespace Ifrit::Serialization;
+        String serialized = Serialize<ESerializationFormat::Json>(metadata);
+        std::cout << serialized << std::endl;
         return serialized;
     }
 
     IFRIT_APIDECL void AssetManager::MetadataDeserialization(const String& serialized, AssetMetadata& metadata)
     {
-        Serialization::DeserializeBinary(serialized, metadata);
+        using namespace Ifrit::Serialization;
+        Deserialize<ESerializationFormat::Json>(serialized, metadata);
     }
 
     IFRIT_APIDECL void AssetManager::RegisterAsset(std::shared_ptr<Asset> asset)

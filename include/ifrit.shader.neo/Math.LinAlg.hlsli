@@ -16,6 +16,11 @@ namespace Math{
         return a * b;
     }
 
+    float Cross2D(float2 a, float2 b)
+    {
+        return a.x * b.y - a.y * b.x;
+    }
+
     float3 Mul(float3x3 a, float3 b)
     {
         return mul(a, b);

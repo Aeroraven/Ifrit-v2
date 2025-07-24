@@ -96,7 +96,10 @@ namespace Ifrit::Runtime
 
         void               DepthFirstTraverse(
                           Fn<bool(SceneNode*)> fnNode, Fn<void(GameObject*)> fnObject, Fn<void()> fnOnPush, Fn<void()> fnOnPop);
-        IFRIT_STRUCT_SERIALIZE(m_Root);
+
+        String Serialize() const;
+
+        IFRIT_STRUCT_SERIALIZE(m_ComponentManager, m_GameObjectManager, m_SceneNodes, m_Root);
     };
 
 } // namespace Ifrit::Runtime

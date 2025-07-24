@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/serialization/Serializer.h"
 
 using namespace Ifrit::Math::SIMD;
+using namespace Ifrit::Serialization;
 
 namespace Ifrit::Runtime
 {
@@ -163,11 +164,11 @@ namespace Ifrit::Runtime
             cgBuffer   = ReadBinaryFile(serialCGPath);
             miscBuffer = ReadBinaryFile(serialMiscPath);
 
-             Serialization::DeserializeBinary(cclBuffer, meshletData);
-             Serialization::DeserializeBinary(fbnBuffer, bvhNodes);
-             Serialization::DeserializeBinary(cgBuffer, clusterGroupData);
+            Deserialize<ESerializationFormat::Binary>(cclBuffer, meshletData);
+            Deserialize<ESerializationFormat::Binary>(fbnBuffer, bvhNodes);
+            Deserialize<ESerializationFormat::Binary>(cgBuffer, clusterGroupData);
             CreateMeshLodHierMiscInfo miscInfo;
-            Serialization::DeserializeBinary(miscBuffer, miscInfo);
+            Deserialize<ESerializationFormat::Binary>(miscBuffer, miscInfo);
 
             totalLods = miscInfo.totalLods;
 
@@ -178,16 +179,12 @@ namespace Ifrit::Runtime
             totalLods = meshProc.ClusterLodHierachy(meshDesc, meshletData, clusterGroupData, bvhNodes, MAX_LOD);
             if (needToStoreVG)
             {
-                String cclBuffer;
-                Serialization::SerializeBinary(meshletData, cclBuffer);
-                String fbnBuffer;
-                Serialization::SerializeBinary(bvhNodes, fbnBuffer);
-                String cgBuffer;
-                Serialization::SerializeBinary(clusterGroupData, cgBuffer);
+                String cclBuffer = Serialize<ESerializationFormat::Binary>(meshletData);
+                String fbnBuffer = Serialize<ESerializationFormat::Binary>(bvhNodes);
+                String cgBuffer = Serialize<ESerializationFormat::Binary>(clusterGroupData);
                 CreateMeshLodHierMiscInfo miscInfo;
                 miscInfo.totalLods = totalLods;
-                String miscBuffer;
-                Serialization::SerializeBinary(miscInfo, miscBuffer);
+                String miscBuffer  = Serialize<ESerializationFormat::Binary>(miscInfo);
 
                 WriteBinaryFile(serialCCLPath, cclBuffer);
                 WriteBinaryFile(serialFBNPath, fbnBuffer);
@@ -201,7 +198,7 @@ namespace Ifrit::Runtime
         {
             String coneCullBuffer;
             coneCullBuffer = ReadBinaryFile(serialConeCullPath);
-            Serialization::DeserializeBinary(coneCullBuffer, coneCullData);
+            Deserialize<ESerializationFormat::Binary>(coneCullBuffer, coneCullData);
         }
 
         if (needToGenerateConeCull)
@@ -212,8 +209,7 @@ namespace Ifrit::Runtime
                 coneCullData.m_boundSphere);
             if (needToStoreConeCull)
             {
-                String coneCullBuffer;
-                Serialization::SerializeBinary(coneCullData, coneCullBuffer);
+                String coneCullBuffer = Serialize<ESerializationFormat::Binary>(coneCullData);
                 WriteBinaryFile(serialConeCullPath, coneCullBuffer);
             }
         }

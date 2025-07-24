@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/base/Scene.h"
 #include "ifrit/runtime/base/Component.h"
+#include "ifrit/core/serialization/Serializer.h"
 namespace Ifrit::Runtime
 {
     IFRIT_APIDECL            SceneNode::SceneNode() : m_Parent(nullptr) {}
@@ -278,5 +279,10 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL PerFrameData* Scene::GetPerFrameData() { return m_PerFrameData.get(); }
+
+    IFRIT_APIDECL String        Scene::Serialize() const
+    {
+        return Serialization::Serialize<Serialization::ESerializationFormat::Json>(*this);
+    }
 
 } // namespace Ifrit::Runtime

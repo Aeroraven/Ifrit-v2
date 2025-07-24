@@ -1,16 +1,9 @@
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
+#include "ifrit.shader.neo/Shared/Artemis/Rigid.Shared.h"
 
 namespace Ifrit::Runtime::Artemis
 {
-
-    struct ArtemisColliderElement
-    {
-        u32 m_RuntimeId    = 0;
-        u32 m_TransformRef = 0;
-        f32 m_Radius       = 1.0f;
-        f32 m_RigidMass    = 1.14514f;
-    };
 
     struct ArtemisColliderElementRuntimeData
     {
@@ -23,7 +16,7 @@ namespace Ifrit::Runtime::Artemis
         u32                                    m_AllocatedRuntimeIds          = 0;
         RHI::RhiBufferRef                      m_GpuColliderDataBuffer        = nullptr;
         RHI::RhiBufferRef                      m_GpuColliderDataBufferRuntime = nullptr;
-        Vec<ArtemisColliderElement>            m_ColliderData;
+        Vec<Shader::Artemis::FRigidColliderEntry>            m_ColliderData;
         Vec<ArtemisColliderElementRuntimeData> m_ColliderDataRuntime;
         Vec<GUID>                              m_ColliderIDs;
     };

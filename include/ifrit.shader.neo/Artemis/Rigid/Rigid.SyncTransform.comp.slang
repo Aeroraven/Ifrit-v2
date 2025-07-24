@@ -43,6 +43,13 @@ namespace Rigid{
 #else
         InstanceTransform.m_Position.xy = DynamicsData.m_Position.xy;
 #endif
+
+
+#ifndef IFSHADER_RIGID_DYNAMICS_3D
+        //TODO: Handle 3D rotation
+        InstanceTransform.m_Rotation = float4(0.0f, 0.0f, DynamicsData.m_Rotation, 1.0f);
+
+#endif
         // ignore rotation now, for spheres
         float4x4 LocalToWorld = Math::GetModelToWorldMatrix(InstanceTransform.m_Position.xyz,
                                                         InstanceTransform.m_Rotation.xyz,
@@ -50,7 +57,8 @@ namespace Rigid{
         InstanceTransform.m_LocalToWorld = LocalToWorld;
         InstanceTransform.m_WorldToLocal = Math::Inverse(LocalToWorld);
 
+
         ColliderEntry.m_Transform.Store(InstanceTransform);
     }
 
-}}}
+}}}

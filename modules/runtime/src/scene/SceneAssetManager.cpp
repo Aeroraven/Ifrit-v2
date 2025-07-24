@@ -34,6 +34,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneAssetImporter::ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata)
     {
+        IF_LOG_ERROR("SceneAssetImporter", "Removed function");
         auto          asset = MakeRef<SceneAsset>(metadata, path);
         String        fileReaded;
         std::ifstream file(path);
@@ -43,7 +44,8 @@ namespace Ifrit::Runtime
         fileReaded.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
         file.close();
         Ref<Scene> x;
-        Serialization::DeserializeBinary(fileReaded, x);
+        
+        
         asset->m_scene = x;
         auto fileName  = metadata.m_name;
         // remove extension
@@ -103,12 +105,13 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneAssetManager::SaveScenes()
     {
+        IF_LOG_ERROR("SceneAssetImporter", "Removed function");
         using namespace Ifrit::Serialization;
         for (auto& [name, idx] : m_scenesIndex)
         {
             auto   scene = m_scenes[idx];
             String serialized;
-            SerializeBinary(scene, serialized);
+            //SerializeBinary(scene, serialized);
             auto          fileName = m_sceneDataPath / (name + cSceneFileExtension);
             std::ofstream file(fileName);
             file << serialized;
@@ -118,6 +121,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void SceneAssetManager::LoadScenes()
     {
+        IF_LOG_ERROR("SceneAssetImporter", "Removed function");
         using namespace Ifrit::Serialization;
         for (auto& entry : std::filesystem::directory_iterator(m_sceneDataPath))
         {
@@ -136,7 +140,6 @@ namespace Ifrit::Runtime
             file.seekg(0, std::ios::beg);
             serialized.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             Ref<Scene> scene;
-            DeserializeBinary(serialized, scene);
             // use the name of the file as the key, extension removed
             auto name = entry.path().filename().replace_extension("").generic_string();
             // m_scenes[name] = scene;

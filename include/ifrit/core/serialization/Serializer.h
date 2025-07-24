@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/queue.hpp>
 #include <cereal/cereal.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/polymorphic.hpp>
@@ -28,34 +30,65 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <sstream>
 #include <string>
 #include "ifrit/core/serialization/SerialDefine.h"
+#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/base/CoreBase.h"
 
 namespace Ifrit::Serialization
 {
 
-    template <class T> void SerializeBinary(T& src, std::string& dst)
+    IFRIT_CORE_API void SerializationErrorReport(const String& str);
+
+    enum class ESerializationFormat : u8
     {
-        std::ostringstream oss;
+        Binary,
+        Json,
+    };
+
+    template <ESerializationFormat Fmt> struct TSerializerTraits;
+    template <> struct TSerializerTraits<ESerializationFormat::Binary>
+    {
+        using OutputArchive                     = cereal::BinaryOutputArchive;
+        using InputArchive                      = cereal::BinaryInputArchive;
+        static constexpr const char* FormatName = "Binary";
+    };
+    template <> struct TSerializerTraits<ESerializationFormat::Json>
+    {
+
+        using OutputArchive                     = cereal::JSONOutputArchive;
+        using InputArchive                      = cereal::JSONInputArchive;
+        static constexpr const char* FormatName = "Json";
+    };
+
+    template <ESerializationFormat Fmt, class T> String Serialize(const T& src)
+    {
+        std::ostringstream                             oss;
+        typename TSerializerTraits<Fmt>::OutputArchive ar(oss);
+        try
         {
-            try
-            {
-                cereal::BinaryOutputArchive ar(oss);
-                ar(src);
-            }
-            catch (const std::exception& e)
-            {
-                printf("Error: %s\n", e.what());
-                std::abort();
-            }
+            ar(src);
         }
-        dst = oss.str();
+        catch (const std::exception& e)
+        {
+
+            SerializationErrorReport(e.what());
+        }
+
+        return oss.str();
     }
 
-    template <class T> void DeserializeBinary(const std::string& src, T& dst)
+    template <ESerializationFormat Fmt, class T> void Deserialize(const String& src, T& dst)
     {
-        std::istringstream iss(src);
+
+        std::istringstream                            iss(src);
+        typename TSerializerTraits<Fmt>::InputArchive ar(iss);
+        try
         {
-            cereal::BinaryInputArchive ar(iss);
+
             ar(dst);
+        }
+        catch (const std::exception& e)
+        {
+            SerializationErrorReport(e.what());
         }
     }
 

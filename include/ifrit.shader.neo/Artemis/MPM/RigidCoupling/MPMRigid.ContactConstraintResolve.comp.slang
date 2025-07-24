@@ -8,6 +8,8 @@
 #include "ifrit.shader.neo/Artemis/Rigid/Rigid.Common.hlsli"
 #include "ifrit.shader.neo/Artemis/MPM/RigidCoupling/MPMRigid.Common.hlsli"
 
+#include "ifrit.shader.neo/Artemis/MPM/RigidCoupling/MPMRigid.CollisionUtils.hlsli"
+
 namespace IfritShader{
 namespace Artemis{
 namespace MPM{
@@ -46,17 +48,23 @@ namespace MPM{
         FScalar RigidMass = PushConst.m_RigidColliders.Load(RigidId).m_RigidMass;
 
         FSpatialVector ParticlePositionPrev = PushConst.m_ParticleLocations.Load(ParticleId);
-        FSpatialVector ColliderCenterPositionPrev = ColliderDynamics.m_Position;
-
         FSpatialVector ParticleDisplacement = PushConst.m_ParticleDisplacements.Load(ParticleId);
-        FSpatialVector ColliderCenterDisplacement = ColliderDynamics.m_Displacement;
 
+        FSpatialVector ColliderContactPointLS = ToSpatialVector(Contact.m_ContactPointRigid);
+        FSpatialVector ColliderContactPointWS = ConvertRigidPointToWorldSpace(ColliderContactPointLS, ColliderDynamics);
+        
         FSpatialVector ParticlePosition = ParticlePositionPrev + ParticleDisplacement;
-        FSpatialVector ColliderCenterPosition = ColliderCenterPositionPrev + ColliderCenterDisplacement;
-
+        FSpatialVector R2 = ColliderContactPointWS - (ColliderDynamics.m_Position + ColliderDynamics.m_Displacement);
+        
         FSpatialVector N = ToSpatialVector(Contact.m_ContactNormal);
         FSpatialVector P1 = ParticlePosition;
-        FSpatialVector P2 = ColliderCenterPosition + N * Collider.m_ColliderRadius;
+        FSpatialVector P2 = ColliderContactPointWS;
+
+        // TODO: Handle 3D rotation
+        FScalar W2Extra = 0.0f;
+#ifndef IFSHADER_RIGID_DYNAMICS_3D
+        W2Extra = Math::Cross2D(R2, N) * Math::Cross2D(R2, N) * rcp(Collider.m_Inertia2D);
+#endif
 
         // dx = (p1-p2)*n
         FScalar Dist = -dot(P1 - P2, N);
@@ -64,7 +72,7 @@ namespace MPM{
         if (!IsColliding) return;
 
         FScalar W1 = rcp(ParticleMass);
-        FScalar W2 = rcp(RigidMass);
+        FScalar W2 = rcp(RigidMass) + W2Extra;
         FScalar DeltaLambda = Dist/(W1 + W2);
 
         FSpatialVector Impulse = DeltaLambda * N;
@@ -72,11 +80,16 @@ namespace MPM{
         FSpatialVector Shift1 = W1 * Impulse;
         FSpatialVector Shift2 = -W2 * Impulse;
 
-        FSpatialVector NewParticleDisplacement = ParticleDisplacement + Shift1;
-        FSpatialVector NewColliderDisplacement = ColliderCenterDisplacement + Shift2;
+        Rigid::FAngularRotation RotationImp;
 
+#ifdef IFSHADER_RIGID_DYNAMICS_3D
+        //TODO: Handle 3D rotation
+#else
+        RotationImp = -rcp(Collider.m_Inertia2D) * Math::Cross2D(R2, Impulse);
+        PushConst.m_RigidDynamics.AtomicAddRotation(RigidId, RotationImp);
+#endif
 
         PushConst.m_ParticleDisplacements.AtomicAdd(ParticleId, Shift1);
         PushConst.m_RigidDynamics.AtomicAddDisplacement(RigidId, Shift2);
     }
-}}}
+}}}

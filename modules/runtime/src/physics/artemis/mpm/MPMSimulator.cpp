@@ -10,6 +10,7 @@
 #include "ifrit/runtime/physics/artemis/ArtemisSceneData.h"
 #include "ifrit.internal/runtime/physics/artemis/InternalConst.h"
 #include "ifrit.shader.neo/Artemis/Rigid/Rigid.Common.hlsli"
+#include "ifrit.shader.neo/Shared/Artemis/MPMRigidCoupling.Shared.h"
 
 using namespace Ifrit::Math;
 using namespace Ifrit::RHI;
@@ -60,22 +61,6 @@ namespace Ifrit::Runtime::Artemis
         static IF_CONSTEXPR u32 kFSpatialVectorAlignedSize    = static_cast<u32>(sizeof(FSpatialVectorAligned));
         static IF_CONSTEXPR u32 kFSpatialTransformAlignedSize = static_cast<u32>(sizeof(FSpatialTransformAligned));
         static IF_CONSTEXPR u32 kFScalarSize                  = static_cast<u32>(sizeof(FScalar));
-    };
-
-    struct FMPMRigidCouplingContactPair
-    {
-        Vector4f m_ContactNormal;
-        int      m_ParticleId;
-        int      m_RigidId;
-        float    m_Lambda;
-        int      m_Pad;
-    };
-
-    struct FMPMRigidBoundaryContactPair
-    {
-        Vector4f m_ContactNormal;
-        Vector4f m_ContactPoint;
-        int      m_RigidId;
     };
 
     struct MPMSimulatorGridAttribute
@@ -1229,9 +1214,10 @@ namespace Ifrit::Runtime::Artemis
         auto gridAttrSz  = SizeCast<u32>(sizeof(MPMSimulatorGridAttribute));
 
         auto contactIndSz  = SizeCast<u32>(sizeof(u32) * 4);
-        auto contactSz     = SizeCast<u32>(sizeof(FMPMRigidCouplingContactPair) * m_Config->m_MaxContacts);
+        auto contactSz     = SizeCast<u32>(sizeof(Shader::Artemis::FMPMRigidCouplingContactPair) * m_Config->m_MaxContacts);
         auto boundaryIndSz = SizeCast<u32>(sizeof(u32) * 4);
-        auto boundarySz    = SizeCast<u32>(sizeof(FMPMRigidBoundaryContactPair) * m_Config->m_MaxContacts);
+        auto boundarySz =
+            SizeCast<u32>(sizeof(Shader::Artemis::FMPMRigidBoundaryContactPair) * m_Config->m_MaxContacts);
 
         auto inddrawSz = sizeof(u32) * 4;
 

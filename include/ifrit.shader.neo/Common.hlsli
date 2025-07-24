@@ -88,6 +88,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define IFSHADER_TYPEALIAS(name,type) typealias name = type;
 #endif
 
+
 namespace IfritShader{
     struct PerFramePerViewData 
     {
@@ -130,14 +131,7 @@ namespace IfritShader{
         uint m_MaterialId;
     };
 
-    struct FInstanceLocalTransform
-    {
-        float4x4 m_LocalToWorld;
-        float4x4 m_WorldToLocal;
-        float4 m_MaxScale;
-        float4 m_Position;
-        float4 m_Rotation; // Euler!
-    };
+
 
     IFSHADER_TEMPLATE<typename T>
     T DivRoundUp(T Value, T Divisor)

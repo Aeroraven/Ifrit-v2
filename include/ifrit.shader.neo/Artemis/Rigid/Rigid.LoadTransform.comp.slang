@@ -39,10 +39,18 @@ namespace Rigid{
 
 #ifdef IFSHADER_RIGID_DYNAMICS_3D
         DynamicsData.m_Position = InstanceTransform.m_Position.xyz;
+        DynamicsData.m_Rotation = Math::IdentityQ();
+        DynamicsData.m_RotationLast = Math::IdentityQ();
+        DynamicsData.m_AngularVelocity = FSpatialVector(0.0f, 0.0f, 0.0f);
+        DynamicsData.m_InertiaTensor = 1.0f;
 #else
+
+
         DynamicsData.m_Position = InstanceTransform.m_Position.xy;
+        DynamicsData.m_Rotation = InstanceTransform.m_Rotation.z;
+        DynamicsData.m_InertiaTensor = ColliderEntry.m_Inertia2D;
 #endif
         PushConst.m_ColliderDynamics.Store(DynamicsData, ThreadId.x);
     }
 
-}}}
+}}}

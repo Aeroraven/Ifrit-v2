@@ -2,18 +2,6 @@
     #define IFRIT_DLL
 #endif
 
-#ifndef IFRIT_DEMO_ASSET_PATH
-    #define IFRIT_DEMO_ASSET_PATH ""
-#endif
-
-#ifndef IFRIT_DEMO_CACHE_PATH
-    #define IFRIT_DEMO_CACHE_PATH ""
-#endif
-
-#ifndef IFRIT_DEMO_SCENE_PATH
-    #define IFRIT_DEMO_SCENE_PATH ""
-#endif
-
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/core/typing/Util.h"
@@ -28,6 +16,7 @@
 #include "ifrit/core/hal/HalDisplay.h"
 
 #include "ifrit/runtime/geometry/preset/Circle2D.h"
+#include "ifrit/runtime/geometry/preset/Square2D.h"
 
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 800
@@ -139,7 +128,7 @@ namespace Ifrit
             material->BuildMaterial();
 
             auto rigid      = node->AddGameObject("RigidCollider");
-            auto circleMesh = MakeRef<Geometry::Circle2D>(0.05f, 32);
+            auto circleMesh = MakeRef<Geometry::Square2D>(0.1f, 0.1f);
             auto rigidMesh  = rigid->AddComponent<MeshFilter>();
             rigidMesh->SetMesh(circleMesh);
             auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
@@ -149,6 +138,7 @@ namespace Ifrit
             rigidTransform->SetDevice(TransformUpdateDevice::GPU);
             auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
             rigidCollider->SetRadius(0.05f);
+            rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Box);
             rigidCollider->SetEnable(false);
 
             auto defaultEmitter = node->AddGameObject("ParticleEmitter");
@@ -160,6 +150,9 @@ namespace Ifrit
 
             m_sceneManager->SetActiveScene(scene);
             m_RendererWrapper->SetRenderer(m_Renderer.get());
+
+            auto sceneSerialized = scene->Serialize();
+            WriteTextFile("C:/WR/Test.json", sceneSerialized);
         }
 
         void OnUpdate() override

@@ -8,6 +8,8 @@
 #include "ifrit.shader.neo/Artemis/Rigid/Rigid.Common.hlsli"
 #include "ifrit.shader.neo/Artemis/MPM/RigidCoupling/MPMRigid.Common.hlsli"
 
+#include "ifrit.shader.neo/Artemis/MPM/RigidCoupling/MPMRigid.CollisionUtils.hlsli"
+
 namespace IfritShader{
 namespace Artemis{
 namespace MPM{
@@ -47,7 +49,7 @@ namespace MPM{
 
         int sCountPairsInWave = 0;
         bool ParticleCollided = false;
-        float4 ContactNormal = float4(0.0f, 0.0f, 0.0f, 0.0f);
+        FParticleRigidCollisionCheckResult Result;
 
         if(ParticleId < NumParticles)
         {
@@ -63,17 +65,8 @@ namespace MPM{
 
             FSpatialVector ParticlePosition = ParticlePositionPrev + ParticleDisplacement;
             FSpatialVector ColliderPosition = ColliderPositionPrev + ColliderDisplacement;
-
-            FSpatialVector N = normalize(ParticlePosition - ColliderPosition);
-            ContactNormal = SpatialVectorToFloat4(N);
-
-            float Distance = length(ParticlePosition - ColliderPosition);
-            ParticleCollided = Distance < ColliderRadius;
-
-            if(ParticleCollided)
-            {
-                //PushConst.m_ParticleColor.Store(float4(1.0f, 0.0f, 0.0f, 1.0f), ParticleId);
-            }
+            Result = DetectParticleRigidCollision(ParticlePosition, Collider, ColliderDynamics);
+            ParticleCollided = Result.m_Collided;
         }
 
         sCountPairsInWave = WaveActiveCountBits(ParticleCollided);
@@ -91,8 +84,8 @@ namespace MPM{
             FMPMRigidCouplingContactPair Pair;
             Pair.m_ParticleId = ParticleId;
             Pair.m_RigidId = RigidId;
-            Pair.m_Lambda = 0.0f;
-            Pair.m_ContactNormal = ContactNormal;
+            Pair.m_ContactNormal = SpatialVectorToFloat4(Result.m_ContactNormal);
+            Pair.m_ContactPointRigid = SpatialVectorToFloat4(Result.m_CollisionLocRigid);
             PushConst.m_CollisionPairs.Store(Pair, OverallOffset);
         }
     }

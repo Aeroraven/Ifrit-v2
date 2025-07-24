@@ -7,6 +7,8 @@
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit.internal/runtime/physics/artemis/InternalConst.h"
 
+#include "ifrit.shader.neo/Shared/Artemis/Rigid.Shared.h"
+
 namespace Ifrit::Runtime::Artemis
 {
     IFRIT_APIDECL void CollectPhysicsSceneData(Scene* scene, RHI::RhiBackend* rhi)
@@ -40,7 +42,8 @@ namespace Ifrit::Runtime::Artemis
 
         if ((physicsData->m_NumGpuColliders != numRigids || physicsData->m_GpuColliderDataBuffer == nullptr))
         {
-            u32  requiredBufferSize = std::max(1u, SizeCast<u32>(sizeof(ArtemisColliderElement) * numRigids));
+            u32 requiredBufferSize =
+                std::max(1u, SizeCast<u32>(sizeof(Shader::Artemis::FRigidColliderEntry) * numRigids));
             auto bufferUsage = RHI::RhiBufferUsage::RhiBufferUsage_SSBO | RHI::RhiBufferUsage::RhiBufferUsage_CopyDst;
             physicsData->m_GpuColliderDataBuffer =
                 rhi->CreateBufferDevice("ArtemisColliderDataBuffer", requiredBufferSize, bufferUsage, true);
@@ -56,10 +59,13 @@ namespace Ifrit::Runtime::Artemis
             IF_LOG_ASSERTION("Artemis.SceneCollecting",
                 transformComponent->GetUpdateDevice() == TransformUpdateDevice::GPU,
                 "Transform must be in GPU update mode for Artemis rigid collider");
-            auto transformRet                             = UpdateTransformGPUData(transformComponent, rhi);
-            physicsData->m_ColliderData[i].m_TransformRef = transformRet.m_TransformRef;
-            physicsData->m_ColliderData[i].m_Radius       = rigidCollider->GetRadius();
-            physicsData->m_ColliderData[i].m_RigidMass    = rigidCollider->GetRigidMass();
+            auto transformRet                                   = UpdateTransformGPUData(transformComponent, rhi);
+            physicsData->m_ColliderData[i].m_Transform          = transformRet.m_TransformRef;
+            physicsData->m_ColliderData[i].m_ColliderRadius     = rigidCollider->GetRadius();
+            physicsData->m_ColliderData[i].m_RigidMass          = rigidCollider->GetRigidMass();
+            physicsData->m_ColliderData[i].m_ColliderCuboidSize = Vector4f(rigidCollider->GetCuboidSize(), 0.0f);
+            physicsData->m_ColliderData[i].m_ColliderType       = rigidCollider->GetColliderType();
+            physicsData->m_ColliderData[i].m_Inertia2D          = rigidCollider->GetMomentOfInertia2D();
 
             if (rigidCollider->GetInternalRigidId() == ~0u)
             {
@@ -75,7 +81,8 @@ namespace Ifrit::Runtime::Artemis
             if (physicsData->m_ColliderData.size())
             {
                 stagingBuffer->CmdCopyToDevice(cmd, physicsData->m_ColliderData.data(),
-                    SizeCast<u32>(physicsData->m_ColliderData.size() * sizeof(ArtemisColliderElement)), 0);
+                    SizeCast<u32>(physicsData->m_ColliderData.size() * sizeof(Shader::Artemis::FRigidColliderEntry)),
+                    0);
                 if (shouldInitRuntimeData)
                 {
                     cmd->BufferClear(physicsData->m_GpuColliderDataBufferRuntime.get(), 0);

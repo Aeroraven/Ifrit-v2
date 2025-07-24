@@ -31,6 +31,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/serialization/Serializer.h"
 
 using namespace Ifrit::Math;
+using namespace Ifrit::Serialization;
 
 namespace Ifrit::Runtime::Ayanami
 {
@@ -136,13 +137,13 @@ namespace Ifrit::Runtime::Ayanami
             {
                 auto serialCompactMeshDFPath = cacheCompactPathStr;
                 auto buffer                  = ReadBinaryFile(serialCompactMeshDFPath);
-                Serialization::DeserializeBinary(buffer, compactSdf);
+                Deserialize<ESerializationFormat::Binary>(buffer, compactSdf);
             }
             else if (hasCachedDF)
             {
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 auto buffer           = ReadBinaryFile(serialMeshDFPath);
-                Serialization::DeserializeBinary(buffer, sdf);
+                Deserialize<ESerializationFormat::Binary>(buffer, sdf);
             }
             else
             {
@@ -154,8 +155,7 @@ namespace Ifrit::Runtime::Ayanami
                 auto serialMeshDFPath = cachePathStr + serialMeshDFName;
                 if (shouldGenCachedDF)
                 {
-                    String buffer;
-                    Serialization::SerializeBinary(sdf, buffer);
+                    String buffer = Serialize<ESerializationFormat::Binary>(sdf);
                     // WriteBinaryFile(serialMeshDFPath, buffer);
                 }
             }
@@ -164,8 +164,7 @@ namespace Ifrit::Runtime::Ayanami
                 IF_LOG_INFO("Ayanami.MeshDF", "Building compact mesh distance field for {}", meshData->identifier);
                 CompactSDF(sdf, compactSdf);
                 auto   serialCompactMeshDFPath = cacheCompactPathStr;
-                String buffer;
-                Serialization::SerializeBinary(compactSdf, buffer);
+                String buffer = Serialize<ESerializationFormat::Binary>(compactSdf);
                 WriteBinaryFile(serialCompactMeshDFPath, buffer);
             }
             if (shouldGenBC4CompactDF)

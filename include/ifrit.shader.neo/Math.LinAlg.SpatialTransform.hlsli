@@ -72,4 +72,10 @@ namespace Math {
         float s = sin(Angle);
         return float2x2(c, -s, s, c);
     }
+
+    float GetAngleFromRotationMatrix2D(float2x2 Rotation)
+    {
+        float Angle = atan2(Rotation[1][0], Rotation[0][0]);
+        return Angle;
+    }
 }}

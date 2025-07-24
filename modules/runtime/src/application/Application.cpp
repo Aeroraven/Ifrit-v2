@@ -61,7 +61,8 @@ namespace Ifrit::Runtime
             providerType = Display::Window::WindowProviderType::GLFW;
         }
         m_windowProvider = selector.CreateWindowProvider(providerType, winArgs);
-        m_windowProvider->Setup(static_cast<usize>(m_info.m_width * dpiScaler), static_cast<usize>(m_info.m_height * dpiScaler));
+        m_windowProvider->Setup(
+            static_cast<usize>(m_info.m_width * dpiScaler), static_cast<usize>(m_info.m_height * dpiScaler));
 
         // Setup RHI
         RHI::RhiInitializeArguments rhiArgs;
@@ -111,7 +112,7 @@ namespace Ifrit::Runtime
         // Setup systems
         m_assetManager      = MakeRef<AssetManager>(m_info.m_assetPath, this);
         m_sceneAssetManager = MakeRef<SceneAssetManager>(m_info.m_scenePath, m_assetManager.get());
-        m_assetManager->LoadAssetDirectory();
+        // m_assetManager->LoadAssetDirectory();
         IF_LOG_INFO("Application", "Asset directory loaded from: {}", m_info.m_assetPath);
 
         m_sceneManager = MakeRef<SceneManager>(this);

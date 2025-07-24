@@ -25,8 +25,8 @@ namespace MPM{
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
     IFSHADER_BLOCKSIZE(kMpmTGSizeX, 1, 1)
     void MPMRigidBoundaryConstraintResolveCS(uint3 ThreadId:SV_DispatchThreadID,
-                                            uint3 GroupId:SV_GroupID,
-                                            uint3 GroupThreadId:SV_GroupThreadID)
+                                             uint3 GroupId:SV_GroupID,
+                                             uint3 GroupThreadId:SV_GroupThreadID)
     {
         int NumConstraints = PushConst.m_NumConstraints.Load(0);
         if (ThreadId.x >= NumConstraints) return;
@@ -50,10 +50,10 @@ namespace MPM{
         bool IsColliding = Dist > 0.0f;
         if(!IsColliding) return;
 
-        FSpatialVector Impulse = Dist * N;
+        FSpatialVector Impulse = Dist * N * 2.0f;
         FSpatialVector Shift = Impulse;
 
         PushConst.m_RigidDynamics.AtomicAddDisplacement(RigidId, Shift);
     }
 
-}}}
+}}}

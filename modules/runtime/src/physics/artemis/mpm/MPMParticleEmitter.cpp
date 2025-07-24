@@ -11,7 +11,7 @@ namespace Ifrit::Runtime::Artemis
         Vector3f                 m_EmitMaxRange     = Vector3f(0.55f, 0.95f, 0.55f);
         i32                      m_EmitKeyFrame     = 15;
 
-        f32                      m_ParticleMass                 = 1.0f;
+        f32                      m_ParticleMass                 = 0.5f / 64.0f;
         f32                      m_ParticleDensity              = 1.0f;
         f32                      m_PbmpmParticleElasticityRatio = 0.5f;
         f32                      m_PbmpmParticleElasticityRelax = 1.5f;
@@ -33,6 +33,7 @@ namespace Ifrit::Runtime::Artemis
         MPMParticleEmitArgs args;
         args.m_EmitColor    = m_Data->m_EmitColor;
         args.m_MaterialType = m_Data->m_EmitMaterialType;
+        args.m_Mass         = m_Data->m_ParticleMass;
         return args;
     }
 
@@ -63,7 +64,7 @@ namespace Ifrit::Runtime::Artemis
         AddProperty<Vector3f, EPropertyEditorType::Text>("Emit MinRange", m_Data->m_EmitMinRange);
         AddProperty<Vector3f, EPropertyEditorType::Text>("Emit MaxRange", m_Data->m_EmitMaxRange);
         AddProperty<i32, EPropertyEditorType::Range>("Emit Key Frame", m_Data->m_EmitKeyFrame, 1, 1000);
-        AddProperty<f32, EPropertyEditorType::Range>("Particle Mass", m_Data->m_ParticleMass, 0.01f, 100.0f);
+        AddProperty<f32, EPropertyEditorType::Range>("Particle Mass", m_Data->m_ParticleMass, 0.001f, 5.0f);
         AddProperty<f32, EPropertyEditorType::Range>("Particle Density", m_Data->m_ParticleDensity, 0.01f, 1000.0f);
         AddProperty<f32, EPropertyEditorType::Range>(
             "Elasticity Ratio", m_Data->m_PbmpmParticleElasticityRatio, 0.0f, 1.0f);

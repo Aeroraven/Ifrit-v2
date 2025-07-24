@@ -46,4 +46,14 @@ namespace Ifrit
 
     template <typename T> inline IF_CONSTEXPR bool TpIsIterable_v = TpIsIterable<T>::value;
 
+    template <typename T>
+    concept IConceptCustomSerializable = requires(T t) {
+        {
+            t.Serialize()
+        } -> std::same_as<String>;
+        {
+            T::Deserialize(std::declval<String>())
+        } -> std::same_as<T>;
+    };
+
 } // namespace Ifrit

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ifrit.shader.neo/Common.hlsli"
+#include "ifrit.shader.neo/Shared/SharedTypes.h"
+#include "ifrit.shader.neo/Shared/Artemis/Rigid.Shared.h"
 
 #ifndef __cplusplus
     #include "ifrit.shader.neo/Bindless.hlsli"
@@ -17,18 +19,13 @@ namespace Rigid{
 
 #ifndef __cplusplus
 
+    // NOT USED Now
     struct FRigidColliderEntryRuntimeData
     {
         float4 m_Displacement;
     };
 
-    struct FRigidColliderEntry
-    {
-        int m_RuntimeId;
-        TRWStructuredBufferHandle<FInstanceLocalTransform> m_Transform;
-        float m_ColliderRadius;
-        float m_RigidMass;
-    };
+    
 
 #ifdef IFSHADER_RIGID_DYNAMICS_3D
 
@@ -39,7 +36,7 @@ namespace Rigid{
     IFSHADER_TYPEALIAS(FAngularMatrix, float3x3);
 
     IFSHADER_DEFINE_CONST_INT32(kSizeofColliderDynamicsDataInF32, 3+3+4+4+3+9);
-    
+    IFSHADER_DEFINE_CONST_INT32(kRotationSectionOffset, 4); //TODO: LAYOUT!!!!!
 #else
     IFSHADER_TYPEALIAS(FSpatialVector, float2);
     IFSHADER_TYPEALIAS(FSpatialMatrix, float2x2);
@@ -48,6 +45,7 @@ namespace Rigid{
     IFSHADER_TYPEALIAS(FAngularMatrix, float);
 
     IFSHADER_DEFINE_CONST_INT32(kSizeofColliderDynamicsDataInF32, 2+2+4);
+    IFSHADER_DEFINE_CONST_INT32(kRotationSectionOffset, 4);
 
 #endif
     struct FRigidColliderDynamicsData

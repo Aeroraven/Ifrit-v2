@@ -39,6 +39,12 @@ namespace Rigid{
         FRigidColliderDynamicsData DynamicsData = PushConst.m_ColliderDynamics.Load(ThreadId.x);
         
         DynamicsData.m_Position += DynamicsData.m_Displacement;
+        
+#ifndef IFSHADER_RIGID_DYNAMICS_3D
+        DynamicsData.m_AngularVelocity = (DynamicsData.m_Rotation - DynamicsData.m_RotationLast) / PushConst.m_DeltaTime;
+#else
+        //TODO: Add 3D rotation handling
+#endif
         // v<-v+h*fext/m;
         // dx<-dx+h*h*fext/(2*m);
         FSpatialVector Gravity = ToSpatialVector(PushConst.m_Gravity);
