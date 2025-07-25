@@ -75,7 +75,7 @@ namespace Ifrit::RHI
             {
                 if (allowInvalid)
                     return ~0u;
-                IF_LOG_ERROR("RHI","Invalid descriptor handle");
+                IF_LOG_ERROR("RHI", "Invalid descriptor handle");
                 std::abort();
                 return ~0u;
             }
@@ -200,6 +200,7 @@ namespace Ifrit::RHI
         virtual RhiDeviceAddr GetDeviceAddress() const = 0;
     };
 
+    // TODO: DEPRECATING
     class IFRIT_APIDECL RhiBindlessDescriptorRef
     {
     public:

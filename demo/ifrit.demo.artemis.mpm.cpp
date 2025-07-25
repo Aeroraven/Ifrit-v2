@@ -47,6 +47,8 @@ namespace Ifrit
             AddProperty<f32, EPropertyEditorType::Range>("Time Interval", m_InvTimestep, 60.0f, 2000.0f, 0.001f);
         }
         void OnUpdate() override { sTimestep = 1.0f / m_InvTimestep; }
+
+        IFRIT_COMPONENT_SERIALIZE(m_InvTimestep);
     };
 
     class DemoApplicationMpm : public Runtime::Application
@@ -192,3 +194,5 @@ int main()
     app.Run(info);
     return 0;
 }
+
+IFRIT_BEHAVIOR_REGISTER(Ifrit::MPMTiming)

@@ -21,16 +21,19 @@
   - Hardware Path Tracer (Reference Purpose)
 
   - Denoising / ReSTIR
-
 - Subproject Syaro: `ifrit.runtime/render.syaro.v2`
   - Refactoring with RDGs
 - Architectural
+  - Dropping Legacy Designs:
+    - Render Graph in `ifrit.vkgraphics`
+
   - Shader System:
     - Shader Rewrite In `slang/hlsl`: `ifrit.shader.neo`
     - Better Shader Cache System
   - Multithreaded Rendering
     - Async Compute
   - Streaming
+
 - Bug Fixing
   - (vkgraphics) Dangling view identifiers after resource destruction
   - (runtime/asset) Potential crash when loading gltf models

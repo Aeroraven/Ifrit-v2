@@ -28,7 +28,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <cereal/types/vector.hpp>
 #include <cereal/types/array.hpp>
 #include <sstream>
-#include <string>
 #include "ifrit/core/serialization/SerialDefine.h"
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/base/CoreBase.h"

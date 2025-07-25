@@ -40,3 +40,7 @@ namespace Ifrit::Runtime
 } // namespace Ifrit::Runtime
 
 IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::ActorBehavior);
+
+#define IFRIT_BEHAVIOR_REGISTER(x) \
+    IFRIT_DERIVED_REGISTER(x);     \
+    IFRIT_INHERIT_REGISTER(Ifrit::Runtime::ActorBehavior, x);

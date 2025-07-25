@@ -17,7 +17,16 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/types/queue.hpp>
 #include <cereal/cereal.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/polymorphic.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/array.hpp>
 #include <cereal/types/polymorphic.hpp>
 #include "ifrit/core/serialization/SerialDefine.h"
 

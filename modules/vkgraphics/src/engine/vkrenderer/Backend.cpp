@@ -50,6 +50,7 @@ namespace Ifrit::RHI::VulkanAdapter
         Vec<Ref<RHI::RhiDescHandleLegacy>>             m_bindlessIdRefs;
 
         // some utility buffers
+        // TODO: DEPECATING THIS @ 250725
         RHI::RhiBufferRef                              m_fullScreenQuadVertexBuffer;
         Ref<VertexBufferDescriptor>                    m_fullScreenQuadVertexBufferDescriptor;
 
