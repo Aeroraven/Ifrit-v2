@@ -111,43 +111,4 @@ namespace Ifrit
         NonCopyableStruct& operator=(const NonCopyableStruct&) = delete;
     };
 
-    template <class T> consteval inline static const char* GetFuncName()
-    {
-#ifdef _MSC_VER
-        return __FUNCSIG__;
-#else
-    #ifdef __PRETTY_FUNCTION__
-        return __PRETTY_FUNCTION__;
-    #else
-        static_assert(false, "Unsupported compiler");
-    #endif
-#endif
-    }
-
-    template <unsigned E, unsigned N> consteval u64 GetFuncNameHash(const char (&str)[N])
-    {
-        if IF_CONSTEXPR (N == E)
-            return 1;
-        else
-        {
-            return (str[E] + 1) + 257 * GetFuncNameHash<E + 1, N>(str);
-        }
-    }
-
-    template <class T> consteval u64 GetFuncNameHashId()
-    {
-        static_assert(!std::is_same_v<T, void>, "T must not be void");
-#ifdef _MSC_VER
-        return GetFuncNameHash<0>(__FUNCSIG__);
-#else
-        return GetFuncNameHash<0>(__PRETTY_FUNCTION__);
-#endif
-    }
-
-    template <class T> struct TTypeInfo
-    {
-        static IF_CONSTEXPR const char* Name = GetFuncName<T>();
-        static IF_CONSTEXPR u64         Hash = GetFuncNameHashId<T>();
-    };
-
 } // namespace Ifrit

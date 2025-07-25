@@ -4,6 +4,7 @@
 #include "ifrit/runtime/base/Property.h"
 #include "ifrit/core/typing/EnumReflection.h"
 #include "ifrit/core/typing/Traits.h"
+#include "ifrit/core/typing/TypeMetaInfo.h"
 #include <typeinfo>
 
 #define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef, __VA_ARGS__)
@@ -78,8 +79,8 @@ namespace Ifrit::Runtime
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
         ComponentReference CreateComponent(GameObject* parentObject)
         {
-            auto typeName = TTypeInfo<T>::Name;
-            auto typeHash = TTypeInfo<T>::Hash;
+            auto typeName = TMetaTypeInfo<T>::Name;
+            auto typeHash = TMetaTypeInfo<T>::Hash;
             if (m_ComponentArray.count(typeHash) == 0)
             {
                 m_ComponentArray[typeHash] = Vec<Owner<Component>>();
@@ -161,8 +162,8 @@ namespace Ifrit::Runtime
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* AddComponent()
         {
             auto componentRef = m_ComponentManager->CreateComponent<T>(this);
-            auto typeName     = TTypeInfo<T>::Name;
-            auto typeHash     = TTypeInfo<T>::Hash;
+            auto typeName     = TMetaTypeInfo<T>::Name;
+            auto typeHash     = TMetaTypeInfo<T>::Hash;
             if (m_ComponentsHashed.count(typeHash) > 0)
             {
                 IF_LOG_ERROR("Component", "Component type name conflicted");
@@ -174,7 +175,7 @@ namespace Ifrit::Runtime
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* GetComponent()
         {
-            auto typeHash = TTypeInfo<T>::Hash;
+            auto typeHash = TMetaTypeInfo<T>::Hash;
             if (m_ComponentsHashed.count(typeHash) == 0)
             {
                 return nullptr;

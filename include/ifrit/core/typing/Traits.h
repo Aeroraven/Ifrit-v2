@@ -46,6 +46,18 @@ namespace Ifrit
 
     template <typename T> inline IF_CONSTEXPR bool TpIsIterable_v = TpIsIterable<T>::value;
 
+    template <typename T> struct TMemberType
+    {
+        using Type = T;
+    };
+    template <typename U, typename T> struct TMemberType<U T::*>
+    {
+        using Type      = U;
+        using ClassType = T;
+    };
+
+    // Concepts
+
     template <typename T>
     concept IConceptCustomSerializable = requires(T t) {
         {
@@ -55,5 +67,29 @@ namespace Ifrit
             T::Deserialize(std::declval<String>())
         } -> std::same_as<T>;
     };
+    template <typename T>
+    concept IConceptIsMemberPointer = requires(T t) {
+        typename TMemberType<T>::Type;
+        typename TMemberType<T>::ClassType;
+    };
+
+    // Streaming concepts
+
+    template <typename T>
+    concept IConceptIsOutputStreamable = requires(std::ostream& os, T t) {
+        {
+            os << t
+        } -> std::same_as<std::ostream&>;
+    };
+
+    template <typename T>
+    concept IConceptIsInputStreamable = requires(std::istream& is, T t) {
+        {
+            is >> t
+        } -> std::same_as<std::istream&>;
+    };
+
+    template <typename T>
+    concept IConceptIsStreamable = IConceptIsOutputStreamable<T> && IConceptIsInputStreamable<T>;
 
 } // namespace Ifrit

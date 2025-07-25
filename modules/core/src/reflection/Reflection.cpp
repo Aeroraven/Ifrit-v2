@@ -1,63 +1,98 @@
 #include "ifrit/core/reflection/Reflection.h"
 #include <stdexcept>
+#include "ifrit/core/logging/Logging.h"
 namespace Ifrit::Reflection
 {
     struct DynamicReflectionManager
     {
-        HashMap<u64, FTypeMetaInfo>                     TypeRegistry;
-        HashMap<u64, HashMap<String, Fn<TAny(TAny&)>>> PropertyAccessors;
-        HashMap<String, u64>                            TypeNameToHash;
+        HashMap<u64, FReflTypeMetaInfo> TypeRegistry;
     };
-
-    DynamicReflectionManager& GetDynamicReflectionManager()
+    IFRIT_APIDECL DynamicReflectionManager& GetDynamicReflectionManager()
     {
         static DynamicReflectionManager instance;
         return instance;
     }
 
-    IFRIT_APIDECL void Internal_RegisterType(const FTypeMetaInfo& typeInfo)
+    IFRIT_APIDECL void Internal_RegisterType(const FReflTypeMetaInfo& typeInfo)
     {
-        auto& manager                            = GetDynamicReflectionManager();
-        manager.TypeRegistry[typeInfo.Hash]      = typeInfo;
-        manager.TypeNameToHash[typeInfo.Name]    = typeInfo.Hash;
-        manager.PropertyAccessors[typeInfo.Hash] = HashMap<String, Fn<TAny(TAny&)>>();
+
+        auto& manager                       = GetDynamicReflectionManager();
+        manager.TypeRegistry[typeInfo.Hash] = typeInfo;
     }
 
-    String GetActualFuncSigName(String typeName)
-    {
-        return "const char *__cdecl Ifrit::GetFuncName<class " + typeName + ">(void)";
-    }
-
-    IFRIT_APIDECL TAny Internal_Construct(String typeName)
+    IFRIT_APIDECL TReflObject<ObjectImpl> Internal_Construct(u64 typeHash)
     {
         auto& manager = GetDynamicReflectionManager();
-        u64   hash    = manager.TypeNameToHash[GetActualFuncSigName(typeName)];
-        auto  it      = manager.TypeRegistry.find(hash);
+
+        u64   hash = typeHash;
+        auto  it   = manager.TypeRegistry.find(hash);
         if (it != manager.TypeRegistry.end())
         {
-            const FTypeMetaInfo& typeInfo = it->second;
+
+            const FReflTypeMetaInfo& typeInfo = it->second;
             if (typeInfo.Constructor)
             {
-                return typeInfo.Constructor();
+
+                return { typeInfo.Constructor(), hash };
             }
         }
-        throw std::runtime_error("Type not registered: " + typeName);
+
+        IF_LOG_CRITICAL("Reflector", "Type not registered for construction: {}", typeHash);
     }
 
-    IFRIT_CORE_API void Internal_RegisterPropertyField(
-        const FTypeMetaInfo& typeInfo, const String& propertyName, Fn<TAny(TAny&)> accessor)
+    IFRIT_CORE_API void Internal_RegisterPropertyField(const FReflTypeMetaInfo& typeInfo,
+        const FReflPropertyMetaInfo& propInfo, const String& propertyName, Fn<ObjectImpl(ObjectImpl&)> accessor)
     {
         auto& manager  = GetDynamicReflectionManager();
         u64   typeHash = typeInfo.Hash;
         auto  it       = manager.TypeRegistry.find(typeHash);
         if (it != manager.TypeRegistry.end())
         {
-            auto& propertyAccessors         = manager.PropertyAccessors[typeHash];
-            propertyAccessors[propertyName] = accessor;
+
+            manager.TypeRegistry[typeHash].PropertyFields[propInfo.Hash] = { propertyName, accessor };
         }
         else
         {
-            throw std::runtime_error("Type not registered: " + String(typeInfo.Name));
+
+            IF_LOG_CRITICAL("Reflector", "Type not registered for property field: {}", typeHash);
+        }
+    }
+
+    IFRIT_CORE_API ObjectImpl Internal_GetProperty(TReflObject<ObjectImpl>& obj, u64 propertyHash)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = obj.TypeHash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            if (it->second.PropertyFields.count(propertyHash) > 0)
+            {
+                auto& propertyField = it->second.PropertyFields[propertyHash];
+                return propertyField.Accessor(obj.ObjectValue);
+            }
+            else
+            {
+                IF_LOG_CRITICAL("Reflector", "Property not found: {}", propertyHash);
+            }
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for property access: {}", typeHash);
+        }
+    }
+    IFRIT_CORE_API HashMap<u64, FPropertyField>& Internal_GetPropertyList(TReflObject<ObjectImpl>& obj)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = obj.TypeHash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            return it->second.PropertyFields;
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for property list access: {}", typeHash);
+            throw std::runtime_error("Type not registered for property list access");
         }
     }
 
