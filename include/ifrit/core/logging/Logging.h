@@ -98,6 +98,9 @@ namespace Ifrit::Logging
         IF_LOG_GENERAL(ELoggingLevel::Error, IFRIT_LOG_MODULE_NAME, submodule, __VA_ARGS__)
     #define IF_LOG_CRITICAL(submodule, ...) \
         IF_LOG_GENERAL(ELoggingLevel::Critical, IFRIT_LOG_MODULE_NAME, submodule, __VA_ARGS__)
+    #define IF_LOG_REMOVED_FEATURE(submodule, ...)                                \
+        IF_LOG_GENERAL(ELoggingLevel::Critical, IFRIT_LOG_MODULE_NAME, submodule, \
+            "Following features are removed. Requesting feature:" __VA_ARGS__)
 
     #define IF_LOG_ASSERTION(submodule, condition, ...) \
         IF_LOG_ASSERTION_IMPL(IFRIT_LOG_MODULE_NAME, submodule, condition, __VA_ARGS__)

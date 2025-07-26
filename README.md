@@ -89,11 +89,12 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 ### 1. Clone Repository
 ```bash
 git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive 
+git checkout checkpoint/v4 # for older demo projects
 ```
 
-> Some breaking changes (like changes in serialization and asset management) were made in `dev` branch recently (Refer to  [TODO.md](./TODO.md) for more details). 
+> Some breaking changes (like changes in serialization and asset management) were made in `dev` branch recently (Refer to  [TODO.md](./TODO.md) for more details). Temporarily, we have dropped the legacy static serialization support.
 >
-> It's recommend to switch to branch `checkpoint/v4` to run `Syaro/Ayanami Demo`, and `checkpoint/v1` to run `Software Renderer`. 
+> It's required to switch to branch `checkpoint/v4` to run `Syaro/Ayanami Demo`, and `checkpoint/v1` to run `Software Renderer`. 
 
 ### 2. Install Dependencies
 

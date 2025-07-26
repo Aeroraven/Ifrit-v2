@@ -74,7 +74,6 @@ namespace Ifrit
     };
 
     // Streaming concepts
-
     template <typename T>
     concept IConceptIsOutputStreamable = requires(std::ostream& os, T t) {
         {
@@ -91,5 +90,15 @@ namespace Ifrit
 
     template <typename T>
     concept IConceptIsStreamable = IConceptIsOutputStreamable<T> && IConceptIsInputStreamable<T>;
+
+    // Container Traits
+    template <typename T> struct TTraitIsStlVector : std::false_type
+    {
+    };
+    template <typename T> struct TTraitIsStlVector<std::vector<T>> : std::true_type
+    {
+    };
+    template <typename T>
+    concept IConceptIsStlVector = TTraitIsStlVector<T>::value;
 
 } // namespace Ifrit

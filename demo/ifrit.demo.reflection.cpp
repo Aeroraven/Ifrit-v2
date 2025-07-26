@@ -1,6 +1,7 @@
 #include "ifrit/core/reflection/Reflection.h"
 #include <iostream>
 #include <string>
+#include "ifrit/core/reflection/Serializer.h"
 
 using namespace Ifrit::Reflection;
 
@@ -41,5 +42,9 @@ int main()
         std::cout << "DogProps Name: " << k << ", Value: " << v.Value() << std::endl;
     }
 
+    std::vector<int> vec = { 1, 2, 3, 4, 5 };
+
+    TrivialArchive   archive;
+    InvokeSerialize(vec, &archive);
     return 0;
 }

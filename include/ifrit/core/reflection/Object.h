@@ -3,6 +3,7 @@
 #include "ifrit/core/base/CoreBase.h"
 #include <memory>
 #include <iostream>
+#include "ifrit/core/typing/TypeMetaInfo.h"
 
 namespace Ifrit::Reflection
 {
@@ -10,15 +11,17 @@ namespace Ifrit::Reflection
     {
         void* Ptr                                          = nullptr;
         std::type_info const& (*TypeInfoGetter)()          = nullptr;
+        FMetaTypeInfo (*TypeMetaGetter)()                  = nullptr;
         void (*Destructor)(void*)                          = nullptr;
         void (*OutputStreamFn)(std::ostream&, const void*) = nullptr;
         void (*InputStreamFn)(std::istream&, void*)        = nullptr;
 
-        Object(void* ptr, std::type_info const& (*typeInfoGetter)(), void (*destructor)(void*),
-            void (*outputStreamFn)(std::ostream&, const void*) = nullptr,
-            void (*inputStreamFn)(std::istream&, void*)        = nullptr)
+        Object(void* ptr, std::type_info const& (*typeInfoGetter)(), FMetaTypeInfo (*typeMetaGetter)(),
+            void (*destructor)(void*), void (*outputStreamFn)(std::ostream&, const void*) = nullptr,
+            void (*inputStreamFn)(std::istream&, void*) = nullptr)
             : Ptr(ptr)
             , TypeInfoGetter(typeInfoGetter)
+            , TypeMetaGetter(typeMetaGetter)
             , Destructor(destructor)
             , OutputStreamFn(outputStreamFn)
             , InputStreamFn(inputStreamFn)
@@ -27,6 +30,7 @@ namespace Ifrit::Reflection
         Object(Object&& rhs) noexcept
             : Ptr(rhs.Ptr)
             , TypeInfoGetter(rhs.TypeInfoGetter)
+            , TypeMetaGetter(rhs.TypeMetaGetter)
             , Destructor(rhs.Destructor)
             , OutputStreamFn(rhs.OutputStreamFn)
             , InputStreamFn(rhs.InputStreamFn)
@@ -53,6 +57,7 @@ namespace Ifrit::Reflection
                 }
                 Ptr            = rhs.Ptr;
                 TypeInfoGetter = rhs.TypeInfoGetter;
+                TypeMetaGetter = rhs.TypeMetaGetter;
                 Destructor     = rhs.Destructor;
                 OutputStreamFn = rhs.OutputStreamFn;
                 InputStreamFn  = rhs.InputStreamFn;
@@ -127,8 +132,9 @@ namespace Ifrit::Reflection
             }
 
             return Object(
-                ptr, []() -> std::type_info const& { return typeid(T); }, [](void* p) { delete static_cast<T*>(p); },
-                outputStreamFn, inputStreamFn);
+                ptr, []() -> std::type_info const& { return typeid(T); },
+                []() -> FMetaTypeInfo { return FMetaTypeInfo::Create<T>(); },
+                [](void* p) { delete static_cast<T*>(p); }, outputStreamFn, inputStreamFn);
         }
 
         template <typename T> static Object Create(std::reference_wrapper<T> ref)
@@ -145,8 +151,9 @@ namespace Ifrit::Reflection
             }
             return Object(
                 &ref.get(), []() -> std::type_info const& { return typeid(T); },
+                []() -> FMetaTypeInfo { return FMetaTypeInfo::Create<T>(); },
                 [](void*) { /* No-op destructor for references */ }, outputStreamFn, inputStreamFn);
         }
     };
 
-} // namespace Ifrit::Reflection
+} // namespace Ifrit::Reflection

@@ -163,7 +163,7 @@ namespace Ifrit::Runtime
     {
         using namespace Ifrit::Serialization;
         String serialized = Serialize<ESerializationFormat::Json>(metadata);
-        std::cout << serialized << std::endl;
+        //std::cout << serialized << std::endl;
         return serialized;
     }
 
