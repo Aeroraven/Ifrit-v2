@@ -11,33 +11,51 @@
 
 This project relies on following open-source projects. Corresponding licenses are in `licenses` folder.
 
+### 2.1 Active Dependenices
+
 | Repository                                                   | Usage                            | License              |
 | ------------------------------------------------------------ | -------------------------------- | -------------------- |
-| [stb](https://github.com/nothings/stb)                       | Image Parsing                    | MIT / Unlicensed     |
-| [glfw3](https://github.com/glfw/glfw)                        | Window and Display support       | Zlib                 |
-| [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/) | SPIR-V Standard Reference        | MIT                  |
+| [blosc](https://github.com/Blosc/c-blosc)                    | (Required by `openvdb`)          | BSD License          |
+| [fsr2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2)   | Super Resolution                 | MIT                  |
+| [gcem](https://github.com/kthohr/gcem)                       | Compile-time Math                | Apache 2.0           |
 | [glad](https://github.com/Dav1dde/glad/)                     | OpenGL Header Generation.        | Generated files used |
+| [glfw3](https://github.com/glfw/glfw)                        | Window and Display support       | Zlib                 |
+| [IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders) | Editor GUI                       | Zlib                 |
+| [imgui](https://github.com/ocornut/imgui)                    | Editor GUI                       | MIT                  |
+| [json](https://github.com/nlohmann/json)                     | Serialization Output Format      | MIT                  |
+| [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) | Texture Compression              | Apache 2.0           |
 | [llvm-project](https://github.com/llvm/llvm-project)         | JIT Runtime                      | Apache 2.0           |
+| [magic_enum](https://github.com/Neargye/magic_enum)          | Reflection                       | MIT                  |
 | [meshoptimizer](https://github.com/zeux/meshoptimizer)       | Mesh Algorithm                   | MIT                  |
+| [mimalloc](https://github.com/microsoft/mimalloc)            | Memory Allocation                | MIT                  |
 | [METIS](https://github.com/KarypisLab/METIS/)                | Mesh Algorithm / Graph Partition | Apache 2.0           |
-| [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | Memory Allocation                | MIT                  |
-| [cereal](https://github.com/USCiLab/cereal)                  | Serialization                    | BSD-3                |
-| [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT                  |
-| [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT                  |
-| [spirv-reflect](https://github.com/KhronosGroup/SPIRV-Reflect) | Shader Reflection                | Apache 2.0           |
+| [openvdb](https://github.com/AcademySoftwareFoundation/openvdb) | Volume Data Structure            | Apache 2.0           |
+| [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
+| [sha1](https://github.com/vog/sha1)                          | Hash                             | Public domain        |
 | [shaderc](https://github.com/google/shaderc?tab=License-1-ov-file#readme) | Shader Compilation               | Apache 2.0           |
 | [slang](https://github.com/shader-slang/slang)               | Shader Compilation               | Apache 2.0           |
-| [sha1](https://github.com/vog/sha1)                          | Hash                             | Public domain        |
-| [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
-| [gcem](https://github.com/kthohr/gcem)                       | Compile-time Math                | Apache 2.0           |
 | [spdlog](https://github.com/gabime/spdlog.git)               | Logging                          | MIT                  |
-| [fsr2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2)   | Super Resolution                 | MIT                  |
-| [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) | Texture Compression              | Apache 2.0           |
-| [tetgen](https://github.com/ufz/tetgen)                      | Mesh Tetrahedralization          | AGPL 3.0             |
-| [openvdb](https://github.com/AcademySoftwareFoundation/openvdb) | Volume Data Structure            | Apache 2.0           |
-| [zlib](https://github.com/madler/zlib)                       | (Required by `openvdb`)          | Zlib                 |
-| [blosc](https://github.com/Blosc/c-blosc)                    | (Required by `openvdb`)          | BSD License          |
+| [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/) | SPIR-V Standard Reference        | MIT                  |
+| [spirv-reflect](https://github.com/KhronosGroup/SPIRV-Reflect) | Shader Reflection                | Apache 2.0           |
+| [stb](https://github.com/nothings/stb)                       | Image Parsing                    | MIT / Unlicensed     |
+| [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT                  |
 | [tbb](https://github.com/uxlfoundation/oneTBB?tab=Apache-2.0-1-ov-file#readme) | (Required by `openvdb`)          | Apache 2.0           |
+| [tetgen](https://github.com/ufz/tetgen)                      | Mesh Tetrahedralization          | AGPL 3.0             |
+| [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT                  |
+| [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | Memory Allocation                | MIT                  |
+| [zlib](https://github.com/madler/zlib)                       | (Required by `openvdb`)          | Zlib                 |
+
+### 2.2 Legacy/Removed/Unused Dependencies
+
+These dependencies are no longer used in `dev` branch.
+
+| Repository                                  | Former Usage  | License |
+| ------------------------------------------- | ------------- | ------- |
+| [cereal](https://github.com/USCiLab/cereal) | Serialization | BSD-3   |
+
+
+
+### 2.3 Extra Tools
 
 Some tools are used during the development.
 
