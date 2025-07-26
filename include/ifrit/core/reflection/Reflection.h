@@ -4,6 +4,7 @@
 #include "ifrit/core/typing/TypeMetaInfo.h"
 #include "ifrit/core/reflection/Object.h"
 #include "ifrit/core/typing/Traits.h"
+#include "ifrit/core/reflection/TypeMetaExtended.h"
 #include <ranges>
 
 namespace Ifrit::Reflection
@@ -81,6 +82,7 @@ namespace Ifrit::Reflection
         u64                          Hash;
         Fn<ObjectImpl()>             Constructor = nullptr;
         HashMap<u64, FPropertyField> PropertyFields;
+        FMetaTypeExtendedInfo        MetaInfo;
 
         FReflTypeMetaInfo() = default;
         bool operator==(const FReflTypeMetaInfo& other) const { return Hash == other.Hash; }
@@ -96,6 +98,7 @@ namespace Ifrit::Reflection
                 auto constructor     = []() -> ObjectImpl { return ObjectImpl::Create<T>(); };
                 metaInfo.Constructor = std::move(constructor);
             }
+            metaInfo.MetaInfo = FMetaTypeExtendedInfo::Create<T>();
             return metaInfo;
         }
     };
@@ -146,15 +149,19 @@ namespace Ifrit::Reflection
     };
 
     // Internal API
-    IFRIT_CORE_API void Internal_RegisterType(const FReflTypeMetaInfo& typeInfo);
+    IFRIT_CORE_API void Internal_RegisterType(const FReflTypeMetaInfo& typeInfo, std::type_info const& typeInfoStd);
     IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Construct(u64 typeHash);
     IFRIT_CORE_API void                    Internal_RegisterPropertyField(const FReflTypeMetaInfo& typeInfo,
                            const FReflPropertyMetaInfo& propInfo, const String& propertyName, Fn<ObjectImpl(ObjectImpl&)> accessor);
     IFRIT_CORE_API ObjectImpl              Internal_GetProperty(TReflObject<ObjectImpl>& obj, u64 propertyHash);
     IFRIT_CORE_API HashMap<u64, FPropertyField>& Internal_GetPropertyList(TReflObject<ObjectImpl>& obj);
+    IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Reference(void* target, std::type_info const& typeInfo);
 
     // Templates
-    template <typename T> inline void RegisterType() { Internal_RegisterType(FReflTypeMetaInfo::Create<T>()); }
+    template <typename T> inline void      RegisterType()
+    {
+        Internal_RegisterType(FReflTypeMetaInfo::Create<T>(), typeid(T));
+    }
     template <auto Member>
         requires IConceptIsMemberPointer<decltype(Member)>
     inline void RegisterPropertyField(const String& propertyName)
@@ -176,5 +183,9 @@ namespace Ifrit::Reflection
         return Internal_GetPropertyList(obj) | std::views::transform([&](const auto& pair) {
             return FPropertyKVPair{ pair.second.Name, FPropertyWrapper(pair.second.GetProperty(obj.ObjectValue)) };
         });
+    }
+    template <typename T> inline TReflObject<ObjectImpl> ReferenceObject(T* target)
+    {
+        return Internal_Reference(target, typeid(*target));
     }
 } // namespace Ifrit::Reflection

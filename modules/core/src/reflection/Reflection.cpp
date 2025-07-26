@@ -6,6 +6,7 @@ namespace Ifrit::Reflection
     struct DynamicReflectionManager
     {
         HashMap<u64, FReflTypeMetaInfo> TypeRegistry;
+        HashMap<u64, u64>               TypeIDHashToInternalHash;
     };
     IFRIT_APIDECL DynamicReflectionManager& GetDynamicReflectionManager()
     {
@@ -13,11 +14,12 @@ namespace Ifrit::Reflection
         return instance;
     }
 
-    IFRIT_APIDECL void Internal_RegisterType(const FReflTypeMetaInfo& typeInfo)
+    IFRIT_APIDECL void Internal_RegisterType(const FReflTypeMetaInfo& typeInfo, std::type_info const& typeInfoStd)
     {
 
-        auto& manager                       = GetDynamicReflectionManager();
-        manager.TypeRegistry[typeInfo.Hash] = typeInfo;
+        auto& manager                                             = GetDynamicReflectionManager();
+        manager.TypeRegistry[typeInfo.Hash]                       = typeInfo;
+        manager.TypeIDHashToInternalHash[typeInfoStd.hash_code()] = typeInfo.Hash;
     }
 
     IFRIT_APIDECL TReflObject<ObjectImpl> Internal_Construct(u64 typeHash)
@@ -93,6 +95,28 @@ namespace Ifrit::Reflection
         {
             IF_LOG_CRITICAL("Reflector", "Type not registered for property list access: {}", typeHash);
             throw std::runtime_error("Type not registered for property list access");
+        }
+    }
+    IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Reference(void* target, std::type_info const& typeInfo)
+    {
+        if (!target)
+        {
+            IF_LOG_CRITICAL("Reflector", "Cannot create reference to null pointer");
+        }
+
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = typeInfo.hash_code();
+        auto  it       = manager.TypeIDHashToInternalHash.find(typeHash);
+        if (it != manager.TypeIDHashToInternalHash.end())
+        {
+            u64        internalHash = it->second;
+            auto&      metaInfo     = manager.TypeRegistry[internalHash];
+            ObjectImpl obj          = ObjectImpl::CreateProxy(target, metaInfo.MetaInfo);
+            return { std::move(obj), internalHash };
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for reference: {}", typeHash);
         }
     }
 

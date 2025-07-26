@@ -7,6 +7,9 @@
 - Subproject Artemis: `ifrit.runtime/physics.artemis`
 - Architectural:
   - Serialization/Reflection
+    - Hybrid Reflection
+      - Dynamic Reflection (User-defined Types)
+      - Static Reflection (Core Types/STL Containers)
     - Ownership Reidentification
     - Refactoring Asset Manager
       - Dropping Unity-like `meta` file

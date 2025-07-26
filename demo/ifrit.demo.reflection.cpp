@@ -2,49 +2,53 @@
 #include <iostream>
 #include <string>
 #include "ifrit/core/reflection/Serializer.h"
+#include <map>
 
 using namespace Ifrit::Reflection;
 
 class Cat
 {
 public:
-    int         v    = 43;
-    double      d    = 3.14;
-    std::string name = "Cat";
+    int              v    = 43;
+    double           d    = 3.14;
+    std::vector<int> meow = { 0x0d, 0x00, 0x07 };
 };
 
 class Dog
 {
 public:
-    int v = 42;
+    std::unique_ptr<Cat>         v  = std::make_unique<Cat>();
+    float                        q  = 1919810;
+    std::unique_ptr<Cat>         nk = nullptr;
+    std::unordered_map<int, Cat> fvck;
+    std::string                  str = "Goodbye World";
 };
 
 int main()
 {
+    Dog sv;
+    sv.fvck[114]    = Cat();
+    sv.fvck[1919]   = Cat();
+    sv.fvck[114].v  = 514;
+    sv.fvck[1919].d = 810;
 
     RegisterType<Cat>();
     RegisterType<Dog>();
     RegisterPropertyField<&Cat::v>("v");
     RegisterPropertyField<&Cat::d>("d");
-    RegisterPropertyField<&Cat::name>("name");
+    RegisterPropertyField<&Cat::meow>("meow");
+
     RegisterPropertyField<&Dog::v>("v");
+    RegisterPropertyField<&Dog::q>("q");
+    RegisterPropertyField<&Dog::nk>("nk");
+    RegisterPropertyField<&Dog::fvck>("fvck");
+    RegisterPropertyField<&Dog::str>("str");
 
-    auto catInstance = ConstructObject(Ifrit::FMetaTypeInfo::Create<Cat>());
-    auto dogInstance = ConstructObject(Ifrit::FMetaTypeInfo::Create<Dog>());
-    auto catProps    = GetPropertyList(catInstance);
-    auto dogProps    = GetPropertyList(dogInstance);
-    for (const auto& [k, v] : catProps)
-    {
-        std::cout << "CatProps Name: " << k << ", Value: " << v.Value() << std::endl;
-    }
-    for (const auto& [k, v] : dogProps)
-    {
-        std::cout << "DogProps Name: " << k << ", Value: " << v.Value() << std::endl;
-    }
+    auto           catInstance = ConstructObject(Ifrit::FMetaTypeInfo::Create<Cat>());
+    auto           dogInstance = ReferenceObject(&sv);
 
-    std::vector<int> vec = { 1, 2, 3, 4, 5 };
-
-    TrivialArchive   archive;
-    InvokeSerialize(vec, &archive);
+    TrivialArchive archive;
+    dogInstance.ObjectValue.Serialize(&archive);
+    std::cout << archive.GetResult();
     return 0;
 }

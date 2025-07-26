@@ -4,25 +4,31 @@
 #include <memory>
 #include <iostream>
 #include "ifrit/core/typing/TypeMetaInfo.h"
+#include "ifrit/core/reflection/Serializer.h"
+#include "ifrit/core/reflection/TypeMetaExtended.h"
 
 namespace Ifrit::Reflection
 {
-    struct Object
+    class Archive;
+    struct IFRIT_CORE_API Object
     {
         void* Ptr                                          = nullptr;
         std::type_info const& (*TypeInfoGetter)()          = nullptr;
         FMetaTypeInfo (*TypeMetaGetter)()                  = nullptr;
         void (*Destructor)(void*)                          = nullptr;
+        void (*SerializeInterface)(Archive*, void*)        = nullptr;
         void (*OutputStreamFn)(std::ostream&, const void*) = nullptr;
         void (*InputStreamFn)(std::istream&, void*)        = nullptr;
 
         Object(void* ptr, std::type_info const& (*typeInfoGetter)(), FMetaTypeInfo (*typeMetaGetter)(),
-            void (*destructor)(void*), void (*outputStreamFn)(std::ostream&, const void*) = nullptr,
-            void (*inputStreamFn)(std::istream&, void*) = nullptr)
+            void (*destructor)(void*), void (*serializeInterface)(Archive*, void*),
+            void (*outputStreamFn)(std::ostream&, const void*) = nullptr,
+            void (*inputStreamFn)(std::istream&, void*)        = nullptr)
             : Ptr(ptr)
             , TypeInfoGetter(typeInfoGetter)
             , TypeMetaGetter(typeMetaGetter)
             , Destructor(destructor)
+            , SerializeInterface(serializeInterface)
             , OutputStreamFn(outputStreamFn)
             , InputStreamFn(inputStreamFn)
         {
@@ -32,6 +38,7 @@ namespace Ifrit::Reflection
             , TypeInfoGetter(rhs.TypeInfoGetter)
             , TypeMetaGetter(rhs.TypeMetaGetter)
             , Destructor(rhs.Destructor)
+            , SerializeInterface(rhs.SerializeInterface)
             , OutputStreamFn(rhs.OutputStreamFn)
             , InputStreamFn(rhs.InputStreamFn)
         {
@@ -55,13 +62,14 @@ namespace Ifrit::Reflection
                 {
                     Destructor(Ptr);
                 }
-                Ptr            = rhs.Ptr;
-                TypeInfoGetter = rhs.TypeInfoGetter;
-                TypeMetaGetter = rhs.TypeMetaGetter;
-                Destructor     = rhs.Destructor;
-                OutputStreamFn = rhs.OutputStreamFn;
-                InputStreamFn  = rhs.InputStreamFn;
-                rhs.Ptr        = nullptr;
+                Ptr                = rhs.Ptr;
+                TypeInfoGetter     = rhs.TypeInfoGetter;
+                TypeMetaGetter     = rhs.TypeMetaGetter;
+                Destructor         = rhs.Destructor;
+                SerializeInterface = rhs.SerializeInterface;
+                OutputStreamFn     = rhs.OutputStreamFn;
+                InputStreamFn      = rhs.InputStreamFn;
+                rhs.Ptr            = nullptr;
             }
             return *this;
         }
@@ -117,42 +125,31 @@ namespace Ifrit::Reflection
             Ptr         = nullptr;
         }
 
+        void Serialize(Archive* archive) const;
+
+    public:
+        // Static factory methods
         template <typename T, typename... Args> static Object Create(Args&&... args)
         {
-            T* ptr                                             = new T(std::forward<Args>(args)...);
-            void (*outputStreamFn)(std::ostream&, const void*) = nullptr;
-            void (*inputStreamFn)(std::istream&, void*)        = nullptr;
-            if constexpr (IConceptIsOutputStreamable<T>)
-            {
-                outputStreamFn = [](std::ostream& os, const void* obj) { os << *static_cast<const T*>(obj); };
-            }
-            if constexpr (IConceptIsInputStreamable<T>)
-            {
-                inputStreamFn = [](std::istream& is, void* obj) { is >> *static_cast<T*>(obj); };
-            }
+            T*                    ptr    = new T(std::forward<Args>(args)...);
+            FMetaTypeExtendedInfo tpInfo = FMetaTypeExtendedInfo::Create<T>();
+            return Object(ptr, tpInfo.GetTypeInfo, tpInfo.GetMetaInfo, tpInfo.Destructor, tpInfo.SerializeInterface,
+                tpInfo.OutputStreamFn, tpInfo.InputStreamFn);
+        }
 
+        static Object CreateProxy(void* ptr, FMetaTypeExtendedInfo& propInfo)
+        {
             return Object(
-                ptr, []() -> std::type_info const& { return typeid(T); },
-                []() -> FMetaTypeInfo { return FMetaTypeInfo::Create<T>(); },
-                [](void* p) { delete static_cast<T*>(p); }, outputStreamFn, inputStreamFn);
+                ptr, propInfo.GetTypeInfo, propInfo.GetMetaInfo, [](void*) {}, propInfo.SerializeInterface,
+                propInfo.OutputStreamFn, propInfo.InputStreamFn);
         }
 
         template <typename T> static Object Create(std::reference_wrapper<T> ref)
         {
-            void (*outputStreamFn)(std::ostream&, const void*) = nullptr;
-            void (*inputStreamFn)(std::istream&, void*)        = nullptr;
-            if constexpr (IConceptIsOutputStreamable<T>)
-            {
-                outputStreamFn = [](std::ostream& os, const void* obj) { os << *static_cast<const T*>(obj); };
-            }
-            if constexpr (IConceptIsInputStreamable<T>)
-            {
-                inputStreamFn = [](std::istream& is, void* obj) { is >> *static_cast<T*>(obj); };
-            }
+            FMetaTypeExtendedInfo tpInfo = FMetaTypeExtendedInfo::Create<T>();
             return Object(
-                &ref.get(), []() -> std::type_info const& { return typeid(T); },
-                []() -> FMetaTypeInfo { return FMetaTypeInfo::Create<T>(); },
-                [](void*) { /* No-op destructor for references */ }, outputStreamFn, inputStreamFn);
+                &ref.get(), tpInfo.GetTypeInfo, tpInfo.GetMetaInfo, [](void*) {}, tpInfo.SerializeInterface,
+                tpInfo.OutputStreamFn, tpInfo.InputStreamFn);
         }
     };
 

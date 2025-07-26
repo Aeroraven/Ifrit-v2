@@ -7,110 +7,195 @@
 
 namespace Ifrit::Reflection
 {
-    // Type Traits
-    template <typename T> struct TTraitIsVector : std::false_type
-    {
-        using ElementType = void;
-    };
+    IFRIT_CORE_API void InvokeSerializeDynamicImpl(void* ptr, const std::type_info& typeInfo, Archive* archive);
 
-    template <typename T, typename Alloc> struct TTraitIsVector<std::vector<T, Alloc>> : std::true_type
+    namespace Internal
     {
-        using ElementType = T;
-    };
-
-    template <typename T> struct TTraitIsMap : std::false_type
-    {
-        using KeyType   = void;
-        using ValueType = void;
-    };
-    template <typename K, typename V, typename C, typename A> struct TTraitIsMap<std::map<K, V, C, A>> : std::true_type
-    {
-        using KeyType   = K;
-        using ValueType = V;
-    };
-    template <typename K, typename V, typename H, typename E, typename A>
-    struct TTraitIsMap<std::unordered_map<K, V, H, E, A>> : std::true_type
-    {
-        using KeyType   = K;
-        using ValueType = V;
-    };
-
-    template <typename T>
-    concept IConceptIsTriviallySerializable =
-        requires(T t) { requires(std::is_integral_v<T> || std::is_floating_point_v<T>); };
-
-    template <typename T>
-    concept IConceptIsStaticSerializable = requires(T t) {
+        // Type Traits
+        template <typename T> struct TTraitIsVector : std::false_type
         {
-            t.Serialize(std::declval<Archive*>())
-        } -> std::same_as<void>;
+            using ElementType = void;
+        };
+
+        template <typename T, typename Alloc> struct TTraitIsVector<std::vector<T, Alloc>> : std::true_type
         {
-            t.Deserialize(std::declval<Archive*>())
-        } -> std::same_as<void>;
-    };
+            using ElementType = T;
+        };
 
-    template <typename T>
-    concept IConceptIsVectorSerializable = requires(T t) {
-        requires TTraitIsVector<T>::value;
-        typename TTraitIsVector<T>::ElementType;
-        requires IConceptIsTriviallySerializable<typename TTraitIsVector<T>::ElementType>;
-    };
-
-    template <typename T>
-    concept IConceptIsMapSerializable = requires(T t) {
-        requires TTraitIsMap<T>::value;
-        typename TTraitIsMap<T>::KeyType;
-        typename TTraitIsMap<T>::ValueType;
-        requires IConceptIsTriviallySerializable<typename TTraitIsMap<T>::KeyType>;
-        requires IConceptIsTriviallySerializable<typename TTraitIsMap<T>::ValueType>;
-    };
-
-    template <typename T>
-    concept IConceptSerializable = IConceptIsTriviallySerializable<T> || IConceptIsStaticSerializable<T>
-        || IConceptIsVectorSerializable<T> || IConceptIsMapSerializable<T>;
-
-    template <typename T>
-        requires IConceptSerializable<T>
-    void InvokeSerialize(T& obj, Archive* archive)
-    {
-        archive->BeginObject(typeid(T).name());
-
-        if constexpr (IConceptIsStaticSerializable<T>)
+        template <typename T> struct TTraitIsMap : std::false_type
         {
-            obj.Serialize(archive);
+            using KeyType   = void;
+            using ValueType = void;
+        };
+        template <typename K, typename V, typename C, typename A>
+        struct TTraitIsMap<std::map<K, V, C, A>> : std::true_type
+        {
+            using KeyType   = K;
+            using ValueType = V;
+        };
+        template <typename K, typename V, typename H, typename E, typename A>
+        struct TTraitIsMap<std::unordered_map<K, V, H, E, A>> : std::true_type
+        {
+            using KeyType   = K;
+            using ValueType = V;
+        };
+
+        template <typename T> struct TTraitIsUniquePtr : std::false_type
+        {
+            using ElementType = void;
+        };
+
+        template <typename T> struct TTraitIsUniquePtr<std::unique_ptr<T>> : std::true_type
+        {
+            using ElementType = T;
+        };
+
+        template <typename T>
+        concept IConceptIsTriviallySerializable = requires(
+            T t) { requires(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, String>); };
+
+        template <typename T, typename = void> struct TTraitIsSerializable : std::false_type
+        {
+        };
+
+        template <IConceptIsTriviallySerializable T>
+        struct TTraitIsSerializable<T, std::void_t<decltype(std::declval<T&>())>> : std::true_type
+        {
+        };
+
+        template <typename T>
+        struct TTraitIsSerializable<T,
+            std::enable_if_t<TTraitIsVector<T>::value
+                && TTraitIsSerializable<typename TTraitIsVector<T>::ElementType>::value>> : std::true_type
+        {
+        };
+
+        template <typename T>
+        struct TTraitIsSerializable<T,
+            std::enable_if_t<TTraitIsMap<T>::value && TTraitIsSerializable<typename TTraitIsMap<T>::KeyType>::value
+                && TTraitIsSerializable<typename TTraitIsMap<T>::ValueType>::value>> : std::true_type
+        {
+        };
+
+        template <typename T>
+        struct TTraitIsSerializable<T,
+            std::enable_if_t<TTraitIsUniquePtr<T>::value
+                && TTraitIsSerializable<typename TTraitIsUniquePtr<T>::ElementType>::value>> : std::true_type
+        {
+        };
+
+        template <typename T>
+        concept IConceptSerializable = TTraitIsSerializable<T>::value;
+
+        template <typename T>
+        concept IConceptVectorSerializable =
+            TTraitIsVector<T>::value && IConceptSerializable<typename TTraitIsVector<T>::ElementType>;
+
+        template <typename T>
+        concept IConceptMapSerializable =
+            TTraitIsMap<T>::value && IConceptSerializable<typename TTraitIsMap<T>::KeyType>
+            && IConceptSerializable<typename TTraitIsMap<T>::ValueType>;
+
+        template <typename T>
+        concept IConceptIsVector = TTraitIsVector<T>::value;
+
+        template <typename T>
+        concept IConceptIsMap = TTraitIsMap<T>::value;
+
+        template <typename T>
+        concept IConceptIsUniquePtr = TTraitIsUniquePtr<T>::value;
+
+        // Tag types for dispatch
+        enum class ESpecializationTag : u8
+        {
+            Vector,
+            Map,
+            UniquePtr,
+            Trivial,
+            Dynamic
+        };
+
+        template <ESpecializationTag Tag> struct TSpecializationTag
+        {
+            static constexpr ESpecializationTag Value = Tag;
+        };
+
+        // Tag selection trait
+        template <typename T> consteval auto SelectSerializationTag()
+        {
+            if constexpr (IConceptIsVector<T>)
+                return TSpecializationTag<ESpecializationTag::Vector>{};
+            else if constexpr (IConceptIsMap<T>)
+                return TSpecializationTag<ESpecializationTag::Map>{};
+            else if constexpr (IConceptIsUniquePtr<T>)
+                return TSpecializationTag<ESpecializationTag::UniquePtr>{};
+            else if constexpr (IConceptIsTriviallySerializable<T>)
+                return TSpecializationTag<ESpecializationTag::Trivial>{};
+            else
+                return TSpecializationTag<ESpecializationTag::Dynamic>{};
         }
-        else if constexpr (IConceptIsVectorSerializable<T>)
+
+        // Overloaded implementation functions
+        template <typename T>
+        void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Vector>)
         {
-            archive->BeginArray("Items");
+            archive->BeginArray("VectorItems");
             for (auto& item : obj)
             {
                 InvokeSerialize(item, archive);
             }
             archive->EndArray();
         }
-        else if constexpr (IConceptIsMapSerializable<T>)
+
+        template <typename T> void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Map>)
         {
             archive->BeginArray("MapItems");
-            for (auto& [key, value] : obj)
+            for (auto& [k, v] : obj)
             {
-                InvokeSerialize(key, archive);
-                InvokeSerialize(value, archive);
+                archive->BeginObject("MapItem");
+                archive->BeginObject("Key");
+                InvokeSerialize(k, archive);
+                archive->EndObject();
+                archive->BeginObject("Value");
+                InvokeSerialize(v, archive);
+                archive->EndObject();
+                archive->EndObject();
             }
             archive->EndArray();
         }
-        else if constexpr (IConceptIsTriviallySerializable<T>)
+
+        template <typename T>
+        void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::UniquePtr>)
+        {
+            if (obj.get())
+            {
+                archive->BeginObject("UniquePtr");
+                InvokeSerialize(*obj, archive);
+                archive->EndObject();
+            }
+            else
+            {
+                archive->BeginObject("UniquePtr");
+                archive->EndObject();
+            }
+        }
+
+        template <typename T>
+        void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Trivial>)
         {
             archive->Serialize(obj);
         }
-        else if constexpr (IConceptCustomSerializable<T>)
+
+        template <typename T>
+        void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Dynamic>)
         {
-            archive->Serialize(obj.Serialize());
+            InvokeSerializeDynamicImpl(&obj, typeid(*(&obj)), archive);
         }
-        else
-        {
-            std::abort();
-        }
-        archive->EndObject();
+    } // namespace Internal
+
+    template <typename T> inline void InvokeSerialize(T& obj, Archive* archive)
+    {
+        Internal::SerializeImpl(obj, archive, Internal::SelectSerializationTag<T>());
     }
 
 } // namespace Ifrit::Reflection

@@ -36,8 +36,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Serialization
 {
 
-    IFRIT_CORE_API void SerializationErrorReport(const String& str);
-
     enum class ESerializationFormat : u8
     {
         Binary,
@@ -61,7 +59,7 @@ namespace Ifrit::Serialization
 
     template <ESerializationFormat Fmt, class T> String Serialize(const T& src)
     {
-        //std::ostringstream oss;
+        // std::ostringstream oss;
         IF_LOG_REMOVED_FEATURE("Serialization", "Static serialization (cereal)");
         return "";
     }
