@@ -17,18 +17,20 @@ namespace Ifrit::Reflection
         FMetaTypeInfo (*TypeMetaGetter)()                  = nullptr;
         void (*Destructor)(void*)                          = nullptr;
         void (*SerializeInterface)(Archive*, void*)        = nullptr;
+        void (*DeserializeInterface)(Archive*, void*)      = nullptr;
         void (*OutputStreamFn)(std::ostream&, const void*) = nullptr;
         void (*InputStreamFn)(std::istream&, void*)        = nullptr;
 
         Object(void* ptr, std::type_info const& (*typeInfoGetter)(), FMetaTypeInfo (*typeMetaGetter)(),
             void (*destructor)(void*), void (*serializeInterface)(Archive*, void*),
-            void (*outputStreamFn)(std::ostream&, const void*) = nullptr,
-            void (*inputStreamFn)(std::istream&, void*)        = nullptr)
+            void (*deserializeInterface)(Archive*, void*), void (*outputStreamFn)(std::ostream&, const void*) = nullptr,
+            void (*inputStreamFn)(std::istream&, void*) = nullptr)
             : Ptr(ptr)
             , TypeInfoGetter(typeInfoGetter)
             , TypeMetaGetter(typeMetaGetter)
             , Destructor(destructor)
             , SerializeInterface(serializeInterface)
+            , DeserializeInterface(deserializeInterface)
             , OutputStreamFn(outputStreamFn)
             , InputStreamFn(inputStreamFn)
         {
@@ -39,6 +41,7 @@ namespace Ifrit::Reflection
             , TypeMetaGetter(rhs.TypeMetaGetter)
             , Destructor(rhs.Destructor)
             , SerializeInterface(rhs.SerializeInterface)
+            , DeserializeInterface(rhs.DeserializeInterface)
             , OutputStreamFn(rhs.OutputStreamFn)
             , InputStreamFn(rhs.InputStreamFn)
         {
@@ -62,14 +65,15 @@ namespace Ifrit::Reflection
                 {
                     Destructor(Ptr);
                 }
-                Ptr                = rhs.Ptr;
-                TypeInfoGetter     = rhs.TypeInfoGetter;
-                TypeMetaGetter     = rhs.TypeMetaGetter;
-                Destructor         = rhs.Destructor;
-                SerializeInterface = rhs.SerializeInterface;
-                OutputStreamFn     = rhs.OutputStreamFn;
-                InputStreamFn      = rhs.InputStreamFn;
-                rhs.Ptr            = nullptr;
+                Ptr                  = rhs.Ptr;
+                TypeInfoGetter       = rhs.TypeInfoGetter;
+                TypeMetaGetter       = rhs.TypeMetaGetter;
+                Destructor           = rhs.Destructor;
+                SerializeInterface   = rhs.SerializeInterface;
+                DeserializeInterface = rhs.DeserializeInterface;
+                OutputStreamFn       = rhs.OutputStreamFn;
+                InputStreamFn        = rhs.InputStreamFn;
+                rhs.Ptr              = nullptr;
             }
             return *this;
         }
@@ -126,6 +130,7 @@ namespace Ifrit::Reflection
         }
 
         void Serialize(Archive* archive) const;
+        void Deserialize(Archive* archive) const;
 
     public:
         // Static factory methods
@@ -134,14 +139,14 @@ namespace Ifrit::Reflection
             T*                    ptr    = new T(std::forward<Args>(args)...);
             FMetaTypeExtendedInfo tpInfo = FMetaTypeExtendedInfo::Create<T>();
             return Object(ptr, tpInfo.GetTypeInfo, tpInfo.GetMetaInfo, tpInfo.Destructor, tpInfo.SerializeInterface,
-                tpInfo.OutputStreamFn, tpInfo.InputStreamFn);
+                tpInfo.DeserializeInterface, tpInfo.OutputStreamFn, tpInfo.InputStreamFn);
         }
 
         static Object CreateProxy(void* ptr, FMetaTypeExtendedInfo& propInfo)
         {
             return Object(
                 ptr, propInfo.GetTypeInfo, propInfo.GetMetaInfo, [](void*) {}, propInfo.SerializeInterface,
-                propInfo.OutputStreamFn, propInfo.InputStreamFn);
+                propInfo.DeserializeInterface, propInfo.OutputStreamFn, propInfo.InputStreamFn);
         }
 
         template <typename T> static Object Create(std::reference_wrapper<T> ref)
@@ -149,7 +154,7 @@ namespace Ifrit::Reflection
             FMetaTypeExtendedInfo tpInfo = FMetaTypeExtendedInfo::Create<T>();
             return Object(
                 &ref.get(), tpInfo.GetTypeInfo, tpInfo.GetMetaInfo, [](void*) {}, tpInfo.SerializeInterface,
-                tpInfo.OutputStreamFn, tpInfo.InputStreamFn);
+                tpInfo.DeserializeInterface, tpInfo.OutputStreamFn, tpInfo.InputStreamFn);
         }
     };
 

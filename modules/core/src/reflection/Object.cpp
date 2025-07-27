@@ -12,4 +12,12 @@ namespace Ifrit::Reflection
 
         SerializeInterface(archive, Ptr);
     }
+
+    IFRIT_APIDECL void Object::Deserialize(Archive* archive) const
+    {
+        IF_LOG_ASSERTION("Reflector", archive != nullptr, "Archive must not be null");
+        IF_LOG_ASSERTION("Reflector", DeserializeInterface != nullptr,
+            "DeserializeInterface must not be null for object deserialization");
+        DeserializeInterface(archive, Ptr);
+    }
 } // namespace Ifrit::Reflection

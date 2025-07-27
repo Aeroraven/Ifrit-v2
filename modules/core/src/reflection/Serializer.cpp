@@ -19,4 +19,25 @@ namespace Ifrit::Reflection
             archive->EndObject();
         }
     }
+
+    IFRIT_APIDECL void InvokeDeserializeDynamicImpl(void* ptr, const std::type_info& typeInfo, Archive* archive)
+    {
+        auto reflObj    = Internal_Reference(ptr, typeInfo);
+        auto properties = GetPropertyList(reflObj);
+        for (const auto& [k, v] : properties)
+        {
+            if (archive->HasObject(k))
+            {
+                archive->BeginObject(k);
+                v.Value().Deserialize(archive);
+                archive->EndObject();
+            }
+            else
+            {
+                IF_LOG_WARNING("Reflector",
+                    "During deserialization, key {} does not present in object with type {}. The serialized archive might be corrupted",
+                    k, typeInfo.name());
+            }
+        }
+    }
 } // namespace Ifrit::Reflection

@@ -4,10 +4,10 @@
 #include "ifrit/core/typing/Traits.h"
 #include "ifrit/core/typing/TypeMetaInfo.h"
 #include "ifrit/core/reflection/Archive.h"
-
 namespace Ifrit::Reflection
 {
     IFRIT_CORE_API void InvokeSerializeDynamicImpl(void* ptr, const std::type_info& typeInfo, Archive* archive);
+    IFRIT_CORE_API void InvokeDeserializeDynamicImpl(void* ptr, const std::type_info& typeInfo, Archive* archive);
 
     namespace Internal
     {
@@ -135,28 +135,43 @@ namespace Ifrit::Reflection
                 return TSpecializationTag<ESpecializationTag::Dynamic>{};
         }
 
-        // Overloaded implementation functions
+        // Serializer common keys
+        struct FSerializerReservedKeys
+        {
+            constexpr static const char* kVectorContainer = "__ifrit_vector";
+            constexpr static const char* kVectorItem      = "__ifrit_vector_item";
+            constexpr static const char* kMapContainer    = "__ifrit_map";
+            constexpr static const char* kMapItem         = "__ifrit_map_item";
+            constexpr static const char* kMapKey          = "__ifrit_map_key";
+            constexpr static const char* kMapValue        = "__ifrit_map_value";
+            constexpr static const char* kUniquePtrValue  = "__ifrit_unique_ptr_value";
+            constexpr static const char* kUniquePtrValid  = "__ifrit_unique_ptr_valid";
+        };
+
+        // Serializer
         template <typename T>
         void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Vector>)
         {
-            archive->BeginArray("VectorItems");
+            archive->BeginArray(FSerializerReservedKeys::kVectorContainer);
             for (auto& item : obj)
             {
+                archive->BeginObject(FSerializerReservedKeys::kVectorItem);
                 InvokeSerialize(item, archive);
+                archive->EndObject();
             }
             archive->EndArray();
         }
 
         template <typename T> void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Map>)
         {
-            archive->BeginArray("MapItems");
+            archive->BeginArray(FSerializerReservedKeys::kMapContainer);
             for (auto& [k, v] : obj)
             {
-                archive->BeginObject("MapItem");
-                archive->BeginObject("Key");
+                archive->BeginObject(FSerializerReservedKeys::kMapItem);
+                archive->BeginObject(FSerializerReservedKeys::kMapKey);
                 InvokeSerialize(k, archive);
                 archive->EndObject();
-                archive->BeginObject("Value");
+                archive->BeginObject(FSerializerReservedKeys::kMapValue);
                 InvokeSerialize(v, archive);
                 archive->EndObject();
                 archive->EndObject();
@@ -169,13 +184,17 @@ namespace Ifrit::Reflection
         {
             if (obj.get())
             {
-                archive->BeginObject("UniquePtr");
+                archive->BeginObject(FSerializerReservedKeys::kUniquePtrValid);
+                archive->Serialize(1);
+                archive->EndObject();
+                archive->BeginObject(FSerializerReservedKeys::kUniquePtrValue);
                 InvokeSerialize(*obj, archive);
                 archive->EndObject();
             }
             else
             {
-                archive->BeginObject("UniquePtr");
+                archive->BeginObject(FSerializerReservedKeys::kUniquePtrValid);
+                archive->Serialize(0);
                 archive->EndObject();
             }
         }
@@ -191,11 +210,121 @@ namespace Ifrit::Reflection
         {
             InvokeSerializeDynamicImpl(&obj, typeid(*(&obj)), archive);
         }
+
+        // Deserializer
+        template <typename T>
+        void DeserializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Vector>)
+        {
+            using ElementType = typename TTraitIsVector<T>::ElementType;
+
+            if (archive->HasArray(FSerializerReservedKeys::kVectorContainer))
+            {
+                archive->BeginArray(FSerializerReservedKeys::kVectorContainer);
+                size_t size = archive->GetArraySize();
+                obj.clear();
+                obj.reserve(size);
+
+                int cnt = 0;
+                while (archive->HasNextArrayElement())
+                {
+                    ElementType element;
+                    archive->BeginObject(FSerializerReservedKeys::kVectorItem);
+                    InvokeDeserialize(element, archive);
+                    archive->EndObject();
+                    obj.push_back(std::move(element));
+                    archive->NextArrayElement();
+                }
+                archive->EndArray();
+            }
+        }
+
+        template <typename T>
+        void DeserializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Map>)
+        {
+            using KeyType   = typename TTraitIsMap<T>::KeyType;
+            using ValueType = typename TTraitIsMap<T>::ValueType;
+            if (archive->HasArray(FSerializerReservedKeys::kMapContainer))
+            {
+                archive->BeginArray(FSerializerReservedKeys::kMapContainer);
+                obj.clear();
+
+                size_t size = archive->GetArraySize();
+
+                while (archive->HasNextArrayElement())
+                {
+                    archive->BeginObject(FSerializerReservedKeys::kMapItem);
+
+                    KeyType key;
+                    archive->BeginObject(FSerializerReservedKeys::kMapKey);
+                    InvokeDeserialize(key, archive);
+                    archive->EndObject();
+
+                    ValueType value;
+                    archive->BeginObject(FSerializerReservedKeys::kMapValue);
+                    InvokeDeserialize(value, archive);
+                    archive->EndObject();
+
+                    obj[std::move(key)] = std::move(value);
+                    archive->EndObject();
+                    archive->NextArrayElement();
+                }
+                archive->EndArray();
+            }
+        }
+
+        template <typename T>
+        void DeserializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::UniquePtr>)
+        {
+            using ElementType = typename TTraitIsUniquePtr<T>::ElementType;
+            int valid         = 0;
+            if (archive->HasObject(FSerializerReservedKeys::kUniquePtrValid))
+            {
+                archive->BeginObject(FSerializerReservedKeys::kUniquePtrValid);
+                archive->Serialize(valid);
+                archive->EndObject();
+            }
+            if (valid)
+            {
+                if (archive->HasObject(FSerializerReservedKeys::kUniquePtrValue))
+                {
+                    archive->BeginObject(FSerializerReservedKeys::kUniquePtrValue);
+                    obj = std::make_unique<ElementType>();
+                    InvokeDeserialize(*obj, archive);
+                    archive->EndObject();
+                }
+                else
+                {
+                    obj = nullptr;
+                }
+            }
+            else
+            {
+                obj = nullptr;
+            }
+        }
+
+        template <typename T>
+        void DeserializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Trivial>)
+        {
+            archive->Serialize(obj);
+        }
+
+        template <typename T>
+        void DeserializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Dynamic>)
+        {
+            InvokeDeserializeDynamicImpl(&obj, typeid(*(&obj)), archive);
+        }
+
     } // namespace Internal
 
     template <typename T> inline void InvokeSerialize(T& obj, Archive* archive)
     {
         Internal::SerializeImpl(obj, archive, Internal::SelectSerializationTag<T>());
+    }
+
+    template <typename T> inline void InvokeDeserialize(T& obj, Archive* archive)
+    {
+        Internal::DeserializeImpl(obj, archive, Internal::SelectSerializationTag<T>());
     }
 
 } // namespace Ifrit::Reflection

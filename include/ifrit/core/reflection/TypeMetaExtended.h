@@ -15,20 +15,24 @@ namespace Ifrit::Reflection
         FMetaTypeInfo (*GetMetaInfo)();
         void (*Destructor)(void*);
         void (*SerializeInterface)(Archive*, void*);
+        void (*DeserializeInterface)(Archive*, void*);
         void (*OutputStreamFn)(std::ostream&, const void*);
         void (*InputStreamFn)(std::istream&, void*);
 
         FMetaTypeExtendedInfo() = default;
+
     private:
         FMetaTypeExtendedInfo(u64 hash, String name, std::type_info const& (*getTypeInfo)(),
             FMetaTypeInfo (*getMetaInfo)(), void (*destructor)(void*), void (*serializeInterface)(Archive*, void*),
-            void (*outputStreamFn)(std::ostream&, const void*), void (*inputStreamFn)(std::istream&, void*))
+            void (*deserializeInterface)(Archive*, void*), void (*outputStreamFn)(std::ostream&, const void*),
+            void (*inputStreamFn)(std::istream&, void*))
             : Hash(hash)
             , Name(std::move(name))
             , GetTypeInfo(getTypeInfo)
             , GetMetaInfo(getMetaInfo)
             , Destructor(destructor)
             , SerializeInterface(serializeInterface)
+            , DeserializeInterface(deserializeInterface)
             , OutputStreamFn(outputStreamFn)
             , InputStreamFn(inputStreamFn)
         {
@@ -44,6 +48,9 @@ namespace Ifrit::Reflection
             void (*Destructor)(void*)              = [](void* ptr) { delete static_cast<T*>(ptr); };
             void (*SerializeInterface)(
                 Archive*, void*) = [](Archive* archive, void* obj) { InvokeSerialize(*static_cast<T*>(obj), archive); };
+            void (*DeserializeInterface)(Archive*, void*) = [](Archive* archive, void* obj) {
+                InvokeDeserialize(*static_cast<T*>(obj), archive);
+            };
             void (*OutputStreamFn)(std::ostream&, const void*) = nullptr;
             void (*InputStreamFn)(std::istream&, void*)        = nullptr;
             if constexpr (IConceptIsOutputStreamable<T>)
@@ -56,7 +63,7 @@ namespace Ifrit::Reflection
             }
 
             FMetaTypeExtendedInfo typeInfo(Hash, std::move(Name), GetTypeInfo, GetMetaInfo, Destructor,
-                SerializeInterface, OutputStreamFn, InputStreamFn);
+                SerializeInterface, DeserializeInterface, OutputStreamFn, InputStreamFn);
             return typeInfo;
         }
     };
