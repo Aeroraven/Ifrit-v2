@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/serialization/SerialInterface.h"
 #include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/core/algo/Guid.h"
 #include <memory>
 #include <string>
 

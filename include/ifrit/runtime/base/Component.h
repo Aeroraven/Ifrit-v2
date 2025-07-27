@@ -212,11 +212,12 @@ namespace Ifrit::Runtime
         GameObjectManager*         m_GameObjectManager = nullptr;
 
         Vec<ComponentPropertyBase> m_Property;
-        bool                       m_PropertyRegistered = false;
 
-        bool                       m_isEnabled         = true;
-        bool                       m_shouldInvokeStart = true;
-        bool                       m_shouldInvokeAwake = true;
+bool m_PropertyRegistered = false;
+
+        bool                                             m_isEnabled         = true;
+        bool                                             m_shouldInvokeStart = true;
+        bool                                             m_shouldInvokeAwake = true;
 
     private:
         inline ComponentIdentifier GetMetaData() { return m_id; }
@@ -253,7 +254,7 @@ namespace Ifrit::Runtime
         virtual void CallPropertyEditorHandle();
 
     public:
-        Component() {}; // for deserializatioin
+        Component(){}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 

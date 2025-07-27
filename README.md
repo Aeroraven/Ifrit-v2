@@ -112,13 +112,15 @@ bash InstallPrerequisite.sh  # Use Git Bash on Windows
 ```
 
 **For Experimental Renderers (Syaro/Ayanami/Artemis):**
+- libclang 19 (LLVM for Visual Studio)
 - Vulkan SDK 1.3.296+
   - Core 1.2 features (required)
   - `EXT_mesh_shader` extension (optional¹)
   - `EXT_shader_atomic_float` extension (optional¹)
 
 **For Software Renderer:**
-- LLVM 11.0+
+
+- LLVM 11.0
 - CUDA 12.5+ (optional)
 
 > ¹ **Device Compatibility:**
@@ -147,17 +149,18 @@ The source files can be decomposed into following parts.
 
 | Module Name         | Functionality                                                |
 | ------------------- | ------------------------------------------------------------ |
-| ifrit.core          | Basic definitions, logging, serialization, typing utilities (like compilation time utils)<br/>(Dependency: `spdlog`) |
+| ifrit.core          | Basic definitions, logging, dynamic reflection and serialization, typing utilities (like compilation time utils)<br/>(Dependency: `spdlog`) |
 | ifrit.core.math     | Helper functions for SIMD and performance-oriented intrinsic <br/>Basic linalg supports |
-| ifrit.runtime       | Implementations of renderer.<br/>Basic supports for mesh, assets, components and rendering |
 | ifrit.demo          | Demo                                                         |
 | ifrit.display       | Platform-specific window support <br/>Provides view layer for renderers, like console display for soft renderer<br/>(Dependency: `glfw3`) |
+| ifrit.editor        | Editor subsystem and debugging components for runtime<br/>Debug purpose only<br/>(Dependency: `imgui`) |
 | ifrit.external      | External dependencies building <br/>(Dependency: `fsr2`)     |
+| ifrit.geomproc      | Algorithms for geometry processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh tetrahedralization, mesh auto-lod and mesh-level signed distance field generation<br/>(Dependency: `metis`,`meshoptimizer`,`openvdb`,`tetgen`) |
 | ifrit.ircompile     | Backend for JIT runtime<br/>(Dependency: `llvm`)             |
 | ifrit.imaging       | Utilities for image processing<br/>Including some texture compression utilities.<br/>(Dependency: `ktx`) |
-| ifrit.geomproc      | Algorithms for geometry processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh tetrahedralization, mesh auto-lod and mesh-level signed distance field generation<br/>(Dependency: `metis`,`meshoptimizer`,`openvdb`,`tetgen`) |
+| ifrit.reflparser    | Tool for code parsing for `ifrit.core/reflection` utilities.<br/>(Dependency: `llvm/libclang`) |
 | ifrit.rhi           | Backend-agnostic render hardware interface.                  |
-| ifrit.editor        | Editor subsystem and debugging components for runtime<br/>Debug purpose only<br/>(Dependency: `imgui`) |
+| ifrit.runtime       | Implementations of renderer.<br/>Basic supports for mesh, assets, components and rendering |
 | ifrit.shadercompile | Backend for shader compilation<br/>Contains glslc and slang backend<br/>(Dependency: `glslc`,`slang`) |
 | ifrit.softgraphics  | Implementation of soft renderer, with both MT-CPU and CUDA version<br/>(Dependency: `cuda`) |
 | ifrit.vkgraphics    | Vulkan backend<br/>(Dependency: `vulkan`)                    |

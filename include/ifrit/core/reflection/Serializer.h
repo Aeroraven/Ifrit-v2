@@ -52,6 +52,16 @@ namespace Ifrit::Reflection
             using ElementType = T;
         };
 
+        template <typename T> struct TTraitIsStlArray : std::false_type
+        {
+            using ElementType = void;
+        };
+
+        template <typename T, usize N> struct TTraitIsStlArray<std::array<T, N>> : std::true_type
+        {
+            using ElementType = T;
+        };
+
         template <typename T>
         concept IConceptIsTriviallySerializable = requires(
             T t) { requires(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, String>); };
@@ -106,6 +116,9 @@ namespace Ifrit::Reflection
 
         template <typename T>
         concept IConceptIsUniquePtr = TTraitIsUniquePtr<T>::value;
+
+        template <typename T>
+        concept IConceptIsStlArray = TTraitIsStlArray<T>::value;
 
         template <typename T>
         concept IConceptIsPolymorphic = std::is_polymorphic_v<T>;

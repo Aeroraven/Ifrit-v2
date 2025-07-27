@@ -150,7 +150,7 @@ ifrit_add_core_component(external/fsr2)
 ifrit_add_core_component(external/imgui)
 ifrit_add_core_component(external/glfw)
 
-
+ifrit_add_core_component(reflparser)
 ifrit_add_core_component(core)
 ifrit_add_core_component(shadercompile)
 ifrit_add_core_component(imaging)
@@ -168,6 +168,7 @@ ifrit_add_demo_component(demo)
 set(IFRIT_GROUP_ENGINE "Project Ifrit/Engine")
 set(IFRIT_GROUP_DEPENDENCIES "Project Ifrit/ThirdParty")
 set(IFRIT_GROUP_DEMO "Project Ifrit/Demo")
+set(IFRIT_GROUP_TOOL "Project Ifrit/Tool")
 
 # openvdb targets
 include(cmake/OpenVDBBuildPostprocess.cmake)
@@ -225,6 +226,8 @@ set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.editor PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 
+set_target_properties(ifrit.reflparser PROPERTIES FOLDER ${IFRIT_GROUP_TOOL})
+
 # print num demoss
 foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
     set_target_properties(${DEMO_STAGE} PROPERTIES FOLDER ${IFRIT_GROUP_DEMO})
@@ -235,6 +238,7 @@ endforeach()
 add_dependencies(ifrit.external.imgui glfw)
 
 add_dependencies(ifrit.core 
+    ifrit.reflparser
     spdlog
     mimalloc)
 add_dependencies(ifrit.geomproc 
