@@ -9,6 +9,9 @@
 
 namespace Ifrit::Reflection
 {
+    IFRIT_CORE_API void ObjectBadCastReport(const String& expected, const String& requested);
+    IFRIT_CORE_API bool IsValidObjectCast(const std::type_info& fromType, const std::type_info& toType);
+
     class Archive;
     struct IFRIT_CORE_API Object
     {
@@ -116,10 +119,11 @@ namespace Ifrit::Reflection
         }
         template <typename T> T& As() const
         {
-            if (TypeInfoGetter() == typeid(T))
+            if (IsValidObjectCast(TypeInfoGetter(), typeid(T)))
             {
                 return *static_cast<T*>(Ptr);
             }
+            ObjectBadCastReport(typeid(T).name(), TypeInfoGetter().name());
             throw std::bad_cast();
         }
         template <typename T> void ForcedReinterpretTransferTo(std::unique_ptr<T>& target) noexcept
@@ -127,6 +131,12 @@ namespace Ifrit::Reflection
             auto casted = reinterpret_cast<T*>(Ptr);
             target      = std::unique_ptr<T>(casted);
             Ptr         = nullptr;
+        }
+
+        void ForcedTransferToUnsafe(void*& target) noexcept
+        {
+            target = Ptr;
+            Ptr    = nullptr;
         }
 
         void Serialize(Archive* archive) const;

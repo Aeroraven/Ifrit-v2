@@ -4,10 +4,12 @@
 #include "ifrit/core/typing/Traits.h"
 #include "ifrit/core/typing/TypeMetaInfo.h"
 #include "ifrit/core/reflection/Archive.h"
+#include "ifrit/core/reflection/RttiIdentifier.h"
 namespace Ifrit::Reflection
 {
     IFRIT_CORE_API void InvokeSerializeDynamicImpl(void* ptr, const std::type_info& typeInfo, Archive* archive);
     IFRIT_CORE_API void InvokeDeserializeDynamicImpl(void* ptr, const std::type_info& typeInfo, Archive* archive);
+    IFRIT_CORE_API void InvokePolymorphicConstructImpl(void*& ptr, u64 typeInfoHash);
 
     namespace Internal
     {
@@ -105,6 +107,9 @@ namespace Ifrit::Reflection
         template <typename T>
         concept IConceptIsUniquePtr = TTraitIsUniquePtr<T>::value;
 
+        template <typename T>
+        concept IConceptIsPolymorphic = std::is_polymorphic_v<T>;
+
         // Tag types for dispatch
         enum class ESpecializationTag : u8
         {
@@ -138,14 +143,16 @@ namespace Ifrit::Reflection
         // Serializer common keys
         struct FSerializerReservedKeys
         {
-            constexpr static const char* kVectorContainer = "__ifrit_vector";
-            constexpr static const char* kVectorItem      = "__ifrit_vector_item";
-            constexpr static const char* kMapContainer    = "__ifrit_map";
-            constexpr static const char* kMapItem         = "__ifrit_map_item";
-            constexpr static const char* kMapKey          = "__ifrit_map_key";
-            constexpr static const char* kMapValue        = "__ifrit_map_value";
-            constexpr static const char* kUniquePtrValue  = "__ifrit_unique_ptr_value";
-            constexpr static const char* kUniquePtrValid  = "__ifrit_unique_ptr_valid";
+            constexpr static const char* kVectorContainer   = "__ifrit_vector";
+            constexpr static const char* kVectorItem        = "__ifrit_vector_item";
+            constexpr static const char* kMapContainer      = "__ifrit_map";
+            constexpr static const char* kMapItem           = "__ifrit_map_item";
+            constexpr static const char* kMapKey            = "__ifrit_map_key";
+            constexpr static const char* kMapValue          = "__ifrit_map_value";
+            constexpr static const char* kUniquePtrValue    = "__ifrit_unique_ptr_value";
+            constexpr static const char* kUniquePtrValid    = "__ifrit_unique_ptr_valid";
+            constexpr static const char* kUniquePtrTypePoly = "__ifrit_unique_ptr_polymorphic";
+            constexpr static const char* kUniquePtrTypeHash = "__ifrit_unique_ptr_type_hash";
         };
 
         // Serializer
@@ -187,6 +194,19 @@ namespace Ifrit::Reflection
                 archive->BeginObject(FSerializerReservedKeys::kUniquePtrValid);
                 archive->Serialize(1);
                 archive->EndObject();
+
+                archive->BeginObject(FSerializerReservedKeys::kUniquePtrTypePoly);
+                using U = TTraitIsUniquePtr<T>::ElementType;
+                if constexpr (IConceptIsPolymorphic<U>)
+                    archive->Serialize(1);
+                else
+                    archive->Serialize(0);
+                archive->EndObject();
+
+                archive->BeginObject(FSerializerReservedKeys::kUniquePtrTypeHash);
+                archive->Serialize(GetTypeIDHash(typeid(*obj)));
+                archive->EndObject();
+
                 archive->BeginObject(FSerializerReservedKeys::kUniquePtrValue);
                 InvokeSerialize(*obj, archive);
                 archive->EndObject();
@@ -275,8 +295,10 @@ namespace Ifrit::Reflection
         template <typename T>
         void DeserializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::UniquePtr>)
         {
-            using ElementType = typename TTraitIsUniquePtr<T>::ElementType;
-            int valid         = 0;
+            using ElementType    = typename TTraitIsUniquePtr<T>::ElementType;
+            int valid            = 0;
+            int poly             = 0;
+            u64 cachedTypeIdHash = 0;
             if (archive->HasObject(FSerializerReservedKeys::kUniquePtrValid))
             {
                 archive->BeginObject(FSerializerReservedKeys::kUniquePtrValid);
@@ -285,10 +307,33 @@ namespace Ifrit::Reflection
             }
             if (valid)
             {
+                if (archive->HasObject(FSerializerReservedKeys::kUniquePtrTypePoly))
+                {
+                    archive->BeginObject(FSerializerReservedKeys::kUniquePtrTypePoly);
+                    archive->Serialize(poly);
+                    archive->EndObject();
+                }
+                if (archive->HasObject(FSerializerReservedKeys::kUniquePtrTypeHash))
+                {
+                    archive->BeginObject(FSerializerReservedKeys::kUniquePtrTypeHash);
+                    archive->Serialize(cachedTypeIdHash);
+                    archive->EndObject();
+                }
+
                 if (archive->HasObject(FSerializerReservedKeys::kUniquePtrValue))
                 {
                     archive->BeginObject(FSerializerReservedKeys::kUniquePtrValue);
-                    obj = std::make_unique<ElementType>();
+                    if (!poly)
+                    {
+                        obj = std::make_unique<ElementType>();
+                    }
+                    else
+                    {
+                        void* ptr;
+                        InvokePolymorphicConstructImpl(ptr, cachedTypeIdHash);
+                        obj = std::unique_ptr<ElementType>(reinterpret_cast<ElementType*>(ptr));
+                    }
+
                     InvokeDeserialize(*obj, archive);
                     archive->EndObject();
                 }

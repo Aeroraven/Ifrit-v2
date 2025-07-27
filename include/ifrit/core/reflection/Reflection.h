@@ -6,6 +6,7 @@
 #include "ifrit/core/typing/Traits.h"
 #include "ifrit/core/reflection/TypeMetaExtended.h"
 #include <ranges>
+#include "ifrit/core/reflection/RttiIdentifier.h"
 
 namespace Ifrit::Reflection
 {
@@ -83,6 +84,8 @@ namespace Ifrit::Reflection
         Fn<ObjectImpl()>             Constructor = nullptr;
         HashMap<u64, FPropertyField> PropertyFields;
         FMetaTypeExtendedInfo        MetaInfo;
+        bool                         Polymorphic = false;
+        Vec<u64>                     BaseTypes;
 
         FReflTypeMetaInfo() = default;
         bool operator==(const FReflTypeMetaInfo& other) const { return Hash == other.Hash; }
@@ -154,14 +157,27 @@ namespace Ifrit::Reflection
     IFRIT_CORE_API void                    Internal_RegisterPropertyField(const FReflTypeMetaInfo& typeInfo,
                            const FReflPropertyMetaInfo& propInfo, const String& propertyName, Fn<ObjectImpl(ObjectImpl&)> accessor);
     IFRIT_CORE_API ObjectImpl              Internal_GetProperty(TReflObject<ObjectImpl>& obj, u64 propertyHash);
-    IFRIT_CORE_API HashMap<u64, FPropertyField>& Internal_GetPropertyList(TReflObject<ObjectImpl>& obj);
+    IFRIT_CORE_API HashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj);
     IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Reference(void* target, std::type_info const& typeInfo);
+    IFRIT_CORE_API u64                     Internal_GetTypeHashFromTypeInfoHash(u64 typeInfoHash);
+    IFRIT_CORE_API void                    Internal_RegisterPolymorphic(u64 baseTypeHash, u64 derivedTypeHash);
+    IFRIT_CORE_API bool               Internal_TypeOnInheritanceChain(u64 baseTypeHashToSearch, u64 derivedTypeHash);
 
     // Templates
-    template <typename T> inline void      RegisterType()
+    template <typename T> inline void RegisterType()
     {
         Internal_RegisterType(FReflTypeMetaInfo::Create<T>(), typeid(T));
     }
+
+    template <typename Derived, typename Base>
+        requires std::is_base_of_v<Base, Derived>
+    inline void RegisterPolymorphicRelation()
+    {
+        u64 baseTypeHash    = Internal_GetTypeHashFromTypeInfoHash(GetTypeIDHash(typeid(Base)));
+        u64 derivedTypeHash = Internal_GetTypeHashFromTypeInfoHash(GetTypeIDHash(typeid(Derived)));
+        Internal_RegisterPolymorphic(baseTypeHash, derivedTypeHash);
+    }
+
     template <auto Member>
         requires IConceptIsMemberPointer<decltype(Member)>
     inline void RegisterPropertyField(const String& propertyName)

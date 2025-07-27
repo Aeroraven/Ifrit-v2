@@ -1,6 +1,7 @@
 #include "ifrit/core/reflection/Reflection.h"
 #include <stdexcept>
 #include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/reflection/RttiIdentifier.h"
 namespace Ifrit::Reflection
 {
     struct DynamicReflectionManager
@@ -17,9 +18,47 @@ namespace Ifrit::Reflection
     IFRIT_APIDECL void Internal_RegisterType(const FReflTypeMetaInfo& typeInfo, std::type_info const& typeInfoStd)
     {
 
-        auto& manager                                             = GetDynamicReflectionManager();
-        manager.TypeRegistry[typeInfo.Hash]                       = typeInfo;
-        manager.TypeIDHashToInternalHash[typeInfoStd.hash_code()] = typeInfo.Hash;
+        auto& manager                                                = GetDynamicReflectionManager();
+        manager.TypeRegistry[typeInfo.Hash]                          = typeInfo;
+        manager.TypeIDHashToInternalHash[GetTypeIDHash(typeInfoStd)] = typeInfo.Hash;
+    }
+
+    IFRIT_CORE_API void Internal_RegisterPolymorphic(u64 baseTypeHash, u64 derivedTypeHash)
+    {
+        auto& manager = GetDynamicReflectionManager();
+        if (manager.TypeRegistry.count(baseTypeHash) > 0 && manager.TypeRegistry.count(derivedTypeHash) > 0)
+        {
+            manager.TypeRegistry[derivedTypeHash].BaseTypes.push_back(baseTypeHash);
+            manager.TypeRegistry[derivedTypeHash].Polymorphic = true;
+            manager.TypeRegistry[baseTypeHash].Polymorphic    = true;
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Base or derived type not registered for polymorphic relation: {} -> {}",
+                baseTypeHash, derivedTypeHash);
+        }
+    }
+
+    IFRIT_CORE_API bool Internal_TypeOnInheritanceChain(u64 baseTypeHashToSearch, u64 derivedTypeHash)
+    {
+        auto& manager = GetDynamicReflectionManager();
+        if (manager.TypeRegistry.count(derivedTypeHash) > 0)
+        {
+            const auto& derivedTypeInfo = manager.TypeRegistry[derivedTypeHash];
+            for (auto& p : derivedTypeInfo.BaseTypes)
+            {
+                if (p == baseTypeHashToSearch)
+                    return true;
+            }
+            for (u64 baseTypeHash : derivedTypeInfo.BaseTypes)
+            {
+                if (Internal_TypeOnInheritanceChain(baseTypeHashToSearch, baseTypeHash))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     IFRIT_APIDECL TReflObject<ObjectImpl> Internal_Construct(u64 typeHash)
@@ -82,19 +121,46 @@ namespace Ifrit::Reflection
             IF_LOG_CRITICAL("Reflector", "Type not registered for property access: {}", typeHash);
         }
     }
-    IFRIT_CORE_API HashMap<u64, FPropertyField>& Internal_GetPropertyList(TReflObject<ObjectImpl>& obj)
+
+    HashMap<u64, FPropertyField> GetPropertyListRecursive(u64 typeHash)
+    {
+
+        auto&                        manager = GetDynamicReflectionManager();
+        HashMap<u64, FPropertyField> properties;
+
+        auto                         it = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            const FReflTypeMetaInfo& typeInfo = it->second;
+            properties.insert(typeInfo.PropertyFields.begin(), typeInfo.PropertyFields.end());
+
+            for (u64 baseTypeHash : typeInfo.BaseTypes)
+            {
+                // IF_LOG_DEBUG("Reflector", "Adding properties from base type: {}", baseTypeHash);
+                auto baseProperties = GetPropertyListRecursive(baseTypeHash);
+                properties.insert(baseProperties.begin(), baseProperties.end());
+            }
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for property list access: {}", typeHash);
+        }
+
+        return properties;
+    }
+
+    IFRIT_CORE_API HashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj)
     {
         auto& manager  = GetDynamicReflectionManager();
         u64   typeHash = obj.TypeHash;
         auto  it       = manager.TypeRegistry.find(typeHash);
         if (it != manager.TypeRegistry.end())
         {
-            return it->second.PropertyFields;
+            return GetPropertyListRecursive(typeHash);
         }
         else
         {
             IF_LOG_CRITICAL("Reflector", "Type not registered for property list access: {}", typeHash);
-            throw std::runtime_error("Type not registered for property list access");
         }
     }
     IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Reference(void* target, std::type_info const& typeInfo)
@@ -105,7 +171,7 @@ namespace Ifrit::Reflection
         }
 
         auto& manager  = GetDynamicReflectionManager();
-        u64   typeHash = typeInfo.hash_code();
+        u64   typeHash = GetTypeIDHash(typeInfo);
         auto  it       = manager.TypeIDHashToInternalHash.find(typeHash);
         if (it != manager.TypeIDHashToInternalHash.end())
         {
@@ -117,6 +183,21 @@ namespace Ifrit::Reflection
         else
         {
             IF_LOG_CRITICAL("Reflector", "Type not registered for reference: {}", typeHash);
+        }
+    }
+
+    IFRIT_CORE_API u64 Internal_GetTypeHashFromTypeInfoHash(u64 typeInfoHash)
+    {
+        auto& manager = GetDynamicReflectionManager();
+        auto  it      = manager.TypeIDHashToInternalHash.find(typeInfoHash);
+        if (it != manager.TypeIDHashToInternalHash.end())
+        {
+            return it->second;
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for hash lookup: {}", typeInfoHash);
+            throw std::runtime_error("Type not registered for hash lookup");
         }
     }
 
