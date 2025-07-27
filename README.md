@@ -57,7 +57,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 - Render Hardware Interface (RHI)
 - Render Dependency Graph (RDG)
 - Modern Graphics API Features: Bindless Descriptors, Dynamic Rendering ...
-- Miscellaneous Utilities: Simple Editor*, Task System, Shader Variants, Texture Compression Supports ...
+- Miscellaneous Utilities: Simple Editor*, Simple Reflection & Serialization Support, Task System, Shader Variants, Texture Compression Supports ...
 
 #### Subproject Syaro
 
@@ -92,7 +92,7 @@ git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive
 git checkout checkpoint/v4 # for older demo projects
 ```
 
-> Some breaking changes (like changes in serialization and asset management) were made in `dev` branch recently (Refer to  [TODO.md](./TODO.md) for more details). Temporarily, we have dropped the legacy static serialization support.
+> Some breaking changes (like changes in serialization and asset management) were made in `dev` branch recently (Refer to  [TODO.md](./TODO.md) for more details). Former serialization library has been replaced by a new embedded reflection system, and the compatibility patches for older codes are not fully covered now.
 >
 > It's required to switch to branch `checkpoint/v4` to run `Syaro/Ayanami Demo`, and `checkpoint/v1` to run `Software Renderer`. 
 
@@ -113,6 +113,8 @@ bash InstallPrerequisite.sh  # Use Git Bash on Windows
 
 **For Experimental Renderers (Syaro/Ayanami/Artemis):**
 - libclang 19 (LLVM for Visual Studio)
+  - Custom libclang is also feasible, but you have to modify cmake config manually
+
 - Vulkan SDK 1.3.296+
   - Core 1.2 features (required)
   - `EXT_mesh_shader` extension (optional¹)

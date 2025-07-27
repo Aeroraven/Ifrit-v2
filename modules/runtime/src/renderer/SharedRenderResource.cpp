@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/runtime/renderer/SharedRenderResource.h"
 #include "ifrit.shader/SamplerUtils.SharedConst.h"
-
+#include "ifrit/core/logging/Logging.h"
 #include "ifrit/runtime/base/Base.h"
 using namespace Ifrit::RHI;
 

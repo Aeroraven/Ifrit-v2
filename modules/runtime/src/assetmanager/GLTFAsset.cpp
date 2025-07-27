@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/assetmanager/TextureAsset.h"
 #include "ifrit/runtime/material/SyaroDefaultGBufEmitter.h"
 #include <fstream>
-
+#include "ifrit/core/logging/Logging.h"
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 #define TINYGLTF_NO_STB_IMAGE

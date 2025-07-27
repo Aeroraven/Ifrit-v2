@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/scene/SceneManager.h"
 #include "ifrit/core/typing/Util.h"
-
+#include "ifrit/core/logging/Logging.h"
 using namespace Ifrit;
 
 namespace Ifrit::Runtime

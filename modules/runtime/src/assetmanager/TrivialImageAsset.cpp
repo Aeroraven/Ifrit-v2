@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/assetmanager/TrivialImageAsset.h"
 #include "ifrit/runtime/common/Pch.h"
-
+#include "ifrit/core/logging/Logging.h"
 #include "ifrit/imaging/compress/CompressedTextureUtil.h"
 #include <fstream>
 

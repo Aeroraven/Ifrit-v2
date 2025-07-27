@@ -1,11 +1,12 @@
 #pragma once
-#include "AssetReference.h"
+#include "ifrit/runtime/base/AssetReference.h"
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/base/Property.h"
 #include "ifrit/core/typing/EnumReflection.h"
 #include "ifrit/core/typing/Traits.h"
 #include "ifrit/core/typing/TypeMetaInfo.h"
 #include <typeinfo>
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 #define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef, __VA_ARGS__)
 #define IFRIT_COMPONENT_SERIALIZE_EMPTY() IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef)
@@ -137,10 +138,12 @@ namespace Ifrit::Runtime
     // TODO: for performance considerations, components container is not consistent
     // across different build envs.
 
-    class IFRIT_APIDECL GameObject : public NonCopyable
+    class IFRIT_APIDECL IF_CLASS() GameObject : public NonCopyable
     {
-    protected:
-        ComponentIdentifier             m_Identifier;
+    public:
+        ComponentIdentifier m_Identifier;
+
+        IF_PROPERTY()
         HashMap<ComponentTypeHash, u32> m_ComponentsHashed;
         ComponentManager*               m_ComponentManager  = nullptr;
         GameObjectManager*              m_GameObjectManager = nullptr;
@@ -166,7 +169,7 @@ namespace Ifrit::Runtime
             auto typeHash     = TMetaTypeInfo<T>::Hash;
             if (m_ComponentsHashed.count(typeHash) > 0)
             {
-                IF_LOG_ERROR("Component", "Component type name conflicted");
+                // IF_LOG_ERROR("Component", "Component type name conflicted");
                 std::abort();
             }
             m_ComponentsHashed[typeHash] = componentRef.second;
@@ -204,20 +207,22 @@ namespace Ifrit::Runtime
         IFRIT_STRUCT_SERIALIZE(m_Identifier, m_ComponentsHashed);
     };
 
-    class IFRIT_APIDECL Component : public NonCopyable
+    class IFRIT_APIDECL IF_CLASS() Component : public NonCopyable
     {
-    protected:
+    public:
         ComponentIdentifier        m_id;
         GameObjectReference        m_ParentRef;
         GameObjectManager*         m_GameObjectManager = nullptr;
 
         Vec<ComponentPropertyBase> m_Property;
 
-bool m_PropertyRegistered = false;
+        bool                       m_PropertyRegistered = false;
 
-        bool                                             m_isEnabled         = true;
-        bool                                             m_shouldInvokeStart = true;
-        bool                                             m_shouldInvokeAwake = true;
+        IF_PROPERTY()
+        bool m_isEnabled = true;
+
+        bool m_shouldInvokeStart = true;
+        bool m_shouldInvokeAwake = true;
 
     private:
         inline ComponentIdentifier GetMetaData() { return m_id; }

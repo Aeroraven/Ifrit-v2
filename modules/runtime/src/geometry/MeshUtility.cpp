@@ -1,5 +1,5 @@
 #include "ifrit/runtime/geometry/MeshUtility.h"
-
+#include "ifrit/core/logging/Logging.h"
 using namespace Ifrit::RHI;
 namespace Ifrit::Runtime::Geometry
 {

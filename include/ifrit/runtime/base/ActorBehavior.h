@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "Component.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
@@ -28,7 +29,7 @@ namespace Ifrit::Runtime
         IFRIT_STRUCT_SERIALIZE(m_placeHolder);
     };
 
-    class IFRIT_APIDECL ActorBehavior : public Component, public AttributeOwner<ActorBehaviorAttribute>
+    class IFRIT_APIDECL IF_CLASS() ActorBehavior : public Component, public AttributeOwner<ActorBehaviorAttribute>
     {
     private:
     public:

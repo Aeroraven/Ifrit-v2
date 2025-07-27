@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Component.h"
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/core/serialization/SerialEnumDefine.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
@@ -37,10 +38,10 @@ namespace Ifrit::Runtime
         IFRIT_STRUCT_SERIALIZE(m_type, m_affectPbrSky, m_shadowMap);
     };
 
-    class IFRIT_APIDECL Light : public Component, public AttributeOwner<LightData>
+    class IFRIT_APIDECL IF_CLASS() Light : public Component, public AttributeOwner<LightData>
     {
     public:
-        Light() {};
+        Light(){};
         Light(GameObject* owner) : Component(owner), AttributeOwner() {}
         virtual ~Light() = default;
         inline void      SetupProperties() override {}

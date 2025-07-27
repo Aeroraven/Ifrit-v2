@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ifrit/runtime/physics/artemis/geometry/TetrahedralMesh.h"
 #include "ifrit/geomproc/tetrahedralization/MeshTetrahedralizer.h"
 #include "ifrit/core/algo/OrderedPairs.h"
-
+#include "ifrit/core/logging/Logging.h"
 using namespace Ifrit::GeometryProc::Tetrahedralization;
 using namespace Ifrit::GeometryProc;
 using namespace Ifrit::Math;

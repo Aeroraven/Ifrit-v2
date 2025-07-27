@@ -4,10 +4,11 @@
 #include "Material.h"
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/geomproc/mesh/MeshClusterBase.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
-    class MeshFilter : public Component
+    class IF_CLASS() MeshFilter : public Component
     {
     private:
         bool              m_meshLoaded = false;
@@ -22,10 +23,10 @@ namespace Ifrit::Runtime
         MeshFilter(GameObject* owner) : Component(owner) { m_instance = MakeRef<MeshInstance>(); }
         virtual ~MeshFilter() = default;
 
-        inline void   SetupProperties() override {}
+        inline void SetupProperties() override {}
 
-        void          LoadMesh();
-        inline void   SetMesh(Ref<Mesh> p)
+        void        LoadMesh();
+        inline void SetMesh(Ref<Mesh> p)
         {
             m_meshReference = p->m_assetReference;
             if (!p->m_usingAsset)
@@ -53,7 +54,7 @@ namespace Ifrit::Runtime
         IFRIT_COMPONENT_SERIALIZE_EMPTY();
     };
 
-    class MeshRenderer : public Component
+    class IF_CLASS() MeshRenderer : public Component
     {
     private:
         Ref<Material>  m_material = nullptr;

@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshDF.h"
 #include "ifrit/runtime/base/Transform.h"
 #include "ifrit/core/math/linalg/GeometryFunctions.h"
-
+#include "ifrit/core/logging/Logging.h"
 namespace Ifrit::Runtime::Ayanami
 {
 

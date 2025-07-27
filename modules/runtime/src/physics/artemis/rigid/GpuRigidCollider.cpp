@@ -1,6 +1,6 @@
 #include "ifrit/runtime/physics/artemis/rigid/GpuRigidCollider.h"
 #include "ifrit/core/math/physics/InertiaTensor.h"
-
+#include "ifrit/core/logging/Logging.h"
 namespace Ifrit::Runtime::Artemis
 {
 

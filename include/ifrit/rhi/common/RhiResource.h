@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include "RhiBaseTypes.h"
-#include "ifrit/core/logging/Logging.h"
+// #include "ifrit/core/logging/Logging.h"
 #include <queue>
 #include <cstddef>
 
@@ -75,7 +75,7 @@ namespace Ifrit::RHI
             {
                 if (allowInvalid)
                     return ~0u;
-                IF_LOG_ERROR("RHI", "Invalid descriptor handle");
+                // IF_LOG_ERROR("RHI", "Invalid descriptor handle");
                 std::abort();
                 return ~0u;
             }

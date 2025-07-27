@@ -2,7 +2,7 @@
 #include "ifrit/runtime/renderer/postprocessing/PostFxStockhamDFT2.h"
 #include "ifrit/core/math/Intrinsics.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
-
+#include "ifrit/core/logging/Logging.h"
 namespace Ifrit::Runtime::PostprocessPassCollection
 {
 

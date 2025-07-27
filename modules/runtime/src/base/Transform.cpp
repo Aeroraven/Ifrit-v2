@@ -2,6 +2,7 @@
 
 #include "ifrit/runtime/base/Transform.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
+#include "ifrit/core/logging/Logging.h"
 using namespace Ifrit::Math;
 namespace Ifrit::Runtime
 {

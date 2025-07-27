@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/algo/GUID.h"
 #include <atomic>
 #include <random>
-
+#include "ifrit/core/logging/Logging.h"
 using namespace Ifrit::Math;
 
 namespace Ifrit::Runtime

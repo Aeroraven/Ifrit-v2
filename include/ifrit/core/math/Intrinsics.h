@@ -38,7 +38,8 @@ namespace Ifrit::Math
         if IF_CONSTEXPR (sizeof(T) == 4)
         {
             static_assert(sizeof(unsigned long) == 4, "Unexpected size of unsigned long");
-            __stosd((unsigned long*)src, std::bit_cast<unsigned long, T>(value), counts);
+            //__stosd((unsigned long*)src, std::bit_cast<unsigned long, T>(value), counts);
+            std::fill(src, src + counts, value); 
         }
         else
         {

@@ -25,7 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"
 #include <chrono>
 #include <mutex>
-
+#include "ifrit/core/logging/Logging.h"
 #include "ifrit/runtime/scene/FrameComponentUpdate.h"
 
 namespace Ifrit::Runtime

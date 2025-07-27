@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
-
+#include "ifrit/core/logging/Logging.h"
 using namespace Ifrit;
 using namespace Ifrit::Runtime;
 

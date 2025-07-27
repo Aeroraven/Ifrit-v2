@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/serialization/MathTypeSerialization.h"
 #include "ifrit/core/serialization/SerialInterface.h"
 #include "ifrit/core/serialization/SerialEnumDefine.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
@@ -43,7 +44,7 @@ namespace Ifrit::Runtime
         bool       m_IsMainCamera   = false;
         IFRIT_STRUCT_SERIALIZE(m_type, m_fov, m_aspect, m_near, m_far, m_IsMainCamera);
     };
-    class IFRIT_APIDECL Camera : public Component, public AttributeOwner<CameraData>
+    class IFRIT_APIDECL IF_CLASS() Camera : public Component, public AttributeOwner<CameraData>
     {
     public:
         Camera(){};

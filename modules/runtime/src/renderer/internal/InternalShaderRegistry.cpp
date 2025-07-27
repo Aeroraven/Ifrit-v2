@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Neo.h"
-
+#include "ifrit/core/logging/Logging.h"
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Artemis.h"
 #include "ifrit/runtime/geometry/internal/InternalShaderRegistry.Geometry.h"
 

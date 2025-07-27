@@ -1,6 +1,7 @@
 #pragma once
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/core/serialization/SerialEnumDefine.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
@@ -20,13 +21,13 @@ namespace Ifrit::Runtime
         IFRIT_STRUCT_SERIALIZE(m_UpdateDevice, m_Position, m_Rotation, m_Scale);
     };
 
-    class IFRIT_APIDECL Transform : public Component, public AttributeOwner<TransformAttribute>
+    class IFRIT_APIDECL IF_CLASS() Transform : public Component, public AttributeOwner<TransformAttribute>
     {
     private:
         using GPUUniformBuffer = Ifrit::RHI::RhiMultiBuffer;
         using GPUBindId        = Ifrit::RHI::RhiDescHandleLegacy;
 
-        RHI::RhiBufferRef m_DeviceOnlyBuffer = nullptr;
+        RHI::RhiBufferRef     m_DeviceOnlyBuffer = nullptr;
 
         Ref<GPUUniformBuffer> m_gpuBuffer          = nullptr;
         Ref<GPUUniformBuffer> m_gpuBufferLast      = nullptr;
@@ -41,9 +42,8 @@ namespace Ifrit::Runtime
         } m_dirty;
 
     public:
-        Transform() {};
+        Transform(){};
         Transform(GameObject* parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
-
 
         void                         SetupProperties() override;
         void                         OnFrameCollecting();

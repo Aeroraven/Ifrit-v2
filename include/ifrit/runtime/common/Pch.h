@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/algo/Container.h"
-#include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/math/VectorDefs.h"
 #include "ifrit/core/serialization/MathTypeSerialization.h"
 #include "ifrit/core/serialization/SerialInterface.h"
