@@ -8,8 +8,8 @@
 #include <typeinfo>
 #include "ifrit/core/reflection/ReflAttrs.h"
 
-#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef, __VA_ARGS__)
-#define IFRIT_COMPONENT_SERIALIZE_EMPTY() IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef)
+#define IFRIT_COMPONENT_SERIALIZE(...)    // IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef, __VA_ARGS__)
+#define IFRIT_COMPONENT_SERIALIZE_EMPTY() // IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef)
 #define IFRIT_COMPONENT_REGISTER(x) \
     IFRIT_DERIVED_REGISTER(x);      \
     IFRIT_INHERIT_REGISTER(Ifrit::Runtime::Component, x);
@@ -23,22 +23,6 @@
 
 namespace Ifrit::Runtime
 {
-
-    struct ComponentIdentifier
-    {
-        GUID   m_GUID;
-        String m_Name;
-        u32    m_ArrayIndex   = 0;
-        u32    m_ManagerIndex = ~0u;
-
-        IFRIT_STRUCT_SERIALIZE(m_GUID, m_Name, m_ArrayIndex, m_ManagerIndex);
-    };
-
-    template <class T> class AttributeOwner
-    {
-    protected:
-        T m_attributes{};
-    };
 
     class Component;
     class GameObject;
@@ -57,13 +41,20 @@ namespace Ifrit::Runtime
         virtual GameObjectManager* GetGameObjectManager() = 0;
     };
 
-    class IFRIT_APIDECL ComponentManager : public NonCopyable
+    class IFRIT_APIDECL IF_CLASS() ComponentManager : public NonCopyable
     {
+    public:
+        IF_PROPERTY()
+        HashMap<ComponentTypeHash, Vec<Owner<Component>>> mComponentArray;
+
+        IF_PROPERTY()
+        HashMap<u32, ComponentTypeHash> mIdToTypeHash;
+
+        IF_PROPERTY()
+        u32 mAllocatedComponents = 0;
+
     private:
-        Queue<u32>                                        m_FreeIdQueue;
-        HashMap<ComponentTypeHash, Vec<Owner<Component>>> m_ComponentArray;
-        HashMap<u32, ComponentTypeHash>                   m_IdToTypeHash;
-        u32                                               m_AllocatedComponents = 0;
+        Queue<u32> m_FreeIdQueue;
 
     public:
         ComponentManager();
@@ -74,7 +65,7 @@ namespace Ifrit::Runtime
         void                          SetComponentId(Component* component, u32 arrayPos, ComponentTypeHash typeHash);
         inline Vec<Owner<Component>>& GetComponentArray(ComponentTypeHash typeHash)
         {
-            return m_ComponentArray[typeHash];
+            return mComponentArray[typeHash];
         }
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
@@ -82,42 +73,45 @@ namespace Ifrit::Runtime
         {
             auto typeName = TMetaTypeInfo<T>::Name;
             auto typeHash = TMetaTypeInfo<T>::Hash;
-            if (m_ComponentArray.count(typeHash) == 0)
+            if (mComponentArray.count(typeHash) == 0)
             {
-                m_ComponentArray[typeHash] = Vec<Owner<Component>>();
+                mComponentArray[typeHash] = Vec<Owner<Component>>();
             }
             auto ret = MakeOwner<T>(parentObject);
-            SetComponentId(ret.get(), SizeCast<u32>(m_ComponentArray[typeHash].size()), typeHash);
-            m_ComponentArray[typeHash].push_back(std::move(ret));
-            return { typeHash, SizeCast<u32>(m_ComponentArray[typeHash].size() - 1) };
+            SetComponentId(ret.get(), SizeCast<u32>(mComponentArray[typeHash].size()), typeHash);
+            mComponentArray[typeHash].push_back(std::move(ret));
+            return { typeHash, SizeCast<u32>(mComponentArray[typeHash].size() - 1) };
         }
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
         T* GetComponentFromReference(ComponentReference ref)
         {
             auto typeHash = ref.first;
-            if (ref.first != typeHash || m_ComponentArray.count(typeHash) == 0)
+            if (ref.first != typeHash || mComponentArray.count(typeHash) == 0)
                 return nullptr;
-            auto& componentArray = m_ComponentArray[typeHash];
+            auto& componentArray = mComponentArray[typeHash];
             if (ref.second >= componentArray.size())
                 return nullptr;
             return static_cast<T*>(componentArray[ref.second].get());
         }
 
         friend class GameObject;
-
-    public:
-        IFRIT_STRUCT_SERIALIZE(m_FreeIdQueue, m_ComponentArray, m_IdToTypeHash, m_AllocatedComponents);
     };
 
-    class IFRIT_APIDECL GameObjectManager : public NonCopyable
+    class IFRIT_APIDECL IF_CLASS() GameObjectManager : public NonCopyable
     {
+
+    public:
+        IF_PROPERTY()
+        Vec<Owner<GameObject>> mGameObjects;
+
+        IF_PROPERTY()
+        u32 mAllocatedObjects = 0;
+
     private:
-        Queue<u32>             m_FreeIdQueue;
-        Vec<Owner<GameObject>> m_GameObjects;
-        HashMap<String, u32>   m_GameObjectNameToIndex;
-        HashMap<GUID, u32>     m_GameObjectUUIDToIndex;
-        u32                    m_AllocatedObjects = 0;
+        Queue<u32>           m_FreeIdQueue;
+        HashMap<String, u32> m_GameObjectNameToIndex;
+        HashMap<GUID, u32>   m_GameObjectUUIDToIndex;
 
     private:
         u32 AllocateId();
@@ -130,9 +124,6 @@ namespace Ifrit::Runtime
         GameObject*         GetGameObject(GameObjectReference ref);
 
         void                RequestRemove(GameObjectReference ref);
-
-        IFRIT_STRUCT_SERIALIZE(
-            m_FreeIdQueue, m_GameObjects, m_GameObjectNameToIndex, m_GameObjectUUIDToIndex, m_AllocatedObjects);
     };
 
     // TODO: for performance considerations, components container is not consistent
@@ -141,23 +132,35 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL IF_CLASS() GameObject : public NonCopyable
     {
     public:
-        ComponentIdentifier m_Identifier;
+        IF_PROPERTY()
+        u32 mManagedIndex;
 
         IF_PROPERTY()
-        HashMap<ComponentTypeHash, u32> m_ComponentsHashed;
-        ComponentManager*               m_ComponentManager  = nullptr;
-        GameObjectManager*              m_GameObjectManager = nullptr;
+        u32 mId;
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
+        String mName;
+
+        IF_PROPERTY()
+        HashMap<ComponentTypeHash, u32> mComponentsHashed;
+
+    public:
+        ComponentManager*  m_ComponentManager  = nullptr;
+        GameObjectManager* m_GameObjectManager = nullptr;
 
     private:
-        inline void SetManagerId(GameObjectReference id) { m_Identifier.m_ManagerIndex = id; }
+        inline void SetManagerId(GameObjectReference id) { mManagedIndex = id; }
 
     public:
         GameObject();
         virtual ~GameObject();
         void                       Initialize(ComponentManager* manager, GameObjectManager* gameObjectManager);
-        inline String              GetName() const { return m_Identifier.m_Name; }
-        inline GUID                GetUUID() const { return m_Identifier.m_GUID; }
-        inline GameObjectReference GetManagerId() const { return m_Identifier.m_ManagerIndex; }
+        inline String              GetName() const { return mName; }
+        inline GUID                GetUUID() const { return mGuid; }
+        inline GameObjectReference GetManagerId() const { return mManagedIndex; }
 
         // DEPRECATING
         static GameObject*         CreatePrefab(IComponentManagerKeeper* managerKeeper);
@@ -167,23 +170,23 @@ namespace Ifrit::Runtime
             auto componentRef = m_ComponentManager->CreateComponent<T>(this);
             auto typeName     = TMetaTypeInfo<T>::Name;
             auto typeHash     = TMetaTypeInfo<T>::Hash;
-            if (m_ComponentsHashed.count(typeHash) > 0)
+            if (mComponentsHashed.count(typeHash) > 0)
             {
                 // IF_LOG_ERROR("Component", "Component type name conflicted");
                 std::abort();
             }
-            m_ComponentsHashed[typeHash] = componentRef.second;
+            mComponentsHashed[typeHash] = componentRef.second;
             return m_ComponentManager->GetComponentFromReference<T>(componentRef);
         }
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* GetComponent()
         {
             auto typeHash = TMetaTypeInfo<T>::Hash;
-            if (m_ComponentsHashed.count(typeHash) == 0)
+            if (mComponentsHashed.count(typeHash) == 0)
             {
                 return nullptr;
             }
-            auto itIndex   = m_ComponentsHashed[typeHash];
+            auto itIndex   = mComponentsHashed[typeHash];
             auto component = m_ComponentManager->GetComponentFromReference<T>({ typeHash, itIndex });
             return component ? component : nullptr;
         }
@@ -191,7 +194,7 @@ namespace Ifrit::Runtime
         inline Vec<Component*> GetAllComponents()
         {
             Vec<Component*> components;
-            for (auto& [typeHash, index] : m_ComponentsHashed)
+            for (auto& [typeHash, index] : mComponentsHashed)
             {
                 auto component = m_ComponentManager->GetComponentFromReference<Component>({ typeHash, index });
                 if (component)
@@ -203,29 +206,40 @@ namespace Ifrit::Runtime
         friend class GameObjectManager;
         friend class Component;
 
-        inline void SetName(const String& name) { m_Identifier.m_Name = name; }
-        IFRIT_STRUCT_SERIALIZE(m_Identifier, m_ComponentsHashed);
+        inline void SetName(const String& name) { mName = name; }
     };
 
     class IFRIT_APIDECL IF_CLASS() Component : public NonCopyable
     {
     public:
-        ComponentIdentifier        m_id;
+        IF_PROPERTY()
+        u32 mId;
+
+        IF_PROPERTY()
+        String mName;
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
+        u32 mManagedIndex;
+
+        IF_PROPERTY()
+        u32 mArrayIndex;
+
+        IF_PROPERTY()
+        bool mEnabled = true;
+
+    public:
         GameObjectReference        m_ParentRef;
         GameObjectManager*         m_GameObjectManager = nullptr;
 
         Vec<ComponentPropertyBase> m_Property;
-
         bool                       m_PropertyRegistered = false;
-
-        IF_PROPERTY()
-        bool m_isEnabled = true;
-
-        bool m_shouldInvokeStart = true;
-        bool m_shouldInvokeAwake = true;
+        bool                       m_shouldInvokeStart  = true;
+        bool                       m_shouldInvokeAwake  = true;
 
     private:
-        inline ComponentIdentifier GetMetaData() { return m_id; }
         friend class ComponentManager;
 
     protected:
@@ -257,9 +271,11 @@ namespace Ifrit::Runtime
 
     public:
         virtual void CallPropertyEditorHandle();
+        inline u32   GetArrayIndex() const { return mArrayIndex; }
+        inline u32   GetManagedIndex() const { return mManagedIndex; }
 
     public:
-        Component(){}; // for deserializatioin
+        Component() {}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 
@@ -273,20 +289,18 @@ namespace Ifrit::Runtime
         virtual void                 SetupProperties() = 0;
         inline u32                   GetNumProperties() const { return SizeCast<u32>(m_Property.size()) + 1; }
 
-        inline void                  SetName(const String& name) { m_id.m_Name = name; }
+        inline void                  SetName(const String& name) { mName = name; }
         virtual void                 SetAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>>& out) {}
         void                         SetEnable(bool enable);
 
-        inline String                GetName() const { return m_id.m_Name; }
-        inline GUID                  GetGUID() const { return m_id.m_GUID; }
+        inline String                GetName() const { return mName; }
+        inline GUID                  GetGUID() const { return mGuid; }
         GameObject*                  GetParent() const;
         virtual Vec<AssetReference*> GetAssetRefs() { return {}; }
-        inline bool                  IsEnabled() const { return m_isEnabled; }
+        inline bool                  IsEnabled() const { return mEnabled; }
 
         void                         InvokeStart();
         void                         InvokeAwake();
-
-        IFRIT_STRUCT_SERIALIZE(m_id);
     };
 
 } // namespace Ifrit::Runtime

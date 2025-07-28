@@ -3,7 +3,7 @@
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/base/CoreBase.h"
 #include "ifrit/core/logging/Logging.h"
-
+#include "ifrit/core/math/VectorDefs.h"
 namespace Ifrit::Reflection
 {
     enum class ESerializationState : u8
@@ -46,6 +46,7 @@ namespace Ifrit::Reflection
         virtual void   Serialize(f32& value)              = 0;
         virtual void   Serialize(f64& value)              = 0;
         virtual void   Serialize(String& value)           = 0;
+        virtual void   Serialize(bool& value)             = 0;
         virtual void   LoadFromString(const String& data) = 0;
 
         template <typename T>
@@ -60,6 +61,51 @@ namespace Ifrit::Reflection
             {
                 IF_LOG_CRITICAL("Archive", "Cannot serialize value in reading state: {}", typeid(T).name());
             }
+        }
+
+        template <typename T> void Serialize(CoreVec2<T>& value)
+        {
+            BeginObject("__ifrit_vector2");
+            BeginObject("x");
+            Serialize(value.x);
+            EndObject();
+            BeginObject("y");
+            Serialize(value.y);
+            EndObject();
+            EndObject();
+        }
+
+        template <typename T> void Serialize(CoreVec3<T>& value)
+        {
+            BeginObject("__ifrit_vector3");
+            BeginObject("x");
+            Serialize(value.x);
+            EndObject();
+            BeginObject("y");
+            Serialize(value.y);
+            EndObject();
+            BeginObject("z");
+            Serialize(value.z);
+            EndObject();
+            EndObject();
+        }
+
+        template <typename T> void Serialize(CoreVec4<T>& value)
+        {
+            BeginObject("__ifrit_vector4");
+            BeginObject("x");
+            Serialize(value.x);
+            EndObject();
+            BeginObject("y");
+            Serialize(value.y);
+            EndObject();
+            BeginObject("z");
+            Serialize(value.z);
+            EndObject();
+            BeginObject("w");
+            Serialize(value.w);
+            EndObject();
+            EndObject();
         }
 
         virtual String GetResult() const = 0;

@@ -48,4 +48,10 @@ namespace Ifrit::Reflection
         auto reflObj          = Internal_Construct(internalTypeHash);
         reflObj.ObjectValue.ForcedTransferToUnsafe(ptr);
     }
+
+    IFRIT_CORE_API void ReportCorruptedArchive(const String& info)
+    {
+        IF_LOG_CRITICAL("Reflector", "The serialized archive is corrupted: {}", info);
+        throw std::runtime_error("The serialized archive is corrupted: " + info);
+    }
 } // namespace Ifrit::Reflection

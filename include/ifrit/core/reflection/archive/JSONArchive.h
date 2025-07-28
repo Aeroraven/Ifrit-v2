@@ -40,6 +40,7 @@ namespace Ifrit::Reflection
         void   Serialize(f32& value) override;
         void   Serialize(f64& value) override;
         void   Serialize(String& value) override;
+        void   Serialize(bool& value) override;
 
         void   LoadFromString(const String& data) override;
         String GetResult() const override;

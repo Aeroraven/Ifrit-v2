@@ -56,36 +56,45 @@ namespace Ifrit
         using ClassType = T;
     };
 
+    template <typename T> struct TMemberFunctionTrait : std::false_type
+    {
+    };
+
+    template <typename R, typename C, typename... Args> struct TMemberFunctionTrait<R (C::*)(Args...)> : std::true_type
+    {
+        using ReturnType = R;
+        using ClassType  = C;
+        using ArgsTuple  = std::tuple<Args...>;
+    };
+
     // Concepts
 
     template <typename T>
     concept IConceptCustomSerializable = requires(T t) {
-        {
-            t.Serialize()
-        } -> std::same_as<String>;
-        {
-            T::Deserialize(std::declval<String>())
-        } -> std::same_as<T>;
+        { t.Serialize() } -> std::same_as<String>;
+        { T::Deserialize(std::declval<String>()) } -> std::same_as<T>;
     };
     template <typename T>
     concept IConceptIsMemberPointer = requires(T t) {
         typename TMemberType<T>::Type;
         typename TMemberType<T>::ClassType;
     };
+    template <typename T>
+    concept IConceptIsMemberFunctionPointer = requires(T t) {
+        typename TMemberFunctionTrait<T>::ReturnType;
+        typename TMemberFunctionTrait<T>::ClassType;
+        typename TMemberFunctionTrait<T>::ArgsTuple;
+    };
 
     // Streaming concepts
     template <typename T>
     concept IConceptIsOutputStreamable = requires(std::ostream& os, T t) {
-        {
-            os << t
-        } -> std::same_as<std::ostream&>;
+        { os << t } -> std::same_as<std::ostream&>;
     };
 
     template <typename T>
     concept IConceptIsInputStreamable = requires(std::istream& is, T t) {
-        {
-            is >> t
-        } -> std::same_as<std::istream&>;
+        { is >> t } -> std::same_as<std::istream&>;
     };
 
     template <typename T>

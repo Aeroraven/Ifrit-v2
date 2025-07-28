@@ -61,8 +61,7 @@ namespace Ifrit::Runtime
         AssetReference m_materialReference;
 
     public:
-        MeshRenderer() {} // for deserialization
-        MeshRenderer(GameObject* owner) : Component(owner) {}
+        using Component::Component;
         virtual ~MeshRenderer() = default;
 
         inline void          SetupProperties() override {}
@@ -72,7 +71,4 @@ namespace Ifrit::Runtime
         IFRIT_COMPONENT_SERIALIZE_EMPTY();
     };
 
-} // namespace Ifrit::Runtime
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::MeshFilter);
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::MeshRenderer);
+} // namespace Ifrit::Runtime

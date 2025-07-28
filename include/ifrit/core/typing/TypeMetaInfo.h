@@ -87,33 +87,41 @@ namespace Ifrit
             }
         }
 
-        template <unsigned E, char C, unsigned O, unsigned N>
-        consteval u64 GetOccurrencePosition(Array<char, N> const& str)
+        template <unsigned N> consteval inline u64 GetFuncNameHashRefined(Array<char, N> const& str)
         {
-            if constexpr (N == E)
-                return 0;
-            else
+            u64 hash = 0;
+            for (u64 i = 0; i < str.size(); ++i)
             {
-                if (str[E] == C && O == 0)
-                    return E;
-                else if (str[E] == C)
-                    return GetOccurrencePosition<E + 1, C, O - 1, N>(str);
-                else
-                    return GetOccurrencePosition<E + 1, C, O, N>(str);
+                hash = (hash + str[i] + 1) * 257;
             }
+            return hash;
         }
 
-        template <unsigned E, char C, unsigned N> consteval u64 GetLastOccurrencePosition(Array<char, N> const& str)
+        template <unsigned N> consteval u64 GetOccurrencePositionRefined(Array<char, N> const& str, char c, char o)
         {
-            if constexpr (N == E)
-                return 0;
-            else
+            u64 pos = 0;
+            for (u64 i = 0; i < str.size(); ++i)
             {
-                if (str[E] == C)
-                    return std::max(static_cast<u64>(E), GetLastOccurrencePosition<E + 1, C, N>(str));
-                else
-                    return GetLastOccurrencePosition<E + 1, C, N>(str);
+                if (str[i] == c)
+                {
+                    if (o == 0)
+                        return i;
+                    else
+                        o--;
+                }
             }
+            return pos;
+        }
+
+        template <unsigned N> inline consteval u64 GetLastOccurrencePositionRefined(Array<char, N> const& str, char c)
+        {
+            u64 pos = 0;
+            for (u64 i = 0; i < str.size(); ++i)
+            {
+                if (str[i] == c)
+                    pos = i;
+            }
+            return pos;
         }
 
         template <unsigned S, unsigned E, unsigned N>
@@ -151,8 +159,8 @@ namespace Ifrit
         template <typename T> consteval inline static auto GetActualClassNameArray()
         {
             constexpr auto funcionSignature = GetFuncNameToArray<T>();
-            constexpr u64  firstPos         = GetOccurrencePosition<0, '<', 0>(funcionSignature) + 1;
-            constexpr u64  lastPos          = GetLastOccurrencePosition<0, '>'>(funcionSignature);
+            constexpr u64  firstPos         = GetOccurrencePositionRefined(funcionSignature, '<', 0) + 1;
+            constexpr u64  lastPos          = GetLastOccurrencePositionRefined(funcionSignature, '>');
             constexpr u64  length           = lastPos - firstPos;
             constexpr bool hasStructPrefix  = HasStructPrefix<firstPos>(funcionSignature);
             constexpr bool hasClassPrefix   = HasClassPrefix<firstPos>(funcionSignature);
@@ -164,8 +172,8 @@ namespace Ifrit
         template <auto T> consteval inline static auto GetActualVarNameArray()
         {
             constexpr auto funcionSignature = GetVarNameToArray<T>();
-            constexpr u64  firstPos         = GetOccurrencePosition<0, '<', 0>(funcionSignature) + 1;
-            constexpr u64  lastPos          = GetLastOccurrencePosition<0, '>'>(funcionSignature) + 1;
+            constexpr u64  firstPos         = GetOccurrencePositionRefined(funcionSignature, '<', 0) + 1;
+            constexpr u64  lastPos          = GetLastOccurrencePositionRefined(funcionSignature, '>') + 1;
             constexpr bool hasStructPrefix  = HasStructPrefix<firstPos>(funcionSignature);
             constexpr bool hasClassPrefix   = HasClassPrefix<firstPos>(funcionSignature);
             constexpr int  finalOffset      = firstPos + 0 + 0;
@@ -176,13 +184,13 @@ namespace Ifrit
         template <typename T> consteval inline static u64 GetFuncNameHashId()
         {
             constexpr auto arr = GetActualClassNameArray<T>();
-            return GetFuncNameHash<0>(arr);
+            return GetFuncNameHashRefined(arr);
         }
 
         template <auto T> consteval inline static u64 GetVarNameHashId()
         {
             constexpr auto arr = GetActualVarNameArray<T>();
-            return GetFuncNameHash<0>(arr);
+            return GetFuncNameHashRefined(arr);
         }
     } // namespace Private::TypeMeta
 
@@ -210,6 +218,19 @@ namespace Ifrit
 
         using MemberType = typename TMemberType<decltype(T)>::Type;
         using ClassType  = typename TMemberType<decltype(T)>::ClassType;
+    };
+
+    template <auto T>
+        requires IConceptIsMemberFunctionPointer<decltype(T)>
+    struct TMetaMemberFunctionInfo
+    {
+        static constexpr u64        Hash      = Private::TypeMeta::GetVarNameHashId<T>();
+        static constexpr auto       NameArray = Private::TypeMeta::GetActualVarNameArray<T>();
+        static constexpr StringView Name      = StringView(NameArray.data(), NameArray.size() - 1);
+
+        using ReturnType = typename TMemberFunctionTrait<decltype(T)>::ReturnType;
+        using ClassType  = typename TMemberFunctionTrait<decltype(T)>::ClassType;
+        using ArgsTuple  = typename TMemberFunctionTrait<decltype(T)>::ArgsTuple;
     };
 
     struct FMetaPropertyInfo;
@@ -263,4 +284,4 @@ namespace Ifrit
         }
     };
 
-} // namespace Ifrit
+} // namespace Ifrit

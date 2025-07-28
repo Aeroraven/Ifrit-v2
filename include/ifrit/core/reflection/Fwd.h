@@ -2,5 +2,5 @@
 
 namespace Ifrit::Reflection
 {
-    void RegisterReflectionTypes();
+    class Archive;
 }

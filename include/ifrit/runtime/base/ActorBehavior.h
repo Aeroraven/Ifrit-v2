@@ -22,26 +22,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime
 {
-    struct ActorBehaviorAttribute
-    {
-        u32 m_placeHolder;
 
-        IFRIT_STRUCT_SERIALIZE(m_placeHolder);
-    };
-
-    class IFRIT_APIDECL IF_CLASS() ActorBehavior : public Component, public AttributeOwner<ActorBehaviorAttribute>
+    class IFRIT_APIDECL IF_CLASS() ActorBehavior : public Component
     {
-    private:
     public:
-        ActorBehavior() : Component() {}
-        ActorBehavior(GameObject* parent) : Component(parent), AttributeOwner<ActorBehaviorAttribute>() {}
-
-        IFRIT_COMPONENT_SERIALIZE(m_attributes);
+        using Component::Component;
     };
 } // namespace Ifrit::Runtime
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::ActorBehavior);
-
-#define IFRIT_BEHAVIOR_REGISTER(x) \
-    IFRIT_DERIVED_REGISTER(x);     \
-    IFRIT_INHERIT_REGISTER(Ifrit::Runtime::ActorBehavior, x);

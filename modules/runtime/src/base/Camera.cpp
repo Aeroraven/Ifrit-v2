@@ -40,14 +40,13 @@ namespace Ifrit::Runtime
     }
     IFRIT_APIDECL Matrix4x4f Camera::GetProjectionMatrix() const
     {
-        auto data = m_attributes;
-        if (data.m_type == CameraType::Perspective)
+        if (mType == CameraType::Perspective)
         {
-            return (PerspectiveNegateY(data.m_fov, data.m_aspect, data.m_near, data.m_far));
+            return (PerspectiveNegateY(mFov, mAspect, mNear, mFar));
         }
         else
         {
-            return (OrthographicNegateY(data.m_orthoSpaceSize, data.m_aspect, data.m_near, data.m_far));
+            return (OrthographicNegateY(mOrthoSpaceSize, mAspect, mNear, mFar));
         }
     }
 
@@ -64,10 +63,9 @@ namespace Ifrit::Runtime
     }
     IFRIT_APIDECL void Camera::SetupProperties()
     {
-        AddProperty<f32, EPropertyEditorType::Range>("FOV", m_attributes.m_fov, 0.0f, 180.0f);
-        AddProperty<f32, EPropertyEditorType::Range>("Near Plane", m_attributes.m_near, 0.01f, 1000.0f);
-        AddProperty<f32, EPropertyEditorType::Range>("Far Plane", m_attributes.m_far, 0.01f, 10000.0f);
-        AddEnumProperty<CameraType>(
-            "Camera Type", m_attributes.m_type, { CameraType::Perspective, CameraType::Orthographic });
+        AddProperty<f32, EPropertyEditorType::Range>("FOV", mFov, 0.0f, 180.0f);
+        AddProperty<f32, EPropertyEditorType::Range>("Near Plane", mNear, 0.01f, 1000.0f);
+        AddProperty<f32, EPropertyEditorType::Range>("Far Plane", mFar, 0.01f, 10000.0f);
+        AddEnumProperty<CameraType>("Camera Type", mType, { CameraType::Perspective, CameraType::Orthographic });
     }
 } // namespace Ifrit::Runtime

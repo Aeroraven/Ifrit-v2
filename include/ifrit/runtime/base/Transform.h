@@ -11,29 +11,39 @@ namespace Ifrit::Runtime
         GPU,
     };
 
-    struct TransformAttribute
+    struct TransformAttributeLast
     {
-        TransformUpdateDevice m_UpdateDevice = TransformUpdateDevice::CPU;
-        Vector3f              m_Position     = Vector3f{ 0.0f, 0.0f, 0.0f };
-        Vector3f              m_Rotation     = Vector3f{ 0.0f, 0.0f, 0.0f };
-        Vector3f              m_Scale        = Vector3f{ 1.0f, 1.0f, 1.0f };
-
-        IFRIT_STRUCT_SERIALIZE(m_UpdateDevice, m_Position, m_Rotation, m_Scale);
+        Vector3f m_Position;
+        Vector3f m_Rotation;
+        Vector3f m_Scale;
     };
 
-    class IFRIT_APIDECL IF_CLASS() Transform : public Component, public AttributeOwner<TransformAttribute>
+    class IFRIT_APIDECL IF_CLASS() Transform : public Component
     {
+    public:
+        IF_PROPERTY()
+        TransformUpdateDevice mUpdateDevice = TransformUpdateDevice::CPU;
+
+        IF_PROPERTY()
+        Vector3f mPosition = Vector3f{ 0.0f, 0.0f, 0.0f };
+
+        IF_PROPERTY()
+        Vector3f mRotation = Vector3f{ 0.0f, 0.0f, 0.0f };
+
+        IF_PROPERTY()
+        Vector3f mScale = Vector3f{ 1.0f, 1.0f, 1.0f };
+
     private:
         using GPUUniformBuffer = Ifrit::RHI::RhiMultiBuffer;
         using GPUBindId        = Ifrit::RHI::RhiDescHandleLegacy;
 
-        RHI::RhiBufferRef     m_DeviceOnlyBuffer = nullptr;
+        RHI::RhiBufferRef      m_DeviceOnlyBuffer = nullptr;
 
-        Ref<GPUUniformBuffer> m_gpuBuffer          = nullptr;
-        Ref<GPUUniformBuffer> m_gpuBufferLast      = nullptr;
-        Ref<GPUBindId>        m_gpuBindlessRef     = nullptr;
-        Ref<GPUBindId>        m_gpuBindlessRefLast = nullptr;
-        TransformAttribute    m_lastFrame;
+        Ref<GPUUniformBuffer>  m_gpuBuffer          = nullptr;
+        Ref<GPUUniformBuffer>  m_gpuBufferLast      = nullptr;
+        Ref<GPUBindId>         m_gpuBindlessRef     = nullptr;
+        Ref<GPUBindId>         m_gpuBindlessRefLast = nullptr;
+        TransformAttributeLast m_lastFrame;
 
         struct DirtyFlag
         {
@@ -42,19 +52,19 @@ namespace Ifrit::Runtime
         } m_dirty;
 
     public:
-        Transform(){};
-        Transform(GameObject* parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
+        Transform() {};
+        Transform(GameObject* parent) : Component(parent) {}
 
         void                         SetupProperties() override;
         void                         OnFrameCollecting();
 
         // getters
-        inline Vector3f              GetPosition() const { return m_attributes.m_Position; }
-        inline Vector3f              GetRotation() const { return m_attributes.m_Rotation; }
-        inline Vector3f              GetScale() const { return m_attributes.m_Scale; }
-        inline Vector3f              GetScaleLast() const { return m_lastFrame.m_Scale; }
+        inline Vector3f              GetPosition() const { return mPosition; }
+        inline Vector3f              GetRotation() const { return mRotation; }
+        inline Vector3f              GetScale() const { return mScale; }
+        inline Vector3f              GetScaleLast() const { return mScale; }
         inline DirtyFlag             GetDirtyFlag() { return m_dirty; }
-        inline TransformUpdateDevice GetUpdateDevice() const { return m_attributes.m_UpdateDevice; }
+        inline TransformUpdateDevice GetUpdateDevice() const { return mUpdateDevice; }
 
         // setters
         void                         SetPosition(const Vector3f& pos);

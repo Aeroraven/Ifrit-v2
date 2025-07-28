@@ -9,7 +9,7 @@ namespace Ifrit::Runtime::Artemis
 {
 
     struct MPMParticleEmitterPrivateData;
-    class IFRIT_RUNTIME_API MPMParticleEmitter : public Component
+    class IFRIT_RUNTIME_API IF_CLASS() MPMParticleEmitter : public Component
     {
     private:
         u32                            m_PlaceHolder;

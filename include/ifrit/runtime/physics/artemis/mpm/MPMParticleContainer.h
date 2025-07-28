@@ -8,17 +8,15 @@
 
 namespace Ifrit::Runtime::Artemis
 {
-    struct MPMParticleContainerProperty
-    {
-        u32 m_MaxParticleCount = 114514;
-
-        IFRIT_STRUCT_SERIALIZE(m_MaxParticleCount);
-    };
 
     struct MPMParticleContainerPrivateData;
 
-    class IFRIT_RUNTIME_API MPMParticleContainer : public Component, public AttributeOwner<MPMParticleContainerProperty>
+    class IFRIT_RUNTIME_API IF_CLASS() MPMParticleContainer : public Component
     {
+    public:
+        IF_PROPERTY()
+        u32 mMaxParticleCount = 114514;
+
     private:
         MPMParticleContainerPrivateData* m_Data              = nullptr;
         bool                             m_IsDeviceDataReady = false;
@@ -28,7 +26,7 @@ namespace Ifrit::Runtime::Artemis
         MPMParticleContainer(GameObject* owner);
         virtual ~MPMParticleContainer();
 
-        void   SetupProperties() override;
+        void SetupProperties() override;
 
         IFRIT_COMPONENT_SERIALIZE(m_attributes);
 

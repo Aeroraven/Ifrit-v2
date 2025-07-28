@@ -18,7 +18,12 @@ namespace Ifrit::Reflection
     IFRIT_APIDECL void Internal_RegisterType(const FReflTypeMetaInfo& typeInfo, std::type_info const& typeInfoStd)
     {
 
-        auto& manager                                                = GetDynamicReflectionManager();
+        auto& manager = GetDynamicReflectionManager();
+        if (manager.TypeRegistry.count(typeInfo.Hash) > 0)
+        {
+            IF_LOG_WARNING("Reflector", "Type already registered: {}", typeInfo.Hash);
+            return;
+        }
         manager.TypeRegistry[typeInfo.Hash]                          = typeInfo;
         manager.TypeIDHashToInternalHash[GetTypeIDHash(typeInfoStd)] = typeInfo.Hash;
     }
@@ -199,6 +204,12 @@ namespace Ifrit::Reflection
             IF_LOG_CRITICAL("Reflector", "Type not registered for hash lookup: {}", typeInfoHash);
             throw std::runtime_error("Type not registered for hash lookup");
         }
+    }
+    IFRIT_CORE_API void Internal_IgnoreNonVirtualInhertance()
+    {
+        // This function is a placeholder for future implementation
+        // It can be used to ignore non-virtual inheritance in the reflection system
+        IF_LOG_WARNING("Reflector", "Ignoring non-virtual inheritance, which is not implemented yet");
     }
 
 } // namespace Ifrit::Reflection

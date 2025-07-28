@@ -14,26 +14,28 @@ namespace Ifrit::Runtime::Artemis
         Box    = 1
     };
 
-    struct GPURigidColliderProperty
+    class IFRIT_RUNTIME_API IF_CLASS() GPURigidCollider : public Component
     {
-        // SPHERE FOR SIMPLICITY
-        Vector3f             m_CuboidSize = Vector3f(0.1f, 0.1f, 0.1f);
-        f32                  m_Radius     = 1.0f;
-        f32                  m_RigidMass  = 1.14514f;
-        GPURigidColliderType m_Type       = GPURigidColliderType::Sphere;
+    public:
+        IF_PROPERTY()
+        Vector3f mCuboidSize = Vector3f(0.1f, 0.1f, 0.1f);
 
-        IFRIT_STRUCT_SERIALIZE(m_CuboidSize, m_Radius, m_RigidMass, m_Type);
-    };
+        IF_PROPERTY()
+        f32 mRadius = 1.0f;
 
-    class IFRIT_RUNTIME_API GPURigidCollider : public Component, public AttributeOwner<GPURigidColliderProperty>
-    {
+        IF_PROPERTY()
+        f32 mRigidMass = 1.14514f;
+
+        IF_PROPERTY()
+        GPURigidColliderType mType = GPURigidColliderType::Sphere;
+
     private:
         u32  m_InternalRigidId = ~0u;
         bool m_IsDirty         = true;
 
     public:
         GPURigidCollider() {};
-        GPURigidCollider(GameObject* parent) : Component(parent), AttributeOwner<GPURigidColliderProperty>() {}
+        GPURigidCollider(GameObject* parent) : Component(parent) {}
 
         void                                SetupProperties() override;
 

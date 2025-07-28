@@ -46,7 +46,7 @@ namespace Ifrit::Runtime::Ayanami
 
     // AyanamiMeshDF stores mesh-level signed distance field data
     // This is used for mesh-based raymarching
-    class IFRIT_APIDECL AyanamiMeshDF : public Component
+    class IFRIT_APIDECL IF_CLASS() AyanamiMeshDF : public Component
     {
     private:
         Vec<u8>                      m_CompactSDFData;
@@ -68,7 +68,7 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiMeshDF(GameObject* owner) : Component(owner) {}
         virtual ~AyanamiMeshDF() = default;
 
-        inline void        SetupProperties() override {}
+        inline void SetupProperties() override {}
 
     public:
         void            BuildMeshDF(const std::string_view& cachePath, Vector3u sdfSize = Vector3u(~0u, ~0u, ~0u));

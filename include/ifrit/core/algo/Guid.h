@@ -4,7 +4,7 @@
 
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/base/CoreBase.h"
-#include "ifrit/core/serialization/SerialDefine.h"
+#include "ifrit/core/reflection/Fwd.h"
 
 namespace Ifrit
 {
@@ -40,14 +40,15 @@ namespace Ifrit
 
         inline bool operator==(const GUID& other) const { return m_Data == other.m_Data; }
 
-        IFRIT_STRUCT_SERIALIZE(m_Data, m_CvtString, m_Generated);
-
     private:
         void GenerateString();
 
     public:
         String      ToString() const;
         static GUID Generate();
+
+        void        DoSerialize(Reflection::Archive* archive) const;
+        void        DoDeserialize(Reflection::Archive* archive);
     };
 
 } // namespace Ifrit

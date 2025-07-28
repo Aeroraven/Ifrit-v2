@@ -162,6 +162,7 @@ namespace Ifrit::Reflection
     IFRIT_CORE_API u64                     Internal_GetTypeHashFromTypeInfoHash(u64 typeInfoHash);
     IFRIT_CORE_API void                    Internal_RegisterPolymorphic(u64 baseTypeHash, u64 derivedTypeHash);
     IFRIT_CORE_API bool               Internal_TypeOnInheritanceChain(u64 baseTypeHashToSearch, u64 derivedTypeHash);
+    IFRIT_CORE_API void               Internal_IgnoreNonVirtualInhertance();
 
     // Templates
     template <typename T> inline void RegisterType()
@@ -170,7 +171,14 @@ namespace Ifrit::Reflection
     }
 
     template <typename Derived, typename Base>
-        requires std::is_base_of_v<Base, Derived>
+        requires(!std::is_base_of_v<Base, Derived> || !std::is_polymorphic_v<Base>)
+    inline void RegisterPolymorphicRelation()
+    {
+        Internal_IgnoreNonVirtualInhertance();
+    }
+
+    template <typename Derived, typename Base>
+        requires std::is_base_of_v<Base, Derived> && std::is_polymorphic_v<Base>
     inline void RegisterPolymorphicRelation()
     {
         u64 baseTypeHash    = Internal_GetTypeHashFromTypeInfoHash(GetTypeIDHash(typeid(Base)));

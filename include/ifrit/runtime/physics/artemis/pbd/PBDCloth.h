@@ -26,13 +26,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 namespace Ifrit::Runtime::Artemis
 {
-    struct PBDClothAttribute
-    {
-        f32 m_DefaultBendingStiffness    = 0.5f;
-        f32 m_DefaultStretchingStiffness = 0.5f;
-
-        IFRIT_STRUCT_SERIALIZE(m_DefaultBendingStiffness, m_DefaultStretchingStiffness);
-    };
 
     enum class EPBDClothSimulationType : u8
     {
@@ -51,8 +44,15 @@ namespace Ifrit::Runtime::Artemis
     // PBDCloth is a component that simulates cloth physics using Position Based Dynamics (PBD).
     // This component relies on MeshFilter to provide the mesh data for the cloth simulation.
     // It does not support dynamic mesh topology changes.
-    class IFRIT_RUNTIME_API PBDCloth : public Component, public AttributeOwner<PBDClothAttribute>, public IArtemisSolver
+    class IFRIT_RUNTIME_API IF_CLASS() PBDCloth : public Component, public IArtemisSolver
     {
+    public:
+        IF_PROPERTY()
+        f32 mDefaultBendingStiffness = 0.5f;
+
+        IF_PROPERTY()
+        f32 mDefaultStretchingStiffness = 0.5f;
+
     private:
         PBDClothPrivateData* m_Data;
         void                 BuildConstraints();
@@ -82,7 +82,7 @@ namespace Ifrit::Runtime::Artemis
 
     public:
         PBDCloth() { Initialize(); }
-        PBDCloth(GameObject* parent) : Component(parent), AttributeOwner<PBDClothAttribute>() { Initialize(); }
+        PBDCloth(GameObject* parent) : Component(parent) { Initialize(); }
         virtual ~PBDCloth();
 
         inline void  SetupProperties() override {}

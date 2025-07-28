@@ -36,9 +36,35 @@ function(ifrit_add_core_component component_name)
     add_subdirectory(modules/${component_name})
 endfunction()
  
-function(ifrit_add_demo_component component_name)
-    message(STATUS "[Ifrit.Build.Core] Adding demo foldeer ${component_name}")
-    add_subdirectory(${component_name})
+function(ifrit_add_all_demos demo_root_dir)
+    message(STATUS "[Ifrit.Build.Demo] Searching for demo projects in ${demo_root_dir}")
+    
+    # Get all subdirectories under demo folder
+    file(GLOB demo_candidates RELATIVE ${demo_root_dir} ${demo_root_dir}/*)
+    
+    foreach(demo_candidate ${demo_candidates})
+        set(demo_path ${demo_root_dir}/${demo_candidate})
+        
+        # Check if it's a directory and contains CMakeLists.txt
+        if(IS_DIRECTORY ${demo_path})
+            if(EXISTS ${demo_path}/CMakeLists.txt)
+                message(STATUS "[Ifrit.Build.Demo] Found demo project: ${demo_candidate}")
+                
+                # Add the subdirectory
+                add_subdirectory(${demo_path})
+                
+                # Add to demo list for tracking
+                list(APPEND IFRIT_DEMO_LIST ${demo_candidate})
+                set(IFRIT_DEMO_LIST ${IFRIT_DEMO_LIST} CACHE INTERNAL "List of demo projects" FORCE)
+            else()
+                message(STATUS "[Ifrit.Build.Demo] Skipping ${demo_candidate} (no CMakeLists.txt)")
+            endif()
+        endif()
+    endforeach()
+    
+    # Report discovered demos
+    list(LENGTH IFRIT_DEMO_LIST demo_count)
+    message(STATUS "[Ifrit.Build.Demo] Found ${demo_count} demo projects: ${IFRIT_DEMO_LIST}")
 endfunction()
 
 # Note following paths should be set to the correct paths on your system
@@ -135,6 +161,7 @@ set(MI_BUILD_TESTS OFF CACHE BOOL "Disable mimalloc tests" FORCE)
 # ifrit
 set(IFRIT_DEMO_LIST CACHE INTERNAL "List of demo stages" FORCE)
 
+
 # start building
 ifrit_add_dependency(spdlog)
 ifrit_add_dependency(meshoptimizer)
@@ -163,7 +190,28 @@ ifrit_add_core_component(runtime)
 ifrit_add_core_component(rhi)
 ifrit_add_core_component(editor)
 
-ifrit_add_demo_component(demo)
+# Demo
+set(IFRIT_DEMO_LINK_LIBRARIES 
+    ifrit.geomproc 
+    ifrit.display 
+    ifrit.vkgraphics 
+    ifrit.runtime 
+    ifrit.core
+    ifrit.editor
+    ${IFRIT_COMMON_DEPENDENCIES_SHARED})
+
+set(IFRIT_DEMO_DEPENDENCIES 
+    ifrit.vkgraphics 
+    ifrit.geomproc 
+    ifrit.softgraphics 
+    ifrit.display 
+    ifrit.runtime 
+    ifrit.rhi
+    ifrit.imaging
+    ifrit.reflparser
+)
+
+ifrit_add_all_demos(${CMAKE_CURRENT_SOURCE_DIR}/demo)
 
 set(IFRIT_GROUP_ENGINE "Project Ifrit/Engine")
 set(IFRIT_GROUP_DEPENDENCIES "Project Ifrit/ThirdParty")
@@ -225,18 +273,11 @@ set_target_properties(ifrit.vkgraphics PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.editor PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-
 set_target_properties(ifrit.reflparser PROPERTIES FOLDER ${IFRIT_GROUP_TOOL})
 
-# print num demoss
-foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
-    set_target_properties(${DEMO_STAGE} PROPERTIES FOLDER ${IFRIT_GROUP_DEMO})
-    message(STATUS "[Ifrit.Build.Demo] Added demo stage: ${DEMO_STAGE}")
 
-endforeach()
 
 add_dependencies(ifrit.external.imgui glfw)
-
 add_dependencies(ifrit.core 
     ifrit.reflparser
     spdlog
@@ -271,17 +312,3 @@ add_dependencies(ifrit.editor
     ifrit.external.imgui
     ifrit.vkgraphics 
     ifrit.runtime)
-
-set(DEMO_DEPENDENCIES 
-    ifrit.vkgraphics 
-    ifrit.geomproc 
-    ifrit.softgraphics 
-    ifrit.display 
-    ifrit.runtime 
-    ifrit.rhi
-    ifrit.imaging
-)
-
-foreach(DEMO_STAGE ${IFRIT_DEMO_LIST})
-    add_dependencies(${DEMO_STAGE} ${DEMO_DEPENDENCIES})
-endforeach()

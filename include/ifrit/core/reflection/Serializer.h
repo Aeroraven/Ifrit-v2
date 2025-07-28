@@ -5,12 +5,15 @@
 #include "ifrit/core/typing/TypeMetaInfo.h"
 #include "ifrit/core/reflection/Archive.h"
 #include "ifrit/core/reflection/RttiIdentifier.h"
+#include "ifrit/core/typing/EnumReflection.h"
+
+#include "ifrit/core/math/VectorGenerics.h"
 namespace Ifrit::Reflection
 {
     IFRIT_CORE_API void InvokeSerializeDynamicImpl(void* ptr, const std::type_info& typeInfo, Archive* archive);
     IFRIT_CORE_API void InvokeDeserializeDynamicImpl(void* ptr, const std::type_info& typeInfo, Archive* archive);
     IFRIT_CORE_API void InvokePolymorphicConstructImpl(void*& ptr, u64 typeInfoHash);
-
+    IFRIT_CORE_API void ReportCorruptedArchive(const String& info);
     namespace Internal
     {
         // Type Traits
@@ -62,9 +65,35 @@ namespace Ifrit::Reflection
             using ElementType = T;
         };
 
+        template <typename T> struct TTraitIsGenericVector : std::false_type
+        {
+            using ElementType = T;
+        };
+
+        // Specialize for each specific vector type
+        template <typename T> struct TTraitIsGenericVector<CoreVec2<T>> : std::true_type
+        {
+            using ElementType = T;
+        };
+
+        template <typename T> struct TTraitIsGenericVector<CoreVec3<T>> : std::true_type
+        {
+            using ElementType = T;
+        };
+
+        template <typename T> struct TTraitIsGenericVector<CoreVec4<T>> : std::true_type
+        {
+            using ElementType = T;
+        };
+
         template <typename T>
-        concept IConceptIsTriviallySerializable = requires(
-            T t) { requires(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, String>); };
+        concept IConceptIsArthmeticVector = TTraitIsGenericVector<T>::value;
+
+        template <typename T>
+        concept IConceptIsTriviallySerializable = requires(T t) {
+            requires(std::is_integral_v<T> || std::is_floating_point_v<T>
+                || std::is_same_v<std::remove_cvref_t<T>, String> || IConceptIsArthmeticVector<T>);
+        };
 
         template <typename T, typename = void> struct TTraitIsSerializable : std::false_type
         {
@@ -109,6 +138,15 @@ namespace Ifrit::Reflection
             && IConceptSerializable<typename TTraitIsMap<T>::ValueType>;
 
         template <typename T>
+        concept IConceptCustomSerializableInternal = requires(std::remove_cvref_t<T> t) {
+            { t.DoSerialize(std::declval<Archive*>()) } -> std::same_as<void>;
+            { t.DoDeserialize(std::declval<Archive*>()) } -> std::same_as<void>;
+        };
+
+        template <typename T>
+        concept IConceptCustomSerializable = IConceptCustomSerializableInternal<T>;
+
+        template <typename T>
         concept IConceptIsVector = TTraitIsVector<T>::value;
 
         template <typename T>
@@ -123,13 +161,18 @@ namespace Ifrit::Reflection
         template <typename T>
         concept IConceptIsPolymorphic = std::is_polymorphic_v<T>;
 
+        template <typename T>
+        concept IConceptIsEnumClass = std::is_enum_v<T> && !std::is_convertible_v<T, std::underlying_type_t<T>>;
+
         // Tag types for dispatch
         enum class ESpecializationTag : u8
         {
             Vector,
             Map,
             UniquePtr,
+            EnumClass,
             Trivial,
+            Custom,
             Dynamic
         };
 
@@ -147,8 +190,12 @@ namespace Ifrit::Reflection
                 return TSpecializationTag<ESpecializationTag::Map>{};
             else if constexpr (IConceptIsUniquePtr<T>)
                 return TSpecializationTag<ESpecializationTag::UniquePtr>{};
+            else if constexpr (IConceptIsEnumClass<T>)
+                return TSpecializationTag<ESpecializationTag::EnumClass>{};
             else if constexpr (IConceptIsTriviallySerializable<T>)
                 return TSpecializationTag<ESpecializationTag::Trivial>{};
+            else if constexpr (IConceptCustomSerializable<T>)
+                return TSpecializationTag<ESpecializationTag::Custom>{};
             else
                 return TSpecializationTag<ESpecializationTag::Dynamic>{};
         }
@@ -166,6 +213,7 @@ namespace Ifrit::Reflection
             constexpr static const char* kUniquePtrValid    = "__ifrit_unique_ptr_valid";
             constexpr static const char* kUniquePtrTypePoly = "__ifrit_unique_ptr_polymorphic";
             constexpr static const char* kUniquePtrTypeHash = "__ifrit_unique_ptr_type_hash";
+            constexpr static const char* kEnumClassValue    = "__ifrit_enum_class_value";
         };
 
         // Serializer
@@ -233,6 +281,15 @@ namespace Ifrit::Reflection
         }
 
         template <typename T>
+        void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::EnumClass>)
+        {
+            archive->BeginObject(FSerializerReservedKeys::kEnumClassValue);
+            String enumName = GetEnumName(obj);
+            archive->Serialize(enumName);
+            archive->EndObject();
+        }
+
+        template <typename T>
         void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Trivial>)
         {
             archive->Serialize(obj);
@@ -242,6 +299,12 @@ namespace Ifrit::Reflection
         void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Dynamic>)
         {
             InvokeSerializeDynamicImpl(&obj, typeid(*(&obj)), archive);
+        }
+
+        template <typename T>
+        void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Custom>)
+        {
+            obj.DoSerialize(archive);
         }
 
         // Deserializer
@@ -338,7 +401,14 @@ namespace Ifrit::Reflection
                     archive->BeginObject(FSerializerReservedKeys::kUniquePtrValue);
                     if (!poly)
                     {
-                        obj = std::make_unique<ElementType>();
+                        if constexpr (std::is_default_constructible_v<ElementType>)
+                        {
+                            obj = std::make_unique<ElementType>();
+                        }
+                        else
+                        {
+                            ReportCorruptedArchive("Cannot deserialize unique_ptr of non-default constructible type");
+                        }
                     }
                     else
                     {
@@ -362,9 +432,32 @@ namespace Ifrit::Reflection
         }
 
         template <typename T>
+        void DeserializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::EnumClass>)
+        {
+            if (archive->HasObject(FSerializerReservedKeys::kEnumClassValue))
+            {
+                archive->BeginObject(FSerializerReservedKeys::kEnumClassValue);
+                String enumName;
+                archive->Serialize(enumName);
+                archive->EndObject();
+                obj = GetEnumFromName<T>(enumName);
+            }
+            else
+            {
+                IF_LOG_CRITICAL("Serializer", "Missing enum class value during deserialization");
+            }
+        }
+
+        template <typename T>
         void DeserializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Trivial>)
         {
             archive->Serialize(obj);
+        }
+
+        template <typename T>
+        void DeserializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::Custom>)
+        {
+            obj.DoDeserialize(archive);
         }
 
         template <typename T>

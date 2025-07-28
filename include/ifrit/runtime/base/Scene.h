@@ -23,19 +23,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/runtime/util/TimingRecorder.h"
 #include "ifrit/runtime/scene/FrameCollector.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
     class Scene;
     using SceneNodeId = u32;
 
-    class IFRIT_APIDECL SceneNode
+    class IFRIT_APIDECL IF_CLASS() SceneNode
     {
+    public:
+        IF_PROPERTY()
+        Vec<SceneNodeId> mChildren;
+
+        IF_PROPERTY()
+        Vec<GameObjectReference> mGameObjectRefs;
+
     protected:
-        Scene*                   m_Parent;
-        Vec<SceneNodeId>         m_Children;
-        Vec<GameObject*>         m_GameObjects;
-        Vec<GameObjectReference> m_GameObjectRefs;
+        Scene*           m_Parent;
+        Vec<GameObject*> m_GameObjects;
 
     public:
         SceneNode();
@@ -55,20 +61,29 @@ namespace Ifrit::Runtime
         void                    OnComponentAwake();
         void                    OnUpdate();
         void                    OnFixedUpdate();
-
-        IFRIT_STRUCT_SERIALIZE(m_Children, m_GameObjectRefs);
     };
 
-    class IFRIT_APIDECL Scene : public IComponentManagerKeeper
+    class IFRIT_APIDECL IF_CLASS() Scene : public IComponentManagerKeeper
     {
+    public:
+        // Note:This dtor should be called in order
+
+        IF_PROPERTY()
+        Owner<ComponentManager> mComponentManager;
+
+        IF_PROPERTY()
+        Owner<GameObjectManager> mGameObjectManager;
+
+        IF_PROPERTY()
+        Vec<Owner<SceneNode>> mSceneNodes;
+
+        IF_PROPERTY()
+        Owner<SceneNode> mRoot;
+
     protected:
-        Owner<ComponentManager>  m_ComponentManager;  // This dtor should be called in order
-        Owner<GameObjectManager> m_GameObjectManager; // This dtor should be called in order
-        Vec<Owner<SceneNode>>    m_SceneNodes;        // This dtor should be called in order
-        Owner<SceneNode>         m_Root;
-        Owner<PerFrameData>      m_PerFrameData;
-        bool                     m_IsAwake       = false;
-        u64                      m_CurFixedFrame = 0;
+        Owner<PerFrameData> m_PerFrameData;
+        bool                m_IsAwake       = false;
+        u64                 m_CurFixedFrame = 0;
 
     public:
         Scene();
@@ -98,8 +113,6 @@ namespace Ifrit::Runtime
                           Fn<bool(SceneNode*)> fnNode, Fn<void(GameObject*)> fnObject, Fn<void()> fnOnPush, Fn<void()> fnOnPop);
 
         String Serialize() const;
-
-        IFRIT_STRUCT_SERIALIZE(m_ComponentManager, m_GameObjectManager, m_SceneNodes, m_Root);
     };
 
 } // namespace Ifrit::Runtime

@@ -235,6 +235,7 @@ namespace Ifrit::Reflection
     void JSONArchive::Serialize(f32& value) { JSONArchiveHelper::DoSerialize(PrivateData, GetState(), value); }
     void JSONArchive::Serialize(f64& value) { JSONArchiveHelper::DoSerialize(PrivateData, GetState(), value); }
     void JSONArchive::Serialize(String& value) { JSONArchiveHelper::DoSerialize(PrivateData, GetState(), value); }
+    void JSONArchive::Serialize(bool& value) { JSONArchiveHelper::DoSerialize(PrivateData, GetState(), value); }
 
     bool JSONArchive::HasObject(const String& name) { return JSONArchiveHelper::HasObjectInJson(PrivateData, name); }
 

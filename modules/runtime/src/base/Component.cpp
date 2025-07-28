@@ -39,7 +39,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL Component::Component(GameObject* parent)
     {
-        m_id.m_GUID         = GUID::Generate();
+        mGuid               = GUID::Generate();
         m_ParentRef         = parent->GetManagerId();
         m_GameObjectManager = parent->m_GameObjectManager;
     }
@@ -51,11 +51,11 @@ namespace Ifrit::Runtime
         AddComponent<Transform>();
     }
 
-    IFRIT_APIDECL GameObject::GameObject() { m_Identifier.m_GUID = GUID::Generate(); }
+    IFRIT_APIDECL GameObject::GameObject() { mGuid = GUID::Generate(); }
 
     IFRIT_APIDECL GameObject::~GameObject()
     {
-        for (auto& [typeHash, index] : m_ComponentsHashed)
+        for (auto& [typeHash, index] : mComponentsHashed)
         {
             auto component = m_ComponentManager->GetComponentFromReference<Component>({ typeHash, index });
             if (component)
@@ -68,8 +68,8 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void Component::SetEnable(bool enable)
     {
-        bool last   = m_isEnabled;
-        m_isEnabled = enable;
+        bool last = mEnabled;
+        mEnabled  = enable;
         if (!last && enable)
         {
             m_shouldInvokeStart = true;
@@ -109,7 +109,7 @@ namespace Ifrit::Runtime
         if (!m_PropertyRegistered)
         {
             m_PropertyRegistered = true;
-            AddProperty<bool, EPropertyEditorType::Select>("Enable", m_isEnabled);
+            AddProperty<bool, EPropertyEditorType::Select>("Enable", mEnabled);
             SetupProperties();
         }
         auto& auxHandles = GetPropertyEditorAuxHandles();
@@ -132,21 +132,20 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void ComponentManager::RequestRemove(Component* component)
     {
 
-        auto  meta                                    = component->GetMetaData();
-        auto  typeHash                                = m_IdToTypeHash[meta.m_ManagerIndex];
-        auto& tailCom                                 = m_ComponentArray[typeHash].back();
-        tailCom->m_id.m_ArrayIndex                    = meta.m_ArrayIndex;
-        m_ComponentArray[typeHash][meta.m_ArrayIndex] = std::move(tailCom);
-        m_ComponentArray[typeHash].pop_back();
+        auto  typeHash                                        = mIdToTypeHash[component->GetManagedIndex()];
+        auto& tailCom                                         = mComponentArray[typeHash].back();
+        tailCom->mArrayIndex                                  = component->GetArrayIndex();
+        mComponentArray[typeHash][component->GetArrayIndex()] = std::move(tailCom);
+        mComponentArray[typeHash].pop_back();
         // Release id
-        m_AllocatedComponents--;
+        mAllocatedComponents--;
     }
 
     IFRIT_APIDECL u32 ComponentManager::AllocateId()
     {
         if (m_FreeIdQueue.empty())
         {
-            return m_AllocatedComponents++;
+            return mAllocatedComponents++;
         }
         else
         {
@@ -158,10 +157,10 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void ComponentManager::SetComponentId(Component* component, u32 arrayPos, ComponentTypeHash typeHash)
     {
-        auto id                        = AllocateId();
-        component->m_id.m_ArrayIndex   = arrayPos;
-        component->m_id.m_ManagerIndex = id;
-        m_IdToTypeHash[id]             = typeHash;
+        auto id                  = AllocateId();
+        component->mArrayIndex   = arrayPos;
+        component->mManagedIndex = id;
+        mIdToTypeHash[id]        = typeHash;
     }
 
     // GameObjectManager
@@ -169,7 +168,7 @@ namespace Ifrit::Runtime
     {
         if (m_FreeIdQueue.empty())
         {
-            return m_AllocatedObjects++;
+            return mAllocatedObjects++;
         }
         else
         {
@@ -192,18 +191,18 @@ namespace Ifrit::Runtime
         gameObject->SetName(name);
         gameObject->SetManagerId(id);
         m_GameObjectUUIDToIndex[gameObject->GetUUID()] = id;
-        m_GameObjects.push_back(std::move(gameObject));
+        mGameObjects.push_back(std::move(gameObject));
         return id;
     }
 
     IFRIT_APIDECL GameObject* GameObjectManager::GetGameObject(GameObjectReference ref)
     {
-        if (ref >= m_GameObjects.size())
+        if (ref >= mGameObjects.size())
         {
             IF_LOG_CRITICAL("GameObjectManager", "Invalid GameObject reference: {}", ref);
             return nullptr;
         }
-        return m_GameObjects[ref].get();
+        return mGameObjects[ref].get();
     }
 
 } // namespace Ifrit::Runtime

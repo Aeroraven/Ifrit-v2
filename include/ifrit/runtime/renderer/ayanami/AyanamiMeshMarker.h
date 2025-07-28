@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Runtime::Ayanami
 {
     // This holds some properties for the renderer
-    class IFRIT_APIDECL AyanamiMeshMarker : public Component
+    class IFRIT_APIDECL IF_CLASS() AyanamiMeshMarker : public Component
     {
     private:
         u32 m_PlaceHolder;
@@ -34,7 +34,7 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiMeshMarker(GameObject* owner) : Component(owner) {}
         virtual ~AyanamiMeshMarker() = default;
 
-        inline void   SetupProperties() override {}
+        inline void SetupProperties() override {}
 
     public:
         IF_FORCEINLINE u32  GetTrivialMeshCardIndex() const { return m_TrivialMeshCardIndex; }

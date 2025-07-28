@@ -1,5 +1,5 @@
 #pragma once
-#include "gcem.hpp"
+#include "gcem/include/gcem.hpp"
 #include "ifrit/core/base/IfritBase.h"
 #include <array>
 

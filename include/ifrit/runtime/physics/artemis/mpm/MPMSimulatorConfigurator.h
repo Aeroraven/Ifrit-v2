@@ -9,7 +9,7 @@ namespace Ifrit::Runtime::Artemis
 {
 
     struct MPMSimulatorConfiguratorPrivateData;
-    class IFRIT_RUNTIME_API MPMSimulatorConfigurator : public Component
+    class IFRIT_RUNTIME_API IF_CLASS() MPMSimulatorConfigurator : public Component
     {
     private:
         u32                                  m_PlaceHolder;
@@ -20,10 +20,10 @@ namespace Ifrit::Runtime::Artemis
         MPMSimulatorConfigurator(GameObject* owner);
         virtual ~MPMSimulatorConfigurator();
 
-        void          SetupProperties() override;
+        void SetupProperties() override;
 
-        void          SetActiveSimulator(MPMSimulator* sim);
-        void          OnUpdate() override;
+        void SetActiveSimulator(MPMSimulator* sim);
+        void OnUpdate() override;
 
         IFRIT_COMPONENT_SERIALIZE(m_PlaceHolder);
     };

@@ -3,12 +3,14 @@
 #include <string>
 #include "ifrit/core/reflection/SerializeHelper.h"
 #include <map>
+#include "misc.reflection.generated.h"
 
 using namespace Ifrit::Reflection;
 
 struct Cell
 {
     std::string av = "meo";
+    bool        aa = true;
 };
 
 class Cat
@@ -29,19 +31,32 @@ public:
     int fww = 1919810;
 };
 
+enum class DogBreed
+{
+    Labrador,
+    Beagle,
+    Bulldog,
+    Poodle
+};
+
 class Dog
 {
 public:
+    DogBreed                     breed = DogBreed::Labrador;
+    Ifrit::GUID                  id;
     std::unique_ptr<Cat>         v  = std::make_unique<Tabby>();
     float                        q  = 1919810;
     std::unique_ptr<Cat>         nk = std::make_unique<Cat>();
     std::unordered_map<int, Cat> fvck;
     std::string                  str = "Goodbye World";
     std::vector<Cat>             a   = { Cat(), Cat(), Cat() };
+    Vector4f                     a2  = Vector4f(1.0f, 2.0f, 3.0f, 4.0f);
 };
 
 int main()
 {
+    Ifrit::Reflection::RegisterReflectionTypes();
+
     Dog sv;
     sv.fvck[114]       = Cat();
     sv.fvck[1919]      = Cat();
@@ -49,6 +64,7 @@ int main()
     sv.fvck[1919].catd = 810;
     sv.q               = 11451519;
     sv.a[0].meow[2]    = 114514;
+    sv.id              = Ifrit::GUID::Generate();
 
     RegisterType<Cell>();
     RegisterType<Cat>();
@@ -56,6 +72,7 @@ int main()
     RegisterType<Tabby>();
 
     RegisterPropertyField<&Cell::av>("av");
+    RegisterPropertyField<&Cell::aa>("aa");
 
     RegisterPropertyField<&Cat::catv>("catv");
     RegisterPropertyField<&Cat::catd>("catd");
@@ -65,12 +82,15 @@ int main()
     RegisterPolymorphicRelation<Tabby, Cat>();
     RegisterPropertyField<&Tabby::fww>("fww");
 
-    RegisterPropertyField<&Dog::v>("v");
-    RegisterPropertyField<&Dog::q>("q");
-    RegisterPropertyField<&Dog::nk>("nk");
-    RegisterPropertyField<&Dog::fvck>("fvck");
-    // RegisterPropertyField<&Dog::str>("str");
-    RegisterPropertyField<&Dog::a>("a");
+    // RegisterPropertyField<&Dog::v>("v");
+    // RegisterPropertyField<&Dog::q>("q");
+    // RegisterPropertyField<&Dog::nk>("nk");
+    // RegisterPropertyField<&Dog::fvck>("fvck");
+    //// RegisterPropertyField<&Dog::str>("str");
+    // RegisterPropertyField<&Dog::a>("a");
+    RegisterPropertyField<&Dog::id>("id");
+    RegisterPropertyField<&Dog::a2>("a2");
+    RegisterPropertyField<&Dog::breed>("breed");
 
     auto  catInstance = ConstructObject(Ifrit::FMetaTypeInfo::Create<Cat>());
     auto  dogInstance = ReferenceObject(&sv);
