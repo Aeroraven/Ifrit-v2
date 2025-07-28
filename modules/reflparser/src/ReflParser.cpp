@@ -14,6 +14,8 @@
 #include <cctype>
 #include <cstring>
 
+#include "ifrit.internal/reflparse/ReflParseLog.h"
+#include "ifrit.internal/reflparse/PropertyParser.h"
 namespace Ifrit::ReflParser
 {
 
@@ -28,9 +30,10 @@ namespace Ifrit::ReflParser
 
     struct Record
     {
-        RecordType  type;
-        std::string symbolName;
-        std::string propertyAlias;
+        RecordType            type;
+        std::string           symbolName;
+        std::string           propertyAlias;
+        std::unique_ptr<Node> node;
     };
 
     struct ReflectionParserContext
@@ -46,12 +49,6 @@ namespace Ifrit::ReflParser
     {
         std::ifstream file(filename);
         return file.good();
-    }
-
-    template <typename... Args> void LogInfo(Args&&... args)
-    {
-        std::cout << "[Ifrit.ReflParser]: ";
-        (std::cout << ... << args) << std::endl;
     }
 
     std::string splitCamelCase(const std::string& input)
@@ -104,20 +101,34 @@ namespace Ifrit::ReflParser
         return hasAnnotation;
     }
 
-    bool hasIfritReflPropertyAnnotation(CXCursor cursor)
+    bool hasIfritReflPropertyAnnotation(CXCursor cursor, Node& node)
     {
 
+        struct NodeVisitorData
+        {
+            Node* node;
+            bool* found;
+        } clientData;
+
         bool hasAnnotation = false;
+        clientData.node    = &node;
+        clientData.found   = &hasAnnotation;
         clang_visitChildren(
             cursor,
             [](CXCursor child, CXCursor, CXClientData data) -> CXChildVisitResult {
-                bool* found = static_cast<bool*>(data);
+                NodeVisitorData* clientData = static_cast<NodeVisitorData*>(data);
+                bool*            found      = clientData->found;
+                Node*            node       = clientData->node;
                 if (clang_getCursorKind(child) == CXCursor_AnnotateAttr)
                 {
                     CXString    annotation    = clang_getCursorSpelling(child);
                     const char* annotationStr = clang_getCString(annotation);
-                    if (annotationStr && std::string(annotationStr).starts_with("ifrit.refl.property"))
+                    if (annotationStr && std::string(annotationStr).starts_with("ifrit.refl.property:"))
                     {
+                        std::string annotationContent =
+                            std::string(annotationStr).substr(std::string("ifrit.refl.property:").length());
+                        *node = PropParse::parse("(" + annotationContent + ")");
+
                         *found = true;
                         clang_disposeString(annotation);
                         return CXChildVisit_Break;
@@ -126,7 +137,7 @@ namespace Ifrit::ReflParser
                 }
                 return CXChildVisit_Continue;
             },
-            &hasAnnotation);
+            &clientData);
         return hasAnnotation;
     }
 
@@ -182,7 +193,8 @@ namespace Ifrit::ReflParser
                 ReflectionParserContext& ctx       = *params->second;
                 if (clang_getCursorKind(cursor) == CXCursor_FieldDecl)
                 {
-                    if (hasIfritReflPropertyAnnotation(cursor))
+                    std::unique_ptr<Node> node = std::make_unique<Node>();
+                    if (hasIfritReflPropertyAnnotation(cursor, *node))
                     {
                         CXString    fieldName         = clang_getCursorSpelling(cursor);
                         const char* fieldNameStr      = clang_getCString(fieldName);
@@ -190,8 +202,8 @@ namespace Ifrit::ReflParser
                         std::string humanReadableName = splitCamelCase(fieldNameString);
                         LogInfo("Field: ", className.c_str(), "::", fieldNameString.c_str(), "(",
                             humanReadableName.c_str(), ")");
-                        ctx.records.push_back(
-                            { RecordType::Property, className + "::" + fieldNameString, humanReadableName });
+                        ctx.records.push_back({ RecordType::Property, className + "::" + fieldNameString,
+                            humanReadableName, std::move(node) });
                         clang_disposeString(fieldName);
                     }
                 }
@@ -404,6 +416,8 @@ namespace Ifrit::ReflParser
             {
                 outputStream << "        RegisterPropertyField<&" << record.symbolName << ">(\"" << record.propertyAlias
                              << "\");\n";
+                if (record.node)
+                    PropParse::printNode(*record.node, outputStream, 4);
             }
             else if (record.type == RecordType::PolymorphicRelation)
             {

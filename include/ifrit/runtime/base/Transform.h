@@ -21,16 +21,16 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL IF_CLASS() Transform : public Component
     {
     public:
-        IF_PROPERTY()
+        IF_PROPERTY(Visible, UISelect)
         TransformUpdateDevice mUpdateDevice = TransformUpdateDevice::CPU;
 
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, UIText)
         Vector3f mPosition = Vector3f{ 0.0f, 0.0f, 0.0f };
 
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, UIText)
         Vector3f mRotation = Vector3f{ 0.0f, 0.0f, 0.0f };
 
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, UIText)
         Vector3f mScale = Vector3f{ 1.0f, 1.0f, 1.0f };
 
     private:
@@ -52,7 +52,7 @@ namespace Ifrit::Runtime
         } m_dirty;
 
     public:
-        Transform() {};
+        Transform(){};
         Transform(GameObject* parent) : Component(parent) {}
 
         void                         SetupProperties() override;

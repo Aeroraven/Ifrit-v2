@@ -39,19 +39,19 @@ namespace Ifrit::Runtime
         IF_PROPERTY(Editable, UISelect)
         CameraType mType = CameraType::Perspective;
 
-        IF_PROPERTY(Editable, UISlider(min = 0.1f, max = 180.0f))
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 180.0f))
         f32 mFov = 60.0f;
 
-        IF_PROPERTY(Editable, UISlider(min = 0.1f, max = 1000.0f))
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 1000.0f))
         f32 mOrthoSpaceSize = 1.0f;
 
-        IF_PROPERTY(Editable, UISlider(min = 0.1f, max = 10.0f))
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 10.0f))
         f32 mAspect = 1.0f;
 
-        IF_PROPERTY(Editable, UISlider(min = 0.1f, max = 1000.0f))
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 1000.0f))
         f32 mNear = 0.1f;
 
-        IF_PROPERTY(Editable, UISlider(min = 0.1f, max = 10000.0f))
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 10000.0f))
         f32 mFar = 1000.0f;
 
         IF_PROPERTY(Editable, UISelect)

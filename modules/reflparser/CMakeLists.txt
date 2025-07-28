@@ -68,6 +68,7 @@ add_executable(ifrit.reflparser ${SOURCES} ${HEADERS})
 target_include_directories(ifrit.reflparser PRIVATE 
     ${LIBCLANG_INCLUDE_DIR}
     "${CMAKE_SOURCE_DIR}/dependencies"
+    "${CMAKE_SOURCE_DIR}/include"
     src
 )
 

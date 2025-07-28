@@ -227,7 +227,7 @@ namespace Ifrit::Runtime
         IF_PROPERTY()
         u32 mArrayIndex;
 
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, UISelect)
         bool mEnabled = true;
 
     public:
@@ -275,7 +275,7 @@ namespace Ifrit::Runtime
         inline u32   GetManagedIndex() const { return mManagedIndex; }
 
     public:
-        Component() {}; // for deserializatioin
+        Component(){}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 

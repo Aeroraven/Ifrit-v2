@@ -43,30 +43,48 @@ namespace Ifrit::Reflection
         // Ifrit::Runtime::ComponentManager
         RegisterType<Ifrit::Runtime::ComponentManager>();
         RegisterPropertyField<&Ifrit::Runtime::ComponentManager::mComponentArray>("Component Array");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::ComponentManager::mIdToTypeHash>("Id To Type Hash");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::ComponentManager::mAllocatedComponents>("Allocated Components");
+        //    root: 
 
         // Ifrit::Runtime::GameObjectManager
         RegisterType<Ifrit::Runtime::GameObjectManager>();
         RegisterPropertyField<&Ifrit::Runtime::GameObjectManager::mGameObjects>("Game Objects");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObjectManager::mAllocatedObjects>("Allocated Objects");
+        //    root: 
 
         // Ifrit::Runtime::GameObject
         RegisterType<Ifrit::Runtime::GameObject>();
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mManagedIndex>("Managed Index");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mId>("Id");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mGuid>("Guid");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mName>("Name");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mComponentsHashed>("Components Hashed");
+        //    root: 
 
         // Ifrit::Runtime::Component
         RegisterType<Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Component::mId>("Id");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mName>("Name");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mGuid>("Guid");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mManagedIndex>("Managed Index");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mArrayIndex>("Array Index");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mEnabled>("Enabled");
+        //    root: 
+        //      Editable: 
+        //      UISelect: 
 
         // Ifrit::Runtime::ActorBehavior
         RegisterType<Ifrit::Runtime::ActorBehavior>();
@@ -76,20 +94,55 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::Runtime::Camera>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Camera, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Camera::mType>("Type");
+        //    root: 
+        //      Editable: 
+        //      UISelect: 
         RegisterPropertyField<&Ifrit::Runtime::Camera::mFov>("Fov");
+        //    root: 
+        //      Editable: 
+        //      UISlider: 
+        //        min: 0.1
+        //        max: 180
         RegisterPropertyField<&Ifrit::Runtime::Camera::mOrthoSpaceSize>("Ortho Space Size");
+        //    root: 
+        //      Editable: 
+        //      UISlider: 
+        //        min: 0.1
+        //        max: 1000
         RegisterPropertyField<&Ifrit::Runtime::Camera::mAspect>("Aspect");
+        //    root: 
+        //      Editable: 
+        //      UISlider: 
+        //        min: 0.1
+        //        max: 10
         RegisterPropertyField<&Ifrit::Runtime::Camera::mNear>("Near");
+        //    root: 
+        //      Editable: 
+        //      UISlider: 
+        //        min: 0.1
+        //        max: 1000
         RegisterPropertyField<&Ifrit::Runtime::Camera::mFar>("Far");
+        //    root: 
+        //      Editable: 
+        //      UISlider: 
+        //        min: 0.1
+        //        max: 10000
         RegisterPropertyField<&Ifrit::Runtime::Camera::mIsMainCamera>("Is Main Camera");
+        //    root: 
+        //      Editable: 
+        //      UISelect: 
 
         // Ifrit::Runtime::Light
         RegisterType<Ifrit::Runtime::Light>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Light, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Light::mType>("Type");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Light::AffectPbrSky>("ffect Pbr Sky");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Light::ShadowMap>("hadow Map");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Light::ShadowMapResolution>("hadow Map Resolution");
+        //    root: 
 
         // Ifrit::Runtime::MeshFilter
         RegisterType<Ifrit::Runtime::MeshFilter>();
@@ -102,27 +155,46 @@ namespace Ifrit::Reflection
         // Ifrit::Runtime::SceneNode
         RegisterType<Ifrit::Runtime::SceneNode>();
         RegisterPropertyField<&Ifrit::Runtime::SceneNode::mChildren>("Children");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::SceneNode::mGameObjectRefs>("Game Object Refs");
+        //    root: 
 
         // Ifrit::Runtime::Scene
         RegisterType<Ifrit::Runtime::Scene>();
         RegisterPropertyField<&Ifrit::Runtime::Scene::mComponentManager>("Component Manager");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Scene::mGameObjectManager>("Game Object Manager");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Scene::mSceneNodes>("Scene Nodes");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Scene::mRoot>("Root");
+        //    root: 
 
         // Ifrit::Runtime::Transform
         RegisterType<Ifrit::Runtime::Transform>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Transform, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Transform::mUpdateDevice>("Update Device");
+        //    root: 
+        //      Visible: 
+        //      UISelect: 
         RegisterPropertyField<&Ifrit::Runtime::Transform::mPosition>("Position");
+        //    root: 
+        //      Editable: 
+        //      UIText: 
         RegisterPropertyField<&Ifrit::Runtime::Transform::mRotation>("Rotation");
+        //    root: 
+        //      Editable: 
+        //      UIText: 
         RegisterPropertyField<&Ifrit::Runtime::Transform::mScale>("Scale");
+        //    root: 
+        //      Editable: 
+        //      UIText: 
 
         // Ifrit::Runtime::Artemis::MPMParticleContainer
         RegisterType<Ifrit::Runtime::Artemis::MPMParticleContainer>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Artemis::MPMParticleContainer, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleContainer::mMaxParticleCount>("Max Particle Count");
+        //    root: 
 
         // Ifrit::Runtime::Artemis::MPMParticleEmitter
         RegisterType<Ifrit::Runtime::Artemis::MPMParticleEmitter>();
@@ -140,15 +212,21 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::Runtime::Artemis::PBDCloth>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Artemis::PBDCloth, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Artemis::PBDCloth::mDefaultBendingStiffness>("Default Bending Stiffness");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Artemis::PBDCloth::mDefaultStretchingStiffness>("Default Stretching Stiffness");
+        //    root: 
 
         // Ifrit::Runtime::Artemis::GPURigidCollider
         RegisterType<Ifrit::Runtime::Artemis::GPURigidCollider>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Artemis::GPURigidCollider, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Artemis::GPURigidCollider::mCuboidSize>("Cuboid Size");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Artemis::GPURigidCollider::mRadius>("Radius");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Artemis::GPURigidCollider::mRigidMass>("Rigid Mass");
+        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Artemis::GPURigidCollider::mType>("Type");
+        //    root: 
 
         // Ifrit::Runtime::Ayanami::AyanamiMeshMarker
         RegisterType<Ifrit::Runtime::Ayanami::AyanamiMeshMarker>();
