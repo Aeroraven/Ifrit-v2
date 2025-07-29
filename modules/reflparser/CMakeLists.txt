@@ -59,7 +59,7 @@ file(GLOB_RECURSE HEADERS "src/*.h" "src/*.hpp")
 # DIFRIT_COMMON_DEPS_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dependencies
 add_definitions(-DIFRIT_COMMON_INCLUDE_DIR="${CMAKE_SOURCE_DIR}/include")
 add_definitions(-DIFRIT_COMMON_DEPS_INCLUDE_DIR="${CMAKE_SOURCE_DIR}/dependencies")
-add_definitions(-DIFRIT_GATHER_HEADS_OUT="${CMAKE_SOURCE_DIR}/modules/reflparser/auto_generated/Intermediate.h")
+add_definitions(-DIFRIT_GATHER_HEADS_OUT="${CMAKE_SOURCE_DIR}/modules/reflparser/auto_generated/Intermediate")
 add_definitions(-DIFRIT_META_OUT="${CMAKE_SOURCE_DIR}/include/ifrit.generated/reflparser.gen/ProjectReflMetaData.cpp")
 # Create executable
 add_executable(ifrit.reflparser ${SOURCES} ${HEADERS})

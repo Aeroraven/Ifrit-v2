@@ -1,9 +1,11 @@
 // Ifrit Reflection Parser - Refactored
 #include "clang-c/Index.h"
 #include <vector>
-
+#include <cstdlib> // For srand() and rand()
+#include <ctime>   // For time()
+#include <thread>  // For std::hash and thread ID
 #include <string>
-
+#include <ctime>
 #include <unordered_set>
 #include <iostream>
 #include <fstream>
@@ -255,11 +257,11 @@ namespace Ifrit::ReflParser
         }
     }
 
-    int RecursiveParse(const std::string& path, ReflectionParserContext& ctx)
+    int RecursiveParse(const std::string& path, ReflectionParserContext& ctx, const std::string& outHeadPath)
     {
 
         collectHeaders(path, ctx.listHeaders);
-        std::ofstream outHeads(IFRIT_GATHER_HEADS_OUT);
+        std::ofstream outHeads(outHeadPath);
         for (auto& p : ctx.listHeaders)
         {
 
@@ -417,7 +419,7 @@ namespace Ifrit::ReflParser
                 outputStream << "        RegisterPropertyField<&" << record.symbolName << ">(\"" << record.propertyAlias
                              << "\");\n";
                 if (record.node)
-                    PropParse::printNode(*record.node, outputStream, 4);
+                    PropParse::printNode(*record.node, record.symbolName, outputStream, "");
             }
             else if (record.type == RecordType::PolymorphicRelation)
             {
@@ -478,20 +480,38 @@ int main(int argc, char** argv)
             return 1;
         }
     }
+    std::string intermediateOutput = IFRIT_GATHER_HEADS_OUT;
+    std::time_t now                = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::srand(static_cast<unsigned>(std::hash<std::thread::id>{}(std::this_thread::get_id())));
+    std::string randomChar = std::to_string(rand() % 65536);
+    intermediateOutput     = intermediateOutput + "_" + randomChar + "_" + std::to_string(now) + ".h";
 
-    RecursiveParse(IFRIT_COMMON_INCLUDE_DIR "/ifrit/runtime", ctx);
+    LogInfo("Using intermediate output file: ", intermediateOutput);
+
+    RecursiveParse(IFRIT_COMMON_INCLUDE_DIR "/ifrit/runtime", ctx, intermediateOutput);
     for (const auto& path : inputPaths)
     {
 
-        RecursiveParse(path, ctx);
+        RecursiveParse(path, ctx, intermediateOutput);
     }
 
-    ParseFile(IFRIT_GATHER_HEADS_OUT, ctx);
+    ParseFile(intermediateOutput.c_str(), ctx);
     if (!std::filesystem::exists(std::filesystem::path(outputFile).parent_path()))
     {
         std::filesystem::create_directories(std::filesystem::path(outputFile).parent_path());
         std::cout << "Created output directory: " << std::filesystem::path(outputFile).parent_path() << std::endl;
     }
     GenerateCode(outputFile, ctx);
+
+    // delete the intermediate file
+    if (std::filesystem::exists(intermediateOutput))
+    {
+        std::filesystem::remove(intermediateOutput);
+        LogInfo("Deleted intermediate file: ", intermediateOutput);
+    }
+    else
+    {
+        LogInfo("Intermediate file does not exist, skipping deletion: ", intermediateOutput);
+    }
     return 0;
 }

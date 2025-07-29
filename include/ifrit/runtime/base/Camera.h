@@ -61,8 +61,6 @@ namespace Ifrit::Runtime
         using Component::Component;
         virtual ~Camera() = default;
 
-        void              SetupProperties() override;
-
         Matrix4x4f        GetWorldToCameraMatrix() const;
         Matrix4x4f        GetProjectionMatrix() const;
         Vector4f          GetFront() const;

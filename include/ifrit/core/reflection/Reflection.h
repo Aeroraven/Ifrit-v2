@@ -6,10 +6,16 @@
 #include "ifrit/core/typing/Traits.h"
 #include "ifrit/core/reflection/TypeMetaExtended.h"
 #include <ranges>
+#include <variant>
 #include "ifrit/core/reflection/RttiIdentifier.h"
+#include "ifrit/core/reflection/PropertyMeta.h"
+#include "ifrit/core/reflection/PropertyUIControl.h"
 
 namespace Ifrit::Reflection
 {
+    using ObjectImpl = Object;
+
+    using PropertyHintValueType = std::variant<i32, f64, String>;
 
     struct FPropertyWrapper
     {
@@ -19,8 +25,6 @@ namespace Ifrit::Reflection
         Object&                  Value() { return Prop; }
         const Object&            Value() const { return Prop; }
     };
-
-    using ObjectImpl   = Object;
     using PropertyImpl = FPropertyWrapper;
 
     struct FHashedString
@@ -46,10 +50,13 @@ namespace Ifrit::Reflection
 
     struct FPropertyField
     {
-        String                      Name;
-        Fn<ObjectImpl(ObjectImpl&)> Accessor;
+        String                                 Name;
+        Fn<ObjectImpl(ObjectImpl&)>            Accessor;
+        Fn<void(ObjectImpl&)>                  UIHandle;
+        HashMap<String, PropertyHintValueType> Hints;
+        PropertyMetadata                       Metadata;
 
-        FPropertyWrapper            GetProperty(ObjectImpl& obj) const { return FPropertyWrapper{ Accessor(obj) }; }
+        FPropertyWrapper GetProperty(ObjectImpl& obj) const { return FPropertyWrapper{ Accessor(obj) }; }
     };
 
     struct FPropertyKVPair
@@ -131,6 +138,25 @@ namespace Ifrit::Reflection
         }
     };
 
+    // Internal API
+    IFRIT_CORE_API void Internal_RegisterType(const FReflTypeMetaInfo& typeInfo, std::type_info const& typeInfoStd);
+    IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Construct(u64 typeHash);
+    IFRIT_CORE_API void                    Internal_RegisterPropertyField(const FReflTypeMetaInfo& typeInfo,
+                           const FReflPropertyMetaInfo& propInfo, const String& propertyName, Fn<ObjectImpl(ObjectImpl&)> accessor,
+                           Fn<void(ObjectImpl&)> uihandle);
+    IFRIT_CORE_API ObjectImpl              Internal_GetProperty(TReflObject<ObjectImpl>& obj, u64 propertyHash);
+    IFRIT_CORE_API HashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj);
+    IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Reference(void* target, std::type_info const& typeInfo);
+    IFRIT_CORE_API u64                     Internal_GetTypeHashFromTypeInfoHash(u64 typeInfoHash);
+    IFRIT_CORE_API void                    Internal_RegisterPolymorphic(u64 baseTypeHash, u64 derivedTypeHash);
+    IFRIT_CORE_API bool Internal_TypeOnInheritanceChain(u64 baseTypeHashToSearch, u64 derivedTypeHash);
+    IFRIT_CORE_API void Internal_IgnoreNonVirtualInhertance();
+    IFRIT_CORE_API void Internal_PropertyAddHint(
+        u64 baseTypeHash, u64 propertyHash, const String& hintName, PropertyHintValueType value);
+    IFRIT_CORE_API const PropertyMetadata& Internal_GetPropertyMetadata(u64 baseTypeHash, u64 propertyHash);
+    IFRIT_CORE_API Vec<Fn<void()>> Internal_GetPropertyEditorHandles(TReflObject<ObjectImpl>& obj);
+    IFRIT_CORE_API u32             Internal_GetNumVisibleProperties(TReflObject<ObjectImpl>& obj);
+
     template <auto Member>
         requires IConceptIsMemberPointer<decltype(Member)>
     class TAutoMemberAccessor
@@ -143,26 +169,29 @@ namespace Ifrit::Reflection
 
         static Fn<ObjectImpl(ObjectImpl&)> GetMemberAccessor()
         {
-
             return [](ObjectImpl& classObj) -> ObjectImpl {
                 auto& obj = classObj.As<ClassType>();
                 return ObjectImpl::Create(std::ref(Get(obj)));
             };
         }
+        static Fn<void(ObjectImpl&)> GetUIHandle()
+        {
+            return [](ObjectImpl& prop) {
+                if constexpr (IConceptEditableType<MemberType> || std::is_enum_v<MemberType>)
+                {
+                    auto                    typeInfo = FReflTypeMetaInfo::Create<ClassType>();
+                    auto                    propInfo = FReflPropertyMetaInfo::Create<Member>();
+                    const PropertyMetadata& metadata = Internal_GetPropertyMetadata(typeInfo.Hash, propInfo.Hash);
+                    ProcessPropertyMetadata<MemberType>(metadata, prop);
+                }
+                else
+                {
+                    // IF_LOG_WARNING("Reflector", "UI Handle not available for non-editable type: {}",
+                    //     String(typeid(MemberType).name()));
+                }
+            };
+        }
     };
-
-    // Internal API
-    IFRIT_CORE_API void Internal_RegisterType(const FReflTypeMetaInfo& typeInfo, std::type_info const& typeInfoStd);
-    IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Construct(u64 typeHash);
-    IFRIT_CORE_API void                    Internal_RegisterPropertyField(const FReflTypeMetaInfo& typeInfo,
-                           const FReflPropertyMetaInfo& propInfo, const String& propertyName, Fn<ObjectImpl(ObjectImpl&)> accessor);
-    IFRIT_CORE_API ObjectImpl              Internal_GetProperty(TReflObject<ObjectImpl>& obj, u64 propertyHash);
-    IFRIT_CORE_API HashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj);
-    IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Reference(void* target, std::type_info const& typeInfo);
-    IFRIT_CORE_API u64                     Internal_GetTypeHashFromTypeInfoHash(u64 typeInfoHash);
-    IFRIT_CORE_API void                    Internal_RegisterPolymorphic(u64 baseTypeHash, u64 derivedTypeHash);
-    IFRIT_CORE_API bool               Internal_TypeOnInheritanceChain(u64 baseTypeHashToSearch, u64 derivedTypeHash);
-    IFRIT_CORE_API void               Internal_IgnoreNonVirtualInhertance();
 
     // Templates
     template <typename T> inline void RegisterType()
@@ -194,7 +223,8 @@ namespace Ifrit::Reflection
 
         auto typeInfo = FReflTypeMetaInfo::Create<typename Accessor::ClassType>();
         auto propInfo = FReflPropertyMetaInfo::Create<Member>();
-        Internal_RegisterPropertyField(typeInfo, propInfo, propertyName, Accessor::GetMemberAccessor());
+        Internal_RegisterPropertyField(
+            typeInfo, propInfo, propertyName, Accessor::GetMemberAccessor(), Accessor::GetUIHandle());
     }
     inline TReflObject<ObjectImpl> ConstructObject(FMetaTypeInfo typeMeta) { return Internal_Construct(typeMeta.Hash); }
     inline FPropertyWrapper        GetProperty(TReflObject<ObjectImpl>& obj, FMetaPropertyInfo propMeta)
@@ -212,4 +242,18 @@ namespace Ifrit::Reflection
     {
         return Internal_Reference(target, typeid(*target));
     }
+
+    template <auto Member> inline void RegisterPropertyHint(const String& hintName, PropertyHintValueType value)
+    {
+        using Accessor   = TAutoMemberAccessor<Member>;
+        u64 baseTypeHash = FReflTypeMetaInfo::Create<typename Accessor::ClassType>().Hash;
+        u64 propertyHash = FReflPropertyMetaInfo::Create<Member>().Hash;
+        Internal_PropertyAddHint(baseTypeHash, propertyHash, hintName, value);
+    }
+    inline Vec<Fn<void()>> GetPropertyEditorHandles(TReflObject<ObjectImpl>& obj)
+    {
+        return Internal_GetPropertyEditorHandles(obj);
+    }
+    inline u32 GetNumVisibleProperties(TReflObject<ObjectImpl>& obj) { return Internal_GetNumVisibleProperties(obj); }
+
 } // namespace Ifrit::Reflection

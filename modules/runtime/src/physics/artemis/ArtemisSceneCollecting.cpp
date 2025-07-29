@@ -6,8 +6,8 @@
 #include "ifrit/runtime/physics/artemis/rigid/GpuRigidCollider.h"
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit.internal/runtime/physics/artemis/InternalConst.h"
-
 #include "ifrit.shader.neo/Shared/Artemis/Rigid.Shared.h"
+#include <algorithm>
 
 namespace Ifrit::Runtime::Artemis
 {
@@ -40,10 +40,10 @@ namespace Ifrit::Runtime::Artemis
                 rhi->CreateBufferDevice("ArtemisColliderDataBufferRuntime", requiredBufferSize, bufferUsage, true);
         }
 
-        if ((physicsData->m_NumGpuColliders != numRigids || physicsData->m_GpuColliderDataBuffer == nullptr))
+        if ((physicsData->m_GpuColliderDataBuffer == nullptr))
         {
-            u32 requiredBufferSize =
-                std::max(1u, SizeCast<u32>(sizeof(Shader::Artemis::FRigidColliderEntry) * numRigids));
+            u32 requiredBufferSize = std::max(
+                1u, SizeCast<u32>(sizeof(Shader::Artemis::FRigidColliderEntry) * Internal::kArtemisMaxColliders));
             auto bufferUsage = RHI::RhiBufferUsage::RhiBufferUsage_SSBO | RHI::RhiBufferUsage::RhiBufferUsage_CopyDst;
             physicsData->m_GpuColliderDataBuffer =
                 rhi->CreateBufferDevice("ArtemisColliderDataBuffer", requiredBufferSize, bufferUsage, true);
@@ -69,14 +69,20 @@ namespace Ifrit::Runtime::Artemis
 
             if (rigidCollider->GetInternalRigidId() == ~0u)
             {
-                rigidCollider->SetInternalRigidId(physicsData->m_AllocatedRuntimeIds++);
+                rigidCollider->SetInternalRigidId((physicsData->m_AllocatedRuntimeIds++) + 5);
             }
             physicsData->m_ColliderData[i].m_RuntimeId = rigidCollider->GetInternalRigidId();
 
             rigidCollider->OnFrameCollecting();
         }
+        std::sort(physicsData->m_ColliderData.begin(), physicsData->m_ColliderData.end(),
+            [](const Shader::Artemis::FRigidColliderEntry& a, const Shader::Artemis::FRigidColliderEntry& b) {
+                return a.m_RuntimeId < b.m_RuntimeId;
+            });
+
         auto tq            = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Transfer);
         auto stagingBuffer = rhi->CreateStagedSingleBuffer(physicsData->m_GpuColliderDataBuffer.get());
+        // rhi->WaitDeviceIdle();
         tq->RunSyncCommand([&](const RHI::RhiCommandList* cmd) {
             if (physicsData->m_ColliderData.size())
             {
@@ -89,5 +95,6 @@ namespace Ifrit::Runtime::Artemis
                 }
             }
         });
+        // rhi->WaitDeviceIdle();
     }
 } // namespace Ifrit::Runtime::Artemis

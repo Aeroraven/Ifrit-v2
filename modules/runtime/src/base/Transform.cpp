@@ -9,18 +9,6 @@ namespace Ifrit::Runtime
 
     // Transform
 
-    IFRIT_APIDECL void Transform::SetupProperties()
-    {
-        AddEnumProperty<TransformUpdateDevice>("Device", mUpdateDevice,
-            { TransformUpdateDevice::CPU, TransformUpdateDevice::GPU }, [&]() { return false; });
-        AddProperty<Vector3f, EPropertyEditorType::Text>(
-            "Position", mPosition, [&]() { return mUpdateDevice == TransformUpdateDevice::CPU; });
-        AddProperty<Vector3f, EPropertyEditorType::Text>(
-            "Rotation", mRotation, [&]() { return mUpdateDevice == TransformUpdateDevice::CPU; });
-        AddProperty<Vector3f, EPropertyEditorType::Text>(
-            "Scale", mScale, [&]() { return mUpdateDevice == TransformUpdateDevice::CPU; });
-    }
-
     IFRIT_APIDECL Matrix4x4f Transform::GetModelToWorldMatrix() const
     {
         Matrix4x4f model = Identity<f32, 4>();

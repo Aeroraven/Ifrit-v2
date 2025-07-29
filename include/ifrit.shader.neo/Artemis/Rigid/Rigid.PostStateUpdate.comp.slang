@@ -36,7 +36,7 @@ namespace Rigid{
         }
 
         FRigidColliderEntry ColliderEntry = PushConst.m_ColliderEntries.Load(ThreadId.x);
-        FRigidColliderDynamicsData DynamicsData = PushConst.m_ColliderDynamics.Load(ThreadId.x);
+        FRigidColliderDynamicsData DynamicsData = PushConst.m_ColliderDynamics.Load(ColliderEntry.m_RuntimeId);
         
         DynamicsData.m_Position += DynamicsData.m_Displacement;
         
@@ -53,7 +53,7 @@ namespace Rigid{
         Displacement += Accel * PushConst.m_DeltaTime * PushConst.m_DeltaTime * 0.5f;   
 
         // q_prev<-q
-        DynamicsData.m_RotationLast = DynamicsData.m_Rotation;
+        //DynamicsData.m_RotationLast = DynamicsData.m_Rotation;
 
         // w<-w+h*inv(I)@(tau_ext-w.cross(I@w))
         FAngularValue TauExt = ToAngularValue(PushConst.m_ExtMoment);
@@ -77,11 +77,19 @@ namespace Rigid{
         NewQ = DynamicsData.m_Rotation + AngularVelocity * PushConst.m_DeltaTime;
 #endif
     
-        DynamicsData.m_Rotation = NewQ;
-        DynamicsData.m_AngularVelocity = AngularVelocity;
+        //DynamicsData.m_Rotation = NewQ;
+        //DynamicsData.m_AngularVelocity = AngularVelocity;
         DynamicsData.m_Displacement = Displacement;
 
-        PushConst.m_ColliderDynamics.Store(DynamicsData, ThreadId.x);
+        if(abs(DynamicsData.m_Position.x) < 0.01f &&
+        abs(DynamicsData.m_Position.y) < 0.01f)
+        {
+            DynamicsData.m_Position.xy = float2(1.0f, 1.0f);
+        }
+
+
+        
+        PushConst.m_ColliderDynamics.Store(DynamicsData, ColliderEntry.m_RuntimeId);
     }
 
 }}}

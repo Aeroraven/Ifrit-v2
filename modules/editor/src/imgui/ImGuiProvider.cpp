@@ -21,6 +21,7 @@
 
 #include "ifrit/runtime/base/ActorBehavior.h"
 #include "ifrit/core/hal/HalWindow.h"
+#include "ifrit/core/reflection/Reflection.h"
 
 namespace Ifrit::Editor
 {
@@ -140,7 +141,7 @@ namespace Ifrit::Editor
     static void RegisterEditorHandles(ImGuiProvider* provider)
     {
         // Aux
-        auto& handles           = Runtime::GetPropertyEditorAuxHandles();
+        auto& handles           = Reflection::GetPropertyUIAuxHandles();
         handles.m_OnPreRegister = []() {
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
@@ -148,70 +149,70 @@ namespace Ifrit::Editor
         handles.m_OnPostRegister = []() {};
 
         // Float32
-        auto& f32Handles            = Runtime::GetPropertyEditorHandle<f32>();
-        f32Handles.m_SliderCallback = [](const char* name, f32& value, f32 min, f32 max, f32 step,
+        auto& f32Handles            = Reflection::GetPropertyUIHandle<f32>();
+        f32Handles.mSliderCallback = [](const char* name, f32& value, f32 min, f32 max, 
                                           Fn<bool()> predicate) {
             RegisterSingleEditorHandle(name, predicate, [&]() {
                 ImGui::SliderFloat(
                     (String("##") + name).c_str(), &value, min, max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
             });
         };
-        f32Handles.m_TextCallback = [](const char* name, f32& value, Fn<bool()> predicate) {
+        f32Handles.mTextCallback = [](const char* name, f32& value, Fn<bool()> predicate) {
             RegisterSingleEditorHandle(name, predicate,
                 [&]() { ImGui::InputFloat((String("##") + name).c_str(), &value, 0.0f, 0.0f, "%.3f"); });
         };
 
         // Int32
-        auto& i32Handles            = Runtime::GetPropertyEditorHandle<i32>();
-        i32Handles.m_SliderCallback = [](const char* name, i32& value, i32 min, i32 max, i32 step,
+        auto& i32Handles            = Reflection::GetPropertyUIHandle<i32>();
+        i32Handles.mSliderCallback = [](const char* name, i32& value, i32 min, i32 max,
                                           Fn<bool()> predicate) {
             RegisterSingleEditorHandle(
                 name, predicate, [&]() { ImGui::SliderInt((String("##") + name).c_str(), &value, min, max); });
         };
 
-        i32Handles.m_TextCallback = [](const char* name, i32& value, Fn<bool()> predicate) {
+        i32Handles.mTextCallback = [](const char* name, i32& value, Fn<bool()> predicate) {
             RegisterSingleEditorHandle(
                 name, predicate, [&]() { ImGui::InputInt((String("##") + name).c_str(), &value); });
         };
 
         // Vector3f
-        auto& v3fHandles          = Runtime::GetPropertyEditorHandle<Vector3f>();
-        v3fHandles.m_TextCallback = [](const char* name, Vector3f& value, Fn<bool()> predicate) {
+        auto& v3fHandles          = Reflection::GetPropertyUIHandle<Vector3f>();
+        v3fHandles.mTextCallback = [](const char* name, Vector3f& value, Fn<bool()> predicate) {
             RegisterSingleEditorHandle(
                 name, predicate, [&]() { ImGui::InputFloat3((String("##") + name).c_str(), &value.x, "%.4f"); });
         };
 
         // Vector4f
-        auto& v4fHandles          = Runtime::GetPropertyEditorHandle<Vector4f>();
-        v4fHandles.m_TextCallback = [](const char* name, Vector4f& value, Fn<bool()> predicate) {
+        auto& v4fHandles          = Reflection::GetPropertyUIHandle<Vector4f>();
+        v4fHandles.mTextCallback = [](const char* name, Vector4f& value, Fn<bool()> predicate) {
             RegisterSingleEditorHandle(
                 name, predicate, [&]() { ImGui::InputFloat4((String("##") + name).c_str(), &value.x, "%.4f"); });
         };
 
-        v4fHandles.m_ColorCallback = [](const char* name, Vector4f& value, Fn<bool()> predicate) {
+        v4fHandles.mColorCallback = [](const char* name, Vector4f& value, Fn<bool()> predicate) {
             RegisterSingleEditorHandle(name, predicate,
                 [&]() { ImGui::ColorEdit4((String("##") + name).c_str(), &value.x, ImGuiColorEditFlags_NoInputs); });
         };
 
         // Int8
-        auto& i8Handles            = Runtime::GetPropertyEditorHandle<i8>();
-        i8Handles.m_SelectCallback = [](const char* name, i8& value, Vec<Pair<i8, String>> options,
+        auto& i8Handles            = Reflection::GetPropertyUIHandle<i8>();
+        i8Handles.mSelectCallback = [](const char* name, i8& value, Vec<Pair<i8, String>> options,
                                          Fn<bool()> predicate) {
             RegisterSingleEditorHandle(
                 name, predicate, [&]() { GeneralSelectableHandle<i8>((String("##") + name).c_str(), value, options); });
         };
 
         // UInt8
-        auto& u8Handles            = Runtime::GetPropertyEditorHandle<u8>();
-        u8Handles.m_SelectCallback = [](const char* name, u8& value, Vec<Pair<u8, String>> options,
+        auto& u8Handles           = Reflection::GetPropertyUIHandle<u8>();
+        u8Handles.mSelectCallback = [](const char* name, u8& value, Vec<Pair<u8, String>> options,
                                          Fn<bool()> predicate) {
             RegisterSingleEditorHandle(
                 name, predicate, [&]() { GeneralSelectableHandle<u8>((String("##") + name).c_str(), value, options); });
         };
 
         // Bool
-        auto& boolHandles            = Runtime::GetPropertyEditorHandle<bool>();
-        boolHandles.m_SelectCallback = [](const char* name, bool& value, Vec<Pair<bool, String>> options,
+        auto& boolHandles            = Reflection::GetPropertyUIHandle<bool>();
+        boolHandles.mSelectCallback = [](const char* name, bool& value, Vec<Pair<bool, String>> options,
                                            Fn<bool()> predicate) {
             RegisterSingleEditorHandle(name, predicate, [&]() {
                 auto Id = (String("##") + name).c_str();
@@ -536,7 +537,7 @@ namespace Ifrit::Editor
                     {
                         float availableWidth = ImGui::GetContentRegionAvail().x;
                         ImGui::PushID(component->GetGUID().ToString().c_str());
-                        auto maxRows   = component->GetNumProperties();
+                        auto maxRows   = component->GetNumVisibleProperties();
                         f32  rowHeight = ImGui::GetTextLineHeightWithSpacing();
                         f32  maxHeight = rowHeight * maxRows;
                         if (ImGui::BeginTable("##properties", 2,

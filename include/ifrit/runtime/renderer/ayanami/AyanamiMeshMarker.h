@@ -34,7 +34,6 @@ namespace Ifrit::Runtime::Ayanami
         AyanamiMeshMarker(GameObject* owner) : Component(owner) {}
         virtual ~AyanamiMeshMarker() = default;
 
-        inline void SetupProperties() override {}
 
     public:
         IF_FORCEINLINE u32  GetTrivialMeshCardIndex() const { return m_TrivialMeshCardIndex; }

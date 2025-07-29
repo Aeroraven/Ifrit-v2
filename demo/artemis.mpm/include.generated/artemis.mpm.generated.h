@@ -44,48 +44,32 @@ namespace Ifrit::Reflection
         // Ifrit::Runtime::ComponentManager
         RegisterType<Ifrit::Runtime::ComponentManager>();
         RegisterPropertyField<&Ifrit::Runtime::ComponentManager::mComponentArray>("Component Array");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::ComponentManager::mIdToTypeHash>("Id To Type Hash");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::ComponentManager::mAllocatedComponents>("Allocated Components");
-        //    root: 
 
         // Ifrit::Runtime::GameObjectManager
         RegisterType<Ifrit::Runtime::GameObjectManager>();
         RegisterPropertyField<&Ifrit::Runtime::GameObjectManager::mGameObjects>("Game Objects");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObjectManager::mAllocatedObjects>("Allocated Objects");
-        //    root: 
 
         // Ifrit::Runtime::GameObject
         RegisterType<Ifrit::Runtime::GameObject>();
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mManagedIndex>("Managed Index");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mId>("Id");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mGuid>("Guid");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mName>("Name");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::GameObject::mComponentsHashed>("Components Hashed");
-        //    root: 
 
         // Ifrit::Runtime::Component
         RegisterType<Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Component::mId>("Id");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mName>("Name");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mGuid>("Guid");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mManagedIndex>("Managed Index");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mArrayIndex>("Array Index");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Component::mEnabled>("Enabled");
-        //    root: 
-        //      Editable: 
-        //      UISelect: 
+        RegisterPropertyHint<&Ifrit::Runtime::Component::mEnabled>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Component::mEnabled>("UISelect", "");
 
         // Ifrit::Runtime::ActorBehavior
         RegisterType<Ifrit::Runtime::ActorBehavior>();
@@ -95,55 +79,39 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::Runtime::Camera>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Camera, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Camera::mType>("Type");
-        //    root: 
-        //      Editable: 
-        //      UISelect: 
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mType>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mType>("UISelect", "");
         RegisterPropertyField<&Ifrit::Runtime::Camera::mFov>("Fov");
-        //    root: 
-        //      Editable: 
-        //      UISlider: 
-        //        min: 0.1
-        //        max: 180
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mFov>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mFov>("UISlider.min", (double)0.1);
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mFov>("UISlider.max", (double)180);
         RegisterPropertyField<&Ifrit::Runtime::Camera::mOrthoSpaceSize>("Ortho Space Size");
-        //    root: 
-        //      Editable: 
-        //      UISlider: 
-        //        min: 0.1
-        //        max: 1000
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mOrthoSpaceSize>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mOrthoSpaceSize>("UISlider.min", (double)0.1);
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mOrthoSpaceSize>("UISlider.max", (double)1000);
         RegisterPropertyField<&Ifrit::Runtime::Camera::mAspect>("Aspect");
-        //    root: 
-        //      Editable: 
-        //      UISlider: 
-        //        min: 0.1
-        //        max: 10
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mAspect>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mAspect>("UISlider.min", (double)0.1);
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mAspect>("UISlider.max", (double)10);
         RegisterPropertyField<&Ifrit::Runtime::Camera::mNear>("Near");
-        //    root: 
-        //      Editable: 
-        //      UISlider: 
-        //        min: 0.1
-        //        max: 1000
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mNear>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mNear>("UISlider.min", (double)0.1);
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mNear>("UISlider.max", (double)1000);
         RegisterPropertyField<&Ifrit::Runtime::Camera::mFar>("Far");
-        //    root: 
-        //      Editable: 
-        //      UISlider: 
-        //        min: 0.1
-        //        max: 10000
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mFar>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mFar>("UISlider.min", (double)0.1);
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mFar>("UISlider.max", (double)10000);
         RegisterPropertyField<&Ifrit::Runtime::Camera::mIsMainCamera>("Is Main Camera");
-        //    root: 
-        //      Editable: 
-        //      UISelect: 
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mIsMainCamera>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Camera::mIsMainCamera>("UISelect", "");
 
         // Ifrit::Runtime::Light
         RegisterType<Ifrit::Runtime::Light>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Light, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Light::mType>("Type");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Light::AffectPbrSky>("ffect Pbr Sky");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Light::ShadowMap>("hadow Map");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Light::ShadowMapResolution>("hadow Map Resolution");
-        //    root: 
 
         // Ifrit::Runtime::MeshFilter
         RegisterType<Ifrit::Runtime::MeshFilter>();
@@ -156,54 +124,92 @@ namespace Ifrit::Reflection
         // Ifrit::Runtime::SceneNode
         RegisterType<Ifrit::Runtime::SceneNode>();
         RegisterPropertyField<&Ifrit::Runtime::SceneNode::mChildren>("Children");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::SceneNode::mGameObjectRefs>("Game Object Refs");
-        //    root: 
 
         // Ifrit::Runtime::Scene
         RegisterType<Ifrit::Runtime::Scene>();
         RegisterPropertyField<&Ifrit::Runtime::Scene::mComponentManager>("Component Manager");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Scene::mGameObjectManager>("Game Object Manager");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Scene::mSceneNodes>("Scene Nodes");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Scene::mRoot>("Root");
-        //    root: 
 
         // Ifrit::Runtime::Transform
         RegisterType<Ifrit::Runtime::Transform>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Transform, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Transform::mUpdateDevice>("Update Device");
-        //    root: 
-        //      Visible: 
-        //      UISelect: 
+        RegisterPropertyHint<&Ifrit::Runtime::Transform::mUpdateDevice>("Visible", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Transform::mUpdateDevice>("UISelect", "");
         RegisterPropertyField<&Ifrit::Runtime::Transform::mPosition>("Position");
-        //    root: 
-        //      Editable: 
-        //      UIText: 
+        RegisterPropertyHint<&Ifrit::Runtime::Transform::mPosition>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Transform::mPosition>("UIText", "");
         RegisterPropertyField<&Ifrit::Runtime::Transform::mRotation>("Rotation");
-        //    root: 
-        //      Editable: 
-        //      UIText: 
+        RegisterPropertyHint<&Ifrit::Runtime::Transform::mRotation>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Transform::mRotation>("UIText", "");
         RegisterPropertyField<&Ifrit::Runtime::Transform::mScale>("Scale");
-        //    root: 
-        //      Editable: 
-        //      UIText: 
+        RegisterPropertyHint<&Ifrit::Runtime::Transform::mScale>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Transform::mScale>("UIText", "");
 
         // Ifrit::Runtime::Artemis::MPMParticleContainer
         RegisterType<Ifrit::Runtime::Artemis::MPMParticleContainer>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Artemis::MPMParticleContainer, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleContainer::mMaxParticleCount>("Max Particle Count");
-        //    root: 
 
         // Ifrit::Runtime::Artemis::MPMParticleEmitter
         RegisterType<Ifrit::Runtime::Artemis::MPMParticleEmitter>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Artemis::MPMParticleEmitter, Ifrit::Runtime::Component>();
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaterialType>("Emit Material Type");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaterialType>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaterialType>("UISelect", "");
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitColor>("Emit Color");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitColor>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitColor>("UIColor", "");
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMinRange>("Emit Min Range");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMinRange>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMinRange>("UIText", "");
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaxRange>("Emit Max Range");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaxRange>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaxRange>("UIText", "");
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitInterval>("Emit Interval");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitInterval>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitInterval>("UISlider.min", (int)5);
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitInterval>("UISlider.max", (int)1000);
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("Particle Mass");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("UISlider.min", (double)0.001);
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("UISlider.max", (double)5);
 
         // Ifrit::Runtime::Artemis::MPMSimulatorConfigurator
         RegisterType<Ifrit::Runtime::Artemis::MPMSimulatorConfigurator>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Artemis::MPMSimulatorConfigurator, Ifrit::Runtime::Component>();
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mMpmSubsteps>("Mpm Substeps");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mMpmSubsteps>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mMpmSubsteps>("UISlider.min", (int)1);
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mMpmSubsteps>("UISlider.max", (int)10);
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmIterations>("Pbmpm Iterations");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmIterations>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmIterations>("UISlider.min", (int)1);
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmIterations>("UISlider.max", (int)100);
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmElasticityRatio>("Pbmpm Elasticity Ratio");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmElasticityRatio>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmElasticityRatio>("UISlider.min", (double)0);
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmElasticityRatio>("UISlider.max", (double)1);
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmElasticityRelax>("Pbmpm Elasticity Relax");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmElasticityRelax>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmElasticityRelax>("UISlider.min", (double)0);
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPbmpmElasticityRelax>("UISlider.max", (double)5);
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mGravity>("Gravity");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mGravity>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mGravity>("UIText", "");
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mClearParticles>("Clear Particles");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mClearParticles>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mClearParticles>("UISelect", "");
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPointSize>("Point Size");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPointSize>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPointSize>("UISlider.min", (double)0.1);
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mPointSize>("UISlider.max", (double)5);
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("Enable Rigid Coupling");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("UISelect", "");
 
         // Ifrit::Runtime::Ayanami::AyanamiMeshDF
         RegisterType<Ifrit::Runtime::Ayanami::AyanamiMeshDF>();
@@ -213,21 +219,23 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::Runtime::Artemis::PBDCloth>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Artemis::PBDCloth, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Artemis::PBDCloth::mDefaultBendingStiffness>("Default Bending Stiffness");
-        //    root: 
         RegisterPropertyField<&Ifrit::Runtime::Artemis::PBDCloth::mDefaultStretchingStiffness>("Default Stretching Stiffness");
-        //    root: 
 
         // Ifrit::Runtime::Artemis::GPURigidCollider
         RegisterType<Ifrit::Runtime::Artemis::GPURigidCollider>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Artemis::GPURigidCollider, Ifrit::Runtime::Component>();
         RegisterPropertyField<&Ifrit::Runtime::Artemis::GPURigidCollider::mCuboidSize>("Cuboid Size");
-        //    root: 
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::GPURigidCollider::mCuboidSize>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::GPURigidCollider::mCuboidSize>("UIText", "");
         RegisterPropertyField<&Ifrit::Runtime::Artemis::GPURigidCollider::mRadius>("Radius");
-        //    root: 
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::GPURigidCollider::mRadius>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::GPURigidCollider::mRadius>("UIText", "");
         RegisterPropertyField<&Ifrit::Runtime::Artemis::GPURigidCollider::mRigidMass>("Rigid Mass");
-        //    root: 
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::GPURigidCollider::mRigidMass>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::GPURigidCollider::mRigidMass>("UIText", "");
         RegisterPropertyField<&Ifrit::Runtime::Artemis::GPURigidCollider::mType>("Type");
-        //    root: 
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::GPURigidCollider::mType>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::GPURigidCollider::mType>("UISelect", "");
 
         // Ifrit::Runtime::Ayanami::AyanamiMeshMarker
         RegisterType<Ifrit::Runtime::Ayanami::AyanamiMeshMarker>();
@@ -237,6 +245,5 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::MPMTiming>();
         RegisterPolymorphicRelation<Ifrit::MPMTiming, Ifrit::Runtime::ActorBehavior>();
         RegisterPropertyField<&Ifrit::MPMTiming::mInvTimestep>("Inv Timestep");
-        //    root: 
     }
 }

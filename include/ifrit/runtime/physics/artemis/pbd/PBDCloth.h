@@ -85,8 +85,6 @@ namespace Ifrit::Runtime::Artemis
         PBDCloth(GameObject* parent) : Component(parent) { Initialize(); }
         virtual ~PBDCloth();
 
-        inline void  SetupProperties() override {}
-
         virtual void RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime) override;
 
         void         AddFixedParticles(Vec<u32> fixedParticles);

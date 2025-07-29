@@ -37,33 +37,34 @@ namespace Ifrit::Runtime::Internal
 
         const auto& ISTArtemis = kIntShaderTableArtemis;
 
-        // PBD
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothApplyCorrectionCS, "Artemis/PBD/PBDCloth.ApplyCorrection",
-            "ArtemisPBDClothApplyCorrectionCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothUpdateVelocityPostCS, "Artemis/PBD/PBDCloth.UpdateVelocityPost",
-            "ArtemisPBDClothUpdateVelocityPostCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothUpdateVelocityPreCS, "Artemis/PBD/PBDCloth.UpdateVelocityPre",
-            "ArtemisPBDClothUpdateVelocityPreCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothPredPositionGenCS, "Artemis/PBD/PBDCloth.PredPositionGen",
-            "ArtemisPBDClothPredPositionGenCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothDistanceConstraintProjectCS,
-            "Artemis/PBD/PBDCloth.DistanceConstraintProject", "ArtemisPBDClothDistanceConstraintProjectCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothBendingConstraintProjectCS, "Artemis/PBD/PBDCloth.BendingConstraintProject",
-            "ArtemisPBDClothBendingConstraintProjectCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDPredPositionGenCS, "Artemis/PBD/PBDCloth.PredPositionGen",
-            "ArtemisPBDClothPredPositionGenCS");
-        REG_COMPUTE_NEO(
-            ISTArtemis.PBDClothNormalUpdateCS, "Artemis/PBD/PBDCloth.NormalUpdate", "ArtemisPBDClothNormalUpdateCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothNormalRegularizeCS, "Artemis/PBD/PBDCloth.NormalRegularize",
-            "ArtemisPBDClothNormalRegularizeCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothGenerateSDFCollisionCS, "Artemis/PBD/PBDCloth.GenerateSDFCollision",
-            "ArtemisPBDClothGenerateSDFCollisionCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothCollisionConstraintProject,
-            "Artemis/PBD/PBDCloth.CollisionConstraintProject", "ArtemisPBDClothCollisionConstraintProjectCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothUpdateVelocityCollisionCS, "Artemis/PBD/PBDCloth.UpdateVelocityCollision",
-            "ArtemisPBDClothUpdateVelocityCollisionCS");
-        REG_COMPUTE_NEO(ISTArtemis.PBDClothVolumeConstraintProjectCS, "Artemis/PBD/PBDCloth.VolumeConstraintProject",
-            "ArtemisPBDClothVolumeConstraintProjectCS");
+        // // PBD
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothApplyCorrectionCS, "Artemis/PBD/PBDCloth.ApplyCorrection",
+        //     "ArtemisPBDClothApplyCorrectionCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothUpdateVelocityPostCS, "Artemis/PBD/PBDCloth.UpdateVelocityPost",
+        //     "ArtemisPBDClothUpdateVelocityPostCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothUpdateVelocityPreCS, "Artemis/PBD/PBDCloth.UpdateVelocityPre",
+        //     "ArtemisPBDClothUpdateVelocityPreCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothPredPositionGenCS, "Artemis/PBD/PBDCloth.PredPositionGen",
+        //     "ArtemisPBDClothPredPositionGenCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothDistanceConstraintProjectCS,
+        //     "Artemis/PBD/PBDCloth.DistanceConstraintProject", "ArtemisPBDClothDistanceConstraintProjectCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothBendingConstraintProjectCS,
+        // "Artemis/PBD/PBDCloth.BendingConstraintProject",
+        //     "ArtemisPBDClothBendingConstraintProjectCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDPredPositionGenCS, "Artemis/PBD/PBDCloth.PredPositionGen",
+        //     "ArtemisPBDClothPredPositionGenCS");
+        // REG_COMPUTE_NEO(
+        //     ISTArtemis.PBDClothNormalUpdateCS, "Artemis/PBD/PBDCloth.NormalUpdate", "ArtemisPBDClothNormalUpdateCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothNormalRegularizeCS, "Artemis/PBD/PBDCloth.NormalRegularize",
+        //     "ArtemisPBDClothNormalRegularizeCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothGenerateSDFCollisionCS, "Artemis/PBD/PBDCloth.GenerateSDFCollision",
+        //     "ArtemisPBDClothGenerateSDFCollisionCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothCollisionConstraintProject,
+        //     "Artemis/PBD/PBDCloth.CollisionConstraintProject", "ArtemisPBDClothCollisionConstraintProjectCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothUpdateVelocityCollisionCS, "Artemis/PBD/PBDCloth.UpdateVelocityCollision",
+        //     "ArtemisPBDClothUpdateVelocityCollisionCS");
+        // REG_COMPUTE_NEO(ISTArtemis.PBDClothVolumeConstraintProjectCS, "Artemis/PBD/PBDCloth.VolumeConstraintProject",
+        //     "ArtemisPBDClothVolumeConstraintProjectCS");
 
         // Particle Render
         REG_VERTEX_NEO(ISTArtemis.ParticleRender2dVS, "Artemis/ParticleRender2D", "ArtemisParticleRender2DVS");
@@ -73,21 +74,21 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTArtemis.ParticleIndDrawBufferPrepCS, "Artemis/ParticleIndDrawBufferPrep",
             "ArtemisParticleIndirectDrawPrepCS");
 
-        // APIC
-        REG_COMPUTE_NEO(ISTArtemis.APICFluidG2PCS, "Artemis/APIC/APICFluid.G2P", "ApicGridToParticleCS");
-        REG_COMPUTE_NEO(ISTArtemis.APICFluidGridResetCS, "Artemis/APIC/APICFluid.GridReset", "ApicGridResetCS");
-        REG_COMPUTE_NEO(ISTArtemis.APICFluidGridProjectionApplyCS, "Artemis/APIC/APICFluid.GridProjectionApply",
-            "ApicGridProjectionApplyCS");
-        REG_COMPUTE_NEO(ISTArtemis.APICFluidGridProjectionSolveCS, "Artemis/APIC/APICFluid.GridProjectionSolve",
-            "ApicGridProjectionSolveCS");
-        REG_COMPUTE_NEO(ISTArtemis.APICFluidGridProjectionSolveVelPrecomputeCS,
-            "Artemis/APIC/APICFluid.GridProjectionSolveVelPrecompute", "ApicGridProjectionSolveVelPrecomputeCS");
-        REG_COMPUTE_NEO(ISTArtemis.APICFluidP2GCS, "Artemis/APIC/APICFluid.P2G", "ApicParticleToGridCS");
-        REG_COMPUTE_NEO(ISTArtemis.APICFluidGridUpdateCS, "Artemis/APIC/APICFluid.GridUpdate", "ApicGridUpdateCS");
-        REG_COMPUTE_NEO(
-            ISTArtemis.APICFluidParticleInitCS, "Artemis/APIC/APICFluid.ParticleInit", "ApicParticleInitCS");
-        REG_COMPUTE_NEO(
-            ISTArtemis.APICFluidParticleUpdateCS, "Artemis/APIC/APICFluid.ParticleUpdate", "ApicParticleUpdateCS");
+        // // APIC
+        // REG_COMPUTE_NEO(ISTArtemis.APICFluidG2PCS, "Artemis/APIC/APICFluid.G2P", "ApicGridToParticleCS");
+        // REG_COMPUTE_NEO(ISTArtemis.APICFluidGridResetCS, "Artemis/APIC/APICFluid.GridReset", "ApicGridResetCS");
+        // REG_COMPUTE_NEO(ISTArtemis.APICFluidGridProjectionApplyCS, "Artemis/APIC/APICFluid.GridProjectionApply",
+        //     "ApicGridProjectionApplyCS");
+        // REG_COMPUTE_NEO(ISTArtemis.APICFluidGridProjectionSolveCS, "Artemis/APIC/APICFluid.GridProjectionSolve",
+        //     "ApicGridProjectionSolveCS");
+        // REG_COMPUTE_NEO(ISTArtemis.APICFluidGridProjectionSolveVelPrecomputeCS,
+        //     "Artemis/APIC/APICFluid.GridProjectionSolveVelPrecompute", "ApicGridProjectionSolveVelPrecomputeCS");
+        // REG_COMPUTE_NEO(ISTArtemis.APICFluidP2GCS, "Artemis/APIC/APICFluid.P2G", "ApicParticleToGridCS");
+        // REG_COMPUTE_NEO(ISTArtemis.APICFluidGridUpdateCS, "Artemis/APIC/APICFluid.GridUpdate", "ApicGridUpdateCS");
+        // REG_COMPUTE_NEO(
+        //     ISTArtemis.APICFluidParticleInitCS, "Artemis/APIC/APICFluid.ParticleInit", "ApicParticleInitCS");
+        // REG_COMPUTE_NEO(
+        //     ISTArtemis.APICFluidParticleUpdateCS, "Artemis/APIC/APICFluid.ParticleUpdate", "ApicParticleUpdateCS");
 
         // MPM
         REG_COMPUTE_NEO(ISTArtemis.MPMG2PCS, "Artemis/MPM/MPM.G2P", "MpmGridToParticleCS");

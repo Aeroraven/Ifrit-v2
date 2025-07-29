@@ -55,7 +55,6 @@ namespace Ifrit::Runtime
         Transform(){};
         Transform(GameObject* parent) : Component(parent) {}
 
-        void                         SetupProperties() override;
         void                         OnFrameCollecting();
 
         // getters

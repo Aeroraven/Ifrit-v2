@@ -4,15 +4,7 @@ namespace Ifrit::Runtime::Artemis
 {
     struct MPMSimulatorConfiguratorPrivateData
     {
-        MPMSimulator* m_ActiveSimulator      = nullptr;
-        i32           m_MpmSubsteps          = 3;
-        i32           m_PbMpmIterations      = 8;
-        f32           m_PbMpmElasticityRatio = 0.5f;
-        f32           m_PbMpmElasticityRelax = 1.5f;
-        Vector3f      m_Gravity              = Vector3f(0.0f, -1.0f, 0.0f);
-        bool          m_ClearParticles       = false;
-        f32           m_PointSize            = 1.0f;
-        bool          m_EnableRigidCoupling  = true;
+        MPMSimulator* m_ActiveSimulator = nullptr;
     };
 
     IFRIT_APIDECL MPMSimulatorConfigurator::MPMSimulatorConfigurator()
@@ -41,36 +33,23 @@ namespace Ifrit::Runtime::Artemis
         if (m_Data->m_ActiveSimulator)
         {
             auto activeCfg                                        = m_Data->m_ActiveSimulator->GetActiveConfig();
-            activeCfg.m_Substeps                                  = m_Data->m_MpmSubsteps;
-            activeCfg.m_PbMpmIterations                           = m_Data->m_PbMpmIterations;
-            activeCfg.m_PbMpmDefaultElasticityInterpolationFactor = m_Data->m_PbMpmElasticityRatio;
-            activeCfg.m_PbMpmDefaultElasticityRelaxationFactor    = m_Data->m_PbMpmElasticityRelax;
-            activeCfg.m_Gravity                                   = m_Data->m_Gravity;
-            activeCfg.m_EnableRigidCoupling                       = m_Data->m_EnableRigidCoupling;
+            activeCfg.m_Substeps                                  = mMpmSubsteps;
+            activeCfg.m_PbMpmIterations                           = mPbmpmIterations;
+            activeCfg.m_PbMpmDefaultElasticityInterpolationFactor = mPbmpmElasticityRatio;
+            activeCfg.m_PbMpmDefaultElasticityRelaxationFactor    = mPbmpmElasticityRelax;
+            activeCfg.m_Gravity                                   = mGravity;
+            activeCfg.m_EnableRigidCoupling                       = mEnableRigidCoupling;
             m_Data->m_ActiveSimulator->SetConfig(activeCfg);
-            m_Data->m_ActiveSimulator->SetDefaultSize(m_Data->m_PointSize);
+            m_Data->m_ActiveSimulator->SetDefaultSize(mPointSize);
         }
-        if (m_Data->m_ClearParticles)
+        if (mClearParticles)
         {
             if (m_Data->m_ActiveSimulator)
             {
                 m_Data->m_ActiveSimulator->RequestClearParticles();
             }
-            m_Data->m_ClearParticles = false; // Reset the flag after clearing
+            mClearParticles = false; // Reset the flag after clearing
         }
     }
 
-    IFRIT_APIDECL void MPMSimulatorConfigurator::SetupProperties()
-    {
-        AddProperty<bool, EPropertyEditorType::Select>("Rigid Coupling", m_Data->m_EnableRigidCoupling);
-        AddProperty<bool, EPropertyEditorType::Select>("Clear Particles", m_Data->m_ClearParticles);
-        AddProperty<f32, EPropertyEditorType::Range>("Render Size", m_Data->m_PointSize, 0.1f, 10.0f, 0.1f);
-        AddProperty<i32, EPropertyEditorType::Range>("MPM Substeps", m_Data->m_MpmSubsteps, 1, 50, 1);
-        AddProperty<i32, EPropertyEditorType::Range>("PBMPM Iters", m_Data->m_PbMpmIterations, 2, 100, 1);
-        AddProperty<f32, EPropertyEditorType::Range>(
-            "PBMPM Rigidity", m_Data->m_PbMpmElasticityRatio, 0.0f, 1.0f, 0.01f);
-        AddProperty<f32, EPropertyEditorType::Range>(
-            "PBMPM Elastic Rel.", m_Data->m_PbMpmElasticityRelax, 0.0f, 10.0f, 0.01f);
-        AddProperty<Vector3f, EPropertyEditorType::Text>("Gravity", m_Data->m_Gravity);
-    }
 } // namespace Ifrit::Runtime::Artemis

@@ -5,7 +5,7 @@
 
 namespace Ifrit::Runtime
 {
-    enum class EPropertyEditorType
+    /*enum class EPropertyEditorType
     {
         Range,
         Text,
@@ -29,12 +29,12 @@ namespace Ifrit::Runtime
     {
         Fn<void()> m_OnPreRegister  = nullptr;
         Fn<void()> m_OnPostRegister = nullptr;
-    };
+    };*/
 
-    template <typename T> IFRIT_RUNTIME_API PropertyEditorHandle<T>& GetPropertyEditorHandle();
-    IFRIT_RUNTIME_API PropertyAuxHandles&                            GetPropertyEditorAuxHandles();
+    // template <typename T> IFRIT_RUNTIME_API PropertyEditorHandle<T>& GetPropertyEditorHandle();
+    // IFRIT_RUNTIME_API PropertyAuxHandles&                            GetPropertyEditorAuxHandles();
 
-    class ComponentPropertyBase
+    /*class ComponentPropertyBase
     {
     protected:
         const char* m_Name;
@@ -150,6 +150,6 @@ namespace Ifrit::Runtime
         {
             m_EditorHandle = constraint.GetEditorHandle(name, m_Value);
         }
-    };
+    };*/
 
 } // namespace Ifrit::Runtime

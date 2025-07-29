@@ -26,10 +26,6 @@ namespace Ifrit::Runtime::Artemis
         MPMParticleContainer(GameObject* owner);
         virtual ~MPMParticleContainer();
 
-        void SetupProperties() override;
-
-        IFRIT_COMPONENT_SERIALIZE(m_attributes);
-
     private:
         MPMGpuParticleBufferCollection* GetDeviceData();
         bool                            GetIsDeviceDataReady() const;
@@ -39,5 +35,3 @@ namespace Ifrit::Runtime::Artemis
     };
 
 } // namespace Ifrit::Runtime::Artemis
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::Artemis::MPMParticleContainer)

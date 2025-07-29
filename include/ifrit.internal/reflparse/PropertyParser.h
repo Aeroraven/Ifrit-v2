@@ -158,33 +158,42 @@ namespace Ifrit::ReflParser::PropParse
         throw std::runtime_error("Invalid input format");
     }
 
-    void printNode(const Node& node, std::stringstream& stream, int indent = 0)
+    void printNode(const Node& node, const std::string& memberName, std::stringstream& stream,
+        const std::string& parentKey = "", int indent = 0)
     {
         std::string indentStr(indent, ' ');
-        LogInfo("//", indentStr, node.key, ": ");
-        stream << "        //" << indentStr << node.key << ": ";
+        std::string fullKey = parentKey.empty() ? node.key : parentKey + "." + node.key;
+        if (indent == 0)
+            fullKey = "";
+
+        // LogInfo for debugging
+
         if (std::holds_alternative<std::string>(node.value))
         {
-            LogInfo(std::get<std::string>(node.value));
-            stream << std::get<std::string>(node.value) << "\n";
+            LogInfo(fullKey, ":", std::get<std::string>(node.value));
+            stream << "        ";
+            stream << "RegisterPropertyHint<&" << memberName << ">(\"" << fullKey << "\", \""
+                   << std::get<std::string>(node.value) << "\");\n";
         }
         else if (std::holds_alternative<double>(node.value))
         {
-            LogInfo(std::get<double>(node.value));
-            stream << std::get<double>(node.value) << "\n";
+            LogInfo(fullKey, ":", std::get<double>(node.value));
+            stream << "        ";
+            stream << "RegisterPropertyHint<&" << memberName << ">(\"" << fullKey << "\", (double)"
+                   << std::get<double>(node.value) << ");\n";
         }
         else if (std::holds_alternative<int>(node.value))
         {
-            LogInfo(std::get<int>(node.value));
-            stream << std::get<int>(node.value) << "\n";
+            LogInfo(fullKey, ":", std::get<int>(node.value));
+            stream << "        ";
+            stream << "RegisterPropertyHint<&" << memberName << ">(\"" << fullKey << "\", (int)"
+                   << std::get<int>(node.value) << ");\n";
         }
         else if (std::holds_alternative<std::vector<Node>>(node.value))
         {
-            LogInfo("");
-            stream << "\n";
             for (const auto& child : std::get<std::vector<Node>>(node.value))
             {
-                printNode(child, stream, indent + 2);
+                printNode(child, memberName, stream, fullKey, indent + 2);
             }
         }
     }

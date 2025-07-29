@@ -497,18 +497,21 @@ namespace MPM{
         void AddVelocity(FSpatialIndex Index, FSpatialVector Velocity)
         {
             int EncodedIndex = EncodeSpatialIndex(Index);
+            if(EncodedIndex>128*128) return ;
             m_GridVelocity.AtomicAdd(EncodedIndex, Velocity);
         }
 
         void AddForce(FSpatialIndex Index, FSpatialVector Force)
         {
             int EncodedIndex = EncodeSpatialIndex(Index);
+            if(EncodedIndex>128*128) return ;
             m_GridForce.AtomicAdd(EncodedIndex, Force);
         }
 
         void AddMass(FSpatialIndex Index, FScalar Mass)
         {
             int EncodedIndex = EncodeSpatialIndex(Index);
+            if(EncodedIndex>128*128) return ;
             m_GridMass.AtomicAdd(EncodedIndex, Mass);
         }
 

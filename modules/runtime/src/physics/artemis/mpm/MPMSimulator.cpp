@@ -301,6 +301,7 @@ namespace Ifrit::Runtime::Artemis
         int      numTGX = Math::DivRoundUp(m_SceneData->m_NumGpuColliders, IfritShader::Artemis::Rigid::kRigidTGSizeX);
         Vector3i workGroup = Vector3i(numTGX, 1, 1);
 
+        // IF_LOG_DEBUG("MPMSimulator", "Numrigids: {}", pc.m_NumRigidBodies);
         Vec<String> extra;
         if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
         {
@@ -1213,8 +1214,8 @@ namespace Ifrit::Runtime::Artemis
         auto gridMassSz  = numGrids * MTypes::kFScalarSize;
         auto gridAttrSz  = SizeCast<u32>(sizeof(MPMSimulatorGridAttribute));
 
-        auto contactIndSz  = SizeCast<u32>(sizeof(u32) * 4);
-        auto contactSz     = SizeCast<u32>(sizeof(Shader::Artemis::FMPMRigidCouplingContactPair) * m_Config->m_MaxContacts);
+        auto contactIndSz = SizeCast<u32>(sizeof(u32) * 4);
+        auto contactSz = SizeCast<u32>(sizeof(Shader::Artemis::FMPMRigidCouplingContactPair) * m_Config->m_MaxContacts);
         auto boundaryIndSz = SizeCast<u32>(sizeof(u32) * 4);
         auto boundarySz =
             SizeCast<u32>(sizeof(Shader::Artemis::FMPMRigidBoundaryContactPair) * m_Config->m_MaxContacts);
@@ -1386,6 +1387,7 @@ namespace Ifrit::Runtime::Artemis
                         PbMpmRigidCollectCollisionPairs(builder);
                         PbMpmRigidCollectBoundaryContactPairs(builder);
                     }
+                    PbMpmRigidLoadTransform(builder);
                     for (auto j = 0u; j < m_Config->m_PbMpmIterations; ++j)
                     {
                         bool isLastIteration  = (j == m_Config->m_PbMpmIterations - 1);
@@ -1395,6 +1397,7 @@ namespace Ifrit::Runtime::Artemis
                         firstOrLastRun |= (isLastIteration) ? 2 : 0;
                         {
                             IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmIteration");
+
                             GridReset(builder, isFirstRun, isFirstIteration);
                             PbMpmResolveConstraints(builder, deltaTimePerSubstep);
                             if (m_ShouldIntegrateRigids)
@@ -1402,6 +1405,7 @@ namespace Ifrit::Runtime::Artemis
                                 PbMpmRigidContactConstraintResolve(builder);
                                 PbMpmRigidBoundaryConstraintResolve(builder);
                             }
+
                             ParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
                             if (isFirstIteration)
                             {

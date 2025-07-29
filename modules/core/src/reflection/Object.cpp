@@ -35,8 +35,10 @@ namespace Ifrit::Reflection
         {
             return true;
         }
+        // IF_LOG_DEBUG("Reflector", "Casting: {} -> {}", String(fromType.name()), String(toType.name()));
         auto internalFromHash = Internal_GetTypeHashFromTypeInfoHash(GetTypeIDHash(fromType));
         auto internalToHash   = Internal_GetTypeHashFromTypeInfoHash(GetTypeIDHash(toType));
+
         if (Internal_TypeOnInheritanceChain(internalToHash, internalFromHash))
         {
             return true;

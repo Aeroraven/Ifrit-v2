@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <atomic>
 #include <random>
 #include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/reflection/Reflection.h"
 using namespace Ifrit::Math;
 
 namespace Ifrit::Runtime
@@ -105,26 +106,27 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL void Component::CallPropertyEditorHandle()
     {
-        // iDebug("Num properties: {}", m_Property.size());
-        if (!m_PropertyRegistered)
-        {
-            m_PropertyRegistered = true;
-            AddProperty<bool, EPropertyEditorType::Select>("Enable", mEnabled);
-            SetupProperties();
-        }
-        auto& auxHandles = GetPropertyEditorAuxHandles();
-        for (auto& prop : m_Property)
+        auto& auxHandles = Reflection::GetPropertyUIAuxHandles();
+        auto  object     = Reflection::ReferenceObject(this);
+        auto  uiHandles  = Reflection::GetPropertyEditorHandles(object);
+        for (auto& handle : uiHandles)
         {
             if (auxHandles.m_OnPreRegister)
             {
                 auxHandles.m_OnPreRegister();
             }
-            prop.RegisterEditorHandle();
+            handle();
             if (auxHandles.m_OnPostRegister)
             {
                 auxHandles.m_OnPostRegister();
             }
         }
+    }
+
+    IFRIT_APIDECL u32 Component::GetNumVisibleProperties() const
+    {
+        auto object = Reflection::ReferenceObject(const_cast<Component*>(this));
+        return SizeCast<u32>(Reflection::GetNumVisibleProperties(object));
     }
 
     IFRIT_APIDECL      ComponentManager::ComponentManager() {}

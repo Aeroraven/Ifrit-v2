@@ -24,7 +24,6 @@ namespace Ifrit::Runtime::Artemis
         m_Data = nullptr;
     }
 
-    IFRIT_APIDECL void                            MPMParticleContainer::SetupProperties() {}
 
     IFRIT_APIDECL MPMGpuParticleBufferCollection* MPMParticleContainer::GetDeviceData()
     {
@@ -33,4 +32,4 @@ namespace Ifrit::Runtime::Artemis
     IFRIT_APIDECL bool MPMParticleContainer::GetIsDeviceDataReady() const { return m_IsDeviceDataReady; }
     IFRIT_APIDECL void MPMParticleContainer::SetIsDeviceDataReady(bool val) { m_IsDeviceDataReady = val; }
 
-} // namespace Ifrit::Runtime::Artemis
+} // namespace Ifrit::Runtime::Artemis

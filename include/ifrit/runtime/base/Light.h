@@ -49,8 +49,6 @@ namespace Ifrit::Runtime
         using Component::Component;
         virtual ~Light() = default;
 
-        inline void      SetupProperties() override {}
-
         // getters
 
         inline LightType GetType() const { return mType; }

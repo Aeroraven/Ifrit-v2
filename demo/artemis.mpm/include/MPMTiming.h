@@ -22,10 +22,6 @@ namespace Ifrit
         f32                   mTimestep = 1.0f / mInvTimestep;
 
     public:
-        void SetupProperties() override
-        {
-            AddProperty<f32, EPropertyEditorType::Range>("Time Interval", mInvTimestep, 60.0f, 2000.0f, 0.001f);
-        }
         void OnUpdate() override { sTimestep = 1.0f / mInvTimestep; }
     };
-} // namespace Ifrit
+} // namespace Ifrit

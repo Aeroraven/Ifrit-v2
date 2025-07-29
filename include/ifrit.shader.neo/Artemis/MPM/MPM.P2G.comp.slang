@@ -79,6 +79,8 @@ namespace MPM{
         bool IsFirstRun = (PushConst.m_IsFirstOrLastRun & 1) != 0;
         FScalar RcpGridSpacing = rcp(GridSpacing);
         FSpatialVector BaseMomentum = ParticleMass * ParticleVelocity;
+
+        
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)
             FSpatialIndex GridOffset = ToSpatialIndex(dx,dy,dz);
             FSpatialIndex GridLocIndex = CenterGrid + GridOffset;
@@ -104,7 +106,7 @@ namespace MPM{
             FSpatialVector ContribMomentumBase = ContribWeight * BaseMomentum;
             FSpatialVector ContribMomentumAffine = ContribMass * mul(ParticleC, G2PVector);
             FSpatialVector ContribMomentum = ContribMomentumBase + ContribMomentumAffine;
-
+            
 #ifdef IFSHADER_MPM_PBMPM
             if(IsFirstRun)
             {

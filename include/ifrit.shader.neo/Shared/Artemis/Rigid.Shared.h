@@ -24,6 +24,8 @@ namespace IfritShader
         float                                              m_ColliderRadius;
         float                                              m_RigidMass;
         float                                              m_Inertia2D;
+        float                                              m_Padding1;
+        float                                              m_Padding2;
     };
 
 #ifdef __cplusplus
@@ -32,4 +34,4 @@ namespace IfritShader
         }
     }
 }
-#endif
+#endif

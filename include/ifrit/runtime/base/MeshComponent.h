@@ -23,8 +23,6 @@ namespace Ifrit::Runtime
         MeshFilter(GameObject* owner) : Component(owner) { m_instance = MakeRef<MeshInstance>(); }
         virtual ~MeshFilter() = default;
 
-        inline void SetupProperties() override {}
-
         void        LoadMesh();
         inline void SetMesh(Ref<Mesh> p)
         {
@@ -64,11 +62,10 @@ namespace Ifrit::Runtime
         using Component::Component;
         virtual ~MeshRenderer() = default;
 
-        inline void          SetupProperties() override {}
         inline Ref<Material> GetMaterial() { return m_material; }
         inline void          SetMaterial(Ref<Material> p) { m_material = p; }
 
         IFRIT_COMPONENT_SERIALIZE_EMPTY();
     };
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

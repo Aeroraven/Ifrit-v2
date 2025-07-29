@@ -17,16 +17,16 @@ namespace Ifrit::Runtime::Artemis
     class IFRIT_RUNTIME_API IF_CLASS() GPURigidCollider : public Component
     {
     public:
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, UIText)
         Vector3f mCuboidSize = Vector3f(0.1f, 0.1f, 0.1f);
 
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, UIText)
         f32 mRadius = 1.0f;
 
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, UIText)
         f32 mRigidMass = 1.14514f;
 
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, UISelect)
         GPURigidColliderType mType = GPURigidColliderType::Sphere;
 
     private:
@@ -36,8 +36,6 @@ namespace Ifrit::Runtime::Artemis
     public:
         GPURigidCollider() {};
         GPURigidCollider(GameObject* parent) : Component(parent) {}
-
-        void                                SetupProperties() override;
 
         f32                                 GetRadius() const;
         f32                                 GetRigidMass() const;

@@ -234,50 +234,26 @@ namespace Ifrit::Runtime
         GameObjectReference        m_ParentRef;
         GameObjectManager*         m_GameObjectManager = nullptr;
 
-        Vec<ComponentPropertyBase> m_Property;
+        //Vec<ComponentPropertyBase> m_Property;
         bool                       m_PropertyRegistered = false;
         bool                       m_shouldInvokeStart  = true;
         bool                       m_shouldInvokeAwake  = true;
 
     private:
         friend class ComponentManager;
-
-    protected:
-        template <typename T, EPropertyEditorType E, typename... Args>
-        inline void AddProperty(const char* name, T& value, Args&&... args)
-        {
-            m_Property.push_back(
-                ComponentProperty<T, E>(name, value, PropertyConstraint<E, T>(std::forward<Args>(args)...)));
-        }
-
-        template <typename T,
-            typename U = std::underlying_type<T>::type IF_REQUIRES(std::is_enum_v<T>&& TypeIsAnyOf_v<U, i32, u8, i8>)>
-        inline void AddEnumProperty(
-            const char* name, T& value, const Vec<T>& enumValues, Fn<bool()> predicate = PropertyPredicateAlwaysTrue)
-        {
-            using TUnderlying = typename std::underlying_type<T>::type;
-            static_assert(std::is_same_v<TUnderlying, U>, "Invalid enum type");
-
-            Vec<Pair<U, String>> enumOptions;
-            for (auto& enumValue : enumValues)
-            {
-                enumOptions.push_back({ GetEnumUnderlyingValue(enumValue), GetEnumName(enumValue) });
-            }
-            m_Property.push_back(ComponentProperty<U, EPropertyEditorType::Select>(name, reinterpret_cast<U&>(value),
-                PropertyConstraint<EPropertyEditorType::Select, U>(enumOptions, predicate)));
-        }
-
-        inline virtual void AddProperty(ComponentPropertyBase prop) final { m_Property.push_back(prop); }
-
+       
     public:
         virtual void CallPropertyEditorHandle();
         inline u32   GetArrayIndex() const { return mArrayIndex; }
         inline u32   GetManagedIndex() const { return mManagedIndex; }
 
     public:
-        Component(){}; // for deserializatioin
+        Component() {}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
+
+        virtual u32                  GetNumVisibleProperties() const final;
+
 
         virtual void                 OnFrameCollecting() {}
         virtual void                 OnAwake() {}
@@ -286,9 +262,8 @@ namespace Ifrit::Runtime
         virtual void                 OnUpdate() {}
         virtual void                 OnEnd() {}
 
-        virtual void                 SetupProperties() = 0;
-        inline u32                   GetNumProperties() const { return SizeCast<u32>(m_Property.size()) + 1; }
-
+        virtual void                 SetupProperties() final {}
+        
         inline void                  SetName(const String& name) { mName = name; }
         virtual void                 SetAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>>& out) {}
         void                         SetEnable(bool enable);

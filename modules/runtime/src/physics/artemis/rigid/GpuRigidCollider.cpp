@@ -4,14 +4,6 @@
 namespace Ifrit::Runtime::Artemis
 {
 
-    IFRIT_APIDECL void GPURigidCollider::SetupProperties()
-    {
-        AddEnumProperty<GPURigidColliderType>(
-            "Collider Type", mType, { GPURigidColliderType::Sphere, GPURigidColliderType::Box });
-        AddProperty<Vector3f, EPropertyEditorType::Text>("Cuboid Size", mCuboidSize);
-        AddProperty<f32, EPropertyEditorType::Text>("Radius", mRadius);
-        AddProperty<f32, EPropertyEditorType::Text>("Mass", mRigidMass);
-    }
     IFRIT_APIDECL f32 GPURigidCollider::GetRadius() const { return mRadius; }
     IFRIT_APIDECL f32 GPURigidCollider::GetRigidMass() const { return mRigidMass; }
     IFRIT_APIDECL Shader::Artemis::ERigidColliderType GPURigidCollider::GetColliderType() const

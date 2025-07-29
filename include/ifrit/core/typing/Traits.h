@@ -66,6 +66,16 @@ namespace Ifrit
         using ClassType  = C;
         using ArgsTuple  = std::tuple<Args...>;
     };
+    // Traits
+    template <typename... Args> struct TTypeSet;
+    template <typename T, typename U> struct TTraitIsAnyOf : std::false_type
+    {
+        static_assert(false, "TTraitIsAnyOf requires at least one type to compare against.");
+    };
+    template <typename T, typename... Types>
+    struct TTraitIsAnyOf<T, TTypeSet<Types...>> : std::disjunction<std::is_same<T, Types>...>
+    {
+    };
 
     // Concepts
 
@@ -85,6 +95,9 @@ namespace Ifrit
         typename TMemberFunctionTrait<T>::ClassType;
         typename TMemberFunctionTrait<T>::ArgsTuple;
     };
+
+    template <typename T, typename U>
+    concept IConceptIsAnyOf = TTraitIsAnyOf<T, U>::value;
 
     // Streaming concepts
     template <typename T>

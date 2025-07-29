@@ -34,8 +34,9 @@ namespace Rigid{
         }
 
         FRigidColliderEntry ColliderEntry = PushConst.m_ColliderEntries.Load(ThreadId.x);
-        FRigidColliderDynamicsData DynamicsData = PushConst.m_ColliderDynamics.Load(ThreadId.x);
+        FRigidColliderDynamicsData DynamicsData = PushConst.m_ColliderDynamics.Load(ColliderEntry.m_RuntimeId);
         FInstanceLocalTransform InstanceTransform = ColliderEntry.m_Transform.Load();
+
 
 #ifdef IFSHADER_RIGID_DYNAMICS_3D
         DynamicsData.m_Position = InstanceTransform.m_Position.xyz;
@@ -50,7 +51,15 @@ namespace Rigid{
         DynamicsData.m_Rotation = InstanceTransform.m_Rotation.z;
         DynamicsData.m_InertiaTensor = ColliderEntry.m_Inertia2D;
 #endif
-        PushConst.m_ColliderDynamics.Store(DynamicsData, ThreadId.x);
+
+if(abs(DynamicsData.m_Position.x) < 0.01f &&
+abs(DynamicsData.m_Position.y) < 0.01f)
+{
+    DynamicsData.m_Position.xy = float2(0.5f, 0.5f);
+}
+
+        
+        PushConst.m_ColliderDynamics.Store(DynamicsData, ColliderEntry.m_RuntimeId);
     }
 
 }}}

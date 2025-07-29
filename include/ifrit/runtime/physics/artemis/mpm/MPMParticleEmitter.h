@@ -11,6 +11,25 @@ namespace Ifrit::Runtime::Artemis
     struct MPMParticleEmitterPrivateData;
     class IFRIT_RUNTIME_API IF_CLASS() MPMParticleEmitter : public Component
     {
+    public:
+        IF_PROPERTY(Editable, UISelect)
+        MPMSimulatorParticleType mEmitMaterialType = MPMSimulatorParticleType::Fluid;
+
+        IF_PROPERTY(Editable, UIColor)
+        Vector4f mEmitColor = Vector4f(0.0f, 1.0f, 1.0f, 1.0f);
+
+        IF_PROPERTY(Editable, UIText)
+        Vector3f mEmitMinRange = Vector3f(0.45f, 0.92f, 0.45f);
+
+        IF_PROPERTY(Editable, UIText)
+        Vector3f mEmitMaxRange = Vector3f(0.55f, 0.95f, 0.55f);
+
+        IF_PROPERTY(Editable, UISlider = (min = 5, max = 1000))
+        i32 mEmitInterval = 15;
+
+        IF_PROPERTY(Editable, UISlider = (min = 0.001, max = 5.0))
+        f32 mParticleMass = 0.5f / 64.0f;
+
     private:
         u32                            m_PlaceHolder;
         MPMParticleEmitterPrivateData* m_Data = nullptr;
@@ -20,15 +39,9 @@ namespace Ifrit::Runtime::Artemis
         MPMParticleEmitter(GameObject* owner);
         virtual ~MPMParticleEmitter();
 
-        void                SetupProperties() override;
-
         MPMParticleEmitArgs GetEmitArgs();
         Vec<Vector2f>       GetEmitParticlePosition2D();
         bool                ShouldEmitParticle(i32 frameIdx) const;
-
-        IFRIT_COMPONENT_SERIALIZE(m_PlaceHolder);
     };
 
 } // namespace Ifrit::Runtime::Artemis
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::Artemis::MPMParticleEmitter)

@@ -87,7 +87,8 @@ namespace Ifrit::Reflection
     }
 
     IFRIT_CORE_API void Internal_RegisterPropertyField(const FReflTypeMetaInfo& typeInfo,
-        const FReflPropertyMetaInfo& propInfo, const String& propertyName, Fn<ObjectImpl(ObjectImpl&)> accessor)
+        const FReflPropertyMetaInfo& propInfo, const String& propertyName, Fn<ObjectImpl(ObjectImpl&)> accessor,
+        Fn<void(ObjectImpl&)> uihandle)
     {
         auto& manager  = GetDynamicReflectionManager();
         u64   typeHash = typeInfo.Hash;
@@ -95,7 +96,10 @@ namespace Ifrit::Reflection
         if (it != manager.TypeRegistry.end())
         {
 
-            manager.TypeRegistry[typeHash].PropertyFields[propInfo.Hash] = { propertyName, accessor };
+            manager.TypeRegistry[typeHash].PropertyFields[propInfo.Hash].Name          = propertyName;
+            manager.TypeRegistry[typeHash].PropertyFields[propInfo.Hash].Accessor      = std::move(accessor);
+            manager.TypeRegistry[typeHash].PropertyFields[propInfo.Hash].UIHandle      = std::move(uihandle);
+            manager.TypeRegistry[typeHash].PropertyFields[propInfo.Hash].Metadata.Name = propertyName;
         }
         else
         {
@@ -212,4 +216,174 @@ namespace Ifrit::Reflection
         IF_LOG_WARNING("Reflector", "Ignoring non-virtual inheritance, which is not implemented yet");
     }
 
+    IFRIT_CORE_API void Internal_PropertyAddHint(
+        u64 baseTypeHash, u64 propertyHash, const String& hintName, PropertyHintValueType value)
+    {
+        auto& manager            = GetDynamicReflectionManager();
+        auto& baseType           = manager.TypeRegistry[baseTypeHash];
+        auto& property           = baseType.PropertyFields[propertyHash];
+        property.Hints[hintName] = value;
+
+        if (hintName == "Editable")
+        {
+            property.Metadata.Editable = EPropertyEditable::Editable;
+        }
+        else if (hintName == "Visible")
+        {
+            property.Metadata.Editable = EPropertyEditable::ReadOnly;
+        }
+        else if (hintName == "UISlider.min")
+        {
+            property.Metadata.UIControl = EPropertyUIControl::UISlider;
+            if (std::holds_alternative<f64>(value))
+            {
+                property.Metadata.UIClampMin = std::get<f64>(value);
+            }
+            else if (std::holds_alternative<i32>(value))
+            {
+                property.Metadata.UIClampMin = static_cast<f64>(std::get<i32>(value));
+            }
+            else
+            {
+                IF_LOG_WARNING("Reflector", "UISlider.min hint value is not a double: {}", value.index());
+            }
+        }
+        else if (hintName == "UISlider.max")
+        {
+            property.Metadata.UIControl = EPropertyUIControl::UISlider;
+            if (std::holds_alternative<f64>(value))
+            {
+                property.Metadata.UIClampMax = std::get<f64>(value);
+            }
+            else if (std::holds_alternative<i32>(value))
+            {
+                property.Metadata.UIClampMax = static_cast<f64>(std::get<i32>(value));
+            }
+            else
+            {
+                IF_LOG_WARNING("Reflector", "UISlider.max hint value is not a double: {}", value.index());
+            }
+        }
+        else if (hintName == "UISelect")
+        {
+            property.Metadata.UIControl = EPropertyUIControl::UISelect;
+        }
+        else if (hintName == "UIText")
+        {
+            property.Metadata.UIControl = EPropertyUIControl::UIText;
+        }
+        else if (hintName == "UIColor")
+        {
+            property.Metadata.UIControl = EPropertyUIControl::UIColor;
+        }
+        else
+        {
+            IF_LOG_WARNING("Reflector", "Unknown property hint: {}", hintName);
+        }
+    }
+
+    IFRIT_CORE_API const PropertyMetadata& Internal_GetPropertyMetadata(u64 baseTypeHash, u64 propertyHash)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = baseTypeHash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            const auto& property = it->second.PropertyFields.at(propertyHash);
+            return property.Metadata;
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for property metadata access: {}", typeHash);
+            throw std::runtime_error("Type not registered for property metadata access");
+        }
+    }
+
+    Vec<Fn<void()>> Internal_GetPropertyEditorHandlesRecursive(u64 typeHash, TReflObject<ObjectImpl>& obj)
+    {
+        auto&           manager = GetDynamicReflectionManager();
+        Vec<Fn<void()>> handles;
+        auto            it = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            const FReflTypeMetaInfo& typeInfo = it->second;
+            for (const auto& [_, property] : typeInfo.PropertyFields)
+            {
+                if (property.UIHandle)
+                {
+                    handles.push_back([property, &obj]() {
+                        auto propEntry = property.Accessor(obj.ObjectValue);
+                        property.UIHandle(propEntry);
+                    });
+                }
+            }
+
+            for (u64 baseTypeHash : typeInfo.BaseTypes)
+            {
+                auto baseHandles = Internal_GetPropertyEditorHandlesRecursive(baseTypeHash, obj);
+                handles.insert(handles.end(), baseHandles.begin(), baseHandles.end());
+            }
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for property editor handles: {}", typeHash);
+        }
+        return handles;
+    }
+
+    IFRIT_CORE_API Vec<Fn<void()>> Internal_GetPropertyEditorHandles(TReflObject<ObjectImpl>& obj)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = obj.TypeHash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            const FReflTypeMetaInfo& typeInfo = it->second;
+            Vec<Fn<void()>>          handles;
+            for (const auto& [_, property] : typeInfo.PropertyFields)
+            {
+                if (property.UIHandle)
+                {
+                    handles.push_back([property, &obj]() {
+                        auto propEntry = property.Accessor(obj.ObjectValue);
+                        property.UIHandle(propEntry);
+                    });
+                }
+            }
+            for (u64 baseTypeHash : typeInfo.BaseTypes)
+            {
+                auto baseHandles = Internal_GetPropertyEditorHandlesRecursive(baseTypeHash, obj);
+                handles.insert(handles.end(), baseHandles.begin(), baseHandles.end());
+            }
+            return handles;
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for property editor handles: {}", typeHash);
+        }
+    }
+
+    IFRIT_CORE_API u32 Internal_GetNumVisibleProperties(TReflObject<ObjectImpl>& obj)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = obj.TypeHash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            const FReflTypeMetaInfo& typeInfo = it->second;
+            u32                      count    = 0;
+            for (const auto& [_, property] : typeInfo.PropertyFields)
+            {
+                if (property.Metadata.Editable != EPropertyEditable::None)
+                {
+                    count++;
+                }
+            }
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for property count: {}", typeHash);
+        }
+        return 0;
+    }
 } // namespace Ifrit::Reflection

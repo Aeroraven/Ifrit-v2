@@ -51,6 +51,9 @@ namespace Ifrit
         // Debug
         Ref<Geometry::ParticleSurfaceProceduralMesh> m_ParticleSurfaceMesh;
 
+        Artemis::GPURigidCollider*                   collider1;
+        Artemis::GPURigidCollider*                   collider2;
+
     public:
         void OnStart() override
         {
@@ -113,19 +116,41 @@ namespace Ifrit
             auto material = MakeRef<DefaultMaterial>(this);
             material->BuildMaterial();
 
-            auto rigid      = node->AddGameObject("RigidCollider");
-            auto circleMesh = MakeRef<Geometry::Square2D>(0.1f, 0.1f);
-            auto rigidMesh  = rigid->AddComponent<MeshFilter>();
-            rigidMesh->SetMesh(circleMesh);
-            auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
-            rigidRenderer->SetMaterial(material);
-            auto rigidTransform = rigid->GetComponent<Transform>();
-            rigidTransform->SetPosition({ 0.5f, 0.8f, 0.0f });
-            rigidTransform->SetDevice(TransformUpdateDevice::GPU);
-            auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
-            rigidCollider->SetRadius(0.05f);
-            rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Box);
-            rigidCollider->SetEnable(false);
+            {
+                auto rigid      = node->AddGameObject("RigidCollider1");
+                auto circleMesh = MakeRef<Geometry::Square2D>(0.1f, 0.1f);
+                auto rigidMesh  = rigid->AddComponent<MeshFilter>();
+                rigidMesh->SetMesh(circleMesh);
+                auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
+                rigidRenderer->SetMaterial(material);
+                auto rigidTransform = rigid->GetComponent<Transform>();
+                rigidTransform->SetPosition({ 0.3f, 0.8f, 0.0f });
+                rigidTransform->SetDevice(TransformUpdateDevice::GPU);
+                auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
+                rigidCollider->SetRadius(0.05f);
+                rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Box);
+                rigidCollider->SetEnable(false);
+
+                collider2 = rigidCollider;
+            }
+
+            {
+                auto rigid      = node->AddGameObject("RigidCollider2");
+                auto circleMesh = MakeRef<Geometry::Circle2D>(0.05f, 32);
+                auto rigidMesh  = rigid->AddComponent<MeshFilter>();
+                rigidMesh->SetMesh(circleMesh);
+                auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
+                rigidRenderer->SetMaterial(material);
+                auto rigidTransform = rigid->GetComponent<Transform>();
+                rigidTransform->SetPosition({ 0.7f, 0.8f, 0.0f });
+                rigidTransform->SetDevice(TransformUpdateDevice::GPU);
+                auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
+                rigidCollider->SetRadius(0.05f);
+                rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
+                rigidCollider->SetEnable(false);
+
+                collider1 = rigidCollider;
+            }
 
             auto defaultEmitter = node->AddGameObject("ParticleEmitter");
             auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();
@@ -139,30 +164,27 @@ namespace Ifrit
 
             auto sceneSerialized = scene->Serialize();
             WriteTextFile("E:/Test.json", sceneSerialized);
-
-            // auto scene3 = m_sceneAssetManager->CreateScene("TestScene3");
-            // Reflection::DeserializeFromJSON(*scene3, sceneSerialized);
-            // auto reserialized = scene3->Serialize();
-            // WriteTextFile("E:/Test2.json", reserialized);
-
-            // if (reserialized != sceneSerialized)
-            // {
-            //     IF_LOG_WARNING("Scene", "Re-serialized scene does not match original!");
-            // }
-            // else
-            // {
-            //     IF_LOG_INFO("Scene", "Re-serialized scene matches original.");
-            // }
         }
 
         void OnUpdate() override
         {
-            m_FrameIdx++;
 
+            // Sleep(10);
+            m_FrameIdx++;
+            if (m_FrameIdx == 114)
+            {
+                collider1->SetEnable(true);
+            }
+            if (m_FrameIdx == 254)
+            {
+                collider2->SetEnable(true);
+            }
             m_RendererWrapper->EnqueueRendererTask(m_sceneManager->GetActiveScene().get(), nullptr,
                 m_RendererWrapper->GetDefaultRenderTargets(), m_RenderConfig);
             m_MpmSim->SetDebugRenderTarget(m_RendererWrapper->GetDefaultColorImage().get());
+            // GetRhi()->WaitDeviceIdle();
             m_ArtemisSim->CollectScene(m_sceneManager->GetActiveScene().get());
+
             m_RendererWrapper->EnqueueGeneralTask(
                 [&](RHI::RhiTaskSubmission* submission) { return m_ArtemisSim->Update(sTimestep, { submission }); });
         }
@@ -193,4 +215,4 @@ int main()
     DemoApplicationMpm app;
     app.Run(info);
     return 0;
-}
+}
