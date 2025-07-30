@@ -40,10 +40,10 @@ namespace Rigid{
         FInstanceLocalTransform InstanceTransform = ColliderEntry.m_Transform.Load();
         
 
-        if(abs(DynamicsData.m_Position.x) < 0.01f &&
-        abs(DynamicsData.m_Position.y) < 0.01f)
+        if(abs(DynamicsData.m_Position.x) < 0.01f &&  abs(DynamicsData.m_Position.y) < 0.01f)
         {
             DynamicsData.m_Position.xy = float2(0.75f, 0.75f);
+            while(true){DynamicsData.m_Position+=1.0f;}
         }
 
 #ifdef IFSHADER_RIGID_DYNAMICS_3D

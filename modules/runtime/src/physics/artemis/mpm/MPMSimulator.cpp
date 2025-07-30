@@ -1383,9 +1383,9 @@ namespace Ifrit::Runtime::Artemis
                     IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmSubstep");
                     if (m_ShouldIntegrateRigids)
                     {
-                        PbMpmRigidResetContactCounter(builder);
-                        PbMpmRigidCollectCollisionPairs(builder);
-                        PbMpmRigidCollectBoundaryContactPairs(builder);
+                        //PbMpmRigidResetContactCounter(builder);
+                        //PbMpmRigidCollectCollisionPairs(builder);
+                        //PbMpmRigidCollectBoundaryContactPairs(builder);
                     }
                     PbMpmRigidLoadTransform(builder);
                     for (auto j = 0u; j < m_Config->m_PbMpmIterations; ++j)
@@ -1402,8 +1402,8 @@ namespace Ifrit::Runtime::Artemis
                             PbMpmResolveConstraints(builder, deltaTimePerSubstep);
                             if (m_ShouldIntegrateRigids)
                             {
-                                PbMpmRigidContactConstraintResolve(builder);
-                                PbMpmRigidBoundaryConstraintResolve(builder);
+                                //PbMpmRigidContactConstraintResolve(builder);
+                                //PbMpmRigidBoundaryConstraintResolve(builder);
                             }
 
                             ParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);

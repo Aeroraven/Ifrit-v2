@@ -77,7 +77,7 @@ namespace Ifrit::Runtime::Artemis
         }
         std::sort(physicsData->m_ColliderData.begin(), physicsData->m_ColliderData.end(),
             [](const Shader::Artemis::FRigidColliderEntry& a, const Shader::Artemis::FRigidColliderEntry& b) {
-                return a.m_RuntimeId < b.m_RuntimeId;
+                return a.m_RuntimeId > b.m_RuntimeId;
             });
 
         auto tq            = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Transfer);

@@ -175,7 +175,7 @@ namespace Ifrit
             {
                 collider1->SetEnable(true);
             }
-            if (m_FrameIdx == 254)
+            if (m_FrameIdx == 54)
             {
                 collider2->SetEnable(true);
             }

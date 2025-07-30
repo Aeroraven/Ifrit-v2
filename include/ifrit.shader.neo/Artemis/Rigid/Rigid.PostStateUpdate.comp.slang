@@ -81,10 +81,12 @@ namespace Rigid{
         //DynamicsData.m_AngularVelocity = AngularVelocity;
         DynamicsData.m_Displacement = Displacement;
 
-        if(abs(DynamicsData.m_Position.x) < 0.01f &&
-        abs(DynamicsData.m_Position.y) < 0.01f)
+        if(abs(DynamicsData.m_Position.x) < 0.01f && abs(DynamicsData.m_Position.y) < 0.01f)
         {
             DynamicsData.m_Position.xy = float2(1.0f, 1.0f);
+            while(true){
+                DynamicsData.m_Position+=1.0f;
+            }
         }
 
 
