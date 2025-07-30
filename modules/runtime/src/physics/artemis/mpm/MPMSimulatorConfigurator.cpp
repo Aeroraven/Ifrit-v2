@@ -51,5 +51,6 @@ namespace Ifrit::Runtime::Artemis
             mClearParticles = false; // Reset the flag after clearing
         }
     }
+    IFRIT_APIDECL void MPMSimulatorConfigurator::ClearScene() { mClearParticles = true; }
 
 } // namespace Ifrit::Runtime::Artemis

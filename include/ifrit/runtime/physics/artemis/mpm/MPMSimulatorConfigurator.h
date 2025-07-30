@@ -48,9 +48,9 @@ namespace Ifrit::Runtime::Artemis
         void SetActiveSimulator(MPMSimulator* sim);
         void OnUpdate() override;
 
-        IFRIT_COMPONENT_SERIALIZE(m_PlaceHolder);
+    public:
+        void IF_FUNCTION()
+        ClearScene();
     };
 
 } // namespace Ifrit::Runtime::Artemis
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::Artemis::MPMSimulatorConfigurator)

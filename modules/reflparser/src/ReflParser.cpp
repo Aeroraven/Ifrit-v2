@@ -26,6 +26,7 @@ namespace Ifrit::ReflParser
     {
         Class,
         Property,
+        Function,
         IncludeFiles,
         PolymorphicRelation,
     };
@@ -186,13 +187,14 @@ namespace Ifrit::ReflParser
     void printAnnotatedFields(
         CXCursor classCursor, const std::string& fullyQualifiedClassName, ReflectionParserContext& ctx)
     {
-
         clang_visitChildren(
             classCursor,
             [](CXCursor cursor, CXCursor, CXClientData client_data) -> CXChildVisitResult {
                 auto* params = static_cast<std::pair<const std::string*, ReflectionParserContext*>*>(client_data);
                 const std::string&       className = *params->first;
                 ReflectionParserContext& ctx       = *params->second;
+
+                // Handle fields with `ifrit.refl.property`
                 if (clang_getCursorKind(cursor) == CXCursor_FieldDecl)
                 {
                     std::unique_ptr<Node> node = std::make_unique<Node>();
@@ -209,6 +211,43 @@ namespace Ifrit::ReflParser
                         clang_disposeString(fieldName);
                     }
                 }
+
+                // Handle methods with `ifrit.refl.function`
+                if (clang_getCursorKind(cursor) == CXCursor_CXXMethod)
+                {
+                    bool hasAnnotation = false;
+                    clang_visitChildren(
+                        cursor,
+                        [](CXCursor child, CXCursor, CXClientData data) -> CXChildVisitResult {
+                            bool* found = static_cast<bool*>(data);
+                            if (clang_getCursorKind(child) == CXCursor_AnnotateAttr)
+                            {
+                                CXString    annotation    = clang_getCursorSpelling(child);
+                                const char* annotationStr = clang_getCString(annotation);
+                                if (annotationStr && std::string(annotationStr).starts_with("ifrit.refl.function"))
+                                {
+                                    *found = true;
+                                    clang_disposeString(annotation);
+                                    return CXChildVisit_Break;
+                                }
+                                clang_disposeString(annotation);
+                            }
+                            return CXChildVisit_Continue;
+                        },
+                        &hasAnnotation);
+
+                    if (hasAnnotation)
+                    {
+                        CXString    methodName       = clang_getCursorSpelling(cursor);
+                        const char* methodNameStr    = clang_getCString(methodName);
+                        std::string methodNameString = methodNameStr ? methodNameStr : "<anonymous>";
+                        LogInfo("Function: ", className.c_str(), "::", methodNameString.c_str());
+                        ctx.records.push_back(
+                            { RecordType::Function, className + "::" + methodNameString, methodNameString, nullptr });
+                        clang_disposeString(methodName);
+                    }
+                }
+
                 return CXChildVisit_Continue;
             },
             new std::pair<const std::string*, ReflectionParserContext*>(&fullyQualifiedClassName, &ctx));
@@ -420,6 +459,11 @@ namespace Ifrit::ReflParser
                              << "\");\n";
                 if (record.node)
                     PropParse::printNode(*record.node, record.symbolName, outputStream, "");
+            }
+            else if (record.type == RecordType::Function)
+            {
+                outputStream << "        RegisterMethodField<&" << record.symbolName << ">(\"" << record.propertyAlias
+                             << "\");\n";
             }
             else if (record.type == RecordType::PolymorphicRelation)
             {

@@ -272,6 +272,7 @@ namespace Ifrit::Reflection
         RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("Enable Rigid Coupling");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("UISelect", "");
+        RegisterMethodField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::ClearScene>("ClearScene");
 
         // Ifrit::Runtime::Ayanami::AyanamiMeshDF
         RegisterType<Ifrit::Runtime::Ayanami::AyanamiMeshDF>();
