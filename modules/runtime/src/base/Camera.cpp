@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/Camera.h"
 #include "ifrit/runtime/base/Transform.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
+#include "ifrit/core/math/Angle.h"
 
 using namespace Ifrit::Math;
 
@@ -42,7 +43,8 @@ namespace Ifrit::Runtime
     {
         if (mType == CameraType::Perspective)
         {
-            return (PerspectiveNegateY(mFov, mAspect, mNear, mFar));
+            f32 fovRad = Math::AngleToRadian(mFov);
+            return (PerspectiveNegateY(fovRad, mAspect, mNear, mFar));
         }
         else
         {

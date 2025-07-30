@@ -7,13 +7,20 @@
 #include "ifrit/core/reflection/Reflection.h"
 
 // Begin Body
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\Asset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Component.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Light.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\MeshComponent.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleEmitter.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMSimulatorConfigurator.h"
@@ -21,13 +28,20 @@
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\rigid\GpuRigidCollider.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshDF.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshMarker.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\Asset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Component.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Light.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\MeshComponent.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleEmitter.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMSimulatorConfigurator.h"
@@ -40,6 +54,47 @@ namespace Ifrit::Reflection
 {
     void RegisterReflectionTypes()
     {
+
+        // Ifrit::Runtime::AssetReferenceId
+        RegisterType<Ifrit::Runtime::AssetReferenceId>();
+        RegisterPropertyField<&Ifrit::Runtime::AssetReferenceId::mType>("Type");
+        RegisterPropertyField<&Ifrit::Runtime::AssetReferenceId::mGuid>("Guid");
+        RegisterPropertyField<&Ifrit::Runtime::AssetReferenceId::mRelativePath>("Relative Path");
+
+        // Ifrit::Runtime::AssetMetadata
+        RegisterType<Ifrit::Runtime::AssetMetadata>();
+        RegisterPropertyField<&Ifrit::Runtime::AssetMetadata::mGuid>("Guid");
+        RegisterPropertyField<&Ifrit::Runtime::AssetMetadata::mName>("Name");
+        RegisterPropertyField<&Ifrit::Runtime::AssetMetadata::mExternalPath>("External Path");
+        RegisterPropertyField<&Ifrit::Runtime::AssetMetadata::mImporter>("Importer");
+
+        // Ifrit::Runtime::Asset
+        RegisterType<Ifrit::Runtime::Asset>();
+        RegisterPropertyField<&Ifrit::Runtime::Asset::mMetadata>("Metadata");
+
+        // Ifrit::Runtime::AssetManager
+        RegisterType<Ifrit::Runtime::AssetManager>();
+        RegisterPropertyField<&Ifrit::Runtime::AssetManager::mAssets>("Assets");
+
+        // Ifrit::Runtime::MeshAsset
+        RegisterType<Ifrit::Runtime::MeshAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::MeshAsset, Ifrit::Runtime::Asset>();
+
+        // Ifrit::Runtime::ImportedMeshAsset
+        RegisterType<Ifrit::Runtime::ImportedMeshAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::ImportedMeshAsset, Ifrit::Runtime::MeshAsset>();
+
+        // Ifrit::Runtime::WaveFrontAsset
+        RegisterType<Ifrit::Runtime::WaveFrontAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::WaveFrontAsset, Ifrit::Runtime::ImportedMeshAsset>();
+
+        // Ifrit::Runtime::ShaderAsset
+        RegisterType<Ifrit::Runtime::ShaderAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::ShaderAsset, Ifrit::Runtime::Asset>();
+
+        // Ifrit::Runtime::TextureAsset
+        RegisterType<Ifrit::Runtime::TextureAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::TextureAsset, Ifrit::Runtime::Asset>();
 
         // Ifrit::Runtime::ComponentManager
         RegisterType<Ifrit::Runtime::ComponentManager>();
@@ -116,6 +171,7 @@ namespace Ifrit::Reflection
         // Ifrit::Runtime::MeshFilter
         RegisterType<Ifrit::Runtime::MeshFilter>();
         RegisterPolymorphicRelation<Ifrit::Runtime::MeshFilter, Ifrit::Runtime::Component>();
+        RegisterPropertyField<&Ifrit::Runtime::MeshFilter::mMesh>("Mesh");
 
         // Ifrit::Runtime::MeshRenderer
         RegisterType<Ifrit::Runtime::MeshRenderer>();
@@ -148,6 +204,12 @@ namespace Ifrit::Reflection
         RegisterPropertyField<&Ifrit::Runtime::Transform::mScale>("Scale");
         RegisterPropertyHint<&Ifrit::Runtime::Transform::mScale>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Transform::mScale>("UIText", "");
+
+        // Ifrit::Runtime::Geometry::Circle2DAsset
+        RegisterType<Ifrit::Runtime::Geometry::Circle2DAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::Geometry::Circle2DAsset, Ifrit::Runtime::MeshAsset>();
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mRadius>("Radius");
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mDivisions>("Divisions");
 
         // Ifrit::Runtime::Artemis::MPMParticleContainer
         RegisterType<Ifrit::Runtime::Artemis::MPMParticleContainer>();

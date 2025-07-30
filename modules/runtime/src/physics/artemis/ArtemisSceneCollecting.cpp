@@ -11,7 +11,7 @@
 
 namespace Ifrit::Runtime::Artemis
 {
-    IFRIT_APIDECL void CollectPhysicsSceneData(Scene* scene, RHI::RhiBackend* rhi)
+    IFRIT_APIDECL void CollectPhysicsSceneData(Scene* scene, RHI::RhiBackend* rhi, u32 frameId)
     {
         // TODO: make this owned by scene (not sharing ownership)
         auto perframeData = scene->GetPerFrameData();
@@ -40,15 +40,19 @@ namespace Ifrit::Runtime::Artemis
                 rhi->CreateBufferDevice("ArtemisColliderDataBufferRuntime", requiredBufferSize, bufferUsage, true);
         }
 
-        if ((physicsData->m_GpuColliderDataBuffer == nullptr))
+        if ((physicsData->m_GpuColliderDataBuffer[0] == nullptr))
         {
             u32 requiredBufferSize = std::max(
                 1u, SizeCast<u32>(sizeof(Shader::Artemis::FRigidColliderEntry) * Internal::kArtemisMaxColliders));
             auto bufferUsage = RHI::RhiBufferUsage::RhiBufferUsage_SSBO | RHI::RhiBufferUsage::RhiBufferUsage_CopyDst;
-            physicsData->m_GpuColliderDataBuffer =
-                rhi->CreateBufferDevice("ArtemisColliderDataBuffer", requiredBufferSize, bufferUsage, true);
+            for (auto i = 0; i < 2; ++i)
+            {
+                physicsData->m_GpuColliderDataBuffer[i] =
+                    rhi->CreateBufferDevice("ArtemisColliderDataBuffer", requiredBufferSize, bufferUsage, true);
+            }
         }
         physicsData->m_NumGpuColliders = numRigids;
+        physicsData->m_FrameId         = frameId;
 
         // TODO: currently forcing the buffer update
         physicsData->m_ColliderData.resize(numRigids);
@@ -80,19 +84,20 @@ namespace Ifrit::Runtime::Artemis
                 return a.m_RuntimeId > b.m_RuntimeId;
             });
 
+        // TODO: MULTIBUFFERING FOR THIS BUFFER
         auto tq            = rhi->GetQueue(RHI::RhiQueueCapability::RhiQueue_Transfer);
-        auto stagingBuffer = rhi->CreateStagedSingleBuffer(physicsData->m_GpuColliderDataBuffer.get());
+        auto stagingBuffer = rhi->CreateStagedSingleBuffer(physicsData->m_GpuColliderDataBuffer[frameId % 2].get());
         // rhi->WaitDeviceIdle();
         tq->RunSyncCommand([&](const RHI::RhiCommandList* cmd) {
+            if (shouldInitRuntimeData)
+            {
+                cmd->BufferClear(physicsData->m_GpuColliderDataBufferRuntime.get(), std::bit_cast<u32>(0.0f));
+            }
             if (physicsData->m_ColliderData.size())
             {
                 stagingBuffer->CmdCopyToDevice(cmd, physicsData->m_ColliderData.data(),
                     SizeCast<u32>(physicsData->m_ColliderData.size() * sizeof(Shader::Artemis::FRigidColliderEntry)),
                     0);
-                if (shouldInitRuntimeData)
-                {
-                    cmd->BufferClear(physicsData->m_GpuColliderDataBufferRuntime.get(), 0);
-                }
             }
         });
         // rhi->WaitDeviceIdle();

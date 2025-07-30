@@ -7,5 +7,5 @@
 
 namespace Ifrit::Runtime::Artemis
 {
-    IFRIT_RUNTIME_API void CollectPhysicsSceneData(Scene* scene, RHI::RhiBackend* rhi);
-}
+    IFRIT_RUNTIME_API void CollectPhysicsSceneData(Scene* scene, RHI::RhiBackend* rhi, u32 frameId);
+}

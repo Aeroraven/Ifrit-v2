@@ -35,7 +35,7 @@ namespace Ifrit::Runtime::Artemis
         ArtemisSimulator(IApplication* app);
         virtual ~ArtemisSimulator();
 
-        void                          CollectScene(Scene* scene);
+        void                          CollectScene(Scene* scene, u32 frameId);
         Owner<RHI::RhiTaskSubmission> Update(f32 deltaTime, Vec<RHI::RhiTaskSubmission*> waitFor);
 
         void                          RegisterSolver(IArtemisSolver* solver);

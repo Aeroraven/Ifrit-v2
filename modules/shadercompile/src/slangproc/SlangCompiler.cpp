@@ -92,6 +92,7 @@ namespace Ifrit::ShaderCompile::SlangProc
                 { slang::CompilerOptionValueKind::Int, capNonUniformBallot, 0, nullptr, nullptr } },
             { slang::CompilerOptionName::Include,
                 { slang::CompilerOptionValueKind::String, 0, 0, m_IncludeBase.c_str(), nullptr } },
+            { slang::CompilerOptionName::Optimization, { slang::CompilerOptionValueKind::Int, 0, 0, nullptr, nullptr } }
 
         };
 
@@ -130,7 +131,7 @@ namespace Ifrit::ShaderCompile::SlangProc
         String cachedModulePath = m_CachePath + "/ifritsc.slang.shader." + moduleHash + ".cache";
         if (std::filesystem::exists(cachedModulePath))
         {
-            IF_LOG_DEBUG("Slang", "Using cached Slang module: {} for {}", cachedModulePath, job.m_Name);
+            // IF_LOG_DEBUG("Slang", "Using cached Slang module: {} for {}", cachedModulePath, job.m_Name);
             ShaderCompileOutput output;
             output.m_IR.m_Format = ShaderIRFormat::SpirV;
             std::ifstream file(cachedModulePath, std::ios::binary);

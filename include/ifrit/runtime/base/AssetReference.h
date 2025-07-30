@@ -15,42 +15,89 @@ GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/serialization/SerialInterface.h"
+
 #include "ifrit/core/platform/ApiConv.h"
 #include "ifrit/core/algo/Guid.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 #include <memory>
 #include <string>
 
 namespace Ifrit::Runtime
 {
-    struct AssetReference
-    {
-        String m_fileId;
-        GUID   m_GUID;
-        String m_name;
-        bool   m_usingAsset = false;
-        IFRIT_STRUCT_SERIALIZE(m_fileId, m_GUID, m_name, m_usingAsset)
 
-        bool operator==(const AssetReference& other) const { return m_GUID == other.m_GUID && m_name == other.m_name; }
+    enum class EAssetReferencingType : u8
+    {
+
+        Registered,
+        PrefabExternal
     };
 
-    class IFRIT_APIDECL IAssetCompatible
+    struct IF_CLASS() AssetReferenceId
     {
-    public:
-        virtual void _PolyHolderAsset() {}
+        IF_PROPERTY()
+        EAssetReferencingType mType;
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
+        String mRelativePath;
+
+        bool   operator==(const AssetReferenceId& other) const
+        {
+            if (mType != other.mType)
+                return false;
+            if (mType == EAssetReferencingType::Registered)
+            {
+                return mGuid == other.mGuid;
+            }
+            else
+            {
+                return mRelativePath == other.mRelativePath;
+            }
+        }
     };
 
-    class AssetReferenceContainer
+    struct IF_CLASS() AssetMetadata
+    {
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
+        String mName;
+
+        IF_PROPERTY()
+        String mExternalPath;
+
+        IF_PROPERTY()
+        String mImporter;
+    };
+
+    class IFRIT_APIDECL IF_CLASS() Asset
     {
     public:
-        AssetReference                  m_assetReference;
-        bool                            m_usingAsset = false;
-        std::weak_ptr<IAssetCompatible> m_asset;
+        IF_PROPERTY()
+        AssetMetadata mMetadata;
 
-        IFRIT_STRUCT_SERIALIZE(m_assetReference, m_usingAsset)
+    public:
+        Asset() = default;
+        Asset(AssetMetadata metadata) : mMetadata(metadata) {}
+        const GUID&             GetGuid() const { return mMetadata.mGuid; }
+        const String&           GetName() const { return mMetadata.mName; }
+        const String&           GetExternalPath() const { return mMetadata.mExternalPath; }
+        virtual void            _PolyHolder() {}
+
+        const AssetReferenceId& GetAssetReference() const
+        {
+            static AssetReferenceId ref;
+            ref.mType         = EAssetReferencingType::Registered;
+            ref.mGuid         = mMetadata.mGuid;
+            ref.mRelativePath = mMetadata.mExternalPath;
+            return ref;
+        }
     };
 
 } // namespace Ifrit::Runtime

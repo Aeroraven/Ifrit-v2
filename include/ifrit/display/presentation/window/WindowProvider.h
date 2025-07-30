@@ -42,5 +42,7 @@ namespace Ifrit::Display::Window
         virtual void*        GetWindowObject() { return nullptr; };
         virtual void*        GetGLFWWindow() { return nullptr; };
         virtual void         RegisterKeyCallback(std::function<void(int, int, int, int)>) {}
+        virtual void         RegisterMousePostionCallback(std::function<void(double, double)>){};
+        virtual void         RegisterMouseButtonCallback(std::function<void(int, int, int)>){};
     };
 } // namespace Ifrit::Display::Window

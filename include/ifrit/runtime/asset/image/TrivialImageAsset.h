@@ -17,35 +17,25 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+
 #include "ifrit/runtime/common/Pch.h"
 
-#include "ifrit/runtime/assetmanager/Asset.h"
-#include "ifrit/runtime/assetmanager/TextureAsset.h"
+#include "ifrit/runtime/asset/Asset.h"
+#include "ifrit/runtime/asset/TextureAsset.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
 
 namespace Ifrit::Runtime
 {
+
     class IFRIT_APIDECL TrivialImageAsset : public TextureAsset
     {
     private:
-        bool               m_loaded = false;
-        IApplication*      m_app;
+        bool               m_loaded  = false;
         RHI::RhiTextureRef m_texture = nullptr;
 
     public:
-        TrivialImageAsset(AssetMetadata metadata, std::filesystem::path path, IApplication* app);
+        using TextureAsset::TextureAsset;
         RHI::RhiTextureRef GetTexture() override;
     };
-    class IFRIT_APIDECL TrivialImageAssetImporter : public AssetImporter
-    {
-    private:
-        IApplication* m_app;
 
-    public:
-        IF_CONSTEXPR static const char* IMPORTER_NAME = "TrivialImageAssetImporter";
-        TrivialImageAssetImporter(AssetManager* manager) : AssetImporter(manager), m_app(manager->GetApplication()) {}
-        void        ProcessMetadata(AssetMetadata& metadata) override;
-        void        ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata) override;
-        Vec<String> GetSupportedExtensionNames() override;
-    };
 } // namespace Ifrit::Runtime

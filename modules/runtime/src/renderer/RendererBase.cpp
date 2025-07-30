@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <mutex>
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/runtime/scene/FrameComponentUpdate.h"
+#include "ifrit/runtime/renderer/SharedRenderResource.h"
 
 namespace Ifrit::Runtime
 {
@@ -260,7 +261,7 @@ namespace Ifrit::Runtime
                 if (meshRenderer && meshFilter && transform)
                 {
                     materials.push_back(meshRenderer->GetMaterial().get());
-                    meshes.push_back(meshFilter->GetMesh().get());
+                    meshes.push_back(meshFilter->GetMesh());
                     transforms.push_back(transform);
                     instances.push_back(meshFilter->GetMeshInstance().get());
                 }

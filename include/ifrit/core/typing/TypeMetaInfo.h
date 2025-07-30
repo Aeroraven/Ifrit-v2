@@ -234,6 +234,7 @@ namespace Ifrit
     };
 
     struct FMetaPropertyInfo;
+    struct FMetaMethodInfo;
     struct FMetaTypeInfo
     {
         const u64    Hash;
@@ -254,6 +255,7 @@ namespace Ifrit
                 TMetaTypeInfo<T>::Hash, String{ TMetaTypeInfo<T>::Name }, &TMetaTypeInfo<T>::GetTypeInfo);
         }
         friend struct FMetaPropertyInfo;
+        friend struct FMetaMethodInfo;
     };
 
     struct FMetaPropertyInfo
@@ -281,6 +283,34 @@ namespace Ifrit
             using ClassType    = typename TMetaPropertyInfo<Member>::ClassType;
             return FMetaPropertyInfo(FMetaTypeInfo::Create<ClassType>(), FMetaTypeInfo::Create<PropertyType>(),
                 TMetaPropertyInfo<Member>::Hash, String{ TMetaPropertyInfo<Member>::Name });
+        }
+    };
+
+    struct FMetaMethodInfo
+    {
+        FMetaTypeInfo ClassTypeInfo;
+        FMetaTypeInfo ReturnTypeInfo;
+        const u64     Hash;
+        const String  Name;
+
+    private:
+        FMetaMethodInfo(FMetaTypeInfo classTypeInfo, FMetaTypeInfo returnTypeInfo, u64 hash, String name)
+            : ClassTypeInfo(std::move(classTypeInfo))
+            , ReturnTypeInfo(std::move(returnTypeInfo))
+            , Hash(hash)
+            , Name(std::move(name))
+        {
+        }
+
+    public:
+        template <auto Member>
+            requires IConceptIsMemberFunctionPointer<decltype(Member)>
+        static FMetaMethodInfo Create()
+        {
+            using ReturnType = typename TMetaMemberFunctionInfo<Member>::ReturnType;
+            using ClassType  = typename TMetaMemberFunctionInfo<Member>::ClassType;
+            return FMetaMethodInfo(FMetaTypeInfo::Create<ClassType>(), FMetaTypeInfo::Create<ReturnType>(),
+                TMetaMemberFunctionInfo<Member>::Hash, String{ TMetaMemberFunctionInfo<Member>::Name });
         }
     };
 

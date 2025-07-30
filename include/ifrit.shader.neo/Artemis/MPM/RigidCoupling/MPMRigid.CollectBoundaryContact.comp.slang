@@ -80,7 +80,7 @@ namespace MPM{
         if(RigidId < PushConst.m_NumRigids)
         {
             Rigid::FRigidColliderEntry Collider = PushConst.m_RigidColliders.Load(RigidId);
-            Rigid::FRigidColliderDynamicsData ColliderDynamics = PushConst.m_RigidDynamics.Load(RigidId);
+            Rigid::FRigidColliderDynamicsData ColliderDynamics = PushConst.m_RigidDynamics.Load(Collider.m_RuntimeId);
 
             FSpatialVector ColliderPositionPrev = ColliderDynamics.m_Position;
             FSpatialVector ColliderDisplacement = ColliderDynamics.m_Displacement;
@@ -120,4 +120,4 @@ namespace MPM{
     }
 
 
-}}}
+}}}

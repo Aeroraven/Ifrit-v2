@@ -1,5 +1,7 @@
 #pragma once
 #include "ifrit/runtime/base/Mesh.h"
+#include "ifrit/runtime/asset/MeshAsset.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime::Geometry
 {
@@ -30,4 +32,23 @@ namespace Ifrit::Runtime::Geometry
         virtual Vec<u32>      GetIndexBufferHost();
         virtual Vec<Vector3f> GetVertexBufferHost();
     };
-} // namespace Ifrit::Runtime::Geometry
+
+    class IFRIT_APIDECL IF_CLASS() Circle2DAsset : public MeshAsset
+    {
+    public:
+        IF_PROPERTY()
+        f32 mRadius;
+
+        IF_PROPERTY()
+        u32 mDivisions;
+
+    private:
+        Owner<Circle2D> mMesh = nullptr;
+
+    public:
+        Circle2DAsset() = default;
+        Circle2DAsset(f32 radius, u32 divisions) : mRadius(radius), mDivisions(divisions) {}
+
+        virtual Mesh* GetMesh() override;
+    };
+} // namespace Ifrit::Runtime::Geometry

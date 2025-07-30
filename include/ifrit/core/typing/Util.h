@@ -67,6 +67,36 @@ namespace Ifrit
 #endif
     }
 
+    template <typename T, typename U> T* ForcedCheckedCast(U* ptr)
+    {
+        // static cast
+        if (ptr == nullptr)
+        {
+            return nullptr;
+        }
+        auto casted = dynamic_cast<T*>(ptr);
+        if (casted == nullptr)
+        {
+            std::abort();
+        }
+        return casted;
+    }
+
+    template <typename T, typename U> const T* ForcedCheckedCast(const U* ptr)
+    {
+        // static cast
+        if (ptr == nullptr)
+        {
+            return nullptr;
+        }
+        auto casted = dynamic_cast<const T*>(ptr);
+        if (casted == nullptr)
+        {
+            std::abort();
+        }
+        return casted;
+    }
+
     template <typename T, typename U> std::shared_ptr<T> CheckedPointerCast(const std::shared_ptr<U>& ptr)
     {
 #ifdef _DEBUG
@@ -90,7 +120,7 @@ namespace Ifrit
 
     // Non-copyable class:
     // https://www.boost.org/doc/libs/1_41_0/boost/noncopyable.hpp
-    class IFRIT_APIDECL     NonCopyable
+    class IFRIT_APIDECL NonCopyable
     {
     protected:
         NonCopyable()  = default;

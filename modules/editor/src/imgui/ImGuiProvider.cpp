@@ -18,10 +18,11 @@
 #include "glfw/glfw3.h"
 #include "ifrit/core/hal/HalDisplay.h"
 #include "iconfont/IconFontAwesome.h"
-
+#include "ifrit/runtime/renderer/SharedRenderResource.h"
 #include "ifrit/runtime/base/ActorBehavior.h"
 #include "ifrit/core/hal/HalWindow.h"
 #include "ifrit/core/reflection/Reflection.h"
+#include "ifrit/runtime/application/ApplicationState.h"
 
 namespace Ifrit::Editor
 {

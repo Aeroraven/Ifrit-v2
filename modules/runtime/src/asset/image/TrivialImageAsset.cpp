@@ -16,7 +16,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/runtime/assetmanager/TrivialImageAsset.h"
+#include "ifrit/runtime/asset/image/TrivialImageAsset.h"
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/imaging/compress/CompressedTextureUtil.h"
@@ -142,36 +142,15 @@ namespace Ifrit::Runtime
         return tex;
     }
 
-    IFRIT_APIDECL TrivialImageAsset::TrivialImageAsset(
-        AssetMetadata metadata, std::filesystem::path path, IApplication* app)
-        : TextureAsset(metadata, path), m_app(app)
-    {
-        // Pass
-    }
-
     IFRIT_APIDECL RHI::RhiTextureRef TrivialImageAsset::GetTexture()
     {
         if (m_texture == nullptr)
         {
-            auto uuid = m_metadata.m_GUID.ToString();
-            m_texture = ParseTex(m_path, m_app, uuid);
+
+            auto uuid = mMetadata.mGuid.ToString();
+            m_texture = ParseTex(mMetadata.mExternalPath, GetActiveApplication(), uuid);
         }
         return m_texture;
-    }
-
-    // Importer
-    IFRIT_APIDECL void TrivialImageAssetImporter::ProcessMetadata(AssetMetadata& metadata)
-    {
-        metadata.m_importer = IMPORTER_NAME;
-    }
-
-    IFRIT_APIDECL Vec<std::string> TrivialImageAssetImporter::GetSupportedExtensionNames() { return { ".png" }; }
-
-    IFRIT_APIDECL void             TrivialImageAssetImporter::ImportAsset(
-        const std::filesystem::path& path, AssetMetadata& metadata)
-    {
-        auto asset = MakeRef<TrivialImageAsset>(metadata, path, m_assetManager->GetApplication());
-        m_assetManager->RegisterAsset(asset);
     }
 
 } // namespace Ifrit::Runtime

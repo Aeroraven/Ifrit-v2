@@ -17,8 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/common/Pch.h"
-
-#include "ifrit/runtime/assetmanager/ShaderAsset.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/runtime/asset/ShaderAsset.h"
 #include <fstream>
 namespace Ifrit::Runtime
 {
@@ -33,12 +33,12 @@ namespace Ifrit::Runtime
         else
         {
             m_loaded = true;
-            std::ifstream       file(m_path, std::ios::binary);
+            std::ifstream       file(mMetadata.mExternalPath, std::ios::binary);
             Vec<char>           data((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-            auto                rhi = m_app->GetRhi();
+            auto                rhi = GetActiveApplication()->GetRhi();
             RHI::RhiShaderStage stage;
-            auto                fileName = m_path.filename().string();
+            auto                fileName = mMetadata.mExternalPath;
             // endswith .vert.glsl
             auto                endsWith = [](const String& str, const String& suffix) {
                 return str.size() >= suffix.size()
@@ -74,21 +74,6 @@ namespace Ifrit::Runtime
             m_selfData = p;
             return m_selfData->GetVariant(permutations);
         }
-    }
-
-    // Importer
-    IFRIT_APIDECL void ShaderAssetImporter::ProcessMetadata(AssetMetadata& metadata)
-    {
-        metadata.m_importer = IMPORTER_NAME;
-    }
-
-    IFRIT_APIDECL Vec<String> ShaderAssetImporter::GetSupportedExtensionNames() { return { ".glsl" }; }
-
-    IFRIT_APIDECL void ShaderAssetImporter::ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata)
-    {
-        auto asset = MakeRef<ShaderAsset>(metadata, path, m_assetManager->GetApplication());
-        m_assetManager->RegisterAsset(asset);
-        // iInfo("Imported asset: [Shader] {}", metadata.m_uuid);
     }
 
 } // namespace Ifrit::Runtime

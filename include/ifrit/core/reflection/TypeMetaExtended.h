@@ -66,5 +66,11 @@ namespace Ifrit::Reflection
                 SerializeInterface, DeserializeInterface, OutputStreamFn, InputStreamFn);
             return typeInfo;
         }
+        template <> static FMetaTypeExtendedInfo Create<void>()
+        {
+            return FMetaTypeExtendedInfo(TMetaTypeInfo<void>::Hash, String{ TMetaTypeInfo<void>::Name },
+                &TMetaTypeInfo<void>::GetTypeInfo, &FMetaTypeInfo::Create<void>, nullptr, nullptr, nullptr, nullptr,
+                nullptr);
+        }
     };
 } // namespace Ifrit::Reflection

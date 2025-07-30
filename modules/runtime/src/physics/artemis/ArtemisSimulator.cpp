@@ -48,9 +48,9 @@ namespace Ifrit::Runtime::Artemis
         }
     }
 
-    IFRIT_APIDECL void ArtemisSimulator::CollectScene(Scene* scene)
+    IFRIT_APIDECL void ArtemisSimulator::CollectScene(Scene* scene, u32 frameId)
     {
-        CollectPhysicsSceneData(scene, m_App->GetRhi());
+        CollectPhysicsSceneData(scene, m_App->GetRhi(), frameId);
         for (auto& solver : m_Data->m_Solvers)
         {
             solver->CollectScene(scene);

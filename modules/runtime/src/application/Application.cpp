@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include "ifrit/core/hal/HalDisplay.h"
 #include "ifrit/core/hal/HalWindow.h"
+#include "ifrit/runtime/renderer/SharedRenderResource.h"
 namespace Ifrit::Runtime
 {
     struct ApplicationPrivateData
@@ -117,9 +118,6 @@ namespace Ifrit::Runtime
 
         m_sceneManager = MakeRef<SceneManager>(this);
 
-        // Input System
-        m_inputSystem = MakeRef<InputSystem>(this);
-
         // Timing Recorder
         m_timingRecorder = MakeRef<TimingRecorder>();
 
@@ -169,7 +167,6 @@ namespace Ifrit::Runtime
                 subsystem->OnFrameEnd();
             }
         }
-        m_inputSystem->OnFrameUpdate();
 
         if (m_Data->m_ConsoleWindowVisible && m_ApplicationState.m_EditorMode)
         {
@@ -193,6 +190,18 @@ namespace Ifrit::Runtime
         auto ptr = subsystem.get();
         m_Subsystems.push_back(std::move(subsystem));
         ptr->OnInitialize(this);
+        m_SubsystemTypeIdToIndex[typeid(*ptr).hash_code()] = static_cast<u32>(m_Subsystems.size() - 1);
+    }
+
+    IFRIT_APIDECL void* Application::GetSubsystemInternal(u64 typeId)
+    {
+        auto it = m_SubsystemTypeIdToIndex.find(typeId);
+        if (it != m_SubsystemTypeIdToIndex.end())
+        {
+            return m_Subsystems[it->second].get();
+        }
+        IF_LOG_ERROR("Application", "Subsystem with type ID {} not found", typeId);
+        return nullptr;
     }
 
     IFRIT_APIDECL void Application::EnableRendererWrapper(bool enable) { m_EnableRendererWrapper = enable; }

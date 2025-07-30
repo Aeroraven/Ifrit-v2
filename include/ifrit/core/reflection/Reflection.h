@@ -59,6 +59,15 @@ namespace Ifrit::Reflection
         FPropertyWrapper GetProperty(ObjectImpl& obj) const { return FPropertyWrapper{ Accessor(obj) }; }
     };
 
+    struct FMethodField
+    {
+        String                                              Name;
+        Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> Invoker;
+        HashMap<String, PropertyHintValueType>              Hints;
+
+        ObjectImpl Invoke(ObjectImpl& obj, const Vec<ObjectImpl>& args) const { return Invoker(obj, args); }
+    };
+
     struct FPropertyKVPair
     {
         String           Name;
@@ -71,25 +80,13 @@ namespace Ifrit::Reflection
         u64 TypeHash;
     };
 
-    template <typename T> struct TReflTypeMetaInfo
-    {
-        static constexpr StringView Name                 = TMetaTypeInfo<T>::Name;
-        static constexpr u64        Hash                 = TMetaTypeInfo<T>::Hash;
-        static constexpr bool       DefaultConstructible = std::is_default_constructible_v<T>;
-    };
-
-    template <auto T> struct TReflPropMetaInfo
-    {
-        static constexpr StringView Name = TMetaPropertyInfo<T>::Name;
-        static constexpr u64        Hash = TMetaPropertyInfo<T>::Hash;
-    };
-
     struct FReflTypeMetaInfo
     {
         StringView                   Name;
         u64                          Hash;
         Fn<ObjectImpl()>             Constructor = nullptr;
         HashMap<u64, FPropertyField> PropertyFields;
+        HashMap<u64, FMethodField>   MethodFields;
         FMetaTypeExtendedInfo        MetaInfo;
         bool                         Polymorphic = false;
         Vec<u64>                     BaseTypes;
@@ -101,9 +98,9 @@ namespace Ifrit::Reflection
         template <typename T> static FReflTypeMetaInfo Create()
         {
             FReflTypeMetaInfo metaInfo;
-            metaInfo.Name = TReflTypeMetaInfo<T>::Name;
-            metaInfo.Hash = TReflTypeMetaInfo<T>::Hash;
-            if constexpr (TReflTypeMetaInfo<T>::DefaultConstructible)
+            metaInfo.Name = TMetaTypeInfo<T>::Name;
+            metaInfo.Hash = TMetaTypeInfo<T>::Hash;
+            if constexpr (std::is_default_constructible_v<T>)
             {
                 auto constructor     = []() -> ObjectImpl { return ObjectImpl::Create<T>(); };
                 metaInfo.Constructor = std::move(constructor);
@@ -127,13 +124,36 @@ namespace Ifrit::Reflection
         static FReflPropertyMetaInfo Create()
         {
             using Accessor = TMemberType<decltype(Member)>;
-            using PropMeta = TReflPropMetaInfo<Member>;
 
             FReflPropertyMetaInfo meta;
             meta.ClassTypeInfo  = FReflTypeMetaInfo::Create<typename Accessor::ClassType>();
             meta.MemberTypeInfo = FReflTypeMetaInfo::Create<typename Accessor::Type>();
-            meta.Name           = PropMeta::Name;
-            meta.Hash           = PropMeta::Hash;
+            meta.Name           = TMetaPropertyInfo<Member>::Name;
+            meta.Hash           = TMetaPropertyInfo<Member>::Hash;
+            return meta;
+        }
+    };
+
+    struct FReflMethodMetaInfo
+    {
+        FReflTypeMetaInfo ClassTypeInfo;
+        FReflTypeMetaInfo ReturnTypeInfo;
+        StringView        Name;
+        u64               Hash;
+
+        FReflMethodMetaInfo() = default;
+
+        template <auto Member>
+            requires IConceptIsMemberPointer<decltype(Member)>
+        static FReflMethodMetaInfo Create()
+        {
+            using Accessor = TMemberFunctionTrait<decltype(Member)>;
+
+            FReflMethodMetaInfo meta;
+            meta.ClassTypeInfo  = FReflTypeMetaInfo::Create<typename Accessor::ClassType>();
+            meta.ReturnTypeInfo = FReflTypeMetaInfo::Create<typename Accessor::ReturnType>();
+            meta.Name           = TMetaMemberFunctionInfo<Member>::Name;
+            meta.Hash           = TMetaMemberFunctionInfo<Member>::Hash;
             return meta;
         }
     };
@@ -144,18 +164,26 @@ namespace Ifrit::Reflection
     IFRIT_CORE_API void                    Internal_RegisterPropertyField(const FReflTypeMetaInfo& typeInfo,
                            const FReflPropertyMetaInfo& propInfo, const String& propertyName, Fn<ObjectImpl(ObjectImpl&)> accessor,
                            Fn<void(ObjectImpl&)> uihandle);
+    IFRIT_CORE_API void                    Internal_RegisterMethodField(const FReflTypeMetaInfo& typeInfo,
+                           const FReflMethodMetaInfo& methodInfo, const String& methodName,
+                           Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> invoker);
+
     IFRIT_CORE_API ObjectImpl              Internal_GetProperty(TReflObject<ObjectImpl>& obj, u64 propertyHash);
     IFRIT_CORE_API HashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj);
     IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Reference(void* target, std::type_info const& typeInfo);
     IFRIT_CORE_API u64                     Internal_GetTypeHashFromTypeInfoHash(u64 typeInfoHash);
     IFRIT_CORE_API void                    Internal_RegisterPolymorphic(u64 baseTypeHash, u64 derivedTypeHash);
     IFRIT_CORE_API bool Internal_TypeOnInheritanceChain(u64 baseTypeHashToSearch, u64 derivedTypeHash);
-    IFRIT_CORE_API void Internal_IgnoreNonVirtualInhertance();
     IFRIT_CORE_API void Internal_PropertyAddHint(
         u64 baseTypeHash, u64 propertyHash, const String& hintName, PropertyHintValueType value);
     IFRIT_CORE_API const PropertyMetadata& Internal_GetPropertyMetadata(u64 baseTypeHash, u64 propertyHash);
     IFRIT_CORE_API Vec<Fn<void()>> Internal_GetPropertyEditorHandles(TReflObject<ObjectImpl>& obj);
     IFRIT_CORE_API u32             Internal_GetNumVisibleProperties(TReflObject<ObjectImpl>& obj);
+    IFRIT_CORE_API ObjectImpl      Internal_InvokeMethod(
+             TReflObject<ObjectImpl>& obj, u64 methodHash, const Vec<ObjectImpl>& args);
+
+    IFRIT_CORE_API void Internal_IgnoreNonVirtualInhertance();
+    IFRIT_CORE_API void Internal_ReportWrongFunctionCall();
 
     template <auto Member>
         requires IConceptIsMemberPointer<decltype(Member)>
@@ -184,10 +212,46 @@ namespace Ifrit::Reflection
                     const PropertyMetadata& metadata = Internal_GetPropertyMetadata(typeInfo.Hash, propInfo.Hash);
                     ProcessPropertyMetadata<MemberType>(metadata, prop);
                 }
+            };
+        }
+    };
+
+    template <typename T, typename R, typename... Args, usize... I>
+    R MemberFunctorInvokerWrapperImpl(R (T::*f)(Args...), T& obj, const Vec<ObjectImpl>& vec, std::index_sequence<I...>)
+    {
+        return (obj.*f)((vec[I]).As<Args>()...);
+    }
+
+    template <typename T, typename R, typename... Args>
+    R MemberFunctorInvokerWrapper(R (T::*f)(Args...), T& obj, const Vec<ObjectImpl>& vec)
+    {
+        if (vec.size() != sizeof...(Args)) IF_UNLIKELY
+            Internal_ReportWrongFunctionCall();
+
+        return MemberFunctorInvokerWrapperImpl(f, obj, vec, std::index_sequence_for<Args...>{});
+    }
+
+    template <auto Member>
+        requires IConceptIsMemberPointer<decltype(Member)>
+    class TAutoMemberFunctionAccessor
+    {
+    public:
+        using ClassType  = TMemberFunctionTrait<decltype(Member)>::ClassType;
+        using ReturnType = TMemberFunctionTrait<decltype(Member)>::ReturnType;
+        using ArgTypes   = TMemberFunctionTrait<decltype(Member)>::ArgsTuple;
+
+        static Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> GetMemberInvoker()
+        {
+            return [](ObjectImpl& classObj, const Vec<ObjectImpl>& args) -> ObjectImpl {
+                auto& obj = classObj.As<ClassType>();
+                if constexpr (std::is_void_v<ReturnType>)
+                {
+                    MemberFunctorInvokerWrapper(Member, obj, args);
+                    return ObjectImpl::CreateVoid();
+                }
                 else
                 {
-                    // IF_LOG_WARNING("Reflector", "UI Handle not available for non-editable type: {}",
-                    //     String(typeid(MemberType).name()));
+                    return ObjectImpl::CreateClone(MemberFunctorInvokerWrapper(Member, obj, args));
                 }
             };
         }
@@ -226,6 +290,17 @@ namespace Ifrit::Reflection
         Internal_RegisterPropertyField(
             typeInfo, propInfo, propertyName, Accessor::GetMemberAccessor(), Accessor::GetUIHandle());
     }
+    template <auto Member>
+        requires IConceptIsMemberPointer<decltype(Member)>
+    inline void RegisterMethodField(const String& methodName)
+    {
+        using Accessor = TAutoMemberFunctionAccessor<Member>;
+
+        auto typeInfo   = FReflTypeMetaInfo::Create<typename Accessor::ClassType>();
+        auto methodInfo = FReflMethodMetaInfo::Create<Member>();
+        Internal_RegisterMethodField(typeInfo, methodInfo, methodName, Accessor::GetMemberInvoker());
+    }
+
     inline TReflObject<ObjectImpl> ConstructObject(FMetaTypeInfo typeMeta) { return Internal_Construct(typeMeta.Hash); }
     inline FPropertyWrapper        GetProperty(TReflObject<ObjectImpl>& obj, FMetaPropertyInfo propMeta)
     {
@@ -238,6 +313,13 @@ namespace Ifrit::Reflection
             return FPropertyKVPair{ pair.second.Name, FPropertyWrapper(pair.second.GetProperty(obj.ObjectValue)) };
         });
     }
+
+    inline ObjectImpl InvokeMethod(TReflObject<ObjectImpl>& obj, FMetaMethodInfo funcMeta, const Vec<ObjectImpl>& args)
+    {
+        u64 methodHash = funcMeta.Hash;
+        return Internal_InvokeMethod(obj, methodHash, args);
+    }
+
     template <typename T> inline TReflObject<ObjectImpl> ReferenceObject(T* target)
     {
         return Internal_Reference(target, typeid(*target));

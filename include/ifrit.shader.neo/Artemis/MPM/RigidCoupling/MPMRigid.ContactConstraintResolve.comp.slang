@@ -41,11 +41,12 @@ namespace MPM{
         FMPMRigidCouplingContactPair Contact = PushConst.m_CollisionPairs.Load(ThreadId.x);
         int RigidId = Contact.m_RigidId;
         int ParticleId = Contact.m_ParticleId;
-        Rigid::FRigidColliderDynamicsData ColliderDynamics = PushConst.m_RigidDynamics.Load(RigidId);
+
         Rigid::FRigidColliderEntry Collider = PushConst.m_RigidColliders.Load(RigidId);
+        Rigid::FRigidColliderDynamicsData ColliderDynamics = PushConst.m_RigidDynamics.Load(Collider.m_RuntimeId);
 
         FScalar ParticleMass = PushConst.m_ParticleMass.Load(ParticleId);
-        FScalar RigidMass = PushConst.m_RigidColliders.Load(RigidId).m_RigidMass;
+        FScalar RigidMass = Collider.m_RigidMass;
 
         FSpatialVector ParticlePositionPrev = PushConst.m_ParticleLocations.Load(ParticleId);
         FSpatialVector ParticleDisplacement = PushConst.m_ParticleDisplacements.Load(ParticleId);
@@ -86,10 +87,10 @@ namespace MPM{
         //TODO: Handle 3D rotation
 #else
         RotationImp = -rcp(Collider.m_Inertia2D) * Math::Cross2D(R2, Impulse);
-        PushConst.m_RigidDynamics.AtomicAddRotation(RigidId, RotationImp);
+        PushConst.m_RigidDynamics.AtomicAddRotation(Collider.m_RuntimeId, RotationImp);
 #endif
 
         PushConst.m_ParticleDisplacements.AtomicAdd(ParticleId, Shift1);
-        PushConst.m_RigidDynamics.AtomicAddDisplacement(RigidId, Shift2);
+        PushConst.m_RigidDynamics.AtomicAddDisplacement(Collider.m_RuntimeId, Shift2);
     }
 }}}

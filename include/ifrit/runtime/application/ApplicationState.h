@@ -8,4 +8,4 @@ namespace Ifrit::Runtime
         bool m_EditorMode = false;
     };
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

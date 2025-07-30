@@ -54,7 +54,7 @@ namespace MPM{
         if(ParticleId < NumParticles)
         {
             Rigid::FRigidColliderEntry Collider = PushConst.m_RigidColliders.Load(RigidId);
-            Rigid::FRigidColliderDynamicsData ColliderDynamics = PushConst.m_RigidDynamics.Load(RigidId);
+            Rigid::FRigidColliderDynamicsData ColliderDynamics = PushConst.m_RigidDynamics.Load(Collider.m_RuntimeId);
 
             float ColliderRadius = Collider.m_ColliderRadius;
             FSpatialVector ColliderPositionPrev = ColliderDynamics.m_Position;

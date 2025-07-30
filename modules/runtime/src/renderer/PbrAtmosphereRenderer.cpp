@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/util/PbrAtmoConstants.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include <numbers>
+#include "ifrit/runtime/renderer/SharedRenderResource.h"
 
 namespace Ifrit::Runtime
 {

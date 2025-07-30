@@ -1,6 +1,5 @@
 
 #pragma once
-#include "ifrit/runtime/assetmanager/Asset.h"
 #include "ifrit/runtime/base/Mesh.h"
 #include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
 
@@ -23,4 +22,4 @@ namespace Ifrit::Runtime::Geometry
         virtual Vec<u32>      GetIndexBufferHost() final;
         virtual Vec<Vector3f> GetVertexBufferHost() final;
     };
-} // namespace Ifrit::Runtime::Geometry
+} // namespace Ifrit::Runtime::Geometry

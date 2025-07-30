@@ -18,11 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/runtime/application/Application.h"
-#include "ifrit/runtime/assetmanager/Asset.h"
-#include "ifrit/runtime/assetmanager/GLTFAsset.h"
-#include "ifrit/runtime/assetmanager/ShaderAsset.h"
-#include "ifrit/runtime/assetmanager/WaveFrontAsset.h"
-#include "ifrit/runtime/assetmanager/TrivialImageAsset.h"
+#include "ifrit/runtime/asset/Asset.h"
+#include "ifrit/runtime/asset/prefab/GLTFAsset.h"
+#include "ifrit/runtime/asset/ShaderAsset.h"
+#include "ifrit/runtime/asset/mesh/WaveFrontAsset.h"
+#include "ifrit/runtime/asset/image/TrivialImageAsset.h"
 #include "ifrit/runtime/base/Camera.h"
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/runtime/base/ActorBehavior.h"

@@ -108,6 +108,24 @@ namespace Ifrit::Reflection
         }
     }
 
+    IFRIT_CORE_API void Internal_RegisterMethodField(const FReflTypeMetaInfo& typeInfo,
+        const FReflMethodMetaInfo& methodInfo, const String& methodName,
+        Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> invoker)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = typeInfo.Hash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            manager.TypeRegistry[typeHash].MethodFields[methodInfo.Hash].Name    = methodName;
+            manager.TypeRegistry[typeHash].MethodFields[methodInfo.Hash].Invoker = std::move(invoker);
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for method field: {}", typeHash);
+        }
+    }
+
     IFRIT_CORE_API ObjectImpl Internal_GetProperty(TReflObject<ObjectImpl>& obj, u64 propertyHash)
     {
         auto& manager  = GetDynamicReflectionManager();
@@ -128,6 +146,30 @@ namespace Ifrit::Reflection
         else
         {
             IF_LOG_CRITICAL("Reflector", "Type not registered for property access: {}", typeHash);
+        }
+    }
+
+    IFRIT_CORE_API ObjectImpl Internal_InvokeMethod(
+        TReflObject<ObjectImpl>& obj, u64 methodHash, const Vec<ObjectImpl>& args)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = obj.TypeHash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            if (it->second.MethodFields.count(methodHash) > 0)
+            {
+                auto& methodField = it->second.MethodFields[methodHash];
+                return methodField.Invoke(obj.ObjectValue, args);
+            }
+            else
+            {
+                IF_LOG_CRITICAL("Reflector", "Method not found: {}", methodHash);
+            }
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for method access: {}", typeHash);
         }
     }
 
@@ -214,6 +256,11 @@ namespace Ifrit::Reflection
         // This function is a placeholder for future implementation
         // It can be used to ignore non-virtual inheritance in the reflection system
         IF_LOG_WARNING("Reflector", "Ignoring non-virtual inheritance, which is not implemented yet");
+    }
+    IFRIT_CORE_API void Internal_ReportWrongFunctionCall()
+    {
+        IF_LOG_CRITICAL(
+            "Reflector", "Wrong function call detected. Please check the function signature and arguments.");
     }
 
     IFRIT_CORE_API void Internal_PropertyAddHint(

@@ -24,83 +24,17 @@ using namespace Ifrit;
 
 namespace Ifrit::Runtime
 {
-    // Importer
-    IFRIT_APIDECL void SceneAssetImporter::ProcessMetadata(AssetMetadata& metadata)
-    {
-        metadata.m_importer = IMPORTER_NAME;
-    };
-
-    IFRIT_APIDECL Vec<String> SceneAssetImporter::GetSupportedExtensionNames() { return { cSceneFileExtension }; };
-
-    IFRIT_APIDECL void SceneAssetImporter::ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata)
-    {
-        IF_LOG_ERROR("SceneAssetImporter", "Removed function");
-        auto          asset = MakeRef<SceneAsset>(metadata, path);
-        String        fileReaded;
-        std::ifstream file(path);
-        file.seekg(0, std::ios::end);
-        fileReaded.reserve(file.tellg());
-        file.seekg(0, std::ios::beg);
-        fileReaded.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        file.close();
-        Ref<Scene> x;
-        
-        
-        asset->m_scene = x;
-        auto fileName  = metadata.m_name;
-        // remove extension
-        fileName = fileName.substr(0, fileName.find_last_of("."));
-        m_assetManager->RegisterAsset(asset);
-        m_sceneAssetManager->RegisterScene(fileName, asset->GetScene());
-
-        IF_LOG_INFO("Scene", "Imported asset: [Scene] {}", metadata.m_GUID.ToString());
-    }
 
     // Manager
     IFRIT_APIDECL void SceneAssetManager::AttachAssetResources(Ref<Scene>& scene)
     {
-        Vec<Component*> components;
-        Vec<SceneNode*> nodes;
-        nodes.push_back(scene->GetRootNode());
-        while (!nodes.empty())
-        {
-            auto node = nodes.back();
-            nodes.pop_back();
-            auto children = node->GetChildren();
-            for (const auto& child : children)
-            {
-                nodes.push_back(child);
-            }
-            for (auto& obj : node->GetGameObjects())
-            {
-                for (auto& x : obj->GetAllComponents())
-                {
-                    components.push_back(x);
-                }
-            }
-        }
-        for (auto& x : components)
-        {
-            auto                       config = x->GetAssetRefs();
-            Vec<Ref<IAssetCompatible>> assets;
-            for (auto& y : config)
-            {
-                auto asset = m_assetManager->GetAssetByName<Asset>(y->m_name);
-                if (asset == nullptr)
-                {
-                    throw std::runtime_error("Asset not found");
-                }
-                assets.push_back(asset);
-            }
-            x->SetAssetReferencedAttributes(assets);
-        }
+       
     }
 
     IFRIT_APIDECL SceneAssetManager::SceneAssetManager(std::filesystem::path path, AssetManager* assetman)
         : m_sceneDataPath(path), m_assetManager(assetman)
     {
-        m_sceneImporter = MakeRef<SceneAssetImporter>(assetman, this);
-        assetman->RegisterImporter(m_sceneImporter->IMPORTER_NAME, m_sceneImporter);
+
     }
 
     IFRIT_APIDECL void SceneAssetManager::SaveScenes()

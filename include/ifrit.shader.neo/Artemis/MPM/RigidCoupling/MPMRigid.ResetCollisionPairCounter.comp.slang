@@ -10,6 +10,9 @@ namespace MPM{
     {
         TAtomicRWStructuredBufferHandle<int> m_CollisionPairCounter;
         TAtomicRWStructuredBufferHandle<int> m_BoundaryPairCounter;
+        TAtomicRWStructuredBufferHandle<int> m_RigidParticleContactIndBuffer;
+        TAtomicRWStructuredBufferHandle<int> m_ParticleCounters;
+        int m_NumRigids;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -29,6 +32,11 @@ namespace MPM{
         PushConst.m_BoundaryPairCounter.Store(0, 1);
         PushConst.m_BoundaryPairCounter.Store(1, 2);
         PushConst.m_BoundaryPairCounter.Store(1, 3);
+
+        PushConst.m_RigidParticleContactIndBuffer.Store(DivRoundUp(PushConst.m_ParticleCounters.Load(0), kMpmTGSizeX),0);
+        PushConst.m_RigidParticleContactIndBuffer.Store(PushConst.m_NumRigids,1);
+        PushConst.m_RigidParticleContactIndBuffer.Store(1,2);
+        PushConst.m_RigidParticleContactIndBuffer.Store(1,3);
     }
 
 }}}

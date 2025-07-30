@@ -22,7 +22,11 @@ public:
     std::vector<Cell> d    = { Cell(), Cell() };
 
 public:
-    virtual void Meow() {}
+    virtual void Meow(int a, int b)
+    {
+        std::cout << "Meow"
+                  << " " << a << " " << b << std::endl;
+    }
 };
 
 class Tabby : public Cat
@@ -55,7 +59,9 @@ public:
 
 int main()
 {
-    Ifrit::Reflection::RegisterReflectionTypes();
+    // Ifrit::Reflection::RegisterReflectionTypes();
+
+    using C = Ifrit::TMemberFunctionTrait<decltype(&Cat::Meow)>::ReturnType;
 
     Dog sv;
     sv.fvck[114]       = Cat();
@@ -70,6 +76,15 @@ int main()
     RegisterType<Cat>();
     RegisterType<Dog>();
     RegisterType<Tabby>();
+
+    RegisterMethodField<&Cat::Meow>("Meow");
+    Cat  d;
+    auto p = ReferenceObject(&d);
+    std::vector<Ifrit::Reflection::Object> aw3;
+    aw3.push_back(std::move(Ifrit::Reflection::Object::CreateClone(1)));
+    aw3.push_back(std::move(Ifrit::Reflection::Object::CreateClone(2)));
+
+    InvokeMethod(p, Ifrit::FMetaMethodInfo::Create<&Cat::Meow>(),aw3);
 
     RegisterPropertyField<&Cell::av>("av");
     RegisterPropertyField<&Cell::aa>("aa");

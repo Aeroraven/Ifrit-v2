@@ -66,8 +66,8 @@ namespace Ifrit
             m_ArtemisSim = MakeOwner<Artemis::ArtemisSimulator>(this);
 
             m_ArtemisSim->RegisterSolver(m_MpmSim.get());
-            // m_ArtemisSim->RegisterSolver(m_RigidSim.get());
 
+            RegisterSubsystem(InputSystem::Create());
             RegisterSubsystem(Editor::CreateEditorProvider(Editor::EEditorProviderType::ImGui));
             EnableRendererWrapper(true);
 
@@ -116,11 +116,12 @@ namespace Ifrit
             auto material = MakeRef<DefaultMaterial>(this);
             material->BuildMaterial();
 
+            auto circleMesh = GetAssetRegistry()->CreateAsset<Geometry::Circle2DAsset>("Circle2DAsset", 0.05f, 32);
+
             {
-                auto rigid      = node->AddGameObject("RigidCollider1");
-                auto circleMesh = MakeRef<Geometry::Square2D>(0.1f, 0.1f);
-                auto rigidMesh  = rigid->AddComponent<MeshFilter>();
-                rigidMesh->SetMesh(circleMesh);
+                auto rigid     = node->AddGameObject("RigidCollider1");
+                auto rigidMesh = rigid->AddComponent<MeshFilter>();
+                rigidMesh->SetMeshSource(circleMesh);
                 auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
                 rigidRenderer->SetMaterial(material);
                 auto rigidTransform = rigid->GetComponent<Transform>();
@@ -128,17 +129,16 @@ namespace Ifrit
                 rigidTransform->SetDevice(TransformUpdateDevice::GPU);
                 auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
                 rigidCollider->SetRadius(0.05f);
-                rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Box);
+                rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
                 rigidCollider->SetEnable(false);
 
                 collider2 = rigidCollider;
             }
 
             {
-                auto rigid      = node->AddGameObject("RigidCollider2");
-                auto circleMesh = MakeRef<Geometry::Circle2D>(0.05f, 32);
-                auto rigidMesh  = rigid->AddComponent<MeshFilter>();
-                rigidMesh->SetMesh(circleMesh);
+                auto rigid     = node->AddGameObject("RigidCollider2");
+                auto rigidMesh = rigid->AddComponent<MeshFilter>();
+                rigidMesh->SetMeshSource(circleMesh);
                 auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
                 rigidRenderer->SetMaterial(material);
                 auto rigidTransform = rigid->GetComponent<Transform>();
@@ -182,8 +182,7 @@ namespace Ifrit
             m_RendererWrapper->EnqueueRendererTask(m_sceneManager->GetActiveScene().get(), nullptr,
                 m_RendererWrapper->GetDefaultRenderTargets(), m_RenderConfig);
             m_MpmSim->SetDebugRenderTarget(m_RendererWrapper->GetDefaultColorImage().get());
-            // GetRhi()->WaitDeviceIdle();
-            m_ArtemisSim->CollectScene(m_sceneManager->GetActiveScene().get());
+            m_ArtemisSim->CollectScene(m_sceneManager->GetActiveScene().get(), m_FrameIdx);
 
             m_RendererWrapper->EnqueueGeneralTask(
                 [&](RHI::RhiTaskSubmission* submission) { return m_ArtemisSim->Update(sTimestep, { submission }); });
@@ -213,6 +212,7 @@ int main()
     info.m_EnableDPIScaling = true;
 
     DemoApplicationMpm app;
+    Runtime::SetActiveApplication(&app);
     app.Run(info);
     return 0;
 }

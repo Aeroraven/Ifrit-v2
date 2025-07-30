@@ -26,7 +26,7 @@ using namespace Ifrit::Runtime;
 
 static InputSystem* activeInputSystem = nullptr;
 
-void                key_callback_glfw_input_system(int key, int scancode, int action, int mods)
+void                InputSystemKeyCallbackGlfw(int key, int scancode, int action, int mods)
 {
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
     {
@@ -34,13 +34,68 @@ void                key_callback_glfw_input_system(int key, int scancode, int ac
     }
 }
 
+void InputSystemMousePositionCallbackGlfw(double x, double y)
+{
+    activeInputSystem->UpdateMousePosition(static_cast<float>(x), static_cast<float>(y));
+}
+
+void InputSystemMouseButtonCallbackGlfw(int button, int action, int mods)
+{
+    if (action == GLFW_PRESS)
+    {
+        activeInputSystem->UpdateMouseButtonStatus(button, 1);
+    }
+    else if (action == GLFW_RELEASE)
+    {
+        activeInputSystem->UpdateMouseButtonStatus(button, 0);
+    }
+}
+
 namespace Ifrit::Runtime
 {
-    IFRIT_APIDECL      InputSystem::InputSystem(IApplication* app) : m_app(app) { Init(); }
     IFRIT_APIDECL      InputSystem::~InputSystem() {}
 
-    IFRIT_APIDECL void InputSystem::Init()
+    IFRIT_APIDECL bool InputSystem::IsKeyPressed(EInputKeyCode key)
     {
+        return m_keyStatus[static_cast<int>(key)].stat == 1;
+    }
+    IFRIT_APIDECL bool InputSystem::IsKeyReleased(EInputKeyCode key)
+    {
+        return m_keyStatus[static_cast<int>(key)].stat == 0;
+    }
+    IFRIT_APIDECL bool InputSystem::IsMouseButtonPressed(EInputMouseButton button)
+    {
+        return mMouseButtonStatus[static_cast<int>(button)].stat == 1;
+    }
+    IFRIT_APIDECL bool InputSystem::IsMouseButtonReleased(EInputMouseButton button)
+    {
+        return mMouseButtonStatus[static_cast<int>(button)].stat == 0;
+    }
+    IFRIT_APIDECL float InputSystem::GetMouseX() const { return mMouseX; }
+    IFRIT_APIDECL float InputSystem::GetMouseY() const { return mMouseY; }
+
+    IFRIT_APIDECL void  InputSystem::UpdateKeyStatus(u32 key, u8 status) { m_keyStatus[key].stat = status; }
+    IFRIT_APIDECL void  InputSystem::UpdateMousePosition(float x, float y)
+    {
+        mMouseX = x;
+        mMouseY = y;
+        IF_LOG_INFO("Input", "Mouse Position Updated: ({}, {})", mMouseX, mMouseY);
+    }
+    IFRIT_APIDECL void InputSystem::UpdateMouseButtonStatus(u32 button, u8 status)
+    {
+        if (button < mMouseButtonStatus.size())
+        {
+            mMouseButtonStatus[button].stat = status;
+            IF_LOG_INFO("Input", "Mouse Button {} Status Updated: {}", button, status);
+        }
+        else
+        {
+            IF_LOG_ERROR("Input", "Invalid Mouse Button Index: {}", button);
+        }
+    }
+    IFRIT_APIDECL void InputSystem::OnInitialize(IApplication* app)
+    {
+        m_app = app;
         for (auto& key : m_keyStatus)
         {
             key.stat = 0;
@@ -49,11 +104,13 @@ namespace Ifrit::Runtime
         activeInputSystem   = this;
         auto windowProvider = static_cast<GLFWWindowProvider*>(m_app->GetDisplay());
         auto windowHandle   = static_cast<GLFWwindow*>(windowProvider->GetGLFWWindow());
-        windowProvider->RegisterKeyCallback(key_callback_glfw_input_system);
+        windowProvider->RegisterKeyCallback(InputSystemKeyCallbackGlfw);
+        windowProvider->RegisterMousePostionCallback(InputSystemMousePositionCallbackGlfw);
+        windowProvider->RegisterMouseButtonCallback(InputSystemMouseButtonCallbackGlfw);
         IF_LOG_INFO("InputSystem", "Input system initialized");
     }
 
-    IFRIT_APIDECL void InputSystem::OnFrameUpdate()
+    IFRIT_APIDECL void InputSystem::OnUpdate(Scene* scene)
     {
         for (auto& key : m_keyStatus)
         {
@@ -63,5 +120,17 @@ namespace Ifrit::Runtime
             }
         }
     }
+    IFRIT_APIDECL void InputSystem::OnShutdown() {}
+    IFRIT_APIDECL void InputSystem::OnFrameBegin() {}
+    IFRIT_APIDECL void InputSystem::OnFrameEnd() {}
+    IFRIT_APIDECL Owner<RHI::RhiTaskSubmission> InputSystem::OnPreRendering(RHI::RhiTaskSubmission* prevSubmission)
+    {
+        return nullptr; // No pre-rendering tasks
+    }
+    IFRIT_APIDECL Owner<RHI::RhiTaskSubmission> InputSystem::OnPostRendering(RHI::RhiTaskSubmission* prevSubmission)
+    {
+        return nullptr; // No post-rendering tasks
+    }
+    IFRIT_APIDECL Owner<InputSystem> InputSystem::Create() { return MakeOwner<InputSystem>(); }
 
 } // namespace Ifrit::Runtime

@@ -284,8 +284,9 @@ namespace Ifrit::Reflection
         void SerializeImpl(T& obj, Archive* archive, TSpecializationTag<ESpecializationTag::EnumClass>)
         {
             archive->BeginObject(FSerializerReservedKeys::kEnumClassValue);
-            String enumName = GetEnumName(obj);
-            archive->Serialize(enumName);
+            using U     = std::underlying_type_t<T>;
+            U enumValue = static_cast<U>(obj);
+            archive->Serialize(enumValue);
             archive->EndObject();
         }
 
@@ -437,10 +438,10 @@ namespace Ifrit::Reflection
             if (archive->HasObject(FSerializerReservedKeys::kEnumClassValue))
             {
                 archive->BeginObject(FSerializerReservedKeys::kEnumClassValue);
-                String enumName;
-                archive->Serialize(enumName);
+                i64 enumValue = 0;
+                archive->Serialize(enumValue);
                 archive->EndObject();
-                obj = GetEnumFromName<T>(enumName);
+                obj = static_cast<T>(enumValue);
             }
             else
             {

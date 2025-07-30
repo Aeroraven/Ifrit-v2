@@ -99,6 +99,11 @@ namespace Ifrit
     template <typename T, typename U>
     concept IConceptIsAnyOf = TTraitIsAnyOf<T, U>::value;
 
+    template <typename T, typename... CtorArgs>
+    concept IConceptIsConstructible = requires(CtorArgs&&... args) {
+        { T(std::forward<CtorArgs>(args)...) } -> std::same_as<T>;
+    };
+
     // Streaming concepts
     template <typename T>
     concept IConceptIsOutputStreamable = requires(std::ostream& os, T t) {

@@ -24,6 +24,18 @@ namespace Ifrit::Reflection
         void (*OutputStreamFn)(std::ostream&, const void*) = nullptr;
         void (*InputStreamFn)(std::istream&, void*)        = nullptr;
 
+        Object()
+            : Ptr(nullptr)
+            , TypeInfoGetter(nullptr)
+            , TypeMetaGetter(nullptr)
+            , Destructor(nullptr)
+            , SerializeInterface(nullptr)
+            , DeserializeInterface(nullptr)
+            , OutputStreamFn(nullptr)
+            , InputStreamFn(nullptr)
+        {
+        }
+
         Object(void* ptr, std::type_info const& (*typeInfoGetter)(), FMetaTypeInfo (*typeMetaGetter)(),
             void (*destructor)(void*), void (*serializeInterface)(Archive*, void*),
             void (*deserializeInterface)(Archive*, void*), void (*outputStreamFn)(std::ostream&, const void*) = nullptr,
@@ -165,6 +177,23 @@ namespace Ifrit::Reflection
             return Object(
                 &ref.get(), tpInfo.GetTypeInfo, tpInfo.GetMetaInfo, [](void*) {}, tpInfo.SerializeInterface,
                 tpInfo.DeserializeInterface, tpInfo.OutputStreamFn, tpInfo.InputStreamFn);
+        }
+
+        template <typename T>
+            requires(std::is_copy_constructible_v<T>)
+        static Object CreateClone(const T& value)
+        {
+            FMetaTypeExtendedInfo tpInfo = FMetaTypeExtendedInfo::Create<T>();
+            T*                    ptr    = new T(value);
+            return Object(ptr, tpInfo.GetTypeInfo, tpInfo.GetMetaInfo, tpInfo.Destructor, tpInfo.SerializeInterface,
+                tpInfo.DeserializeInterface, tpInfo.OutputStreamFn, tpInfo.InputStreamFn);
+        }
+
+        static Object CreateVoid()
+        {
+            return Object(
+                nullptr, []() -> std::type_info const& { return typeid(void); }, &FMetaTypeInfo::Create<void>,
+                [](void*) {}, nullptr, nullptr, nullptr, nullptr);
         }
     };
 

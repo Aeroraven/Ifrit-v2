@@ -45,18 +45,10 @@ namespace Rigid{
         DynamicsData.m_AngularVelocity = FSpatialVector(0.0f, 0.0f, 0.0f);
         DynamicsData.m_InertiaTensor = 1.0f;
 #else
-
-
         DynamicsData.m_Position = InstanceTransform.m_Position.xy;
         DynamicsData.m_Rotation = InstanceTransform.m_Rotation.z;
         DynamicsData.m_InertiaTensor = ColliderEntry.m_Inertia2D;
 #endif
-
-        if(abs(DynamicsData.m_Position.x) < 0.01f && abs(DynamicsData.m_Position.y) < 0.01f)
-        {
-            DynamicsData.m_Position.xy = float2(0.5f, 0.5f);
-            //while(true){DynamicsData.m_Position.xy+=1.0f;}
-        }
 
         PushConst.m_ColliderDynamics.Store(DynamicsData, ColliderEntry.m_RuntimeId);
     }

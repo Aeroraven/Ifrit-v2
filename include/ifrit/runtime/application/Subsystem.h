@@ -1,12 +1,11 @@
 #pragma once
-
-#include "ifrit/runtime/base/ApplicationInterface.h"
 #include "ifrit/runtime/base/Base.h"
 #include "ifrit/rhi/common/RhiBaseTypes.h"
 #include "ifrit/runtime/forwarding/FwdScene.h"
 
 namespace Ifrit::Runtime
 {
+    class IApplication;
     class IFRIT_APIDECL ISubsystem
     {
     public:

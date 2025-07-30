@@ -34,8 +34,8 @@ namespace MPM{
         FMPMRigidBoundaryContactPair Contact = PushConst.m_CollisionPairs.Load(ThreadId.x);
         int RigidId = Contact.m_RigidId;
 
-        Rigid::FRigidColliderDynamicsData ColliderDynamics = PushConst.m_RigidDynamics.Load(RigidId);
         Rigid::FRigidColliderEntry Collider = PushConst.m_RigidColliders.Load(RigidId);
+        Rigid::FRigidColliderDynamicsData ColliderDynamics = PushConst.m_RigidDynamics.Load(Collider.m_RuntimeId);
         FScalar RigidMass = Collider.m_RigidMass;
 
         FSpatialVector ColliderCenterPositionPrev = ColliderDynamics.m_Position;
@@ -53,7 +53,7 @@ namespace MPM{
         FSpatialVector Impulse = Dist * N * 2.0f;
         FSpatialVector Shift = Impulse;
 
-        PushConst.m_RigidDynamics.AtomicAddDisplacement(RigidId, Shift);
+        PushConst.m_RigidDynamics.AtomicAddDisplacement(Collider.m_RuntimeId, Shift);
     }
 
 }}}

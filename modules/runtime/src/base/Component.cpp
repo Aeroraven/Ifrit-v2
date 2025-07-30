@@ -29,15 +29,6 @@ using namespace Ifrit::Math;
 namespace Ifrit::Runtime
 {
 
-    // TODO: REMOVING THIS FUNCTION
-    IFRIT_APIDECL GameObject* GameObject::CreatePrefab(IComponentManagerKeeper* managerKeeper)
-    {
-        auto prefabIdx = managerKeeper->GetGameObjectManager()->CreateGameObject("Prefab");
-        auto prefab    = managerKeeper->GetGameObjectManager()->GetGameObject(prefabIdx);
-        prefab->Initialize(managerKeeper->GetComponentManager(), managerKeeper->GetGameObjectManager());
-        return prefab;
-    }
-
     IFRIT_APIDECL Component::Component(GameObject* parent)
     {
         mGuid               = GUID::Generate();

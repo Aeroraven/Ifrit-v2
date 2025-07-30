@@ -162,9 +162,6 @@ namespace Ifrit::Runtime
         inline GUID                GetUUID() const { return mGuid; }
         inline GameObjectReference GetManagerId() const { return mManagedIndex; }
 
-        // DEPRECATING
-        static GameObject*         CreatePrefab(IComponentManagerKeeper* managerKeeper);
-
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* AddComponent()
         {
             auto componentRef = m_ComponentManager->CreateComponent<T>(this);
@@ -231,17 +228,17 @@ namespace Ifrit::Runtime
         bool mEnabled = true;
 
     public:
-        GameObjectReference        m_ParentRef;
-        GameObjectManager*         m_GameObjectManager = nullptr;
+        GameObjectReference m_ParentRef;
+        GameObjectManager*  m_GameObjectManager = nullptr;
 
-        //Vec<ComponentPropertyBase> m_Property;
-        bool                       m_PropertyRegistered = false;
-        bool                       m_shouldInvokeStart  = true;
-        bool                       m_shouldInvokeAwake  = true;
+        // Vec<ComponentPropertyBase> m_Property;
+        bool                m_PropertyRegistered = false;
+        bool                m_shouldInvokeStart  = true;
+        bool                m_shouldInvokeAwake  = true;
 
     private:
         friend class ComponentManager;
-       
+
     public:
         virtual void CallPropertyEditorHandle();
         inline u32   GetArrayIndex() const { return mArrayIndex; }
@@ -252,30 +249,27 @@ namespace Ifrit::Runtime
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 
-        virtual u32                  GetNumVisibleProperties() const final;
+        virtual u32   GetNumVisibleProperties() const final;
 
+        virtual void  OnFrameCollecting() {}
+        virtual void  OnAwake() {}
+        virtual void  OnStart() {}
+        virtual void  OnFixedUpdate() {}
+        virtual void  OnUpdate() {}
+        virtual void  OnEnd() {}
 
-        virtual void                 OnFrameCollecting() {}
-        virtual void                 OnAwake() {}
-        virtual void                 OnStart() {}
-        virtual void                 OnFixedUpdate() {}
-        virtual void                 OnUpdate() {}
-        virtual void                 OnEnd() {}
+        virtual void  SetupProperties() final {}
 
-        virtual void                 SetupProperties() final {}
-        
-        inline void                  SetName(const String& name) { mName = name; }
-        virtual void                 SetAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>>& out) {}
-        void                         SetEnable(bool enable);
+        inline void   SetName(const String& name) { mName = name; }
+        void          SetEnable(bool enable);
 
-        inline String                GetName() const { return mName; }
-        inline GUID                  GetGUID() const { return mGuid; }
-        GameObject*                  GetParent() const;
-        virtual Vec<AssetReference*> GetAssetRefs() { return {}; }
-        inline bool                  IsEnabled() const { return mEnabled; }
+        inline String GetName() const { return mName; }
+        inline GUID   GetGUID() const { return mGuid; }
+        GameObject*   GetParent() const;
+        inline bool   IsEnabled() const { return mEnabled; }
 
-        void                         InvokeStart();
-        void                         InvokeAwake();
+        void          InvokeStart();
+        void          InvokeAwake();
     };
 
 } // namespace Ifrit::Runtime

@@ -17,16 +17,23 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/runtime/assetmanager/Asset.h"
-#include "ifrit/runtime/common/Pch.h"
+#include "ifrit/runtime/asset/TextureAsset.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/rhi/common/RhiForwardingTypes.h"
 
 namespace Ifrit::Runtime
 {
-    class IFRIT_APIDECL TextureAsset : public Asset
+    class IFRIT_APIDECL DirectDrawSurfaceAsset : public TextureAsset
     {
+    private:
+        bool               m_loaded = false;
+        IApplication*      m_app;
+        RHI::RhiTextureRef m_texture = nullptr;
+
     public:
-        TextureAsset(AssetMetadata metadata, std::filesystem::path path) : Asset(metadata, path) {}
-        virtual RHI::RhiTextureRef GetTexture() = 0;
+        using TextureAsset::TextureAsset;
+
+        virtual RHI::RhiTextureRef GetTexture() override;
     };
 
 } // namespace Ifrit::Runtime

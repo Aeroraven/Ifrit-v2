@@ -35,16 +35,8 @@ namespace Rigid{
 
         FRigidColliderEntry ColliderEntry = PushConst.m_ColliderEntries.Load(ThreadId.x);
         FRigidColliderDynamicsData DynamicsData = PushConst.m_ColliderDynamics.Load(ColliderEntry.m_RuntimeId);
-
-
         FInstanceLocalTransform InstanceTransform = ColliderEntry.m_Transform.Load();
-        
 
-        if(abs(DynamicsData.m_Position.x) < 0.01f &&  abs(DynamicsData.m_Position.y) < 0.01f)
-        {
-            DynamicsData.m_Position.xy = float2(0.75f, 0.75f);
-            while(true){DynamicsData.m_Position+=1.0f;}
-        }
 
 #ifdef IFSHADER_RIGID_DYNAMICS_3D
         InstanceTransform.m_Position.xyz = DynamicsData.m_Position.xyz;
@@ -64,9 +56,6 @@ namespace Rigid{
                                                         InstanceTransform.m_MaxScale.xyz);
         InstanceTransform.m_LocalToWorld = LocalToWorld;
         InstanceTransform.m_WorldToLocal = Math::Inverse(LocalToWorld);
-
-    
-        
         ColliderEntry.m_Transform.Store(InstanceTransform);
     }
 

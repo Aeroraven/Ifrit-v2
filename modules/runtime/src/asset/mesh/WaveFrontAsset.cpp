@@ -16,7 +16,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#include "ifrit/runtime/assetmanager/WaveFrontAsset.h"
+#include "ifrit/runtime/asset/mesh/WaveFrontAsset.h"
 #include "ifrit/runtime/common/Pch.h"
 #include <fstream>
 
@@ -141,7 +141,7 @@ namespace Ifrit::Runtime
     }
     // Mesh class
 
-    IFRIT_APIDECL std::shared_ptr<MeshData> WaveFrontAsset::LoadMesh()
+    IFRIT_APIDECL Ref<MeshData> ImportedWaveFrontMesh::LoadMesh()
     {
         if (m_loaded)
         {
@@ -158,7 +158,7 @@ namespace Ifrit::Runtime
             Vec<Vector2f> remappedUVs;
             Vec<u32>      remappedIndices;
             Vec<u32>      indices;
-            auto          rawPath = m_path.generic_string();
+            auto          rawPath = mResourcePath;
             LoadWaveFrontObject(rawPath.c_str(), vertices, normals, uvs, indices);
             remappedNormals = RemapNormals(normals, indices, SizeCast<int>(vertices.size()));
             if (uvs.size() != 0)
@@ -198,7 +198,7 @@ namespace Ifrit::Runtime
         return m_selfData;
     }
 
-    IFRIT_APIDECL MeshData* WaveFrontAsset::LoadMeshUnsafe()
+    IFRIT_APIDECL MeshData* ImportedWaveFrontMesh::LoadMeshUnsafe()
     {
         if (m_selfDataRaw == nullptr)
         {
@@ -213,30 +213,21 @@ namespace Ifrit::Runtime
         }
         return m_selfDataRaw;
     }
-
-    // virtual u32           GetNumIndices();
-    // virtual u32           GetNumVertices();
-    // virtual Vec<u32>      GetIndexBufferHost();
-    // virtual Vec<Vector3f> GetVertexBufferHost();
-
-    IFRIT_APIDECL u32 WaveFrontAsset::GetNumIndices() { return SizeCast<u32>(m_selfData->m_indices.size()); }
-    IFRIT_APIDECL u32 WaveFrontAsset::GetNumVertices() { return SizeCast<u32>(m_selfData->m_vertices.size()); }
-    IFRIT_APIDECL Vec<u32> WaveFrontAsset::GetIndexBufferHost() { return m_selfData->m_indices; }
-    IFRIT_APIDECL Vec<Vector3f> WaveFrontAsset::GetVertexBufferHost() { return m_selfData->m_vertices; }
-
-    // Importer
-    IFRIT_APIDECL void          WaveFrontAssetImporter::ProcessMetadata(AssetMetadata& metadata)
+    IFRIT_APIDECL Mesh* WaveFrontAsset::GetMesh()
     {
-        metadata.m_importer = IMPORTER_NAME;
+
+        if (mImportedMesh == nullptr)
+        {
+            mImportedMesh                = MakeOwner<ImportedWaveFrontMesh>();
+            mImportedMesh->mResourcePath = mMetadata.mExternalPath;
+            mImportedMesh->LoadMeshUnsafe();
+        }
+        return mImportedMesh.get();
     }
 
-    IFRIT_APIDECL Vec<String> WaveFrontAssetImporter::GetSupportedExtensionNames() { return { ".obj" }; }
-
-    IFRIT_APIDECL void WaveFrontAssetImporter::ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata)
-    {
-        auto asset = MakeRef<WaveFrontAsset>(metadata, path);
-        m_assetManager->RegisterAsset(asset);
-        // iInfo("Imported asset: [WaveFrontMesh] {}", metadata.m_uuid);
-    }
+    IFRIT_APIDECL u32 ImportedWaveFrontMesh::GetNumIndices() { return SizeCast<u32>(m_selfData->m_indices.size()); }
+    IFRIT_APIDECL u32 ImportedWaveFrontMesh::GetNumVertices() { return SizeCast<u32>(m_selfData->m_vertices.size()); }
+    IFRIT_APIDECL Vec<u32> ImportedWaveFrontMesh::GetIndexBufferHost() { return m_selfData->m_indices; }
+    IFRIT_APIDECL Vec<Vector3f> ImportedWaveFrontMesh::GetVertexBufferHost() { return m_selfData->m_vertices; }
 
 } // namespace Ifrit::Runtime

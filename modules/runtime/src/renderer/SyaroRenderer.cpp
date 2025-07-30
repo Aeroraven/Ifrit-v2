@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <chrono>
 
 #include "ifrit.shader/Syaro/Syaro.SharedConst.h"
-
+#include "ifrit/runtime/renderer/SharedRenderResource.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include "ifrit/rhi/common/RhiStructHelper.h"
 

@@ -144,4 +144,4 @@ namespace Ifrit::Reflection
         }
     }
 
-} // namespace Ifrit::Reflection
+} // namespace Ifrit::Reflection

@@ -78,4 +78,13 @@ namespace Ifrit::Runtime::Geometry
     IFRIT_APIDECL Vec<u32> Circle2D::GetIndexBufferHost() { return m_SelfData->m_indices; }
     IFRIT_APIDECL Vec<Vector3f> Circle2D::GetVertexBufferHost() { return m_SelfData->m_vertices; }
 
-} // namespace Ifrit::Runtime::Geometry
+    IFRIT_APIDECL Mesh*         Circle2DAsset::GetMesh()
+    {
+        if (mMesh == nullptr)
+        {
+            mMesh = MakeOwner<Circle2D>(mRadius, mDivisions);
+        }
+        return mMesh.get();
+    }
+
+} // namespace Ifrit::Runtime::Geometry

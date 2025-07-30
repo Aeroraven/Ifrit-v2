@@ -96,7 +96,7 @@ namespace Ifrit::Runtime
     };
 
     
-    class IFRIT_APIDECL Mesh : public AssetReferenceContainer, public IAssetCompatible
+    class IFRIT_APIDECL Mesh
     {
         using GPUBuffer = RHI::RhiBufferRef;
         using GPUBindId = RHI::RhiDescHandleLegacy;
@@ -213,7 +213,6 @@ namespace Ifrit::Runtime
 
         virtual Ref<MeshData> GetBaseMesh();
 
-        IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
     };
 
     // This subjects to change. It's only an alleviation for the coupled design of

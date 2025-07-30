@@ -62,7 +62,7 @@ namespace Ifrit::Runtime::Artemis
             m_ActiveScene->GetPerFrameData()->m_ExtraData[Internal::kArtemisSceneDataKey]);
 
         m_RDGColliderDataBuffer =
-            &builder.ImportBuffer("ArtemisColliderDataBuffer", physicsData->m_GpuColliderDataBuffer.get());
+            &builder.ImportBuffer("ArtemisColliderDataBuffer", physicsData->m_GpuColliderDataBuffer[physicsData->m_FrameId%2].get());
         m_RDGColliderDataRuntimeBuffer = &builder.ImportBuffer(
             "ArtemisColliderDataBufferRuntime", physicsData->m_GpuColliderDataBufferRuntime.get());
 

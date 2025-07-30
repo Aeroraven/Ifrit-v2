@@ -79,7 +79,7 @@ namespace Ifrit::Runtime
     public:
         ShaderEffectType                                     m_type = ShaderEffectType::Graphics;
         Vec<Shader*>                                         m_shaders;
-        Vec<AssetReference>                                  m_shaderReferences;
+        Vec<AssetReferenceId>                                  m_shaderReferences;
         CustomHashMap<PipeConfig, DrawPass*, PipeConfigHash> m_drawPasses;
         ComputePass*                                         m_computePass = nullptr;
 
@@ -105,15 +105,14 @@ namespace Ifrit::Runtime
             size_t hash = 0;
             for (const auto& ref : effect.m_shaderReferences)
             {
-                hash ^= std::hash<String>()(ref.m_GUID.ToString());
+                hash ^= std::hash<String>()(ref.mGuid.ToString());
             }
             return hash;
         }
     };
 
-    class IFRIT_APIDECL Material : public IAssetCompatible
+    class IFRIT_APIDECL Material
     {
-
     public:
         String                                                m_name;
         String                                                m_uuid;

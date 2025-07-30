@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/postprocessing/PostFxStockhamDFT2.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include "ifrit/core/logging/Logging.h"
+#include "ifrit/runtime/renderer/SharedRenderResource.h"
 namespace Ifrit::Runtime::PostprocessPassCollection
 {
 

@@ -65,6 +65,25 @@ namespace Ifrit::Display::Window
             }
         };
         glfwSetKeyCallback(window, keyFunc);
+        auto mousePositionFunc = [](GLFWwindow* window, double xpos, double ypos) {
+            auto s    = static_cast<GLFWWindowProvider*>(glfwGetWindowUserPointer(window));
+            auto func = s->mousePositionCallBack;
+            if (func)
+            {
+                func(xpos, ypos);
+            }
+        };
+        glfwSetCursorPosCallback(window, mousePositionFunc);
+        auto mouseButtonFunc = [](GLFWwindow* window, int button, int action, int mods) {
+            auto s    = static_cast<GLFWWindowProvider*>(glfwGetWindowUserPointer(window));
+            auto func = s->mouseButtonCallBack;
+            if (func)
+            {
+                func(button, action, mods);
+            }
+        };
+        glfwSetMouseButtonCallback(window, mouseButtonFunc);
+
         if (!window)
         {
             glfwTerminate();
@@ -154,6 +173,14 @@ namespace Ifrit::Display::Window
     IFRIT_APIDECL void GLFWWindowProvider::RegisterKeyCallback(std::function<void(int, int, int, int)> x)
     {
         keyCallBack = x;
+    }
+    IFRIT_APIDECL void GLFWWindowProvider::RegisterMousePostionCallback(std::function<void(double, double)> x)
+    {
+        mousePositionCallBack = x;
+    }
+    IFRIT_APIDECL void GLFWWindowProvider::RegisterMouseButtonCallback(std::function<void(int, int, int)> x)
+    {
+        mouseButtonCallBack = x;
     }
 
     IFRIT_APIDECL std::pair<uint32_t, uint32_t> GLFWWindowProvider::GetFramebufferSize()

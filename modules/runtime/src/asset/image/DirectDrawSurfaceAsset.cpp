@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/common/Pch.h"
-#include "ifrit/runtime/assetmanager/DirectDrawSurfaceAsset.h"
+#include "ifrit/runtime/asset/image/DirectDrawSurfaceAsset.h"
 #include "ifrit/core/logging/Logging.h"
 #include <fstream>
 
@@ -233,36 +233,13 @@ namespace Ifrit::Runtime
         return tex;
     }
 
-    IFRIT_APIDECL DirectDrawSurfaceAsset::DirectDrawSurfaceAsset(
-        AssetMetadata metadata, std::filesystem::path path, IApplication* app)
-        : TextureAsset(metadata, path), m_app(app)
-    {
-        // Pass
-    }
-
     IFRIT_APIDECL RHI::RhiTextureRef DirectDrawSurfaceAsset::GetTexture()
     {
         if (m_texture == nullptr)
         {
-            m_texture = parseDDS(m_path, m_app);
+            m_texture = parseDDS(mMetadata.mExternalPath, m_app);
         }
         return m_texture;
-    }
-
-    // Importer
-    IFRIT_APIDECL void DirectDrawSurfaceAssetImporter::ProcessMetadata(AssetMetadata& metadata)
-    {
-        metadata.m_importer = IMPORTER_NAME;
-    }
-
-    IFRIT_APIDECL Vec<String> DirectDrawSurfaceAssetImporter::GetSupportedExtensionNames() { return { ".dds" }; }
-
-    IFRIT_APIDECL void        DirectDrawSurfaceAssetImporter::ImportAsset(
-        const std::filesystem::path& path, AssetMetadata& metadata)
-    {
-        auto asset = MakeRef<DirectDrawSurfaceAsset>(metadata, path, m_assetManager->GetApplication());
-        m_assetManager->RegisterAsset(asset);
-        // IF_LOG_INFO("DDSAsset","Imported asset: [DDSTexture] {}", metadata.m_uuid);
     }
 
 } // namespace Ifrit::Runtime

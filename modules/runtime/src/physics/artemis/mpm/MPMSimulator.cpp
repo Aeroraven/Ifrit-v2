@@ -78,6 +78,7 @@ namespace Ifrit::Runtime::Artemis
     struct MPMSimulatorPrivateData
     {
         u32                                        m_FrameId            = 0;
+        u32                                        m_RigidFrameId       = 0;
         f32                                        m_ParticleRenderSize = 1.0f;
         static IF_CONSTEXPR u32                    kDefaultTGX          = IfritShader::Artemis::MPM::kMpmTGSizeX;
 
@@ -106,6 +107,7 @@ namespace Ifrit::Runtime::Artemis
         RhiBufferRef                               m_RigidContactList;
         RhiBufferRef                               m_RigidBoundaryContactCounter;
         RhiBufferRef                               m_RigidBoundaryContactList;
+        RhiBufferRef                               m_RigidParticleContactIndBuffer;
 
         // RDG resources
         FGBufferNodeRef                            m_RDGParticleCount;
@@ -139,6 +141,7 @@ namespace Ifrit::Runtime::Artemis
         FGBufferNodeRef                            m_RDGRigidBoundaryContactList;
         FGBufferNodeRef                            m_RDGRigidColliders;
         FGBufferNodeRef                            m_RDGRigidDynamics;
+        FGBufferNodeRef                            m_RDGRigidParticleContactIndBuffer;
 
         // Transient data
         FGBufferNodeRef                            m_RDGValidGridCounter;
@@ -411,8 +414,8 @@ namespace Ifrit::Runtime::Artemis
         // TODO: another indirect dispatch buffer required for (rigid count>1)
 
         AddIndirectComputePass<PushConst>(builder, "MPMSimulator.PbMpmRigidCollectCollisionPairs",
-            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMRigidCollectCollisionPairsCS), *m_RDGParticleCount,
-            sizeof(u32), pc,
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMRigidCollectCollisionPairsCS),
+            *m_RDGRigidParticleContactIndBuffer, 0, pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
                 pc.m_ParticleCounter       = ctx.m_FgDesc->GetSRV(*m_RDGParticleCount);
                 pc.m_CollisionPairs        = ctx.m_FgDesc->GetUAV(*m_RDGRigidContactList);
@@ -431,6 +434,7 @@ namespace Ifrit::Runtime::Artemis
             .AddReadResource(*m_RDGRigidDynamics)
             .AddReadWriteResource(*m_RDGRigidContactList)
             .AddReadWriteResource(*m_RDGRigidContactCounter)
+            .AddReadResource(*m_RDGRigidParticleContactIndBuffer)
             .AddReadWriteResource(*m_RDGParticleColor);
     }
 
@@ -440,18 +444,27 @@ namespace Ifrit::Runtime::Artemis
         {
             RHI::RhiUAVDesc m_CollisionPairCounter;
             RHI::RhiUAVDesc m_BoundaryPairCounter;
+            RHI::RhiUAVDesc m_RigidParticleContactIndBuffer;
+            RHI::RhiUAVDesc m_ParticleCounters;
+            i32             m_NumRigids;
         } pc{};
+        pc.m_NumRigids = m_SceneData->m_NumGpuColliders;
 
         AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmRigidResetContactCounter",
             GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMRigidResetCollisionPairCounterCS), Vector3i(1, 1, 1),
             pc,
             [this](PushConst pc, const FrameGraphPassContext& ctx) {
-                pc.m_CollisionPairCounter = ctx.m_FgDesc->GetUAV(*m_RDGRigidContactCounter);
-                pc.m_BoundaryPairCounter  = ctx.m_FgDesc->GetUAV(*m_RDGRigidBoundaryContactCounter);
+                pc.m_CollisionPairCounter          = ctx.m_FgDesc->GetUAV(*m_RDGRigidContactCounter);
+                pc.m_BoundaryPairCounter           = ctx.m_FgDesc->GetUAV(*m_RDGRigidBoundaryContactCounter);
+                pc.m_RigidParticleContactIndBuffer = ctx.m_FgDesc->GetUAV(*m_RDGRigidParticleContactIndBuffer);
+                pc.m_ParticleCounters              = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+
                 SetRootConstant(pc, ctx);
             })
             .AddReadWriteResource(*m_RDGRigidContactCounter)
-            .AddReadWriteResource(*m_RDGRigidBoundaryContactCounter);
+            .AddReadWriteResource(*m_RDGRigidBoundaryContactCounter)
+            .AddReadWriteResource(*m_RDGRigidParticleContactIndBuffer)
+            .AddReadWriteResource(*m_RDGParticleCount);
     }
 
     void MPMSimulatorPrivateData::ParticleDrainAll(FrameGraphBuilder& builder)
@@ -1220,7 +1233,8 @@ namespace Ifrit::Runtime::Artemis
         auto boundarySz =
             SizeCast<u32>(sizeof(Shader::Artemis::FMPMRigidBoundaryContactPair) * m_Config->m_MaxContacts);
 
-        auto inddrawSz = sizeof(u32) * 4;
+        auto inddrawSz        = sizeof(u32) * 4;
+        auto indPartContactSz = sizeof(u32) * 3;
 
         auto defaultUsage  = RhiBufferUsage::RhiBufferUsage_SSBO | RhiBufferUsage::RhiBufferUsage_CopyDst;
         auto indexUsage    = defaultUsage | RhiBufferUsage::RhiBufferUsage_Index;
@@ -1270,6 +1284,8 @@ namespace Ifrit::Runtime::Artemis
 
         m_RenderParticleIndDrawBuffer =
             RHI->CreateBufferDevice("MPM_RenderParticleIndDraw", SizeCast<u32>(inddrawSz), indirectUsage, true);
+        m_RigidParticleContactIndBuffer =
+            RHI->CreateBufferDevice("MPM_ParticleContactInd", SizeCast<u32>(indPartContactSz), indirectUsage, true);
 
         PrepareInitialGPUData(RHI);
     }
@@ -1311,6 +1327,8 @@ namespace Ifrit::Runtime::Artemis
             &builder.ImportBuffer("MPM_BoundaryContactCounter", m_RigidBoundaryContactCounter.get());
         m_RDGRigidBoundaryContactList =
             &builder.ImportBuffer("MPM_BoundaryContactList", m_RigidBoundaryContactList.get());
+        m_RDGRigidParticleContactIndBuffer =
+            &builder.ImportBuffer("MPM_ParticleContactInd", m_RigidParticleContactIndBuffer.get());
 
         if (m_DebugRenderTarget)
         {
@@ -1320,8 +1338,8 @@ namespace Ifrit::Runtime::Artemis
         // PBMPM Rigid Coupling
         if (m_ShouldIntegrateRigids)
         {
-            m_RDGRigidColliders =
-                &builder.ImportBuffer("MPM_RigidColliders", m_SceneData->m_GpuColliderDataBuffer.get());
+            m_RDGRigidColliders = &builder.ImportBuffer(
+                "MPM_RigidColliders", m_SceneData->m_GpuColliderDataBuffer[m_RigidFrameId % 2].get());
             m_RDGRigidDynamics =
                 &builder.ImportBuffer("MPM_RigidDynamics", m_SceneData->m_GpuColliderDataBufferRuntime.get());
         }
@@ -1383,11 +1401,10 @@ namespace Ifrit::Runtime::Artemis
                     IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmSubstep");
                     if (m_ShouldIntegrateRigids)
                     {
-                        //PbMpmRigidResetContactCounter(builder);
-                        //PbMpmRigidCollectCollisionPairs(builder);
-                        //PbMpmRigidCollectBoundaryContactPairs(builder);
+                        PbMpmRigidResetContactCounter(builder);
+                        PbMpmRigidCollectCollisionPairs(builder);
+                        PbMpmRigidCollectBoundaryContactPairs(builder);
                     }
-                    PbMpmRigidLoadTransform(builder);
                     for (auto j = 0u; j < m_Config->m_PbMpmIterations; ++j)
                     {
                         bool isLastIteration  = (j == m_Config->m_PbMpmIterations - 1);
@@ -1402,8 +1419,8 @@ namespace Ifrit::Runtime::Artemis
                             PbMpmResolveConstraints(builder, deltaTimePerSubstep);
                             if (m_ShouldIntegrateRigids)
                             {
-                                //PbMpmRigidContactConstraintResolve(builder);
-                                //PbMpmRigidBoundaryConstraintResolve(builder);
+                                PbMpmRigidContactConstraintResolve(builder);
+                                PbMpmRigidBoundaryConstraintResolve(builder);
                             }
 
                             ParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
@@ -1767,8 +1784,9 @@ namespace Ifrit::Runtime::Artemis
             }
             else
             {
-                auto ptr            = perFrameData->m_ExtraData[Internal::kArtemisSceneDataKey].get();
-                m_Data->m_SceneData = static_cast<ArtemisSceneData*>(ptr);
+                auto ptr               = perFrameData->m_ExtraData[Internal::kArtemisSceneDataKey].get();
+                m_Data->m_SceneData    = static_cast<ArtemisSceneData*>(ptr);
+                m_Data->m_RigidFrameId = m_Data->m_SceneData->m_FrameId;
             }
         }
     }

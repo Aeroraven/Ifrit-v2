@@ -1,30 +1,18 @@
-
-/*
-Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
-
+#include "ifrit/runtime/application/Subsystem.h"
 #include "ifrit/runtime/forwarding/FwdBase.h"
 #include "ifrit/runtime/base/Base.h"
 
 namespace Ifrit::Runtime
 {
-    enum class InputKeyCode
+    enum class EInputMouseButton : u8
+    {
+        Left   = 1,
+        Right  = 2,
+        Middle = 3
+    };
+    enum class EInputKeyCode
     {
         Space        = 32,
         Num0         = 48,
@@ -135,7 +123,7 @@ namespace Ifrit::Runtime
         Menu         = 348
     };
 
-    class IFRIT_RUNTIME_API InputSystem
+    class IFRIT_RUNTIME_API InputSystem : public ISubsystem
     {
     private:
         struct KeyStatus
@@ -148,18 +136,35 @@ namespace Ifrit::Runtime
             Released = 0
         };
         Array<KeyStatus, 349> m_keyStatus;
+        Array<KeyStatus, 3>   mMouseButtonStatus;
         IApplication*         m_app;
+        float                 mMouseX = 0.0f;
+        float                 mMouseY = 0.0f;
 
     public:
-        InputSystem(IApplication* app);
         virtual ~InputSystem();
-        bool IsKeyPressed(InputKeyCode key) { return m_keyStatus[static_cast<int>(key)].stat == 1; }
-        bool IsKeyReleased(InputKeyCode key) { return m_keyStatus[static_cast<int>(key)].stat == 0; }
-        void OnFrameUpdate();
-        void UpdateKeyStatus(u32 key, u8 status) { m_keyStatus[key].stat = status; }
 
-    private:
-        void Init();
+        bool                                  IsKeyPressed(EInputKeyCode key);
+        bool                                  IsKeyReleased(EInputKeyCode key);
+        bool                                  IsMouseButtonPressed(EInputMouseButton button);
+        bool                                  IsMouseButtonReleased(EInputMouseButton button);
+        float                                 GetMouseX() const;
+        float                                 GetMouseY() const;
+
+        void                                  OnFrameUpdate();
+        void                                  UpdateKeyStatus(u32 key, u8 status);
+        void                                  UpdateMousePosition(float x, float y);
+        void                                  UpdateMouseButtonStatus(u32 button, u8 status);
+
+        virtual void                          OnInitialize(IApplication* app) override;
+        virtual void                          OnShutdown() override;
+        virtual void                          OnFrameBegin() override;
+        virtual void                          OnFrameEnd() override;
+        virtual Owner<RHI::RhiTaskSubmission> OnPreRendering(RHI::RhiTaskSubmission* prevSubmission) override;
+        virtual Owner<RHI::RhiTaskSubmission> OnPostRendering(RHI::RhiTaskSubmission* prevSubmission) override;
+        virtual void                          OnUpdate(Scene* scene) override;
+
+        static Owner<InputSystem>             Create();
     };
 
 } // namespace Ifrit::Runtime
