@@ -24,6 +24,12 @@ namespace Ifrit::Reflection
         Fn<void(const char* name, T& value, Fn<bool()> predicate)> mColorCallback = nullptr;
     };
 
+    class FunctionUIHandle
+    {
+    public:
+        Fn<void(const char* name, Fn<void()>)> mFunctionCallback = nullptr;
+    };
+
     struct PropertyAuxHandles
     {
         Fn<void()> m_OnPreRegister  = nullptr;
@@ -31,6 +37,7 @@ namespace Ifrit::Reflection
     };
 
     template <typename T> IFRIT_CORE_API PropertyUIHandle<T>& GetPropertyUIHandleImpl();
+    IFRIT_CORE_API FunctionUIHandle&                          GetFunctionUIHandle();
     IFRIT_CORE_API PropertyAuxHandles&                        GetPropertyUIAuxHandles();
 
     template <typename T>

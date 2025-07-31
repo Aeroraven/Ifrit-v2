@@ -34,6 +34,12 @@ namespace Ifrit::Runtime
     {
     public:
         IF_PROPERTY()
+        String mName;
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
         Vec<SceneNodeId> mChildren;
 
         IF_PROPERTY()
@@ -45,10 +51,10 @@ namespace Ifrit::Runtime
 
     public:
         SceneNode();
-        SceneNode(Scene* parentScene) : m_Parent(parentScene){};
+        SceneNode(Scene* parentScene) : m_Parent(parentScene) {};
         virtual ~SceneNode() = default;
 
-        SceneNode*              AddChildNode();
+        SceneNode*              AddChildNode(const String& name);
         GameObject*             AddGameObject(const String& name);
         GameObject*             AddGameObjectTransferred(GameObject* obj);
 
@@ -56,11 +62,15 @@ namespace Ifrit::Runtime
         inline GameObject*      GetGameObject(u32 x) { return m_GameObjects.at(x); }
         Vec<SceneNode*>         GetChildren();
         inline Vec<GameObject*> GetGameObjects() { return m_GameObjects; }
+        inline GUID             GetGUID() const { return mGuid; }
+        inline String           GetName() const { return mName; }
 
         void                    OnComponentStart();
         void                    OnComponentAwake();
         void                    OnUpdate();
         void                    OnFixedUpdate();
+
+        friend class Scene;
     };
 
     class IFRIT_APIDECL IF_CLASS() Scene : public IComponentManagerKeeper
@@ -91,11 +101,12 @@ namespace Ifrit::Runtime
         SceneNode*         GetRootNode();
         Camera*            GetMainCamera();
 
-        u32                AllocateSceneNode();
+        u32                AllocateSceneNode(const String& name);
         SceneNode*         GetSceneNode(u32 id);
 
-        SceneNode*         AddSceneNode();
+        SceneNode*         AddSceneNode(const String& name);
         Vec<GameObject*>   FilterObjects(Fn<bool(GameObject*)> filter);
+        Vec<SceneNode*>    FilterNodes(Fn<bool(SceneNode*)> filter);
 
         void               OnComponentStart();
         void               OnComponentAwake();

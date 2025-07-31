@@ -15,7 +15,7 @@ namespace Ifrit::Editor::Internal
         SceneNode,
     };
 
-    String GetComponentIcon(String typeName)
+    inline String GetComponentIcon(String typeName)
     {
         static HashMap<String, String> iconMap = {
             { "Transform", ICON_FA_COMPASS_DRAFTING },
@@ -33,7 +33,7 @@ namespace Ifrit::Editor::Internal
         return ICON_FA_GEARS;
     }
 
-    String GetGameObjectIcon(EGameObjectType type)
+    inline String GetGameObjectIcon(EGameObjectType type)
     {
         switch (type)
         {

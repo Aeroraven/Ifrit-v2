@@ -7,11 +7,19 @@
 
 namespace Ifrit::Runtime::Artemis
 {
+    enum class EMPMParticleEmitterTriggerType : u8
+    {
+        Immediate = 0,
+        Periodic  = 1
+    };
 
     struct MPMParticleEmitterPrivateData;
     class IFRIT_RUNTIME_API IF_CLASS() MPMParticleEmitter : public Component
     {
     public:
+        IF_PROPERTY(Editable, UISelect)
+        EMPMParticleEmitterTriggerType mEmitTriggerType = EMPMParticleEmitterTriggerType::Periodic;
+
         IF_PROPERTY(Editable, UISelect)
         MPMSimulatorParticleType mEmitMaterialType = MPMSimulatorParticleType::Fluid;
 
@@ -42,6 +50,10 @@ namespace Ifrit::Runtime::Artemis
         MPMParticleEmitArgs GetEmitArgs();
         Vec<Vector2f>       GetEmitParticlePosition2D();
         bool                ShouldEmitParticle(i32 frameIdx) const;
+
+    public:
+        void IF_FUNCTION()
+        ImmediateEmit();
     };
 
 } // namespace Ifrit::Runtime::Artemis

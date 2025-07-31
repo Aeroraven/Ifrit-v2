@@ -24,20 +24,23 @@
 #include "ifrit/core/reflection/Reflection.h"
 #include "ifrit/runtime/application/ApplicationState.h"
 
+#include "ifrit.internal/editor/imgui/ImGuiUtilities.h"
+
 namespace Ifrit::Editor
 {
     struct ImGuiProviderData
     {
-        Vec<String>     m_RegisteredGameObjects;
-        Vec<GUID>       m_RegisteredGameObjectsUUID;
-        i32             m_SelectedGameObjectIndex = -1;
-        GUID            m_ActiveGameObjectUUID;
+        Vec<String>                     m_RegisteredGameObjects;
+        Vec<GUID>                       m_RegisteredGameObjectsUUID;
+        i32                             m_SelectedGameObjectIndex = -1;
+        GUID                            m_ActiveGameObjectUUID;
 
-        VkDescriptorSet m_EditorSceneView = VK_NULL_HANDLE;
-        ImGuiID         m_DockspaceID     = 0;
-        bool            m_IsDockingSetup  = false;
+        VkDescriptorSet                 m_EditorSceneView = VK_NULL_HANDLE;
+        ImGuiID                         m_DockspaceID     = 0;
+        bool                            m_IsDockingSetup  = false;
 
-        f32             m_DpiScaler = 1.0f;
+        f32                             m_DpiScaler       = 1.0f;
+        ImGuiInternal::Inspector_Modals m_InspectorModals = {};
     };
 
     static VkFormat imguiColorAttachmentFormats[] = { VK_FORMAT_B8G8R8A8_SRGB };
@@ -47,34 +50,6 @@ namespace Ifrit::Editor
         if (err == VK_SUCCESS)
             return;
         IF_LOG_ASSERTION("Editor.ImGui", false, "ImGui Vulkan error: {}", (int)err);
-    }
-
-    template <typename T>
-    static void GeneralSelectableHandle(const char* label, T& value, const Vec<Pair<T, String>>& options)
-    {
-        String previewValue = "(Invalid)";
-        for (const auto& option : options)
-        {
-            if (option.first == value)
-            {
-                previewValue = option.second;
-                break;
-            }
-        }
-        if (ImGui::BeginCombo(label, previewValue.c_str()))
-        {
-            for (const auto& option : options)
-            {
-                bool isSelected = (value == option.first);
-                if (ImGui::Selectable(option.second.c_str(), isSelected))
-                {
-                    value = option.first;
-                }
-                if (isSelected)
-                    ImGui::SetItemDefaultFocus();
-            }
-            ImGui::EndCombo();
-        }
     }
 
     void PrintingLogs()
@@ -122,110 +97,6 @@ namespace Ifrit::Editor
         ImGui::SetScrollHereY(1.0f);
     }
 
-    static void RegisterSingleEditorHandle(const char* name, Fn<bool()> predicate, Fn<void()> handle)
-    {
-        ImGui::Text("%s", name);
-        ImGui::TableNextColumn();
-        ImGui::SetNextItemWidth(-FLT_MIN);
-        bool isActive = predicate();
-        if (!isActive)
-        {
-            ImGui::BeginDisabled();
-        }
-        handle();
-        if (!isActive)
-        {
-            ImGui::EndDisabled();
-        }
-    }
-
-    static void RegisterEditorHandles(ImGuiProvider* provider)
-    {
-        // Aux
-        auto& handles           = Reflection::GetPropertyUIAuxHandles();
-        handles.m_OnPreRegister = []() {
-            ImGui::TableNextRow();
-            ImGui::TableNextColumn();
-        };
-        handles.m_OnPostRegister = []() {};
-
-        // Float32
-        auto& f32Handles            = Reflection::GetPropertyUIHandle<f32>();
-        f32Handles.mSliderCallback = [](const char* name, f32& value, f32 min, f32 max, 
-                                          Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(name, predicate, [&]() {
-                ImGui::SliderFloat(
-                    (String("##") + name).c_str(), &value, min, max, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-            });
-        };
-        f32Handles.mTextCallback = [](const char* name, f32& value, Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(name, predicate,
-                [&]() { ImGui::InputFloat((String("##") + name).c_str(), &value, 0.0f, 0.0f, "%.3f"); });
-        };
-
-        // Int32
-        auto& i32Handles            = Reflection::GetPropertyUIHandle<i32>();
-        i32Handles.mSliderCallback = [](const char* name, i32& value, i32 min, i32 max,
-                                          Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(
-                name, predicate, [&]() { ImGui::SliderInt((String("##") + name).c_str(), &value, min, max); });
-        };
-
-        i32Handles.mTextCallback = [](const char* name, i32& value, Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(
-                name, predicate, [&]() { ImGui::InputInt((String("##") + name).c_str(), &value); });
-        };
-
-        // Vector3f
-        auto& v3fHandles          = Reflection::GetPropertyUIHandle<Vector3f>();
-        v3fHandles.mTextCallback = [](const char* name, Vector3f& value, Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(
-                name, predicate, [&]() { ImGui::InputFloat3((String("##") + name).c_str(), &value.x, "%.4f"); });
-        };
-
-        // Vector4f
-        auto& v4fHandles          = Reflection::GetPropertyUIHandle<Vector4f>();
-        v4fHandles.mTextCallback = [](const char* name, Vector4f& value, Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(
-                name, predicate, [&]() { ImGui::InputFloat4((String("##") + name).c_str(), &value.x, "%.4f"); });
-        };
-
-        v4fHandles.mColorCallback = [](const char* name, Vector4f& value, Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(name, predicate,
-                [&]() { ImGui::ColorEdit4((String("##") + name).c_str(), &value.x, ImGuiColorEditFlags_NoInputs); });
-        };
-
-        // Int8
-        auto& i8Handles            = Reflection::GetPropertyUIHandle<i8>();
-        i8Handles.mSelectCallback = [](const char* name, i8& value, Vec<Pair<i8, String>> options,
-                                         Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(
-                name, predicate, [&]() { GeneralSelectableHandle<i8>((String("##") + name).c_str(), value, options); });
-        };
-
-        // UInt8
-        auto& u8Handles           = Reflection::GetPropertyUIHandle<u8>();
-        u8Handles.mSelectCallback = [](const char* name, u8& value, Vec<Pair<u8, String>> options,
-                                         Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(
-                name, predicate, [&]() { GeneralSelectableHandle<u8>((String("##") + name).c_str(), value, options); });
-        };
-
-        // Bool
-        auto& boolHandles            = Reflection::GetPropertyUIHandle<bool>();
-        boolHandles.mSelectCallback = [](const char* name, bool& value, Vec<Pair<bool, String>> options,
-                                           Fn<bool()> predicate) {
-            RegisterSingleEditorHandle(name, predicate, [&]() {
-                auto Id = (String("##") + name).c_str();
-                ImGui::PushID(Id);
-                ImGui::PushID(&value);
-                ImGui::Checkbox(Id, &value);
-                ImGui::PopID();
-                ImGui::PopID();
-            });
-        };
-    }
-
     static VkPipelineRenderingCreateInfoKHR GetImGuiRenderingInfo()
     {
         VkPipelineRenderingCreateInfoKHR info = {};
@@ -237,23 +108,6 @@ namespace Ifrit::Editor
         info.stencilAttachmentFormat          = VK_FORMAT_UNDEFINED;
         info.viewMask                         = 0;
         return info;
-    }
-
-    void RenderGameObjectListBox(ImGuiProviderData* data)
-    {
-        if (ImGui::BeginListBox("##GameObjectList"))
-        {
-            for (size_t i = 0; i < data->m_RegisteredGameObjects.size(); ++i)
-            {
-                const bool isSelected = (data->m_SelectedGameObjectIndex == (i32)i);
-                if (ImGui::Selectable(data->m_RegisteredGameObjects[i].c_str(), isSelected))
-                {
-                    data->m_SelectedGameObjectIndex = (i32)i;
-                    data->m_ActiveGameObjectUUID    = data->m_RegisteredGameObjectsUUID[i];
-                }
-            }
-            ImGui::EndListBox();
-        }
     }
 
     void RenderGameObjectTreeView(ImGuiProviderData* data, Runtime::Scene* scene)
@@ -269,7 +123,7 @@ namespace Ifrit::Editor
             [&](Runtime::SceneNode* node) {
                 if (node)
                 {
-                    String nodeName = "SceneNode";
+                    String nodeName = node->GetName();
                     String displayName =
                         Internal::GetGameObjectIcon(Internal::EGameObjectType::SceneNode) + " " + nodeName;
                     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -282,6 +136,11 @@ namespace Ifrit::Editor
                     }
 
                     bool nodeOpen = ImGui::TreeNodeEx(displayName.c_str(), flags);
+                    if (ImGui::IsItemClicked())
+                    {
+                        data->m_SelectedGameObjectIndex = currentIndex;
+                        data->m_ActiveGameObjectUUID    = node->GetGUID();
+                    }
                     bool needsPop = nodeOpen && !(flags & ImGuiTreeNodeFlags_NoTreePushOnOpen);
                     nodeStack.push_back(needsPop);
                     return needsPop;
@@ -378,7 +237,8 @@ namespace Ifrit::Editor
 
         if (projectProperty.m_EnableDPIScaling)
         {
-            m_Data->m_DpiScaler = HAL::GetDisplayScale();
+            m_Data->m_DpiScaler                  = HAL::GetDisplayScale();
+            m_Data->m_InspectorModals.mDpiScaler = m_Data->m_DpiScaler;
         }
 
         ImGui::CreateContext();
@@ -427,7 +287,7 @@ namespace Ifrit::Editor
 
         ImGui_ImplVulkan_Init(&init_info);
 
-        RegisterEditorHandles(this);
+        ImGuiInternal::Inspector_RegisterEditingHandles();
     }
 
     IFRIT_APIDECL void ImGuiProvider::OnShutdown()
@@ -510,53 +370,25 @@ namespace Ifrit::Editor
         ImGui::End();
 
         ImGui::Begin("Inspector");
-        auto objects = scene->FilterObjects([](auto) { return true; });
+        auto objects    = scene->FilterObjects([](auto) { return true; });
+        auto sceneNodes = scene->FilterNodes([](auto) { return true; });
         m_Data->m_RegisteredGameObjects.clear();
         m_Data->m_RegisteredGameObjectsUUID.clear();
+        for (auto& node : sceneNodes)
+        {
+            auto UUID = node->GetGUID();
+            m_Data->m_RegisteredGameObjects.push_back(node->GetName());
+            m_Data->m_RegisteredGameObjectsUUID.push_back(UUID);
+            ImGuiInternal::Inspector_ShowSceneNodeProperties(
+                node, m_Data->m_ActiveGameObjectUUID, m_Data->m_InspectorModals);
+        }
         for (auto& obj : objects)
         {
             auto UUID = obj->GetUUID();
             m_Data->m_RegisteredGameObjects.push_back(obj->GetName());
             m_Data->m_RegisteredGameObjectsUUID.push_back(UUID);
-            if (UUID == m_Data->m_ActiveGameObjectUUID)
-            {
-                ImGui::Text("%s", obj->GetName().c_str());
-                ImGui::TextDisabled("UUID: %s", obj->GetUUID().ToString().c_str());
-                ImGui::Separator();
-                auto components = obj->GetAllComponents();
-                for (auto& component : components)
-                {
-                    auto   typeName      = GetDynamicTypeNameWithoutNamespace(component);
-                    auto   typeNamespace = GetDynamicTypeNamespace(component);
-                    auto   typeIcon      = Internal::GetComponentIcon(typeName);
-
-                    String displayHeader = typeIcon + " " + typeName;
-
-                    auto   isComponentMenuOpen = ImGui::CollapsingHeader(displayHeader.c_str());
-                    ImGui::SetItemTooltip("Component Namespace: %s", typeNamespace.c_str());
-                    if (isComponentMenuOpen)
-                    {
-                        float availableWidth = ImGui::GetContentRegionAvail().x;
-                        ImGui::PushID(component->GetGUID().ToString().c_str());
-                        auto maxRows   = component->GetNumVisibleProperties();
-                        f32  rowHeight = ImGui::GetTextLineHeightWithSpacing();
-                        f32  maxHeight = rowHeight * maxRows;
-                        if (ImGui::BeginTable("##properties", 2,
-                                ImGuiTableFlags_Resizable | ImGuiTableFlags_SizingStretchProp,
-                                ImVec2(availableWidth, maxHeight)))
-                        {
-                            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch, 0.4f);
-                            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 0.6f);
-                            ImGui::PushItemWidth(-1);
-                            component->CallPropertyEditorHandle();
-                            ImGui::PopItemWidth();
-                            ImGui::EndTable();
-                        }
-
-                        ImGui::PopID();
-                    }
-                }
-            }
+            ImGuiInternal::Inspector_ShowGameObjectProperties(
+                obj, m_Data->m_ActiveGameObjectUUID, m_Data->m_InspectorModals);
         }
         ImGui::End();
 
@@ -567,6 +399,11 @@ namespace Ifrit::Editor
         ImGui::Begin("Console");
         PrintingLogs();
         ImGui::End();
+
+        // Modals
+        ImGuiInternal::Inspector_ShowAddSceneNodeModal(m_Data->m_InspectorModals);
+        ImGuiInternal::Inspector_ShowAddGameObjectModal(m_Data->m_InspectorModals);
+        ImGuiInternal::Inspector_ShowComponentCreationPopup(m_Data->m_InspectorModals);
     }
 
     IFRIT_APIDECL Owner<RHI::RhiTaskSubmission> ImGuiProvider::OnPostRendering(RHI::RhiTaskSubmission* prevSubmission)

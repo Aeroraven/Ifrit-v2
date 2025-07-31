@@ -179,6 +179,8 @@ namespace Ifrit::Reflection
 
         // Ifrit::Runtime::SceneNode
         RegisterType<Ifrit::Runtime::SceneNode>();
+        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mName>("Name");
+        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mGuid>("Guid");
         RegisterPropertyField<&Ifrit::Runtime::SceneNode::mChildren>("Children");
         RegisterPropertyField<&Ifrit::Runtime::SceneNode::mGameObjectRefs>("Game Object Refs");
 
@@ -219,6 +221,9 @@ namespace Ifrit::Reflection
         // Ifrit::Runtime::Artemis::MPMParticleEmitter
         RegisterType<Ifrit::Runtime::Artemis::MPMParticleEmitter>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Artemis::MPMParticleEmitter, Ifrit::Runtime::Component>();
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitTriggerType>("Emit Trigger Type");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitTriggerType>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitTriggerType>("UISelect", "");
         RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaterialType>("Emit Material Type");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaterialType>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaterialType>("UISelect", "");
@@ -239,6 +244,7 @@ namespace Ifrit::Reflection
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("UISlider.min", (double)0.001);
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("UISlider.max", (double)5);
+        RegisterMethodField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::ImmediateEmit>("Immediate Emit");
 
         // Ifrit::Runtime::Artemis::MPMSimulatorConfigurator
         RegisterType<Ifrit::Runtime::Artemis::MPMSimulatorConfigurator>();
@@ -272,7 +278,7 @@ namespace Ifrit::Reflection
         RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("Enable Rigid Coupling");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("UISelect", "");
-        RegisterMethodField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::ClearScene>("ClearScene");
+        RegisterMethodField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::ClearScene>("Clear Scene");
 
         // Ifrit::Runtime::Ayanami::AyanamiMeshDF
         RegisterType<Ifrit::Runtime::Ayanami::AyanamiMeshDF>();
@@ -308,5 +314,8 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::MPMTiming>();
         RegisterPolymorphicRelation<Ifrit::MPMTiming, Ifrit::Runtime::ActorBehavior>();
         RegisterPropertyField<&Ifrit::MPMTiming::mInvTimestep>("Inv Timestep");
+        RegisterPropertyHint<&Ifrit::MPMTiming::mInvTimestep>("Editable", "");
+        RegisterPropertyHint<&Ifrit::MPMTiming::mInvTimestep>("UISlider.min", (double)60);
+        RegisterPropertyHint<&Ifrit::MPMTiming::mInvTimestep>("UISlider.max", (double)1000);
     }
 }

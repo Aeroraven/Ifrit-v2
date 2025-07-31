@@ -81,4 +81,14 @@ namespace Math{
         t = tValue;
         return true;
     }
-}}
+
+    float ProjectedPointOnLineUnbounded2D(float2 Point, float2 LineDir)
+    {
+        float2 LineDirNormalized = normalize(LineDir);
+        return dot(Point, LineDirNormalized);
+    }
+    float ProjectedPointOnLineUnbounded2DNorm(float2 Point, float2 LineDirNormalized)
+    {
+        return dot(Point, LineDirNormalized);
+    }
+}}

@@ -13,9 +13,9 @@
 
 namespace Ifrit::Reflection
 {
-    using ObjectImpl = Object;
-
-    using PropertyHintValueType = std::variant<i32, f64, String>;
+    using ObjectImpl                      = Object;
+    using PropertyHintValueType           = std::variant<i32, f64, String>;
+    template <typename T> using Reference = std::reference_wrapper<T>;
 
     struct FPropertyWrapper
     {
@@ -64,6 +64,7 @@ namespace Ifrit::Reflection
         String                                              Name;
         Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> Invoker;
         HashMap<String, PropertyHintValueType>              Hints;
+        Fn<void(ObjectImpl&)>                               UIHandle;
 
         ObjectImpl Invoke(ObjectImpl& obj, const Vec<ObjectImpl>& args) const { return Invoker(obj, args); }
     };
@@ -90,6 +91,7 @@ namespace Ifrit::Reflection
         FMetaTypeExtendedInfo        MetaInfo;
         bool                         Polymorphic = false;
         Vec<u64>                     BaseTypes;
+        Vec<u64>                     DerivedTypes;
 
         FReflTypeMetaInfo() = default;
         bool operator==(const FReflTypeMetaInfo& other) const { return Hash == other.Hash; }
@@ -166,7 +168,7 @@ namespace Ifrit::Reflection
                            Fn<void(ObjectImpl&)> uihandle);
     IFRIT_CORE_API void                    Internal_RegisterMethodField(const FReflTypeMetaInfo& typeInfo,
                            const FReflMethodMetaInfo& methodInfo, const String& methodName,
-                           Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> invoker);
+                           Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> invoker, Fn<void(ObjectImpl&)> uihandle);
 
     IFRIT_CORE_API ObjectImpl              Internal_GetProperty(TReflObject<ObjectImpl>& obj, u64 propertyHash);
     IFRIT_CORE_API HashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj);
@@ -177,10 +179,18 @@ namespace Ifrit::Reflection
     IFRIT_CORE_API void Internal_PropertyAddHint(
         u64 baseTypeHash, u64 propertyHash, const String& hintName, PropertyHintValueType value);
     IFRIT_CORE_API const PropertyMetadata& Internal_GetPropertyMetadata(u64 baseTypeHash, u64 propertyHash);
+    IFRIT_CORE_API Vec<Fn<ObjectImpl(const Vec<ObjectImpl>&)>> Internal_GetRegisteredFuncs(
+        TReflObject<ObjectImpl>& obj);
     IFRIT_CORE_API Vec<Fn<void()>> Internal_GetPropertyEditorHandles(TReflObject<ObjectImpl>& obj);
+    IFRIT_CORE_API Vec<Fn<void()>> Internal_GetMethodEditorHandles(TReflObject<ObjectImpl>& obj);
+
     IFRIT_CORE_API u32             Internal_GetNumVisibleProperties(TReflObject<ObjectImpl>& obj);
+    IFRIT_CORE_API u32             Internal_GetNumRegisteredFuncs(TReflObject<ObjectImpl>& obj);
     IFRIT_CORE_API ObjectImpl      Internal_InvokeMethod(
              TReflObject<ObjectImpl>& obj, u64 methodHash, const Vec<ObjectImpl>& args);
+    IFRIT_CORE_API const char* Internal_GetFunctionAlias(u64 typeHash, u64 methodHash);
+    IFRIT_CORE_API Vec<Reference<const FReflTypeMetaInfo>> Internal_GetAllDerivedTypes(
+        u64 baseTypeHash, bool includeBase);
 
     IFRIT_CORE_API void Internal_IgnoreNonVirtualInhertance();
     IFRIT_CORE_API void Internal_ReportWrongFunctionCall();
@@ -255,6 +265,29 @@ namespace Ifrit::Reflection
                 }
             };
         }
+        static Fn<void(ObjectImpl&)> GetUIHandle()
+        {
+
+            if constexpr (std::tuple_size<ArgTypes>::value == 0)
+            {
+                return [](ObjectImpl& obj) {
+                    auto funcHandle    = GetFunctionUIHandle();
+                    auto invoker       = GetMemberInvoker();
+                    auto propInfo      = FReflMethodMetaInfo::Create<Member>();
+                    auto typeHash      = FReflTypeMetaInfo::Create<ClassType>().Hash;
+                    auto invokeWrapped = [invoker, &obj]() -> void {
+                        Vec<ObjectImpl> args;
+                        invoker(obj, args);
+                    };
+                    const char* dispName = Internal_GetFunctionAlias(typeHash, propInfo.Hash);
+                    if (funcHandle.mFunctionCallback)
+                    {
+                        funcHandle.mFunctionCallback(dispName, invokeWrapped);
+                    }
+                };
+            }
+            return [](ObjectImpl& obj) {};
+        }
     };
 
     // Templates
@@ -298,10 +331,15 @@ namespace Ifrit::Reflection
 
         auto typeInfo   = FReflTypeMetaInfo::Create<typename Accessor::ClassType>();
         auto methodInfo = FReflMethodMetaInfo::Create<Member>();
-        Internal_RegisterMethodField(typeInfo, methodInfo, methodName, Accessor::GetMemberInvoker());
+        Internal_RegisterMethodField(
+            typeInfo, methodInfo, methodName, Accessor::GetMemberInvoker(), Accessor::GetUIHandle());
     }
 
-    inline TReflObject<ObjectImpl> ConstructObject(FMetaTypeInfo typeMeta) { return Internal_Construct(typeMeta.Hash); }
+    inline TReflObject<ObjectImpl> ConstructObject(const FMetaTypeInfo& typeMeta)
+    {
+        return Internal_Construct(typeMeta.Hash);
+    }
+    inline TReflObject<ObjectImpl> ConstructObjectFromHash(u64 typeHash) { return Internal_Construct(typeHash); }
     inline FPropertyWrapper        GetProperty(TReflObject<ObjectImpl>& obj, FMetaPropertyInfo propMeta)
     {
         return FPropertyWrapper(Internal_GetProperty(obj, propMeta.Hash));
@@ -336,6 +374,16 @@ namespace Ifrit::Reflection
     {
         return Internal_GetPropertyEditorHandles(obj);
     }
+    inline Vec<Fn<void()>> GetMethodEditorHandles(TReflObject<ObjectImpl>& obj)
+    {
+        return Internal_GetMethodEditorHandles(obj);
+    }
     inline u32 GetNumVisibleProperties(TReflObject<ObjectImpl>& obj) { return Internal_GetNumVisibleProperties(obj); }
+
+    template <typename T> inline Vec<Reference<const FReflTypeMetaInfo>> GetAllDerivedTypes(bool includeBase)
+    {
+        u64 baseTypeHash = FReflTypeMetaInfo::Create<T>().Hash;
+        return Internal_GetAllDerivedTypes(baseTypeHash, includeBase);
+    }
 
 } // namespace Ifrit::Reflection

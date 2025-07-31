@@ -87,7 +87,7 @@ namespace Ifrit
             }
 
             auto scene               = m_sceneAssetManager->CreateScene("TestScene2");
-            auto node                = scene->AddSceneNode();
+            auto node                = scene->AddSceneNode("MPMScene");
             m_FrameGraphResourcePool = MakeRef<FrameGraphResourcePool>(GetRhi());
 
             auto timeControl = node->AddGameObject("MPMTimeControl");
@@ -164,6 +164,12 @@ namespace Ifrit
 
             auto sceneSerialized = scene->Serialize();
             WriteTextFile("E:/Test.json", sceneSerialized);
+
+            auto p = Ifrit::Reflection::GetAllDerivedTypes<Runtime::Component>(true);
+            for (auto& type : p)
+            {
+                IF_LOG_DEBUG("Demo", "Component type: {}", type.get().Name);
+            }
         }
 
         void OnUpdate() override

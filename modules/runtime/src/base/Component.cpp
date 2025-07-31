@@ -114,6 +114,16 @@ namespace Ifrit::Runtime
         }
     }
 
+    IFRIT_APIDECL void Component::CallFunctionEditorHandle()
+    {
+        auto object    = Reflection::ReferenceObject(this);
+        auto uiHandles = Reflection::GetMethodEditorHandles(object);
+        for (auto& handle : uiHandles)
+        {
+            handle();
+        }
+    }
+
     IFRIT_APIDECL u32 Component::GetNumVisibleProperties() const
     {
         auto object = Reflection::ReferenceObject(const_cast<Component*>(this));
@@ -156,6 +166,22 @@ namespace Ifrit::Runtime
         mIdToTypeHash[id]        = typeHash;
     }
 
+    IFRIT_APIDECL ComponentReference ComponentManager::CreateComponentFromMeta(
+        GameObject* parentObject, const FMetaTypeInfo& metaTypeInfo)
+    {
+        auto typeHash = metaTypeInfo.Hash;
+        if (mComponentArray.count(typeHash) == 0)
+        {
+            mComponentArray[typeHash] = Vec<Owner<Component>>();
+        }
+        auto             retd = Reflection::ConstructObject(metaTypeInfo);
+        Owner<Component> ret;
+        retd.ObjectValue.ForcedReinterpretTransferTo(ret);
+        SetComponentId(ret.get(), SizeCast<u32>(mComponentArray[typeHash].size()), typeHash);
+        mComponentArray[typeHash].push_back(std::move(ret));
+        return { typeHash, SizeCast<u32>(mComponentArray[typeHash].size() - 1) };
+    }
+
     // GameObjectManager
     IFRIT_APIDECL u32 GameObjectManager::AllocateId()
     {
@@ -196,6 +222,18 @@ namespace Ifrit::Runtime
             return nullptr;
         }
         return mGameObjects[ref].get();
+    }
+
+    IFRIT_APIDECL void GameObject::AddComponentFromeMeta(const FMetaTypeInfo& metaTypeInfo)
+    {
+        auto componentRef = m_ComponentManager->CreateComponentFromMeta(this, metaTypeInfo);
+        auto typeHash     = metaTypeInfo.Hash;
+        if (mComponentsHashed.count(typeHash) > 0)
+        {
+            IF_LOG_CRITICAL("GameObject", "Component type name conflicted");
+            std::abort();
+        }
+        mComponentsHashed[typeHash] = componentRef.second;
     }
 
 } // namespace Ifrit::Runtime

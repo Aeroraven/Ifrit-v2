@@ -160,7 +160,7 @@ namespace Ifrit
         {
             constexpr auto funcionSignature = GetFuncNameToArray<T>();
             constexpr u64  firstPos         = GetOccurrencePositionRefined(funcionSignature, '<', 0) + 1;
-            constexpr u64  lastPos          = GetLastOccurrencePositionRefined(funcionSignature, '>');
+            constexpr u64  lastPos          = GetLastOccurrencePositionRefined(funcionSignature, '>') + 1;
             constexpr u64  length           = lastPos - firstPos;
             constexpr bool hasStructPrefix  = HasStructPrefix<firstPos>(funcionSignature);
             constexpr bool hasClassPrefix   = HasClassPrefix<firstPos>(funcionSignature);

@@ -130,7 +130,7 @@ namespace Ifrit::Runtime
         });
 
         pass.AddDepthTarget(rdgDepthBuffer);
-        pass.AddRenderTarget(rdgColorBuffer);
+        pass.AddRenderTarget(rdgColorBuffer, RhiRenderTargetLoadOp::Clear, (Vector4f(0.0f, 0.0f, 0.0f, 1.0f)));
 
         // End of forward pass
 

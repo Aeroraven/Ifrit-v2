@@ -83,6 +83,8 @@ namespace Ifrit::Runtime
             return { typeHash, SizeCast<u32>(mComponentArray[typeHash].size() - 1) };
         }
 
+        ComponentReference CreateComponentFromMeta(GameObject* parentObject, const FMetaTypeInfo& metaTypeInfo);
+
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
         T* GetComponentFromReference(ComponentReference ref)
         {
@@ -169,12 +171,13 @@ namespace Ifrit::Runtime
             auto typeHash     = TMetaTypeInfo<T>::Hash;
             if (mComponentsHashed.count(typeHash) > 0)
             {
-                // IF_LOG_ERROR("Component", "Component type name conflicted");
                 std::abort();
             }
             mComponentsHashed[typeHash] = componentRef.second;
             return m_ComponentManager->GetComponentFromReference<T>(componentRef);
         }
+
+        void AddComponentFromeMeta(const FMetaTypeInfo& metaTypeInfo);
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* GetComponent()
         {
@@ -241,6 +244,8 @@ namespace Ifrit::Runtime
 
     public:
         virtual void CallPropertyEditorHandle();
+        virtual void CallFunctionEditorHandle();
+
         inline u32   GetArrayIndex() const { return mArrayIndex; }
         inline u32   GetManagedIndex() const { return mManagedIndex; }
 

@@ -23,9 +23,9 @@ namespace Ifrit::Runtime
 {
     IFRIT_APIDECL            SceneNode::SceneNode() : m_Parent(nullptr) {}
 
-    IFRIT_APIDECL SceneNode* SceneNode::AddChildNode()
+    IFRIT_APIDECL SceneNode* SceneNode::AddChildNode(const String& name)
     {
-        auto nodeId = m_Parent->AllocateSceneNode();
+        auto nodeId = m_Parent->AllocateSceneNode(name);
         auto node   = m_Parent->GetSceneNode(nodeId);
         mChildren.push_back(nodeId);
         return node;
@@ -139,9 +139,11 @@ namespace Ifrit::Runtime
             }
         }
     }
-    IFRIT_APIDECL u32 Scene::AllocateSceneNode()
+    IFRIT_APIDECL u32 Scene::AllocateSceneNode(const String& name)
     {
-        auto node = MakeOwner<SceneNode>(this);
+        auto node   = MakeOwner<SceneNode>(this);
+        node->mGuid = GUID::Generate();
+        node->mName = name;
         mSceneNodes.push_back(std::move(node));
         return static_cast<u32>(mSceneNodes.size() - 1);
     }
@@ -162,7 +164,7 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL GameObjectManager* Scene::GetGameObjectManager() { return mGameObjectManager.get(); }
 
-    IFRIT_APIDECL SceneNode*         Scene::AddSceneNode() { return mRoot->AddChildNode(); }
+    IFRIT_APIDECL SceneNode*         Scene::AddSceneNode(const String& name) { return mRoot->AddChildNode(name); }
 
     IFRIT_APIDECL Camera*            Scene::GetMainCamera()
     {
@@ -208,6 +210,27 @@ namespace Ifrit::Runtime
                 {
                     result.push_back(obj);
                 }
+            }
+        }
+        return result;
+    }
+
+    IFRIT_APIDECL Vec<SceneNode*> Scene::FilterNodes(Fn<bool(SceneNode*)> filter)
+    {
+        Vec<SceneNode*> result;
+        Vec<SceneNode*> nodes;
+        nodes.push_back(mRoot.get());
+        while (!nodes.empty())
+        {
+            auto node = nodes.back();
+            nodes.pop_back();
+            if (filter(node))
+            {
+                result.push_back(node);
+            }
+            for (auto& child : node->GetChildren())
+            {
+                nodes.push_back(child);
             }
         }
         return result;

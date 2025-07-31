@@ -43,7 +43,7 @@ namespace Ifrit::Runtime
         m_Data->m_DefaultColorImage = rhi->CreateTexture2D(
             "Default_Color", rtWidth, rtHeight, RHI::RhiImageFormat::RhiImgFmt_R8G8B8A8_UNORM, colorImageUsage, false);
         m_Data->m_DefaultColorAttachment = rhi->CreateRenderTarget(m_Data->m_DefaultColorImage.get(),
-            RHI::CreateRhiClearColorValue(Vector4f(0.0f)), RHI::RhiRenderTargetLoadOp::Clear, 0, 0);
+            RHI::CreateRhiClearColorValue(Vector4f(0.0f, 0.0f, 0.0f, 1.0f)), RHI::RhiRenderTargetLoadOp::Clear, 0, 0);
         m_Data->m_DefaultDepthAttachment = rhi->CreateRenderTargetDepthStencil(m_Data->m_DefaultDepthImage.get(),
             RHI::CreateRhiClearDepthStencilValue(1.0f, 0), RHI::RhiRenderTargetLoadOp::Clear);
 
@@ -95,7 +95,7 @@ namespace Ifrit::Runtime
                         pc.m_SrcTex = ctx.m_FgDesc->GetSRV(*rdgSrcTex);
                         FrameGraphUtils::SetRootConstant(pc, ctx);
                     })
-                    .AddRenderTarget(*rdgRT, RHI::RhiRenderTargetLoadOp::Clear)
+                    .AddRenderTarget(*rdgRT, RHI::RhiRenderTargetLoadOp::Clear, Vector4f(0.0f, 0.0f, 0.0f, 1.0f))
                     .AddReadResource(*rdgSrcTex);
 
                 auto fg = m_Data->m_FrameGraphCompiler->Compile(builder);

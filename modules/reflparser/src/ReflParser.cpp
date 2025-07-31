@@ -75,6 +75,19 @@ namespace Ifrit::ReflParser
         }
         return result;
     }
+    std::string splitCamelCaseBig(const std::string& input)
+    {
+        std::ostringstream result;
+        for (size_t i = 0; i < input.size(); ++i)
+        {
+            if (i > 0 && std::isupper(input[i]) && std::islower(input[i - 1]))
+            {
+                result << ' '; // Add a space before uppercase letters (if not the first character)
+            }
+            result << input[i];
+        }
+        return result.str();
+    }
 
     // --- Clang Annotation Helpers ---
     bool hasIfritReflClassAnnotation(CXCursor cursor)
@@ -242,8 +255,8 @@ namespace Ifrit::ReflParser
                         const char* methodNameStr    = clang_getCString(methodName);
                         std::string methodNameString = methodNameStr ? methodNameStr : "<anonymous>";
                         LogInfo("Function: ", className.c_str(), "::", methodNameString.c_str());
-                        ctx.records.push_back(
-                            { RecordType::Function, className + "::" + methodNameString, methodNameString, nullptr });
+                        ctx.records.push_back({ RecordType::Function, className + "::" + methodNameString,
+                            splitCamelCaseBig(methodNameString), nullptr });
                         clang_disposeString(methodName);
                     }
                 }

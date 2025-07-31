@@ -27,4 +27,10 @@ namespace Ifrit::Reflection
         return handles;
     }
 
+    IFRIT_CORE_API FunctionUIHandle& GetFunctionUIHandle()
+    {
+        static FunctionUIHandle handle;
+        return handle;
+    }
+
 } // namespace Ifrit::Reflection

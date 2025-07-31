@@ -5,14 +5,16 @@ namespace Ifrit::Runtime::Artemis
 {
     struct MPMParticleEmitterPrivateData
     {
-        f32 m_ParticleDensity              = 1.0f;
-        f32 m_PbmpmParticleElasticityRatio = 0.5f;
-        f32 m_PbmpmParticleElasticityRelax = 1.5f;
-        f32 m_PbmpmParticleViscoFactor     = 0.1f;
-        f32 m_PbmpmParticleLiquidViscosity = 0.01f;
-        f32 m_PbmpmParticleLiquidRelax     = 1.5f;
-        f32 m_MpmYoungsModulus             = 50.0f;
-        f32 m_MpmPoissonRatio              = 0.3f;
+        f32  m_ParticleDensity              = 1.0f;
+        f32  m_PbmpmParticleElasticityRatio = 0.5f;
+        f32  m_PbmpmParticleElasticityRelax = 1.5f;
+        f32  m_PbmpmParticleViscoFactor     = 0.1f;
+        f32  m_PbmpmParticleLiquidViscosity = 0.01f;
+        f32  m_PbmpmParticleLiquidRelax     = 1.5f;
+        f32  m_MpmYoungsModulus             = 50.0f;
+        f32  m_MpmPoissonRatio              = 0.3f;
+
+        bool m_ImmediateEmit = false;
     };
 
     IFRIT_APIDECL MPMParticleEmitter::MPMParticleEmitter() : m_Data(new MPMParticleEmitterPrivateData()) {}
@@ -45,7 +47,18 @@ namespace Ifrit::Runtime::Artemis
 
     IFRIT_APIDECL bool MPMParticleEmitter::ShouldEmitParticle(i32 frameIdx) const
     {
-        return (frameIdx % mEmitInterval == 0);
+        if (m_Data->m_ImmediateEmit)
+        {
+            m_Data->m_ImmediateEmit = false;
+            return true;
+        }
+        if (mEmitTriggerType == EMPMParticleEmitterTriggerType::Periodic)
+        {
+            return (frameIdx % mEmitInterval == 0);
+        }
+        return false;
     }
+
+    void MPMParticleEmitter::ImmediateEmit() { m_Data->m_ImmediateEmit = true; }
 
 } // namespace Ifrit::Runtime::Artemis

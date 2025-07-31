@@ -14,7 +14,7 @@ namespace Ifrit
         using ActorBehavior::ActorBehavior;
 
     public:
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, UISlider = (min = 60.0, max = 1000.0))
         f32 mInvTimestep = kDefaultTimestep;
 
     private:

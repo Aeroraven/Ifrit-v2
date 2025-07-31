@@ -19,7 +19,7 @@ namespace Ifrit::Reflection
     {
 
         auto& manager = GetDynamicReflectionManager();
-        if (manager.TypeRegistry.count(typeInfo.Hash) > 0)
+        if (manager.TypeRegistry.count(typeInfo.Hash) > 0) IF_UNLIKELY
         {
             IF_LOG_WARNING("Reflector", "Type already registered: {}", typeInfo.Hash);
             return;
@@ -34,10 +34,11 @@ namespace Ifrit::Reflection
         if (manager.TypeRegistry.count(baseTypeHash) > 0 && manager.TypeRegistry.count(derivedTypeHash) > 0)
         {
             manager.TypeRegistry[derivedTypeHash].BaseTypes.push_back(baseTypeHash);
+            manager.TypeRegistry[baseTypeHash].DerivedTypes.push_back(derivedTypeHash);
             manager.TypeRegistry[derivedTypeHash].Polymorphic = true;
             manager.TypeRegistry[baseTypeHash].Polymorphic    = true;
         }
-        else
+        else IF_UNLIKELY
         {
             IF_LOG_CRITICAL("Reflector", "Base or derived type not registered for polymorphic relation: {} -> {}",
                 baseTypeHash, derivedTypeHash);
@@ -74,11 +75,9 @@ namespace Ifrit::Reflection
         auto  it   = manager.TypeRegistry.find(hash);
         if (it != manager.TypeRegistry.end())
         {
-
             const FReflTypeMetaInfo& typeInfo = it->second;
             if (typeInfo.Constructor)
             {
-
                 return { typeInfo.Constructor(), hash };
             }
         }
@@ -101,7 +100,7 @@ namespace Ifrit::Reflection
             manager.TypeRegistry[typeHash].PropertyFields[propInfo.Hash].UIHandle      = std::move(uihandle);
             manager.TypeRegistry[typeHash].PropertyFields[propInfo.Hash].Metadata.Name = propertyName;
         }
-        else
+        else IF_UNLIKELY
         {
 
             IF_LOG_CRITICAL("Reflector", "Type not registered for property field: {}", typeHash);
@@ -110,17 +109,18 @@ namespace Ifrit::Reflection
 
     IFRIT_CORE_API void Internal_RegisterMethodField(const FReflTypeMetaInfo& typeInfo,
         const FReflMethodMetaInfo& methodInfo, const String& methodName,
-        Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> invoker)
+        Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> invoker, Fn<void(ObjectImpl&)> uihandle)
     {
         auto& manager  = GetDynamicReflectionManager();
         u64   typeHash = typeInfo.Hash;
         auto  it       = manager.TypeRegistry.find(typeHash);
         if (it != manager.TypeRegistry.end())
         {
-            manager.TypeRegistry[typeHash].MethodFields[methodInfo.Hash].Name    = methodName;
-            manager.TypeRegistry[typeHash].MethodFields[methodInfo.Hash].Invoker = std::move(invoker);
+            manager.TypeRegistry[typeHash].MethodFields[methodInfo.Hash].Name     = methodName;
+            manager.TypeRegistry[typeHash].MethodFields[methodInfo.Hash].Invoker  = std::move(invoker);
+            manager.TypeRegistry[typeHash].MethodFields[methodInfo.Hash].UIHandle = std::move(uihandle);
         }
-        else
+        else IF_UNLIKELY
         {
             IF_LOG_CRITICAL("Reflector", "Type not registered for method field: {}", typeHash);
         }
@@ -138,12 +138,12 @@ namespace Ifrit::Reflection
                 auto& propertyField = it->second.PropertyFields[propertyHash];
                 return propertyField.Accessor(obj.ObjectValue);
             }
-            else
+            else IF_UNLIKELY
             {
                 IF_LOG_CRITICAL("Reflector", "Property not found: {}", propertyHash);
             }
         }
-        else
+        else IF_UNLIKELY
         {
             IF_LOG_CRITICAL("Reflector", "Type not registered for property access: {}", typeHash);
         }
@@ -162,15 +162,71 @@ namespace Ifrit::Reflection
                 auto& methodField = it->second.MethodFields[methodHash];
                 return methodField.Invoke(obj.ObjectValue, args);
             }
-            else
+            else IF_UNLIKELY
             {
                 IF_LOG_CRITICAL("Reflector", "Method not found: {}", methodHash);
             }
         }
-        else
+        else IF_UNLIKELY
         {
             IF_LOG_CRITICAL("Reflector", "Type not registered for method access: {}", typeHash);
         }
+    }
+
+    IFRIT_CORE_API const char* Internal_GetFunctionAlias(u64 typeHash, u64 methodHash)
+    {
+        auto& manager = GetDynamicReflectionManager();
+        auto  it      = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            if (it->second.MethodFields.count(methodHash) > 0)
+            {
+                auto& methodField = it->second.MethodFields[methodHash];
+                return methodField.Name.c_str();
+            }
+            else IF_UNLIKELY
+            {
+                IF_LOG_CRITICAL("Reflector", "Method not found for alias: {}", methodHash);
+            }
+        }
+        else IF_UNLIKELY
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for method alias retrieval: {}", typeHash);
+        }
+    }
+
+    IFRIT_CORE_API Vec<Reference<const FReflTypeMetaInfo>> Internal_GetAllDerivedTypes(
+        u64 baseTypeHash, bool includeBase)
+    {
+        auto&                                   manager = GetDynamicReflectionManager();
+        Vec<Reference<const FReflTypeMetaInfo>> result;
+        auto                                    it = manager.TypeRegistry.find(baseTypeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            if (includeBase)
+            {
+                result.push_back(std::cref(it->second));
+            }
+            for (u64 derivedTypeHash : it->second.DerivedTypes)
+            {
+                auto derivedIt = manager.TypeRegistry.find(derivedTypeHash);
+                if (derivedIt != manager.TypeRegistry.end())
+                {
+                    result.push_back(std::cref(derivedIt->second));
+                }
+                else IF_UNLIKELY
+                {
+                    IF_LOG_CRITICAL("Reflector", "Derived type not found: {}", derivedTypeHash);
+                }
+                auto subDerivedTypes = Internal_GetAllDerivedTypes(derivedTypeHash, false);
+                result.insert(result.end(), subDerivedTypes.begin(), subDerivedTypes.end());
+            }
+        }
+        else IF_UNLIKELY
+        {
+            IF_LOG_CRITICAL("Reflector", "Base type not registered for derived types retrieval: {}", baseTypeHash);
+        }
+        return result;
     }
 
     HashMap<u64, FPropertyField> GetPropertyListRecursive(u64 typeHash)
@@ -408,6 +464,103 @@ namespace Ifrit::Reflection
         {
             IF_LOG_CRITICAL("Reflector", "Type not registered for property editor handles: {}", typeHash);
         }
+    }
+
+    Vec<Fn<void()>> Internal_GetMethodEditorHandlesRecursive(u64 typeHash, TReflObject<ObjectImpl>& obj)
+    {
+        auto&           manager = GetDynamicReflectionManager();
+        Vec<Fn<void()>> handles;
+        auto            it = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            const FReflTypeMetaInfo& typeInfo = it->second;
+            for (const auto& [_, method] : typeInfo.MethodFields)
+            {
+                if (method.UIHandle)
+                {
+                    handles.push_back([method, &obj]() { method.UIHandle(obj.ObjectValue); });
+                }
+            }
+
+            for (u64 baseTypeHash : typeInfo.BaseTypes)
+            {
+                auto baseHandles = Internal_GetMethodEditorHandlesRecursive(baseTypeHash, obj);
+                handles.insert(handles.end(), baseHandles.begin(), baseHandles.end());
+            }
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for method editor handles: {}", typeHash);
+        }
+        return handles;
+    }
+
+    IFRIT_CORE_API Vec<Fn<void()>> Internal_GetMethodEditorHandles(TReflObject<ObjectImpl>& obj)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = obj.TypeHash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            const FReflTypeMetaInfo& typeInfo = it->second;
+            Vec<Fn<void()>>          handles;
+            for (const auto& [_, method] : typeInfo.MethodFields)
+            {
+                if (method.UIHandle)
+                {
+                    handles.push_back([method, &obj]() { method.UIHandle(obj.ObjectValue); });
+                }
+            }
+            for (u64 baseTypeHash : typeInfo.BaseTypes)
+            {
+                auto baseHandles = Internal_GetMethodEditorHandlesRecursive(baseTypeHash, obj);
+                handles.insert(handles.end(), baseHandles.begin(), baseHandles.end());
+            }
+            return handles;
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for method editor handles: {}", typeHash);
+        }
+    }
+
+    IFRIT_CORE_API Vec<Fn<ObjectImpl(const Vec<ObjectImpl>&)>> Internal_GetRegisteredFuncs(TReflObject<ObjectImpl>& obj)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = obj.TypeHash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            const FReflTypeMetaInfo&                    typeInfo = it->second;
+            Vec<Fn<ObjectImpl(const Vec<ObjectImpl>&)>> funcs;
+            for (const auto& [_, method] : typeInfo.MethodFields)
+            {
+                funcs.push_back(
+                    [method, &obj](const Vec<ObjectImpl>& args) { return method.Invoke(obj.ObjectValue, args); });
+            }
+            return funcs;
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for function retrieval: {}", typeHash);
+        }
+    }
+
+    IFRIT_CORE_API u32 Internal_GetNumRegisteredFuncs(TReflObject<ObjectImpl>& obj)
+    {
+        auto& manager  = GetDynamicReflectionManager();
+        u64   typeHash = obj.TypeHash;
+        auto  it       = manager.TypeRegistry.find(typeHash);
+        if (it != manager.TypeRegistry.end())
+        {
+            const FReflTypeMetaInfo& typeInfo = it->second;
+            return static_cast<u32>(typeInfo.MethodFields.size());
+        }
+        else
+        {
+            IF_LOG_CRITICAL("Reflector", "Type not registered for function count: {}", typeHash);
+        }
+        return 0;
     }
 
     IFRIT_CORE_API u32 Internal_GetNumVisibleProperties(TReflObject<ObjectImpl>& obj)
