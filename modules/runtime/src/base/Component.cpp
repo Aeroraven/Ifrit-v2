@@ -167,7 +167,7 @@ namespace Ifrit::Runtime
     }
 
     IFRIT_APIDECL ComponentReference ComponentManager::CreateComponentFromMeta(
-        GameObject* parentObject, const FMetaTypeInfo& metaTypeInfo)
+        GameObject* parentObject, const FMetaTypeInfo& metaTypeInfo, bool enabled)
     {
         auto typeHash = metaTypeInfo.Hash;
         if (mComponentArray.count(typeHash) == 0)
@@ -177,6 +177,7 @@ namespace Ifrit::Runtime
         auto             retd = Reflection::ConstructObject(metaTypeInfo);
         Owner<Component> ret;
         retd.ObjectValue.ForcedReinterpretTransferTo(ret);
+        ret->mEnabled = enabled;
         SetComponentId(ret.get(), SizeCast<u32>(mComponentArray[typeHash].size()), typeHash);
         mComponentArray[typeHash].push_back(std::move(ret));
         return { typeHash, SizeCast<u32>(mComponentArray[typeHash].size() - 1) };
@@ -224,9 +225,9 @@ namespace Ifrit::Runtime
         return mGameObjects[ref].get();
     }
 
-    IFRIT_APIDECL void GameObject::AddComponentFromeMeta(const FMetaTypeInfo& metaTypeInfo)
+    IFRIT_APIDECL void GameObject::AddComponentFromeMeta(const FMetaTypeInfo& metaTypeInfo, bool enabled)
     {
-        auto componentRef = m_ComponentManager->CreateComponentFromMeta(this, metaTypeInfo);
+        auto componentRef = m_ComponentManager->CreateComponentFromMeta(this, metaTypeInfo, enabled);
         auto typeHash     = metaTypeInfo.Hash;
         if (mComponentsHashed.count(typeHash) > 0)
         {

@@ -19,11 +19,10 @@ function(ifrit_add_demo_project DEMO_NAME)
     endif()
     
     # Collect source files
-    if(NOT DEMO_SOURCES)
-        file(GLOB_RECURSE DEMO_SOURCES 
-             "${DEMO_SOURCE_DIR}/*.cpp" 
-             "${DEMO_SOURCE_DIR}/*.c")
-    endif()
+    file(GLOB_RECURSE DEMO_SOURCES 
+        "${DEMO_SOURCE_DIR}/*.cpp" 
+        "${DEMO_SOURCE_DIR}/*.c"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include.generated/*.cpp")
     
     if(NOT DEMO_HEADERS)
         file(GLOB_RECURSE DEMO_HEADERS 
@@ -90,7 +89,7 @@ function(ifrit_add_demo_project DEMO_NAME)
         add_custom_target(${GENERATE_TARGET_NAME} ALL
             COMMAND ${IFRIT_REFLECTION_PARSER_BIN}
                 --input "${CMAKE_CURRENT_SOURCE_DIR}/include" 
-                --output "${CMAKE_CURRENT_SOURCE_DIR}/include.generated/${DEMO_NAME}.generated.h"
+                --output "${CMAKE_CURRENT_SOURCE_DIR}/include.generated/${DEMO_NAME}.generated"
             COMMENT "Generating core reflection code"
             VERBATIM
         )
@@ -103,4 +102,4 @@ function(ifrit_add_demo_project DEMO_NAME)
 
     
     message(STATUS "[Ifrit.Demo] Created demo target: ${DEMO_TARGET_NAME}")
-endfunction()
+endfunction()

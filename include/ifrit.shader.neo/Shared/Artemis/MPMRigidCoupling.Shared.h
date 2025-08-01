@@ -19,7 +19,16 @@ namespace IfritShader
         float4 m_ContactPointRigid; // in local space of rigid
         int    m_ParticleId;
         int    m_RigidId;
-        int    m_Pad;
+        int2   m_Pad;
+    };
+    struct FMPMRigidCouplingRigidContactPair
+    {
+        float4 m_ContactNormal;
+        float4 m_ContactPointRigid1;
+        float4 m_ContactPointRigid2;
+        int    m_RigidId1;
+        int    m_RigidId2;
+        int2   m_Pad;
     };
 
     struct FMPMRigidBoundaryContactPair
@@ -35,4 +44,4 @@ namespace IfritShader
         }
     }
 }
-#endif
+#endif

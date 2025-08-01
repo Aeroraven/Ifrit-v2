@@ -2,13 +2,13 @@
 #include "ifrit/runtime/base/EditorHandles.h"
 namespace Ifrit::Runtime
 {
-    void AssetReferenceId::GetUIEditingHandle(const Reflection::PropertyMetadata& propMeta)
+
+    IFRIT_APIDECL void AssetReferenceId::GetUIEditingHandle(const Reflection::PropertyMetadata& propMeta)
     {
-        IF_LOG_DEBUG("Test", "GetUIEditingHandle called for AssetReferenceId with type: {}", (u32)mType);
         auto& handles = GetRuntimeEditorHandles();
         if (handles.AssetReferenceHandle)
         {
-            handles.AssetReferenceHandle(*this);
+            handles.AssetReferenceHandle(propMeta.Name.c_str(), *this);
         }
     }
 } // namespace Ifrit::Runtime

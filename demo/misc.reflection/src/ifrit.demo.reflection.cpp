@@ -47,7 +47,7 @@ class Dog
 {
 public:
     DogBreed                     breed = DogBreed::Labrador;
-    Ifrit::GUID                  id;
+    int                  id;
     std::unique_ptr<Cat>         v  = std::make_unique<Tabby>();
     float                        q  = 1919810;
     std::unique_ptr<Cat>         nk = std::make_unique<Cat>();
@@ -70,7 +70,7 @@ int main()
     sv.fvck[1919].catd = 810;
     sv.q               = 11451519;
     sv.a[0].meow[2]    = 114514;
-    sv.id              = Ifrit::GUID::Generate();
+    sv.id              = 1;
 
     RegisterType<Cell>();
     RegisterType<Cat>();

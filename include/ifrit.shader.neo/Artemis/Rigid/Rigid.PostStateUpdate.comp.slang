@@ -45,41 +45,6 @@ namespace Rigid{
 #else
         //TODO: Add 3D rotation handling
 #endif
-        // v<-v+h*fext/m;
-        // dx<-dx+h*h*fext/(2*m);
-        FSpatialVector Gravity = ToSpatialVector(PushConst.m_Gravity);
-        FSpatialVector Accel = Gravity;
-        FSpatialVector Displacement = DynamicsData.m_Displacement;
-        Displacement += Accel * PushConst.m_DeltaTime * PushConst.m_DeltaTime * 0.5f;   
-
-        // q_prev<-q
-        DynamicsData.m_RotationLast = DynamicsData.m_Rotation;
-
-        // w<-w+h*inv(I)@(tau_ext-w.cross(I@w))
-        FAngularValue TauExt = ToAngularValue(PushConst.m_ExtMoment);
-        FAngularMatrix Inertia =  DynamicsData.m_InertiaTensor;
-        FAngularValue AngularVelocity = DynamicsData.m_AngularVelocity;
-        TauExt = TauExt - Math::Cross(AngularVelocity, Math::Mul(Inertia, AngularVelocity));
-
-        FAngularMatrix InertiaInv = Math::Inverse(Inertia);
-        FAngularValue DeltaW = Math::Mul(InertiaInv, TauExt) * PushConst.m_DeltaTime;
-        AngularVelocity += DeltaW;
-
-        // (3D) q<-q+h*0.5*QuatMul(<w.xyz,0>,q); && q<-norm(q)
-        // (2D) q<-q+h*w
-        FAngularRotation NewQ;
-#ifdef IFSHADER_RIGID_DYNAMICS_3D
-        Math::FQuaternion Wq = Math::ToQuaternion(float4(AngularVelocity.xyz, 0.0f));
-        Math::FQuaternion NewQTemp = Math::Mul(Wq, DynamicsData.m_Rotation);
-        NewQ = Math::Add(DynamicsData.m_Rotation,Math::Mul(PushConst.m_DeltaTime * 0.5f, NewQTemp));
-        NewQ = Math::Normalize(NewQ);
-#else   
-        NewQ = DynamicsData.m_Rotation + AngularVelocity * PushConst.m_DeltaTime;
-#endif
-    
-        DynamicsData.m_Rotation = NewQ;
-        DynamicsData.m_AngularVelocity = AngularVelocity;
-        DynamicsData.m_Displacement = Displacement;
         PushConst.m_ColliderDynamics.Store(DynamicsData, ColliderEntry.m_RuntimeId);
     }
 

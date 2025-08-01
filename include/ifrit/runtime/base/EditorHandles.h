@@ -6,7 +6,7 @@ namespace Ifrit::Runtime
 
     struct RuntimeEditorHandles
     {
-        Fn<void(AssetReferenceId&)> AssetReferenceHandle = nullptr;
+        Fn<void(const char*, AssetReferenceId&)> AssetReferenceHandle = nullptr;
     };
 
     IFRIT_RUNTIME_API RuntimeEditorHandles& GetRuntimeEditorHandles();

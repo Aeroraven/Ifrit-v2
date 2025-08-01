@@ -32,21 +32,6 @@ namespace Ifrit::Runtime
         PrefabExternal
     };
 
-    enum class EAssetType : u8
-    {
-        Unknown,
-        Texture,
-        Material,
-        Mesh,
-        Shader,
-        Scene,
-        Audio,
-        Script,
-        Font,
-        Animation,
-        Prefab
-    };
-
     struct IF_CLASS() AssetReferenceId
     {
         IF_PROPERTY()
@@ -72,7 +57,7 @@ namespace Ifrit::Runtime
             }
         }
 
-        void GetUIEditingHandle(const Reflection::PropertyMetadata& propMeta);
+        IFRIT_APIDECL void GetUIEditingHandle(const Reflection::PropertyMetadata& propMeta);
     };
 
     struct IF_CLASS() AssetMetadata

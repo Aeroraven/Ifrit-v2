@@ -83,7 +83,8 @@ namespace Ifrit::Runtime
             return { typeHash, SizeCast<u32>(mComponentArray[typeHash].size() - 1) };
         }
 
-        ComponentReference CreateComponentFromMeta(GameObject* parentObject, const FMetaTypeInfo& metaTypeInfo);
+        ComponentReference CreateComponentFromMeta(
+            GameObject* parentObject, const FMetaTypeInfo& metaTypeInfo, bool enabled);
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
         T* GetComponentFromReference(ComponentReference ref)
@@ -177,7 +178,7 @@ namespace Ifrit::Runtime
             return m_ComponentManager->GetComponentFromReference<T>(componentRef);
         }
 
-        void AddComponentFromeMeta(const FMetaTypeInfo& metaTypeInfo);
+        void AddComponentFromeMeta(const FMetaTypeInfo& metaTypeInfo, bool enabled);
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* GetComponent()
         {

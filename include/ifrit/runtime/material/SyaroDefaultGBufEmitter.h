@@ -17,10 +17,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 #include "ifrit/runtime/common/Pch.h"
-
+#include "ifrit/runtime/base/Base.h"
 #include "ifrit/runtime/forwarding/FwdBase.h"
 #include "ifrit/runtime/base/Material.h"
-
+#include "ifrit/runtime/asset/MaterialAsset.h"
 namespace Ifrit::Runtime
 {
 
@@ -50,4 +50,14 @@ namespace Ifrit::Runtime
     };
 
     using DefaultMaterial = SyaroDefaultGBufEmitter;
+
+    class IFRIT_RUNTIME_API IF_CLASS() DefaultMaterialAsset : public MaterialAsset
+    {
+    public:
+        using MaterialAsset::MaterialAsset;
+        virtual Material* GetMaterial() override;
+
+    private:
+        Owner<SyaroDefaultGBufEmitter> mMaterial;
+    };
 } // namespace Ifrit::Runtime

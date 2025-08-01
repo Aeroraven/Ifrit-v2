@@ -16,8 +16,9 @@ namespace Ifrit::Editor::ImGuiInternal
     struct Inspector_AddGameObjectModal
     {
         char                mNewGameObjectName[114];
-        bool                mPopupOpen  = false;
-        Runtime::SceneNode* mParentNode = nullptr;
+        bool                mPopupOpen    = false;
+        bool                mGPUTransform = false;
+        Runtime::SceneNode* mParentNode   = nullptr;
     };
 
     struct Inspector_ComponentCreationPopupConfig
@@ -27,6 +28,7 @@ namespace Ifrit::Editor::ImGuiInternal
         const Reflection::FReflTypeMetaInfo* SelectedComponentMeta = nullptr;
         Runtime::GameObject*                 mTargetGameObject     = nullptr;
         bool                                 PopupOpen             = false;
+        bool                                 NewComponentEnabled   = true;
     };
 
     struct Inspector_Modals
@@ -37,6 +39,7 @@ namespace Ifrit::Editor::ImGuiInternal
         float                                  mDpiScaler = 1.0f;
     };
 
+    IFRIT_EDITOR_API void Inspector_RegisterEditingHandles();
     IFRIT_EDITOR_API void Inspector_ShowGameObjectProperties(
         Runtime::GameObject* gameObject, GUID activeGuid, Inspector_Modals& config);
     IFRIT_EDITOR_API void Inspector_ShowSceneNodeProperties(
@@ -44,5 +47,4 @@ namespace Ifrit::Editor::ImGuiInternal
     IFRIT_EDITOR_API void Inspector_ShowAddSceneNodeModal(Inspector_Modals& config);
     IFRIT_EDITOR_API void Inspector_ShowAddGameObjectModal(Inspector_Modals& config);
     IFRIT_EDITOR_API void Inspector_ShowComponentCreationPopup(Inspector_Modals& config);
-    IFRIT_EDITOR_API void Inspector_RegisterEdit1ingHandles();
 } // namespace Ifrit::Editor::ImGuiInternal

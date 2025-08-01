@@ -21,7 +21,7 @@ namespace MPM{
         TStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
         FRWScalarHandle m_ParticleLiquidDensity;
         FPackedMatrixHandle m_ParticleDebug;
-
+        FRWSpatialVectorHandle m_ParticleVelocityOld; // For PBMPM-RigidCoupling (Displacement)
         float m_ViscoPlasticity;
     };
 
@@ -113,6 +113,7 @@ namespace MPM{
 
         PushConst.m_ParticleLocation.Store(ThreadId.x, NewParticleLocation);
         PushConst.m_ParticleVelocity.Store(ThreadId.x, OverallDisplacement);
+        PushConst.m_ParticleVelocityOld.Store(ThreadId.x, ParticleDisplacement);
         
     }
 

@@ -5,7 +5,9 @@
 #include "ifrit.internal/editor/IconMapping.h"
 #include "ifrit/core/typing/Rtti.h"
 #include "ifrit/core/reflection/Reflection.h"
-
+#include "ifrit/runtime/base/EditorHandles.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/runtime/asset/Asset.h"
 using namespace Ifrit::Runtime;
 
 namespace Ifrit::Editor::ImGuiInternal
@@ -35,6 +37,60 @@ namespace Ifrit::Editor::ImGuiInternal
                     ImGui::SetItemDefaultFocus();
             }
             ImGui::EndCombo();
+        }
+    }
+
+    static void AssetSelectionWidget(
+        const char* label, AssetReferenceId& selectedAsset, const std::vector<AssetMetadata>& assetList)
+    {
+        // Convert GUID to string for display
+        auto        assetManager = Ifrit::Runtime::GetActiveApplication()->GetAssetRegistry();
+        auto        assetw       = assetManager->GetAsset<Runtime::Asset>(selectedAsset.mGuid);
+        std::string cvtString;
+        if (assetw == nullptr)
+        {
+            cvtString = "(Invalid Asset)";
+        }
+        else
+        {
+            cvtString = assetw->GetName();
+        }
+
+        // Calculate widths for input and button
+        float buttonWidth = 100.0f; // Fixed width for the button
+        float inputWidth  = ImGui::GetContentRegionAvail().x - buttonWidth - ImGui::GetStyle().ItemSpacing.x;
+
+        // InputText with reduced width
+        ImGui::SetNextItemWidth(inputWidth);
+        ImGui::InputText((String("##Input") + label).c_str(), const_cast<char*>(cvtString.c_str()),
+            cvtString.size() + 1, ImGuiInputTextFlags_ReadOnly);
+
+        // Place the button on the same line
+        ImGui::SameLine();
+
+        // Button with a fixed width
+        if (ImGui::Button((String("Select##Button") + label).c_str(), ImVec2(buttonWidth, 0)))
+        {
+            ImGui::OpenPopup("AssetSelectionPopup");
+        }
+
+        // Popup for asset selection
+        if (ImGui::BeginPopup("AssetSelectionPopup"))
+        {
+            ImGui::Text("Select an Asset");
+            ImGui::Separator();
+
+            // Display a list of selectable assets
+            for (const auto& asset : assetList)
+            {
+                if (ImGui::Selectable(asset.mName.c_str()))
+                {
+                    selectedAsset.mGuid = asset.mGuid;
+                    ImGui::CloseCurrentPopup(); // Close the popup after selection
+                }
+            }
+
+            ImGui::EndPopup();
         }
     }
 
@@ -153,6 +209,18 @@ namespace Ifrit::Editor::ImGuiInternal
                 ImGui::PopID();
             });
         };
+
+        // Asset
+        auto& assetHandles = Ifrit::Runtime::GetRuntimeEditorHandles().AssetReferenceHandle;
+        assetHandles       = [](const char* name, AssetReferenceId& assetRef) {
+            ImGui::PushID(name);
+            ImGui::Text("%s", name);
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            auto assetList = Ifrit::Runtime::GetActiveApplication()->GetAssetRegistry()->GetAllAssetMetadata();
+            AssetSelectionWidget("Label", assetRef, assetList);
+            ImGui::PopID();
+        };
     }
 
     IFRIT_EDITOR_API void Inspector_ShowSceneNodeProperties(
@@ -243,12 +311,23 @@ namespace Ifrit::Editor::ImGuiInternal
                 sizeof(config.mAddGameObjectModal.mNewGameObjectName),
                 ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_AutoSelectAll);
 
+            ImGui::Checkbox("GPU Transform (For Physics Simulation)", &config.mAddGameObjectModal.mGPUTransform);
+
             if (ImGui::Button("Create"))
             {
                 if (config.mAddGameObjectModal.mParentNode)
                 {
-                    config.mAddGameObjectModal.mParentNode->AddGameObject(
-                        String(config.mAddGameObjectModal.mNewGameObjectName));
+                    if (config.mAddGameObjectModal.mGPUTransform)
+                    {
+                        config.mAddGameObjectModal.mParentNode->AddGameObjectGPUTransform(
+                            String(config.mAddGameObjectModal.mNewGameObjectName));
+                    }
+                    else
+                    {
+                        // Add a regular GameObject
+                        config.mAddGameObjectModal.mParentNode->AddGameObject(
+                            String(config.mAddGameObjectModal.mNewGameObjectName));
+                    }
                 }
                 ImGui::CloseCurrentPopup();
             }
@@ -354,7 +433,7 @@ namespace Ifrit::Editor::ImGuiInternal
                         if (isSelected)
                         {
                             flags |= ImGuiTreeNodeFlags_Selected;
-                            IF_LOG_INFO("Editor", "Selected component: {}", fullName);
+                            // IF_LOG_INFO("Editor", "Selected component: {}", fullName);
                         }
 
                         if (ImGui::TreeNodeEx(label.c_str(), flags))
@@ -363,7 +442,7 @@ namespace Ifrit::Editor::ImGuiInternal
                             {
                                 config.SelectedComponent     = fullName;
                                 config.SelectedComponentMeta = componentMeta;
-                                IF_LOG_INFO("Editor", "Selected component: {}", fullName);
+                                // IF_LOG_INFO("Editor", "Selected component: {}", fullName);
                             }
                         }
                     }
@@ -383,17 +462,19 @@ namespace Ifrit::Editor::ImGuiInternal
             ImGui::Separator();
 
             // Input field for the component name
-            ImGui::InputText("Component Name", config.NewComponentName, sizeof(config.NewComponentName));
+            // ImGui::InputText("Component Name", config.NewComponentName, sizeof(config.NewComponentName));
+            ImGui::Checkbox("Enable New Component", &config.NewComponentEnabled);
 
             // Buttons for confirmation or cancellation
             if (ImGui::Button("Create"))
             {
-                if (!config.SelectedComponent.empty() && strlen(config.NewComponentName) > 0)
+                if (!config.SelectedComponent.empty())
                 {
                     auto go = config.mTargetGameObject;
                     if (go)
                     {
-                        go->AddComponentFromeMeta(config.SelectedComponentMeta->MetaInfo.GetMetaInfo());
+                        go->AddComponentFromeMeta(
+                            config.SelectedComponentMeta->MetaInfo.GetMetaInfo(), config.NewComponentEnabled);
                     }
                     ImGui::CloseCurrentPopup();
                 }

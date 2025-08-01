@@ -79,14 +79,14 @@ namespace Ifrit::Runtime
     {
         mMouseX = x;
         mMouseY = y;
-        IF_LOG_INFO("Input", "Mouse Position Updated: ({}, {})", mMouseX, mMouseY);
+        // IF_LOG_INFO("Input", "Mouse Position Updated: ({}, {})", mMouseX, mMouseY);
     }
     IFRIT_APIDECL void InputSystem::UpdateMouseButtonStatus(u32 button, u8 status)
     {
         if (button < mMouseButtonStatus.size())
         {
             mMouseButtonStatus[button].stat = status;
-            IF_LOG_INFO("Input", "Mouse Button {} Status Updated: {}", button, status);
+            // IF_LOG_INFO("Input", "Mouse Button {} Status Updated: {}", button, status);
         }
         else
         {

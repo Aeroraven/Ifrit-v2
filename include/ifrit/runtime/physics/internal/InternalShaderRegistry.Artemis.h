@@ -91,6 +91,10 @@ namespace Ifrit::Runtime::Internal
         SDEF MPMRigidCollectBoundaryContactCS = DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.CollectBoundaryContact");
         SDEF MPMRigidBoundaryConstraintResolveCS =
             DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.BoundaryConstraintResolve");
+        SDEF MPMRigidContactRigidConstraintResolveCS =
+            DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.ContactRigidConstraintResolve");
+        SDEF MPMRigidCollectRigidCollisionPairsCS =
+            DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.CollectRigidCollisionPairs");
 
         // PBMPM
         SDEF MPMPbMpmResolveConstraintsCS = DECLARE_CS("Artemis/MPM/MPM.PbMpmResolveConstraints");
@@ -101,6 +105,7 @@ namespace Ifrit::Runtime::Internal
         SDEF RigidPostStateUpdateCS = DECLARE_CS("Artemis/Rigid/PostStateUpdate");
         SDEF RigidSyncTransformCS   = DECLARE_CS("Artemis/Rigid/SyncTransform");
         SDEF RigidLoadTransformCS   = DECLARE_CS("Artemis/Rigid/LoadTransform");
+        SDEF RigidNextStepPrepCS    = DECLARE_CS("Artemis/Rigid/NextStepPrep");
 
     } kIntShaderTableArtemis;
 

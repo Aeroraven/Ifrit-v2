@@ -48,7 +48,10 @@ namespace Rigid{
         DynamicsData.m_Position = InstanceTransform.m_Position.xy;
         DynamicsData.m_Rotation = InstanceTransform.m_Rotation.z;
         DynamicsData.m_InertiaTensor = ColliderEntry.m_Inertia2D;
-#endif
+#endif  
+
+        // For XPBD Rigid's velocity solver
+        DynamicsData.m_DisplacementOld = DynamicsData.m_Displacement;
 
         PushConst.m_ColliderDynamics.Store(DynamicsData, ColliderEntry.m_RuntimeId);
     }

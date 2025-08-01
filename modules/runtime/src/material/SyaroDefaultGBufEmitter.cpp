@@ -35,6 +35,16 @@ namespace Ifrit::Runtime
         this->m_effectTemplates[GraphicsShaderPassType::Opaque] = m_shaderEffect;
     }
 
+    IFRIT_APIDECL Material* DefaultMaterialAsset::GetMaterial()
+    {
+        if (!mMaterial)
+        {
+            mMaterial = MakeOwner<SyaroDefaultGBufEmitter>(Ifrit::Runtime::GetActiveApplication());
+            mMaterial->BuildMaterial();
+        }
+        return mMaterial.get();
+    }
+
     RHI::RhiShader* SyaroDefaultGBufEmitter::m_shader       = nullptr;
     ShaderEffect    SyaroDefaultGBufEmitter::m_shaderEffect = {};
 

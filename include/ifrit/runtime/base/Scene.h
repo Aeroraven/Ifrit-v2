@@ -56,6 +56,7 @@ namespace Ifrit::Runtime
 
         SceneNode*              AddChildNode(const String& name);
         GameObject*             AddGameObject(const String& name);
+        GameObject*             AddGameObjectGPUTransform(const String& name);
         GameObject*             AddGameObjectTransferred(GameObject* obj);
 
         SceneNode*              GetSceneNode(u32 x);

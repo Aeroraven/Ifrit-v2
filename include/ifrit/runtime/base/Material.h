@@ -79,7 +79,7 @@ namespace Ifrit::Runtime
     public:
         ShaderEffectType                                     m_type = ShaderEffectType::Graphics;
         Vec<Shader*>                                         m_shaders;
-        Vec<AssetReferenceId>                                  m_shaderReferences;
+        Vec<AssetReferenceId>                                m_shaderReferences;
         CustomHashMap<PipeConfig, DrawPass*, PipeConfigHash> m_drawPasses;
         ComputePass*                                         m_computePass = nullptr;
 
@@ -119,7 +119,9 @@ namespace Ifrit::Runtime
         Vec<Vec<char>>                                        m_data;
         HashMap<GraphicsShaderPassType, ShaderEffect>         m_effectTemplates;
         HashMap<GraphicsShaderPassType, HashMap<String, u32>> m_shaderParameters;
-        IFRIT_STRUCT_SERIALIZE(m_effectTemplates, m_data, m_shaderParameters);
+
+    public:
+        inline virtual void _PolyHolder() {}
     };
 
 } // namespace Ifrit::Runtime

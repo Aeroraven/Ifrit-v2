@@ -218,7 +218,7 @@ namespace Ifrit::Runtime::Ayanami
             // TODO: Batcher should be used to batch the meshes with same material
             // for simplicity, we just use the default material
             using Ifrit::CheckedPointerCast;
-            auto castedMaterial = CheckedPointerCast<SyaroDefaultGBufEmitter>(material);
+            auto castedMaterial = ForcedCheckedCast<SyaroDefaultGBufEmitter>(material);
             auto albedoId       = castedMaterial->GetAlbedoId();
             auto normalId       = castedMaterial->GetNormalMapId();
 

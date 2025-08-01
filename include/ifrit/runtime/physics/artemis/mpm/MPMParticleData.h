@@ -9,6 +9,7 @@ namespace Ifrit::Runtime::Artemis
         RHI::RhiBufferRef m_ParticleCount;
         RHI::RhiBufferRef m_ParticlePosition;
         RHI::RhiBufferRef m_ParticleVelocity;
+        RHI::RhiBufferRef m_ParticleVelocityOld; // For PBMPM-RigidCoupling (Displacement)
         RHI::RhiBufferRef m_ParticleColor;
         RHI::RhiBufferRef m_ParticleMass;
         RHI::RhiBufferRef m_ParticleDeformGrad;
@@ -21,4 +22,4 @@ namespace Ifrit::Runtime::Artemis
         RHI::RhiBufferRef m_ParticleMatProperty;
         RHI::RhiBufferRef m_ParticleLiquidDensity; // For PBMPM
     };
-} // namespace Ifrit::Runtime::Artemis
+} // namespace Ifrit::Runtime::Artemis

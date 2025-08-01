@@ -257,10 +257,14 @@ namespace Ifrit::Runtime
                 {
                     continue;
                 }
+                if (meshRenderer->GetMaterial() == nullptr || meshFilter->GetMesh() == nullptr)
+                {
+                    continue;
+                }
                 auto transform = obj->GetComponent<Transform>();
                 if (meshRenderer && meshFilter && transform)
                 {
-                    materials.push_back(meshRenderer->GetMaterial().get());
+                    materials.push_back(meshRenderer->GetMaterial());
                     meshes.push_back(meshFilter->GetMesh());
                     transforms.push_back(transform);
                     instances.push_back(meshFilter->GetMeshInstance().get());

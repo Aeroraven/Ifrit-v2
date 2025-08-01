@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/Scene.h"
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/core/reflection/SerializeHelper.h"
+#include "ifrit/runtime/base/Transform.h"
 namespace Ifrit::Runtime
 {
     IFRIT_APIDECL            SceneNode::SceneNode() : m_Parent(nullptr) {}
@@ -59,6 +60,13 @@ namespace Ifrit::Runtime
         obj->SetName(name);
         m_GameObjects.push_back(obj);
         mGameObjectRefs.push_back(objId);
+        return obj;
+    }
+    IFRIT_APIDECL GameObject* SceneNode::AddGameObjectGPUTransform(const String& name)
+    {
+        auto obj       = AddGameObject(name);
+        auto transform = obj->GetComponent<Transform>();
+        transform->SetDevice(TransformUpdateDevice::GPU);
         return obj;
     }
 

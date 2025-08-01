@@ -120,6 +120,11 @@ namespace Ifrit::Runtime::Internal
             "Artemis/MPM/RigidCoupling/MPMRigid.CollectBoundaryContact", "MPMRigidCollectBoundaryContactCS");
         REG_COMPUTE_NEO(ISTArtemis.MPMRigidBoundaryConstraintResolveCS,
             "Artemis/MPM/RigidCoupling/MPMRigid.BoundaryConstraintResolve", "MPMRigidBoundaryConstraintResolveCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidContactRigidConstraintResolveCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.ContactRigidConstraintResolve",
+            "MPMRigidContactRigidConstraintResolveCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidCollectRigidCollisionPairsCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.CollectRigidCollisionPairs", "MPMRigidCollectRigidCollisionPairsCS");
 
         // Rigid
         REG_COMPUTE_NEO(ISTArtemis.RigidMotionTestCS, "Artemis/Rigid/Rigid.MotionTest", "RigidMotionTestCS");
@@ -127,6 +132,7 @@ namespace Ifrit::Runtime::Internal
             ISTArtemis.RigidPostStateUpdateCS, "Artemis/Rigid/Rigid.PostStateUpdate", "RigidPostStateUpdateCS");
         REG_COMPUTE_NEO(ISTArtemis.RigidSyncTransformCS, "Artemis/Rigid/Rigid.SyncTransform", "RigidSyncTransformCS");
         REG_COMPUTE_NEO(ISTArtemis.RigidLoadTransformCS, "Artemis/Rigid/Rigid.LoadTransform", "RigidLoadTransformCS");
+        REG_COMPUTE_NEO(ISTArtemis.RigidNextStepPrepCS, "Artemis/Rigid/Rigid.NextStepPrep", "RigidNextStepPrepCS");
 
 #undef REG_MESH
 #undef REG_FRAGMENT

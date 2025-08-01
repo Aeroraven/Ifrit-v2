@@ -35,7 +35,7 @@ namespace Rigid{
     IFSHADER_TYPEALIAS(FAngularRotation, Math::FQuaternion);
     IFSHADER_TYPEALIAS(FAngularMatrix, float3x3);
 
-    IFSHADER_DEFINE_CONST_INT32(kSizeofColliderDynamicsDataInF32, 3+3+4+4+3+9);
+    IFSHADER_DEFINE_CONST_INT32(kSizeofColliderDynamicsDataInF32, 3+3+3+4+4+3+9);
     IFSHADER_DEFINE_CONST_INT32(kRotationSectionOffset, 4); //TODO: LAYOUT!!!!!
 #else
     IFSHADER_TYPEALIAS(FSpatialVector, float2);
@@ -44,18 +44,21 @@ namespace Rigid{
     IFSHADER_TYPEALIAS(FAngularRotation, float);
     IFSHADER_TYPEALIAS(FAngularMatrix, float);
 
-    IFSHADER_DEFINE_CONST_INT32(kSizeofColliderDynamicsDataInF32, 2+2+4);
-    IFSHADER_DEFINE_CONST_INT32(kRotationSectionOffset, 4);
+    IFSHADER_DEFINE_CONST_INT32(kSizeofColliderDynamicsDataInF32, 2+2+2+6);
+    IFSHADER_DEFINE_CONST_INT32(kRotationSectionOffset, 6);
 
 #endif
     struct FRigidColliderDynamicsData
     {
         FSpatialVector m_Displacement;
+        FSpatialVector m_DisplacementOld;
         FSpatialVector m_Position;
         FAngularRotation m_Rotation;
         FAngularRotation m_RotationLast;
         FAngularValue m_AngularVelocity;
+        FAngularValue m_AngularVelocityOld;
         FAngularMatrix m_InertiaTensor;
+        int m_Pad;
     };
 
 

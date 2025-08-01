@@ -21,7 +21,7 @@ namespace Ifrit::Runtime::Artemis
         Vector3f mCuboidSize = Vector3f(0.1f, 0.1f, 0.1f);
 
         IF_PROPERTY(Editable, UIText)
-        f32 mRadius = 1.0f;
+        f32 mRadius = 0.05f;
 
         IF_PROPERTY(Editable, UIText)
         f32 mRigidMass = 1.14514f;

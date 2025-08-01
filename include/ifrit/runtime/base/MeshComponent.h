@@ -6,17 +6,16 @@
 #include "ifrit/geomproc/mesh/MeshClusterBase.h"
 #include "ifrit/core/reflection/ReflAttrs.h"
 #include "ifrit/runtime/asset/MeshAsset.h"
-
+#include "ifrit/runtime/asset/MaterialAsset.h"
 namespace Ifrit::Runtime
 {
     class IFRIT_APIDECL IF_CLASS() MeshFilter : public Component
     {
     public:
-        IF_PROPERTY()
+        IF_PROPERTY(Editable, AssetCategory = "Mesh")
         AssetReferenceId mMesh;
 
     private:
-        AssetReferenceId  m_meshReference;
         Ref<MeshInstance> m_instance = nullptr;
 
     public:
@@ -30,18 +29,18 @@ namespace Ifrit::Runtime
         inline Ref<MeshInstance> GetMeshInstance() { return m_instance; }
     };
 
-    class IF_CLASS() MeshRenderer : public Component
+    class IFRIT_APIDECL IF_CLASS() MeshRenderer : public Component
     {
-    private:
-        Ref<Material>    m_material = nullptr;
-        AssetReferenceId m_materialReference;
+    public:
+        IF_PROPERTY(Editable, AssetCategory = "Material")
+        AssetReferenceId mMaterial;
 
     public:
         using Component::Component;
         virtual ~MeshRenderer() = default;
 
-        inline Ref<Material> GetMaterial() { return m_material; }
-        inline void          SetMaterial(Ref<Material> p) { m_material = p; }
+        Material* GetMaterial();
+        void      SetMaterialSource(MaterialAsset* p);
     };
 
 } // namespace Ifrit::Runtime

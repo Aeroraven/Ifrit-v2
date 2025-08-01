@@ -18,8 +18,8 @@
 #include "ifrit.shader.neo/Shared/Artemis/MPMRigidCoupling.Shared.h"
 #include "ifrit.shader.neo/Math.Geometry.Intersection.hlsli"
 #include "ifrit.shader.neo/Artemis/MPM/RigidCoupling/MPMRigid.Common.hlsli"
-
 #include "ifrit.shader.neo/Math.Quaternion.hlsli"
+#include "ifrit.shader.neo/Artemis/Contact/SphereContact.hlsli"
 
 namespace IfritShader {
 namespace Artemis {
@@ -32,6 +32,15 @@ namespace MPM {
         Rigid::FSpatialVector m_ContactNormal; // Normal @ world space!, surface normal of rigid
         bool m_Collided;
     };
+
+    struct FRigidRigidCollisionCheckResult
+    {
+        Rigid::FSpatialVector m_ContactNormal; // Normal @ world space!, surface normal of rigid
+        Rigid::FSpatialVector m_ContactPointRigid1; // Contact point in local space of rigid 1
+        Rigid::FSpatialVector m_ContactPointRigid2; // Contact point in local space of rigid 2
+        bool m_Collided;
+    };
+
 
     Rigid::FSpatialVector ConvertRigidPointToWorldSpace(
         Rigid::FSpatialVector RigidPointMS,
@@ -48,6 +57,55 @@ namespace MPM {
         Rigid::FSpatialVector WorldSpacePoint = mul(RotationMat, RigidPointMS) + RigidCenter;
         return WorldSpacePoint;
     }
+
+    FRigidRigidCollisionCheckResult DetectRigidRigidCollision(
+        Rigid::FRigidColliderEntry RigidCollider1,
+        Rigid::FRigidColliderDynamicsData RigidDynamics1,
+        Rigid::FRigidColliderEntry RigidCollider2,
+        Rigid::FRigidColliderDynamicsData RigidDynamics2
+    )
+    {
+        Rigid::FSpatialVector RigidCenterPrev1 = RigidDynamics1.m_Position;
+        Rigid::FSpatialVector RigidCenterDisplacement1 = RigidDynamics1.m_Displacement;
+        Rigid::FSpatialVector RigidCenter1 = RigidCenterPrev1 + RigidCenterDisplacement1;
+        Rigid::FSpatialVector RigidCenterPrev2 = RigidDynamics2.m_Position;
+        Rigid::FSpatialVector RigidCenterDisplacement2 = RigidDynamics2.m_Displacement;
+        Rigid::FSpatialVector RigidCenter2 = RigidCenterPrev2 + RigidCenterDisplacement2;
+
+        Rigid::ERigidColliderType ColliderType1 = RigidCollider1.m_ColliderType;
+        Rigid::ERigidColliderType ColliderType2 = RigidCollider2.m_ColliderType;
+
+        FRigidRigidCollisionCheckResult Result;
+
+        if(Rigid::ERigidColliderType::Sphere == ColliderType1 && 
+           Rigid::ERigidColliderType::Sphere == ColliderType2)
+        {
+            float Radius1 = RigidCollider1.m_ColliderRadius;
+            float Radius2 = RigidCollider2.m_ColliderRadius;
+#ifdef IFSHADER_RIGID_DYNAMICS_3D
+            Result.m_Collided = false;
+            Result.m_ContactNormal = Rigid::FSpatialVector(0.0f);
+            Result.m_ContactPointRigid1 = Rigid::FSpatialVector(0.0f);
+            Result.m_ContactPointRigid2 = Rigid::FSpatialVector(0.0f);  
+#else
+            FCircleContactResult CollResult = CircleToCircleContact2D(
+                RigidCenter1.xy, Radius1, RigidCenter2.xy, Radius2
+            );
+            Result.m_Collided = true;
+            Result.m_ContactNormal = CollResult.Normal;
+            Result.m_ContactPointRigid1 = CollResult.ContactPoint1;
+            Result.m_ContactPointRigid2 = CollResult.ContactPoint2;
+#endif
+            return Result;
+        }
+
+        Result.m_Collided = false;
+        Result.m_ContactNormal = Rigid::FSpatialVector(0.0f);
+        Result.m_ContactPointRigid1 = Rigid::FSpatialVector(0.0f);
+        Result.m_ContactPointRigid2 = Rigid::FSpatialVector(0.0f);  
+        return Result;
+    }
+    
 
     FParticleRigidCollisionCheckResult DetectParticleRigidCollision(
         Rigid::FSpatialVector ParticlePosition,
@@ -98,4 +156,4 @@ namespace MPM {
         return Result;
     }
 
-}}}
+}}}

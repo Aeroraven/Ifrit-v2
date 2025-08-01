@@ -17,6 +17,7 @@
 
 #include "ifrit/runtime/geometry/preset/Circle2D.h"
 #include "ifrit/runtime/geometry/preset/Square2D.h"
+#include "ifrit/runtime/base/MeshComponent.h"
 #include "MPMTiming.h"
 #include "artemis.mpm.generated.h"
 
@@ -53,6 +54,7 @@ namespace Ifrit
 
         Artemis::GPURigidCollider*                   collider1;
         Artemis::GPURigidCollider*                   collider2;
+        SceneNode*                                   nodew;
 
     public:
         void OnStart() override
@@ -88,6 +90,7 @@ namespace Ifrit
 
             auto scene               = m_sceneAssetManager->CreateScene("TestScene2");
             auto node                = scene->AddSceneNode("MPMScene");
+            nodew                    = node;
             m_FrameGraphResourcePool = MakeRef<FrameGraphResourcePool>(GetRhi());
 
             auto timeControl = node->AddGameObject("MPMTimeControl");
@@ -113,19 +116,17 @@ namespace Ifrit
             cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
             cameraTransform->SetPosition({ 0.5f, 0.5f, -1.0f });
 
-            auto material = MakeRef<DefaultMaterial>(this);
-            material->BuildMaterial();
-
             auto circleMesh = GetAssetRegistry()->CreateAsset<Geometry::Circle2DAsset>("Circle2DAsset", 0.05f, 32);
+            auto material   = GetAssetRegistry()->CreateAsset<DefaultMaterialAsset>("DefaultMaterialAsset");
 
             {
                 auto rigid     = node->AddGameObject("RigidCollider1");
                 auto rigidMesh = rigid->AddComponent<MeshFilter>();
                 rigidMesh->SetMeshSource(circleMesh);
                 auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
-                rigidRenderer->SetMaterial(material);
+                rigidRenderer->SetMaterialSource(material);
                 auto rigidTransform = rigid->GetComponent<Transform>();
-                rigidTransform->SetPosition({ 0.3f, 0.8f, 0.0f });
+                rigidTransform->SetPosition({ 0.8f, 0.5f, 0.0f });
                 rigidTransform->SetDevice(TransformUpdateDevice::GPU);
                 auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
                 rigidCollider->SetRadius(0.05f);
@@ -140,9 +141,9 @@ namespace Ifrit
                 auto rigidMesh = rigid->AddComponent<MeshFilter>();
                 rigidMesh->SetMeshSource(circleMesh);
                 auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
-                rigidRenderer->SetMaterial(material);
+                rigidRenderer->SetMaterialSource(material);
                 auto rigidTransform = rigid->GetComponent<Transform>();
-                rigidTransform->SetPosition({ 0.7f, 0.8f, 0.0f });
+                rigidTransform->SetPosition({ 0.8f, 0.8f, 0.0f });
                 rigidTransform->SetDevice(TransformUpdateDevice::GPU);
                 auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
                 rigidCollider->SetRadius(0.05f);
@@ -185,6 +186,22 @@ namespace Ifrit
             {
                 collider2->SetEnable(true);
             }
+            // if (m_FrameIdx == 200)
+            // {
+            //     auto rigid     = nodew->AddGameObject("RigidCollider3");
+            //     auto rigidMesh = rigid->AddComponent<MeshFilter>();
+            //     rigidMesh->SetMeshSource(GetAssetRegistry()->GetAssetByName<MeshAsset>("Circle2DAsset"));
+            //     auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
+            //     rigidRenderer->SetMaterialSource(
+            //         GetAssetRegistry()->GetAssetByName<MaterialAsset>("DefaultMaterialAsset"));
+            //     auto rigidTransform = rigid->GetComponent<Transform>();
+            //     rigidTransform->SetPosition({ 0.7f, 0.8f, 0.0f });
+            //     rigidTransform->SetDevice(TransformUpdateDevice::GPU);
+            //     auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
+            //     rigidCollider->SetRadius(0.05f);
+            //     rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
+            //     rigidCollider->SetEnable(true);
+            // }
             m_RendererWrapper->EnqueueRendererTask(m_sceneManager->GetActiveScene().get(), nullptr,
                 m_RendererWrapper->GetDefaultRenderTargets(), m_RenderConfig);
             m_MpmSim->SetDebugRenderTarget(m_RendererWrapper->GetDefaultColorImage().get());

@@ -225,7 +225,10 @@ namespace Ifrit::Reflection
                 else if constexpr (IConceptHasCustomEditingHandle<MemberType>)
                 {
                     MemberType& member = prop.As<MemberType>();
-                    member.GetUIEditingHandle();
+                    auto                    typeInfo = FReflTypeMetaInfo::Create<ClassType>();
+                    auto                    propInfo = FReflPropertyMetaInfo::Create<Member>();
+                    const PropertyMetadata& metadata = Internal_GetPropertyMetadata(typeInfo.Hash, propInfo.Hash);
+                    member.GetUIEditingHandle(metadata);
                 }
             };
         }

@@ -335,6 +335,21 @@ namespace Ifrit::Reflection
         {
             property.Metadata.Editable = EPropertyEditable::ReadOnly;
         }
+        else if (hintName == "AssetCategory")
+        {
+            if (std::holds_alternative<std::string>(value))
+            {
+                auto categoryStr = std::get<std::string>(value);
+                if (categoryStr == "Texture")
+                {
+                    property.Metadata.AssetCategory = EPropertyAssetCategory::Texture;
+                }
+                else if (categoryStr == "Mesh")
+                {
+                    property.Metadata.AssetCategory = EPropertyAssetCategory::Mesh;
+                }
+            }
+        }
         else if (hintName == "UISlider.min")
         {
             property.Metadata.UIControl = EPropertyUIControl::UISlider;
