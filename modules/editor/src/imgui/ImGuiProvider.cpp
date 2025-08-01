@@ -41,6 +41,7 @@ namespace Ifrit::Editor
 
         f32                             m_DpiScaler       = 1.0f;
         ImGuiInternal::Inspector_Modals m_InspectorModals = {};
+        ImFont*                         m_IconFontLarge   = nullptr;
     };
 
     static VkFormat imguiColorAttachmentFormats[] = { VK_FORMAT_B8G8R8A8_SRGB };
@@ -50,6 +51,60 @@ namespace Ifrit::Editor
         if (err == VK_SUCCESS)
             return;
         IF_LOG_ASSERTION("Editor.ImGui", false, "ImGui Vulkan error: {}", (int)err);
+    }
+
+    void ShowAssetGridWithIcons(ImGuiProviderData* data, float iconFontSize, float padding)
+    {
+        auto  assetManager = Runtime::GetActiveApplication()->GetAssetRegistry();
+        auto  assets       = assetManager->GetAllAssetMetadata();
+
+        // Adjust column width to be larger
+        float columnWidth = iconFontSize + padding * 2.0f;
+
+        // Calculate the number of columns based on the available width
+        int   columns = static_cast<int>(ImGui::GetContentRegionAvail().x / columnWidth);
+        if (columns < 1)
+            columns = 1;
+
+        ImGui::Columns(columns, nullptr, false); // Create columns for the grid
+
+        for (const auto& asset : assets)
+        {
+            ImGui::PushID(asset.mGuid.ToString().c_str()); // Unique ID for each asset
+
+            // Center-align the column content
+            float columnStartX  = ImGui::GetCursorPosX();
+            float columnCenterX = columnStartX + (columnWidth / 2.0f);
+
+            // Render the icon (use a large font for the icon)
+            ImGui::PushFont(data->m_IconFontLarge);
+            float iconWidth = ImGui::CalcTextSize(ICON_FA_FILE).x;
+            ImGui::SetCursorPosX(columnCenterX - (iconWidth / 2.0f)); // Center the icon
+            ImGui::TextUnformatted(ICON_FA_FILE);                     // Replace with your icon character
+            ImGui::PopFont();
+
+            // Render the text (truncate if necessary)
+            String displayName = asset.mName;
+            float  textWidth   = ImGui::CalcTextSize(displayName.c_str()).x;
+            if (textWidth > columnWidth - padding * 2.0f) // Truncate if text is too wide
+            {
+                size_t maxChars = static_cast<size_t>(
+                    (columnWidth - padding * 2.0f - ImGui::CalcTextSize("...").x) / ImGui::CalcTextSize("A").x);
+                if (maxChars > 0 && maxChars < asset.mName.size())
+                {
+                    displayName = asset.mName.substr(0, maxChars) + "...";
+                    textWidth   = ImGui::CalcTextSize(displayName.c_str()).x;
+                }
+            }
+
+            ImGui::SetCursorPosX(columnCenterX - (textWidth / 2.0f)); // Center the text
+            ImGui::TextUnformatted(displayName.c_str());
+
+            ImGui::NextColumn(); // Move to the next column
+            ImGui::PopID();
+        }
+
+        ImGui::Columns(1); // Reset columns
     }
 
     void PrintingLogs()
@@ -261,6 +316,10 @@ namespace Ifrit::Editor
         config.MergeMode        = true;
         config.GlyphMinAdvanceX = 13.0f;
         io.Fonts->AddFontFromFileTTF(Internal::AssetPath::kDefaultFAFont, 12.0f * m_Data->m_DpiScaler, &config);
+        // large font
+        config.MergeMode = false;
+        m_Data->m_IconFontLarge =
+            io.Fonts->AddFontFromFileTTF(Internal::AssetPath::kDefaultFAFont, 48.0f * m_Data->m_DpiScaler, &config);
 
         // ImGui::StyleColorsDark();
         Internal::ApplyImGuiSytle();
@@ -348,6 +407,7 @@ namespace Ifrit::Editor
             ImGui::DockBuilderDockWindow("Inspector", dock_left);
             ImGui::DockBuilderDockWindow("Viewport", dock_main);
             ImGui::DockBuilderDockWindow("Console", dock_log);
+            ImGui::DockBuilderDockWindow("Asset", dock_log);
 
             // Finish setup
             ImGui::DockBuilderFinish(m_Data->m_DockspaceID);
@@ -394,6 +454,10 @@ namespace Ifrit::Editor
 
         ImGui::Begin("Scene Hierarchy");
         RenderGameObjectTreeView(m_Data, scene);
+        ImGui::End();
+
+        ImGui::Begin("Asset");
+        ShowAssetGridWithIcons(m_Data, 96.0f * m_Data->m_DpiScaler, 8.0f * m_Data->m_DpiScaler);
         ImGui::End();
 
         ImGui::Begin("Console");

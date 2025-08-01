@@ -14,6 +14,13 @@ namespace Ifrit::Reflection
     concept IConceptEditableType =
         TTraitIsAnyOf<T, TTypeSet<f32, i32, u32, f64, u64, i64, i8, u8, bool, Vector2f, Vector3f, Vector4f>>::value;
 
+    template <typename T>
+    concept IConceptHasCustomEditingHandle = requires(T t) {
+        {
+            t.GetUIEditingHandle(std::declval<const PropertyMetadata&>())
+        } -> std::same_as<void>;
+    };
+
     template <typename T> class PropertyUIHandle
     {
     public:

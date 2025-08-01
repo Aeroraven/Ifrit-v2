@@ -222,6 +222,11 @@ namespace Ifrit::Reflection
                     const PropertyMetadata& metadata = Internal_GetPropertyMetadata(typeInfo.Hash, propInfo.Hash);
                     ProcessPropertyMetadata<MemberType>(metadata, prop);
                 }
+                else if constexpr (IConceptHasCustomEditingHandle<MemberType>)
+                {
+                    MemberType& member = prop.As<MemberType>();
+                    member.GetUIEditingHandle();
+                }
             };
         }
     };

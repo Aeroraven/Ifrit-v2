@@ -138,6 +138,15 @@ namespace Ifrit::Reflection
             ObjectBadCastReport(typeid(T).name(), TypeInfoGetter().name());
             throw std::bad_cast();
         }
+        template <typename T> T& As()
+        {
+            if (IsValidObjectCast(TypeInfoGetter(), typeid(T)))
+            {
+                return *static_cast<T*>(Ptr);
+            }
+            ObjectBadCastReport(typeid(T).name(), TypeInfoGetter().name());
+            throw std::bad_cast();
+        }
         template <typename T> void ForcedReinterpretTransferTo(std::unique_ptr<T>& target) noexcept
         {
             auto casted = reinterpret_cast<T*>(Ptr);

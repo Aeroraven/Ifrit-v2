@@ -44,5 +44,5 @@ namespace Ifrit::Editor::ImGuiInternal
     IFRIT_EDITOR_API void Inspector_ShowAddSceneNodeModal(Inspector_Modals& config);
     IFRIT_EDITOR_API void Inspector_ShowAddGameObjectModal(Inspector_Modals& config);
     IFRIT_EDITOR_API void Inspector_ShowComponentCreationPopup(Inspector_Modals& config);
-    IFRIT_EDITOR_API void Inspector_RegisterEditingHandles();
+    IFRIT_EDITOR_API void Inspector_RegisterEdit1ingHandles();
 } // namespace Ifrit::Editor::ImGuiInternal

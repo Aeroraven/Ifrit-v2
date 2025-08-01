@@ -69,6 +69,8 @@ namespace Ifrit::Runtime
         AssetManager(std::filesystem::path path, IApplication* app) : mBasePath(path), mApp(app) {}
         inline IApplication* GetApplication() { return mApp; }
 
+        Vec<AssetMetadata>   GetAllAssetMetadata() const;
+
         template <typename T, typename... Args>
             requires(std::is_base_of<Asset, T>::value && IConceptIsConstructible<T, Args...>)
         T* CreateAsset(const String& name, Args&&... args)

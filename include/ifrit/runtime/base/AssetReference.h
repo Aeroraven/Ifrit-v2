@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
-
+#include "ifrit/core/reflection/PropertyUIControl.h"
 #include "ifrit/core/platform/ApiConv.h"
 #include "ifrit/core/algo/Guid.h"
 #include "ifrit/core/reflection/ReflAttrs.h"
@@ -26,12 +26,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Runtime
 {
-
     enum class EAssetReferencingType : u8
     {
-
         Registered,
         PrefabExternal
+    };
+
+    enum class EAssetType : u8
+    {
+        Unknown,
+        Texture,
+        Material,
+        Mesh,
+        Shader,
+        Scene,
+        Audio,
+        Script,
+        Font,
+        Animation,
+        Prefab
     };
 
     struct IF_CLASS() AssetReferenceId
@@ -58,6 +71,8 @@ namespace Ifrit::Runtime
                 return mRelativePath == other.mRelativePath;
             }
         }
+
+        void GetUIEditingHandle(const Reflection::PropertyMetadata& propMeta);
     };
 
     struct IF_CLASS() AssetMetadata
