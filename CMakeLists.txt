@@ -176,6 +176,7 @@ ifrit_add_dependency(mimalloc)
 ifrit_add_core_component(external/fsr2)
 ifrit_add_core_component(external/imgui)
 ifrit_add_core_component(external/glfw)
+ifrit_add_core_component(external/nfd)
 
 ifrit_add_core_component(reflparser)
 ifrit_add_core_component(core)
@@ -261,6 +262,9 @@ set_target_properties(tetgen PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/tetge
 # imgui targets
 set_target_properties(ifrit.external.imgui PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/imgui)
 
+# nfd targets
+set_target_properties(nfd PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/nfd)
+
 # ifrit targets
 set_target_properties(ifrit.core PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.shadercompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
@@ -309,6 +313,7 @@ add_dependencies(ifrit.vkgraphics
     ${FSR2_API_LIBRARIES})
 
 add_dependencies(ifrit.editor 
+    nfd
     ifrit.external.imgui
     ifrit.vkgraphics 
     ifrit.runtime)

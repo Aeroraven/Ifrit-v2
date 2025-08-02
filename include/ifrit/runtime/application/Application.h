@@ -81,7 +81,7 @@ namespace Ifrit::Runtime
         inline const ProjectProperty&        GetProjectProperty() const override { return m_info; }
         inline ShaderRegistry*               GetShaderRegistry() override { return m_shaderRegistry.get(); }
         inline virtual SharedRenderResource* GetSharedRenderResource() override { return m_SharedRenderResource.get(); }
-        inline virtual void*                 GetSubsystemInternal(u64 typeId);
+        inline virtual ISubsystem*                 GetSubsystemInternal(u64 typeId);
         inline virtual RendererWrapper*      GetRendererWrapper() override { return m_RendererWrapper.get(); }
 
         inline virtual ApplicationState*     GetApplicationState() override { return &m_ApplicationState; }

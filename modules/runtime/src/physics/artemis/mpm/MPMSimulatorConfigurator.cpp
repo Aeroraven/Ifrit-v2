@@ -1,5 +1,7 @@
 #include "ifrit/runtime/physics/artemis/mpm/MPMSimulatorConfigurator.h"
-
+#include "ifrit/runtime/physics/artemis/ArtemisController.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/runtime/physics/artemis/ArtemisIntegrator.h"
 namespace Ifrit::Runtime::Artemis
 {
     struct MPMSimulatorConfiguratorPrivateData
@@ -30,6 +32,10 @@ namespace Ifrit::Runtime::Artemis
 
     IFRIT_APIDECL void MPMSimulatorConfigurator::OnUpdate()
     {
+        auto p =
+            GetActiveApplication()->GetSubsystem<ArtemisController>()->GetPresetSolver(EPresetArtemisSimulator::MPM);
+        m_Data->m_ActiveSimulator = ForcedCheckedCast<MPMSimulator>(p);
+
         if (m_Data->m_ActiveSimulator)
         {
             auto activeCfg                                        = m_Data->m_ActiveSimulator->GetActiveConfig();

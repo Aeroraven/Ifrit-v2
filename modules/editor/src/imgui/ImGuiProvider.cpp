@@ -26,6 +26,8 @@
 
 #include "ifrit.internal/editor/imgui/ImGuiUtilities.h"
 
+#include "ifrit/editor/widgets/FileDialog.h"
+
 namespace Ifrit::Editor
 {
     struct ImGuiProviderData
@@ -42,6 +44,8 @@ namespace Ifrit::Editor
         f32                             m_DpiScaler       = 1.0f;
         ImGuiInternal::Inspector_Modals m_InspectorModals = {};
         ImFont*                         m_IconFontLarge   = nullptr;
+
+        Widget::FileDialog              mFileDialog;
     };
 
     static VkFormat imguiColorAttachmentFormats[] = { VK_FORMAT_B8G8R8A8_SRGB };
@@ -347,11 +351,15 @@ namespace Ifrit::Editor
         ImGui_ImplVulkan_Init(&init_info);
 
         ImGuiInternal::Inspector_RegisterEditingHandles();
+
+        m_Data->mFileDialog.Initialize();
+        m_Data->m_InspectorModals.mFileDialog = m_Data->mFileDialog;
     }
 
     IFRIT_APIDECL void ImGuiProvider::OnShutdown()
     {
         Super::OnShutdown();
+        m_Data->mFileDialog.Finalize();
         ImGui_ImplVulkan_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();

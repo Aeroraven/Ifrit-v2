@@ -7,6 +7,7 @@
 #include "ifrit/core/typing/TypeMetaInfo.h"
 #include <typeinfo>
 #include "ifrit/core/reflection/ReflAttrs.h"
+#include "ifrit/runtime/base/Prefab.h"
 
 #define IFRIT_COMPONENT_SERIALIZE(...)    // IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef, __VA_ARGS__)
 #define IFRIT_COMPONENT_SERIALIZE_EMPTY() // IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef)
@@ -204,6 +205,8 @@ namespace Ifrit::Runtime
             return components;
         }
 
+        Owner<Prefab> CreatePrefab();
+
         friend class GameObjectManager;
         friend class Component;
 
@@ -251,7 +254,7 @@ namespace Ifrit::Runtime
         inline u32   GetManagedIndex() const { return mManagedIndex; }
 
     public:
-        Component() {}; // for deserializatioin
+        Component(){}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 
@@ -277,5 +280,4 @@ namespace Ifrit::Runtime
         void          InvokeStart();
         void          InvokeAwake();
     };
-
 } // namespace Ifrit::Runtime

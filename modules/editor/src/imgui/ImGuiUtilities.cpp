@@ -8,6 +8,7 @@
 #include "ifrit/runtime/base/EditorHandles.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
 #include "ifrit/runtime/asset/Asset.h"
+#include "ifrit/editor/util/SceneSerialization.h"
 using namespace Ifrit::Runtime;
 
 namespace Ifrit::Editor::ImGuiInternal
@@ -512,6 +513,16 @@ namespace Ifrit::Editor::ImGuiInternal
                 config.mComponentCreationPopup.mTargetGameObject = gameObject;
                 config.mComponentCreationPopup.PopupOpen         = true;
                 config.mComponentCreationPopup.SelectedComponent = "";
+            }
+            if (ImGui::Button("Export As Prefab", ImVec2(buttonWidth, 0)))
+            {
+                Widget::FFileDialogSetupArgs args;
+                args.mFileTypes   = { { "Prefab", "ifritprefab" } };
+                auto dialogResult = config.mFileDialog.OpenFileDialog(args);
+                if (dialogResult.mSuccess)
+                {
+                    Util::ExportGameObjectAsPrefab(gameObject, dialogResult.mFilePath);
+                }
             }
 
             auto components = obj->GetAllComponents();

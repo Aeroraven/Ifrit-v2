@@ -30,6 +30,14 @@ namespace Ifrit::Runtime
 {
     IF_CONSTEXPR const char* cMetadataFileExtension = ".meta";
 
+    enum class EAssetRegistrationResult : u8
+    {
+        Success,
+        AlreadyRegistered,
+        Conflict,
+        InvalidArgument
+    };
+
     using AssetPath = std::filesystem::path;
     class AssetManager;
     class AssetImporter;
@@ -54,10 +62,8 @@ namespace Ifrit::Runtime
 
     private:
         // For faster lookup
-        HashMap<String, u32> mNameToIndex;
-        HashMap<GUID, u32>   mGuidToIndex;
-
-    private:
+        HashMap<String, u32>    mNameToIndex;
+        HashMap<GUID, u32>      mGuidToIndex;
         HashMap<String, String> mExtensionImporterMap;
         std::filesystem::path   mBasePath;
         IApplication*           mApp;
@@ -67,9 +73,9 @@ namespace Ifrit::Runtime
 
     public:
         AssetManager(std::filesystem::path path, IApplication* app) : mBasePath(path), mApp(app) {}
-        inline IApplication* GetApplication() { return mApp; }
-
-        Vec<AssetMetadata>   GetAllAssetMetadata() const;
+        inline IApplication*     GetApplication() { return mApp; }
+        EAssetRegistrationResult TryRegisterAsset(Owner<Asset> asset);
+        Vec<AssetMetadata>       GetAllAssetMetadata() const;
 
         template <typename T, typename... Args>
             requires(std::is_base_of<Asset, T>::value && IConceptIsConstructible<T, Args...>)

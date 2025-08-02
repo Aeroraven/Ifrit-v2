@@ -10,14 +10,18 @@
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MaterialAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\prefab\GameObjectPrefabAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\PrefabAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\util\PrefabSerializer.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Component.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Light.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\MeshComponent.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Prefab.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
@@ -33,14 +37,18 @@
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MaterialAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\prefab\GameObjectPrefabAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\PrefabAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\util\PrefabSerializer.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Component.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Light.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\MeshComponent.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Prefab.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
@@ -75,6 +83,10 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::Runtime::Asset>();
         RegisterPropertyField<&Ifrit::Runtime::Asset::mMetadata>("Metadata");
 
+        // Ifrit::Runtime::InternalAssetHolder
+        RegisterType<Ifrit::Runtime::InternalAssetHolder>();
+        RegisterPropertyField<&Ifrit::Runtime::InternalAssetHolder::mAsset>("Asset");
+
         // Ifrit::Runtime::AssetManager
         RegisterType<Ifrit::Runtime::AssetManager>();
         RegisterPropertyField<&Ifrit::Runtime::AssetManager::mAssets>("Assets");
@@ -95,13 +107,9 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::Runtime::WaveFrontAsset>();
         RegisterPolymorphicRelation<Ifrit::Runtime::WaveFrontAsset, Ifrit::Runtime::ImportedMeshAsset>();
 
-        // Ifrit::Runtime::ShaderAsset
-        RegisterType<Ifrit::Runtime::ShaderAsset>();
-        RegisterPolymorphicRelation<Ifrit::Runtime::ShaderAsset, Ifrit::Runtime::Asset>();
-
-        // Ifrit::Runtime::TextureAsset
-        RegisterType<Ifrit::Runtime::TextureAsset>();
-        RegisterPolymorphicRelation<Ifrit::Runtime::TextureAsset, Ifrit::Runtime::Asset>();
+        // Ifrit::Runtime::Prefab
+        RegisterType<Ifrit::Runtime::Prefab>();
+        RegisterPropertyField<&Ifrit::Runtime::Prefab::mSerializedData>("Serialized Data");
 
         // Ifrit::Runtime::ComponentManager
         RegisterType<Ifrit::Runtime::ComponentManager>();
@@ -133,10 +141,6 @@ namespace Ifrit::Reflection
         RegisterPropertyHint<&Ifrit::Runtime::Component::mEnabled>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Component::mEnabled>("UISelect", "");
 
-        // Ifrit::Runtime::ActorBehavior
-        RegisterType<Ifrit::Runtime::ActorBehavior>();
-        RegisterPolymorphicRelation<Ifrit::Runtime::ActorBehavior, Ifrit::Runtime::Component>();
-
         // Ifrit::Runtime::Camera
         RegisterType<Ifrit::Runtime::Camera>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Camera, Ifrit::Runtime::Component>();
@@ -167,6 +171,45 @@ namespace Ifrit::Reflection
         RegisterPropertyHint<&Ifrit::Runtime::Camera::mIsMainCamera>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Camera::mIsMainCamera>("UISelect", "");
 
+        // Ifrit::Runtime::SceneNode
+        RegisterType<Ifrit::Runtime::SceneNode>();
+        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mName>("Name");
+        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mGuid>("Guid");
+        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mChildren>("Children");
+        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mGameObjectRefs>("Game Object Refs");
+
+        // Ifrit::Runtime::Scene
+        RegisterType<Ifrit::Runtime::Scene>();
+        RegisterPropertyField<&Ifrit::Runtime::Scene::mComponentManager>("Component Manager");
+        RegisterPropertyField<&Ifrit::Runtime::Scene::mGameObjectManager>("Game Object Manager");
+        RegisterPropertyField<&Ifrit::Runtime::Scene::mSceneNodes>("Scene Nodes");
+        RegisterPropertyField<&Ifrit::Runtime::Scene::mRoot>("Root");
+
+        // Ifrit::Runtime::PrefabAsset
+        RegisterType<Ifrit::Runtime::PrefabAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::PrefabAsset, Ifrit::Runtime::Asset>();
+
+        // Ifrit::Runtime::GameObjectPrefabAsset
+        RegisterType<Ifrit::Runtime::GameObjectPrefabAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::GameObjectPrefabAsset, Ifrit::Runtime::PrefabAsset>();
+
+        // Ifrit::Runtime::ShaderAsset
+        RegisterType<Ifrit::Runtime::ShaderAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::ShaderAsset, Ifrit::Runtime::Asset>();
+
+        // Ifrit::Runtime::TextureAsset
+        RegisterType<Ifrit::Runtime::TextureAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::TextureAsset, Ifrit::Runtime::Asset>();
+
+        // Ifrit::Runtime::TempPrefabSerializationData
+        RegisterType<Ifrit::Runtime::TempPrefabSerializationData>();
+        RegisterPropertyField<&Ifrit::Runtime::TempPrefabSerializationData::mGameObject>("Game Object");
+        RegisterPropertyField<&Ifrit::Runtime::TempPrefabSerializationData::mComponents>("Components");
+
+        // Ifrit::Runtime::ActorBehavior
+        RegisterType<Ifrit::Runtime::ActorBehavior>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::ActorBehavior, Ifrit::Runtime::Component>();
+
         // Ifrit::Runtime::Light
         RegisterType<Ifrit::Runtime::Light>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Light, Ifrit::Runtime::Component>();
@@ -188,20 +231,6 @@ namespace Ifrit::Reflection
         RegisterPropertyField<&Ifrit::Runtime::MeshRenderer::mMaterial>("Material");
         RegisterPropertyHint<&Ifrit::Runtime::MeshRenderer::mMaterial>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::MeshRenderer::mMaterial>("AssetCategory", "Material");
-
-        // Ifrit::Runtime::SceneNode
-        RegisterType<Ifrit::Runtime::SceneNode>();
-        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mName>("Name");
-        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mGuid>("Guid");
-        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mChildren>("Children");
-        RegisterPropertyField<&Ifrit::Runtime::SceneNode::mGameObjectRefs>("Game Object Refs");
-
-        // Ifrit::Runtime::Scene
-        RegisterType<Ifrit::Runtime::Scene>();
-        RegisterPropertyField<&Ifrit::Runtime::Scene::mComponentManager>("Component Manager");
-        RegisterPropertyField<&Ifrit::Runtime::Scene::mGameObjectManager>("Game Object Manager");
-        RegisterPropertyField<&Ifrit::Runtime::Scene::mSceneNodes>("Scene Nodes");
-        RegisterPropertyField<&Ifrit::Runtime::Scene::mRoot>("Root");
 
         // Ifrit::Runtime::Transform
         RegisterType<Ifrit::Runtime::Transform>();

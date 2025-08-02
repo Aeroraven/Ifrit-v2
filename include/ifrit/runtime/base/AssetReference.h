@@ -32,6 +32,15 @@ namespace Ifrit::Runtime
         PrefabExternal
     };
 
+    enum class EAssetType : u8
+    {
+        General,
+        Texture,
+        Material,
+        Mesh,
+        Prefab
+    };
+
     struct IF_CLASS() AssetReferenceId
     {
         IF_PROPERTY()
@@ -58,6 +67,8 @@ namespace Ifrit::Runtime
         }
 
         IFRIT_APIDECL void GetUIEditingHandle(const Reflection::PropertyMetadata& propMeta);
+        IFRIT_APIDECL void DoSerialize(Reflection::Archive* archive) const;
+        IFRIT_APIDECL void DoDeserialize(Reflection::Archive* archive);
     };
 
     struct IF_CLASS() AssetMetadata
@@ -98,6 +109,13 @@ namespace Ifrit::Runtime
             ref.mRelativePath = mMetadata.mExternalPath;
             return ref;
         }
+    };
+
+    class IF_CLASS() InternalAssetHolder
+    {
+    public:
+        IF_PROPERTY()
+        Owner<Asset> mAsset;
     };
 
 } // namespace Ifrit::Runtime

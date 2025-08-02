@@ -24,6 +24,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <random>
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/core/reflection/Reflection.h"
+#include "ifrit/core/reflection/SerializeHelper.h"
+
+#include "ifrit/runtime/asset/util/PrefabSerializer.h"
 using namespace Ifrit::Math;
 
 namespace Ifrit::Runtime
@@ -235,6 +238,27 @@ namespace Ifrit::Runtime
             std::abort();
         }
         mComponentsHashed[typeHash] = componentRef.second;
+    }
+
+    Owner<Prefab> GameObject::CreatePrefab()
+    {
+        Owner<Prefab>               prefab = MakeOwner<Prefab>();
+        TempPrefabSerializationData tempData;
+        tempData.mGameObject = Owner<GameObject>(this);
+        auto components      = GetAllComponents();
+        for (auto& component : components)
+        {
+            tempData.mComponents.push_back(Owner<Component>(component));
+        }
+        String serializedData   = Reflection::SerializeToJSON(tempData);
+        prefab->mSerializedData = serializedData;
+        tempData.mGameObject.release();
+        for (auto& component : tempData.mComponents)
+        {
+            component.release();
+        }
+        tempData.mComponents.clear();
+        return prefab;
     }
 
 } // namespace Ifrit::Runtime

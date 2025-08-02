@@ -26,6 +26,8 @@ namespace Ifrit::Runtime
         void EnqueueRDGTask(Fn<void(FrameGraphBuilder*)> taskFn, FrameGraphResourcePool* pool);
         void EnqueueRendererTask(
             Scene* scene, Camera* camera, RHI::RhiRenderTargets* renderTargets, const RendererConfig& config);
+        void                            SetRendererConfig(const RendererConfig& config);
+        RendererConfig                  GetRendererConfig() const;
 
         RHI::RhiRenderTargets*          GetDefaultRenderTargets() const;
         RHI::RhiColorAttachment*        GetDefaultRenderTargetsColor() const;

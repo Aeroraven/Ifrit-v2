@@ -64,3 +64,6 @@
 [submodule "dependencies/magicenum"]
 	path = dependencies/magicenum
 	url = git@github.com:Neargye/magic_enum.git
+[submodule "dependencies/nfd"]
+	path = dependencies/nfd
+	url = git@github.com:btzy/nativefiledialog-extended.git

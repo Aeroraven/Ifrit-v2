@@ -22,6 +22,7 @@
 #include "artemis.mpm.generated.h"
 
 #include "ifrit/core/reflection/SerializeHelper.h"
+#include "ifrit/runtime/physics/artemis/ArtemisController.h"
 
 #define WINDOW_WIDTH 1280
 #define WINDOW_HEIGHT 800
@@ -39,66 +40,36 @@ namespace Ifrit
     class DemoApplicationMpm : public Runtime::Application
     {
     private:
-        Owner<BaseForwardRenderer>                   m_Renderer;
-        RendererConfig                               m_RenderConfig;
+        Owner<BaseForwardRenderer> m_Renderer;
+        RendererConfig             m_RenderConfig;
 
-        Owner<Artemis::MPMSimulator>                 m_MpmSim;
-        Owner<Artemis::ArtemisSimulator>             m_ArtemisSim;
-        Owner<Artemis::RigidSimulator>               m_RigidSim;
-        Vec<Vector3f>                                m_PointClouds;
-
-        u32                                          m_FrameIdx = 0;
-        Ref<FrameGraphResourcePool>                  m_FrameGraphResourcePool;
-        // Debug
-        Ref<Geometry::ParticleSurfaceProceduralMesh> m_ParticleSurfaceMesh;
-
-        Artemis::GPURigidCollider*                   collider1;
-        Artemis::GPURigidCollider*                   collider2;
-        SceneNode*                                   nodew;
+        Artemis::GPURigidCollider* collider1;
+        Artemis::GPURigidCollider* collider2;
+        SceneNode*                 nodew;
 
     public:
         void OnStart() override
         {
-            m_Renderer                               = MakeOwner<BaseForwardRenderer>(this);
-            m_RenderConfig.m_AntiAliasingType        = AntiAliasingType::None;
-            m_RenderConfig.m_OverrideMaterialCulling = OverrideMaterialCulling::ForcedCullNone;
-
-            m_MpmSim     = MakeOwner<Artemis::MPMSimulator>();
-            m_RigidSim   = MakeOwner<Artemis::RigidSimulator>();
-            m_ArtemisSim = MakeOwner<Artemis::ArtemisSimulator>(this);
-
-            m_ArtemisSim->RegisterSolver(m_MpmSim.get());
-
+            m_Renderer = MakeOwner<BaseForwardRenderer>(this);
+            m_RendererWrapper->SetRenderer(m_Renderer.get());
             RegisterSubsystem(InputSystem::Create());
+            RegisterSubsystem(Artemis::ArtemisController::Create());
             RegisterSubsystem(Editor::CreateEditorProvider(Editor::EEditorProviderType::ImGui));
             EnableRendererWrapper(true);
+            m_RendererWrapper->SetRendererConfig(m_RenderConfig);
 
-            {
-                auto vdbFileData = Ifrit::ReadBinaryFile(IFRIT_DEMO_ASSET_PATH "/bunny.vdb");
-                auto vdbDesc     = VDB::LoadVdbFromString(vdbFileData);
-                VDB::PrintVdbMeta(vdbDesc);
-                m_PointClouds = VDB::PoissonSampleVdbZpcReference(vdbDesc, 0.3f, 10);
-                // iDebug("Sampled {} points from VDB.", m_PointClouds.size());
-                PointCloud::PointCloudDescriptor pcDesc;
-                pcDesc.m_Points = m_PointClouds.data();
-                pcDesc.m_Count  = static_cast<u32>(m_PointClouds.size());
+            auto artemisController = GetSubsystem<Artemis::ArtemisController>();
+            artemisController->AddPresetSolver(Artemis::EPresetArtemisSimulator::MPM);
 
-                PointCloud::MoveCenterTo(pcDesc, Vector3f(32.0f, 32.0f, 32.0f));
-                PointCloud::NormalizeToLongestAxisAABB(pcDesc, Vector3f(0.0f), Vector3f(64.0f));
-                // m_MpmSim->SetInitParticleLocations<3>(m_PointClouds);
-            }
-
-            auto scene               = m_sceneAssetManager->CreateScene("TestScene2");
-            auto node                = scene->AddSceneNode("MPMScene");
-            nodew                    = node;
-            m_FrameGraphResourcePool = MakeRef<FrameGraphResourcePool>(GetRhi());
+            auto scene = m_sceneAssetManager->CreateScene("TestScene2");
+            auto node  = scene->AddSceneNode("MPMScene");
+            nodew      = node;
 
             auto timeControl = node->AddGameObject("MPMTimeControl");
             timeControl->AddComponent<MPMTiming>();
 
             auto mpmGlobalConfig = node->AddGameObject("MPMGlobalConfig");
             auto mpmConfig       = mpmGlobalConfig->AddComponent<Artemis::MPMSimulatorConfigurator>();
-            mpmConfig->SetActiveSimulator(m_MpmSim.get());
 
             auto mpmContainer          = node->AddGameObject("MPMParticleContainer");
             auto mpmContainerComponent = mpmContainer->AddComponent<Artemis::MPMParticleContainer>();
@@ -161,55 +132,9 @@ namespace Ifrit
             }
 
             m_sceneManager->SetActiveScene(scene);
-            m_RendererWrapper->SetRenderer(m_Renderer.get());
-
-            auto sceneSerialized = scene->Serialize();
-            WriteTextFile("E:/Test.json", sceneSerialized);
-
-            auto p = Ifrit::Reflection::GetAllDerivedTypes<Runtime::Component>(true);
-            for (auto& type : p)
-            {
-                IF_LOG_DEBUG("Demo", "Component type: {}", type.get().Name);
-            }
         }
 
-        void OnUpdate() override
-        {
-
-            // Sleep(10);
-            m_FrameIdx++;
-            if (m_FrameIdx == 114)
-            {
-                collider1->SetEnable(true);
-            }
-            if (m_FrameIdx == 54)
-            {
-                collider2->SetEnable(true);
-            }
-            // if (m_FrameIdx == 200)
-            // {
-            //     auto rigid     = nodew->AddGameObject("RigidCollider3");
-            //     auto rigidMesh = rigid->AddComponent<MeshFilter>();
-            //     rigidMesh->SetMeshSource(GetAssetRegistry()->GetAssetByName<MeshAsset>("Circle2DAsset"));
-            //     auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
-            //     rigidRenderer->SetMaterialSource(
-            //         GetAssetRegistry()->GetAssetByName<MaterialAsset>("DefaultMaterialAsset"));
-            //     auto rigidTransform = rigid->GetComponent<Transform>();
-            //     rigidTransform->SetPosition({ 0.7f, 0.8f, 0.0f });
-            //     rigidTransform->SetDevice(TransformUpdateDevice::GPU);
-            //     auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
-            //     rigidCollider->SetRadius(0.05f);
-            //     rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
-            //     rigidCollider->SetEnable(true);
-            // }
-            m_RendererWrapper->EnqueueRendererTask(m_sceneManager->GetActiveScene().get(), nullptr,
-                m_RendererWrapper->GetDefaultRenderTargets(), m_RenderConfig);
-            m_MpmSim->SetDebugRenderTarget(m_RendererWrapper->GetDefaultColorImage().get());
-            m_ArtemisSim->CollectScene(m_sceneManager->GetActiveScene().get(), m_FrameIdx);
-
-            m_RendererWrapper->EnqueueGeneralTask(
-                [&](RHI::RhiTaskSubmission* submission) { return m_ArtemisSim->Update(sTimestep, { submission }); });
-        }
+        void OnUpdate() override {}
 
         void OnEnd() override {}
     };

@@ -1,0 +1,1 @@
+#include "ifrit/runtime/asset/prefab/GameObjectPrefabAsset.h"

@@ -19,7 +19,7 @@ namespace Ifrit::Runtime
         RHI::RhiTextureRef                  m_DefaultDepthImage;
         RHI::RhiTextureRef                  m_DefaultColorImage;
         Ref<RHI::RhiDepthStencilAttachment> m_DefaultDepthAttachment;
-
+        RendererConfig                      m_RendererConfig;
         Ref<FrameGraphResourcePool>         m_FrameGraphResourcePoolPrivate;
     };
 
@@ -171,6 +171,12 @@ namespace Ifrit::Runtime
             },
             { m_Data->m_LastEnqueuedTasks.get() }, {});
     }
+
+    IFRIT_APIDECL void RendererWrapper::SetRendererConfig(const RendererConfig& config)
+    {
+        m_Data->m_RendererConfig = config;
+    }
+    IFRIT_APIDECL RendererConfig RendererWrapper::GetRendererConfig() const { return m_Data->m_RendererConfig; }
 
     IFRIT_APIDECL RHI::RhiRenderTargets* RendererWrapper::GetDefaultRenderTargets() const
     {

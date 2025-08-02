@@ -143,7 +143,13 @@ namespace Ifrit::Runtime
                 m_RendererWrapper->EnqueueGeneralTask(
                     [&](RHI::RhiTaskSubmission* prevSubmission) { return subsystem->OnPreRendering(prevSubmission); });
             }
+            if (m_ApplicationState.m_EnableRenderingPipeline)
+            {
+                m_RendererWrapper->EnqueueRendererTask(m_sceneManager->GetActiveScene().get(), nullptr,
+                    m_RendererWrapper->GetDefaultRenderTargets(), m_RendererWrapper->GetRendererConfig());
+            }
         }
+
         OnUpdate();
         if (m_EnableRendererWrapper)
         {
@@ -151,15 +157,15 @@ namespace Ifrit::Runtime
             {
                 subsystem->OnUpdate(m_sceneManager->GetActiveScene().get());
             }
-            if (!m_ApplicationState.m_EditorMode)
-            {
-                m_RendererWrapper->DrawToScreen();
-            }
-
             for (auto& subsystem : m_Subsystems)
             {
                 m_RendererWrapper->EnqueueGeneralTask(
                     [&](RHI::RhiTaskSubmission* prevSubmission) { return subsystem->OnPostRendering(prevSubmission); });
+            }
+
+            if (!m_ApplicationState.m_EditorMode)
+            {
+                m_RendererWrapper->DrawToScreen();
             }
             m_RendererWrapper->EndFrame();
             for (auto& subsystem : m_Subsystems)
@@ -193,7 +199,7 @@ namespace Ifrit::Runtime
         m_SubsystemTypeIdToIndex[typeid(*ptr).hash_code()] = static_cast<u32>(m_Subsystems.size() - 1);
     }
 
-    IFRIT_APIDECL void* Application::GetSubsystemInternal(u64 typeId)
+    IFRIT_APIDECL ISubsystem* Application::GetSubsystemInternal(u64 typeId)
     {
         auto it = m_SubsystemTypeIdToIndex.find(typeId);
         if (it != m_SubsystemTypeIdToIndex.end())

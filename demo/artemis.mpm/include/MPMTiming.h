@@ -1,7 +1,8 @@
 
 #pragma once
 #include "ifrit/runtime/base/ActorBehavior.h"
-
+#include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/runtime/physics/artemis/ArtemisController.h"
 using namespace Ifrit::Runtime;
 
 namespace Ifrit
@@ -22,6 +23,14 @@ namespace Ifrit
         f32                   mTimestep = 1.0f / mInvTimestep;
 
     public:
-        void OnUpdate() override { sTimestep = 1.0f / mInvTimestep; }
+        void OnUpdate() override
+        {
+            sTimestep              = 1.0f / mInvTimestep;
+            auto artemisController = GetActiveApplication()->GetSubsystem<Artemis::ArtemisController>();
+            if (artemisController)
+            {
+                artemisController->SetTimestep(sTimestep);
+            }
+        }
     };
 } // namespace Ifrit

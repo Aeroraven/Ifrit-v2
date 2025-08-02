@@ -31,7 +31,7 @@ namespace Ifrit::Runtime
     {
 
     protected:
-        virtual void* GetSubsystemInternal(u64 typeId) = 0;
+        virtual ISubsystem* GetSubsystemInternal(u64 typeId) = 0;
 
     public:
         virtual void                                    OnStart()  = 0;

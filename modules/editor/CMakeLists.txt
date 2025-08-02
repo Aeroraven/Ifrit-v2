@@ -18,6 +18,7 @@ add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Editor")
 add_definitions(-DIFRIT_MODULE_EDITOR)
 
 include_directories(${IFRIT_PROJECT_DIR}/dependencies/imgui)
+include_directories(${IFRIT_PROJECT_DIR}/dependencies)
 
 # set cxx20
 set(CMAKE_CXX_STANDARD 20)
@@ -37,6 +38,7 @@ target_precompile_headers(ifrit.editor
 	$<$<CXX_COMPILER_ID:GNU>:"${IFRIT_RUNTIME_PCH_HEADER}">)
 
 target_link_libraries(ifrit.editor 
+	nfd
 	ifrit.rhi 
 	ifrit.display 
 	ifrit.vkgraphics 

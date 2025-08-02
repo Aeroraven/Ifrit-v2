@@ -4,6 +4,8 @@
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/runtime/base/Scene.h"
 #include "ifrit/core/reflection/Reflection.h"
+#include "ifrit/editor/widgets/FileDialog.h"
+
 namespace Ifrit::Editor::ImGuiInternal
 {
     struct Inspector_NewSceneNodeModal
@@ -37,6 +39,7 @@ namespace Ifrit::Editor::ImGuiInternal
         Inspector_AddGameObjectModal           mAddGameObjectModal;
         Inspector_ComponentCreationPopupConfig mComponentCreationPopup;
         float                                  mDpiScaler = 1.0f;
+        Widget::FileDialog                     mFileDialog;
     };
 
     IFRIT_EDITOR_API void Inspector_RegisterEditingHandles();
