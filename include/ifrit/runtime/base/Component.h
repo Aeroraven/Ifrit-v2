@@ -126,7 +126,7 @@ namespace Ifrit::Runtime
 
         GameObjectReference CreateGameObject(const String& name);
         GameObject*         GetGameObject(GameObjectReference ref);
-
+        void                RebuildLookupTable();
         void                RequestRemove(GameObjectReference ref);
     };
 

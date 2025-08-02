@@ -518,7 +518,7 @@ namespace Ifrit::Editor::ImGuiInternal
             {
                 Widget::FFileDialogSetupArgs args;
                 args.mFileTypes   = { { "Prefab", "ifritprefab" } };
-                auto dialogResult = config.mFileDialog.OpenFileDialog(args);
+                auto dialogResult = config.mFileDialog->OpenFileDialog(args);
                 if (dialogResult.mSuccess)
                 {
                     Util::ExportGameObjectAsPrefab(gameObject, dialogResult.mFilePath);

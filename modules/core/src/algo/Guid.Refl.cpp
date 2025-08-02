@@ -37,4 +37,4 @@ namespace Ifrit
         archive->EndObject();
         archive->EndObject();
     }
-} // namespace Ifrit
+} // namespace Ifrit

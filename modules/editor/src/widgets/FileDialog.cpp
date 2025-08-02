@@ -59,7 +59,15 @@ namespace Ifrit::Editor::Widget
             filterItems.push_back(item);
         }
 
-        nfdresult_t       result = NFD::SaveDialog(outPath, filterItems.data(), filterItems.size(), nullptr);
+        nfdresult_t result;
+        if (args.mDialogType == EFileDialogType::OpenFile)
+        {
+            result = NFD::OpenDialog(outPath, filterItems.data(), filterItems.size(), nullptr);
+        }
+        else // EFileDialogType::SaveFile
+        {
+            result = NFD::SaveDialog(outPath, filterItems.data(), filterItems.size(), nullptr);
+        }
 
         FFileDialogResult dialogResult;
         if (result == NFD_OKAY)

@@ -43,6 +43,7 @@ namespace Ifrit::Editor
 
         f32                             m_DpiScaler       = 1.0f;
         ImGuiInternal::Inspector_Modals m_InspectorModals = {};
+        ImGuiInternal::MenuBar_Modals   m_MenuBarModals   = {};
         ImFont*                         m_IconFontLarge   = nullptr;
 
         Widget::FileDialog              mFileDialog;
@@ -154,6 +155,29 @@ namespace Ifrit::Editor
             ImGui::PopStyleColor();
         }
         ImGui::SetScrollHereY(1.0f);
+    }
+
+    void RenderMenuBar(ImGuiProviderData* data)
+    {
+        // Remove ImGui::BeginMainMenuBar() and ImGui::EndMainMenuBar()
+        // Use ImGui::BeginMenuBar() instead since we're inside a window with MenuBar flag
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("Export Current Scene"))
+                {
+                    ImGuiInternal::MenuBar_ExportCurrentScene(data->m_MenuBarModals);
+                }
+
+                if (ImGui::MenuItem("Load And Override Scene"))
+                {
+                    ImGuiInternal::MenuBar_LoadAndOverrideCurrentScene(data->m_MenuBarModals);
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
     }
 
     static VkPipelineRenderingCreateInfoKHR GetImGuiRenderingInfo()
@@ -353,7 +377,8 @@ namespace Ifrit::Editor
         ImGuiInternal::Inspector_RegisterEditingHandles();
 
         m_Data->mFileDialog.Initialize();
-        m_Data->m_InspectorModals.mFileDialog = m_Data->mFileDialog;
+        m_Data->m_InspectorModals.mFileDialog = &m_Data->mFileDialog;
+        m_Data->m_MenuBarModals.mFileDialog   = &m_Data->mFileDialog;
     }
 
     IFRIT_APIDECL void ImGuiProvider::OnShutdown()
@@ -395,6 +420,10 @@ namespace Ifrit::Editor
 
         ImGui::Begin("DockSpace", nullptr, window_flags);
         ImGui::PopStyleVar(3);
+
+        // Main Menu Bar
+        RenderMenuBar(m_Data);
+
         m_Data->m_DockspaceID = ImGui::GetID("MainDockSpace");
         ImGui::DockSpace(m_Data->m_DockspaceID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
 

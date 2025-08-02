@@ -312,5 +312,49 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL PerFrameData* Scene::GetPerFrameData() { return m_PerFrameData.get(); }
 
     IFRIT_APIDECL String        Scene::Serialize() const { return Reflection::SerializeToJSON(*this); }
+    IFRIT_APIDECL void          Scene::Deserialize(const String& data)
+    {
+        Reflection::DeserializeFromJSON(*this, data);
+
+        mGameObjectManager->RebuildLookupTable();
+        // setup nodes
+        mRoot->m_Parent = this;
+        mRoot->m_GameObjects.resize(mRoot->mGameObjectRefs.size());
+        for (auto i = 0u; i < mRoot->mGameObjectRefs.size(); i++)
+        {
+            mRoot->m_GameObjects[i] = mGameObjectManager->mGameObjects[i].get();
+        }
+        for (auto i = 0u; i < mSceneNodes.size(); i++)
+        {
+            mSceneNodes[i]->m_Parent = this;
+            mSceneNodes[i]->m_GameObjects.resize(mSceneNodes[i]->mGameObjectRefs.size());
+            for (auto j = 0u; j < mSceneNodes[i]->mGameObjectRefs.size(); j++)
+            {
+                mSceneNodes[i]->m_GameObjects[j] =
+                    mGameObjectManager->GetGameObject(mSceneNodes[i]->mGameObjectRefs[j]);
+            }
+        }
+        // setup game objects
+        for (auto& gameObject : mGameObjectManager->mGameObjects)
+        {
+            gameObject->m_ComponentManager  = mComponentManager.get();
+            gameObject->m_GameObjectManager = mGameObjectManager.get();
+
+            for (auto [k, v] : gameObject->mComponentsHashed)
+            {
+                ComponentReference ref     = { k, v };
+                auto               compPtr = mComponentManager->mComponentArray[k][v].get();
+                if (compPtr)
+                {
+                    compPtr->m_GameObjectManager = mGameObjectManager.get();
+                    compPtr->m_ParentRef         = gameObject->GetManagerId();
+                }
+                else
+                {
+                    IF_LOG_CRITICAL("Scene", "Component reference is null for type hash: {}, index: {}", k, v);
+                }
+            }
+        }
+    }
 
 } // namespace Ifrit::Runtime

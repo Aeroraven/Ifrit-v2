@@ -48,7 +48,7 @@ namespace Ifrit::Runtime
     {
         archive->BeginObject("__ifrit_asset_reference");
         archive->BeginObject("__ifrit_guid");
-        mGuid.DoSerialize(archive);
+        mGuid.DoDeserialize(archive);
         archive->EndObject();
         archive->BeginObject("__ifrit_path");
         archive->Serialize(mRelativePath);
@@ -91,5 +91,6 @@ namespace Ifrit::Runtime
                 IF_LOG_CRITICAL("AssetReferenceId", "Deserialized asset is null for path: {}", mRelativePath);
             }
         }
+        archive->EndObject();
     }
 } // namespace Ifrit::Runtime

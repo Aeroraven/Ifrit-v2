@@ -39,7 +39,12 @@ namespace Ifrit::Editor::ImGuiInternal
         Inspector_AddGameObjectModal           mAddGameObjectModal;
         Inspector_ComponentCreationPopupConfig mComponentCreationPopup;
         float                                  mDpiScaler = 1.0f;
-        Widget::FileDialog                     mFileDialog;
+        Widget::FileDialog*                    mFileDialog;
+    };
+
+    struct MenuBar_Modals
+    {
+        Widget::FileDialog* mFileDialog;
     };
 
     IFRIT_EDITOR_API void Inspector_RegisterEditingHandles();
@@ -50,4 +55,7 @@ namespace Ifrit::Editor::ImGuiInternal
     IFRIT_EDITOR_API void Inspector_ShowAddSceneNodeModal(Inspector_Modals& config);
     IFRIT_EDITOR_API void Inspector_ShowAddGameObjectModal(Inspector_Modals& config);
     IFRIT_EDITOR_API void Inspector_ShowComponentCreationPopup(Inspector_Modals& config);
+
+    IFRIT_EDITOR_API void MenuBar_ExportCurrentScene(MenuBar_Modals& config);
+    IFRIT_EDITOR_API void MenuBar_LoadAndOverrideCurrentScene(MenuBar_Modals& config);
 } // namespace Ifrit::Editor::ImGuiInternal

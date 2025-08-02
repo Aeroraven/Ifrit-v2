@@ -8,4 +8,5 @@ namespace Ifrit::Runtime
     class SharedRenderResource;
     struct ApplicationState;
     class AssetManager;
-} // namespace Ifrit::Runtime
+    class SceneManager;
+} // namespace Ifrit::Runtime

@@ -51,7 +51,7 @@ namespace Ifrit::Runtime
 
     public:
         SceneNode();
-        SceneNode(Scene* parentScene) : m_Parent(parentScene) {};
+        SceneNode(Scene* parentScene) : m_Parent(parentScene){};
         virtual ~SceneNode() = default;
 
         SceneNode*              AddChildNode(const String& name);
@@ -125,6 +125,7 @@ namespace Ifrit::Runtime
                           Fn<bool(SceneNode*)> fnNode, Fn<void(GameObject*)> fnObject, Fn<void()> fnOnPush, Fn<void()> fnOnPop);
 
         String Serialize() const;
+        void   Deserialize(const String& data);
     };
 
 } // namespace Ifrit::Runtime

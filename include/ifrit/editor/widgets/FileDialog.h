@@ -5,6 +5,12 @@
 
 namespace Ifrit::Editor::Widget
 {
+    enum class EFileDialogType
+    {
+        OpenFile,
+        SaveFile,
+    };
+
     struct FFileDialogResult
     {
         bool   mSuccess = false;
@@ -13,6 +19,7 @@ namespace Ifrit::Editor::Widget
 
     struct FFileDialogSetupArgs
     {
+        EFileDialogType           mDialogType = EFileDialogType::SaveFile;
         Vec<Pair<String, String>> mFileTypes;
     };
 

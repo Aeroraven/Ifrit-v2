@@ -217,6 +217,20 @@ namespace Ifrit::Runtime
         mGameObjects.push_back(std::move(gameObject));
         return id;
     }
+    IFRIT_APIDECL void GameObjectManager::RebuildLookupTable()
+    {
+        m_GameObjectNameToIndex.clear();
+        m_GameObjectUUIDToIndex.clear();
+        for (u32 i = 0; i < mGameObjects.size(); ++i)
+        {
+            auto& gameObject = mGameObjects[i];
+            if (gameObject)
+            {
+                m_GameObjectNameToIndex[gameObject->GetName()] = i;
+                m_GameObjectUUIDToIndex[gameObject->GetUUID()] = i;
+            }
+        }
+    }
 
     IFRIT_APIDECL GameObject* GameObjectManager::GetGameObject(GameObjectReference ref)
     {

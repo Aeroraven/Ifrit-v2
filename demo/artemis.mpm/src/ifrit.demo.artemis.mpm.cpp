@@ -61,6 +61,11 @@ namespace Ifrit
             auto artemisController = GetSubsystem<Artemis::ArtemisController>();
             artemisController->AddPresetSolver(Artemis::EPresetArtemisSimulator::MPM);
 
+            // Asset
+            auto circleMesh = GetAssetRegistry()->CreateAsset<Geometry::Circle2DAsset>("Circle2DAsset", 0.05f, 32);
+            auto material   = GetAssetRegistry()->CreateAsset<DefaultMaterialAsset>("DefaultMaterialAsset");
+
+            // Scene
             auto scene = m_sceneAssetManager->CreateScene("TestScene2");
             auto node  = scene->AddSceneNode("MPMScene");
             nodew      = node;
@@ -86,9 +91,6 @@ namespace Ifrit
             auto cameraTransform = cameraGameObject->GetComponent<Transform>();
             cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
             cameraTransform->SetPosition({ 0.5f, 0.5f, -1.0f });
-
-            auto circleMesh = GetAssetRegistry()->CreateAsset<Geometry::Circle2DAsset>("Circle2DAsset", 0.05f, 32);
-            auto material   = GetAssetRegistry()->CreateAsset<DefaultMaterialAsset>("DefaultMaterialAsset");
 
             {
                 auto rigid     = node->AddGameObject("RigidCollider1");

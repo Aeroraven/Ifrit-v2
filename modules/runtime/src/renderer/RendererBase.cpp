@@ -65,7 +65,9 @@ namespace Ifrit::Runtime
         }
         if (camera == nullptr)
         {
-            throw std::runtime_error("No camera found in scene");
+            IF_LOG_WARNING("Rendering", "No camera found in scene");
+            return ;
+            //throw std::runtime_error("No camera found in scene");
         }
         if (perframeData.m_views.size() == 0)
         {

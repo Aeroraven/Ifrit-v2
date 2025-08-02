@@ -46,14 +46,15 @@ namespace Ifrit::Reflection
             if (!ret)
             {
                 // print available keys
-                IF_LOG_WARNING("Reflector",
+                IF_LOG_ERROR("Reflector",
                     "The deserialization requires the object with name {}, but the archive does not contain this key. Available keys are:",
                     name);
                 for (auto it = current->begin(); it != current->end(); ++it)
                 {
-                    IF_LOG_WARNING("Reflector", "  - '{}' (type: {}), {}", it.key(), it.value().type_name(),
+                    IF_LOG_ERROR("Reflector", "  - '{}' (type: {}), {}", it.key(), it.value().type_name(),
                         (*current)[name].is_object());
                 }
+                IF_LOG_CRITICAL("Reflector", " Serialization failed, aborting the application");
             }
             return ret;
         }
@@ -65,14 +66,15 @@ namespace Ifrit::Reflection
             if (!ret)
             {
                 // print available keys
-                IF_LOG_WARNING("Reflector",
+                IF_LOG_ERROR("Reflector",
                     "The deserialization requires the array with name {}, but the archive does not contain this key. Available keys are:",
                     name);
                 for (auto it = current->begin(); it != current->end(); ++it)
                 {
-                    IF_LOG_WARNING("Reflector", "  - '{}' (type: {}), {}", it.key(), it.value().type_name(),
+                    IF_LOG_ERROR("Reflector", "  - '{}' (type: {}), {}", it.key(), it.value().type_name(),
                         (*current)[name].is_object());
                 }
+                IF_LOG_CRITICAL("Reflector", " Serialization failed, aborting the application");
             }
             return ret;
         }
