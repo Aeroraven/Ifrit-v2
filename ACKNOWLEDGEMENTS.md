@@ -24,11 +24,12 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [imgui](https://github.com/ocornut/imgui)                    | Editor GUI                       | MIT                  |
 | [json](https://github.com/nlohmann/json)                     | Serialization Output Format      | MIT                  |
 | [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) | Texture Compression              | Apache 2.0           |
-| [llvm-project](https://github.com/llvm/llvm-project)         | JIT Runtime                      | Apache 2.0           |
+| [llvm-project](https://github.com/llvm/llvm-project)         | JIT Runtime / Reflection Parsing | Apache 2.0           |
 | [magic_enum](https://github.com/Neargye/magic_enum)          | Reflection                       | MIT                  |
 | [meshoptimizer](https://github.com/zeux/meshoptimizer)       | Mesh Algorithm                   | MIT                  |
 | [mimalloc](https://github.com/microsoft/mimalloc)            | Memory Allocation                | MIT                  |
 | [METIS](https://github.com/KarypisLab/METIS/)                | Mesh Algorithm / Graph Partition | Apache 2.0           |
+| [nfd-extended](https://github.com/btzy/nativefiledialog-extended) | Editor GUI                       | Zlib                 |
 | [openvdb](https://github.com/AcademySoftwareFoundation/openvdb) | Volume Data Structure            | Apache 2.0           |
 | [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
 | [sha1](https://github.com/vog/sha1)                          | Hash                             | Public domain        |
