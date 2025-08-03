@@ -56,19 +56,27 @@ namespace Ifrit::Runtime
         GraphicsShaderPassType passType, RenderTargets* renderTargets, const SceneCollectConfig& config)
     {
         using Ifrit::SizeCast;
-
         IF_LOG_ASSERTION("RendererBase", m_config != nullptr, "Renderer config is not set");
         // Filling per frame data
+
         if (camera == nullptr)
         {
             camera = scene->GetMainCamera();
         }
         if (camera == nullptr)
         {
-            IF_LOG_WARNING("Rendering", "No camera found in scene");
-            return ;
-            //throw std::runtime_error("No camera found in scene");
+            if (perframeData.mSkipRendering == 0)
+            {
+                IF_LOG_WARNING("Rendering", "No camera found in scene");
+            }
+            perframeData.mSkipRendering = 1;
+            return;
         }
+        else
+        {
+            perframeData.mSkipRendering = 0;
+        }
+
         if (perframeData.m_views.size() == 0)
         {
             perframeData.m_views.resize(1);
@@ -531,6 +539,9 @@ namespace Ifrit::Runtime
         u32  actualRenderWidth  = 0;
         u32  actualRenderHeight = 0;
         GetSupersampledRenderArea(renderTargets, &actualRenderWidth, &actualRenderHeight);
+
+        if (perframeData.mSkipRendering)
+            return;
 
         auto& primaryView                      = perframeData.m_views[0];
         primaryView.m_viewType                 = PerFrameData::ViewType::Primary;

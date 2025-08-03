@@ -62,76 +62,76 @@ namespace Ifrit
             artemisController->AddPresetSolver(Artemis::EPresetArtemisSimulator::MPM);
 
             // Asset
-            auto circleMesh = GetAssetRegistry()->CreateAsset<Geometry::Circle2DAsset>("Circle2DAsset", 0.05f, 32);
-            auto material   = GetAssetRegistry()->CreateAsset<DefaultMaterialAsset>("DefaultMaterialAsset");
+            // auto circleMesh = GetAssetRegistry()->CreateAsset<Geometry::Circle2DAsset>("Circle2DAsset", 0.05f, 32);
+            // auto material   = GetAssetRegistry()->CreateAsset<DefaultMaterialAsset>("DefaultMaterialAsset");
 
             // Scene
             auto scene = m_sceneAssetManager->CreateScene("TestScene2");
-            auto node  = scene->AddSceneNode("MPMScene");
-            nodew      = node;
+            // auto node  = scene->AddSceneNode("MPMScene");
+            // nodew      = node;
 
-            auto timeControl = node->AddGameObject("MPMTimeControl");
-            timeControl->AddComponent<MPMTiming>();
+            // auto timeControl = node->AddGameObject("MPMTimeControl");
+            // timeControl->AddComponent<MPMTiming>();
 
-            auto mpmGlobalConfig = node->AddGameObject("MPMGlobalConfig");
-            auto mpmConfig       = mpmGlobalConfig->AddComponent<Artemis::MPMSimulatorConfigurator>();
+            // auto mpmGlobalConfig = node->AddGameObject("MPMGlobalConfig");
+            // auto mpmConfig       = mpmGlobalConfig->AddComponent<Artemis::MPMSimulatorConfigurator>();
 
-            auto mpmContainer          = node->AddGameObject("MPMParticleContainer");
-            auto mpmContainerComponent = mpmContainer->AddComponent<Artemis::MPMParticleContainer>();
+            // auto mpmContainer          = node->AddGameObject("MPMParticleContainer");
+            // auto mpmContainerComponent = mpmContainer->AddComponent<Artemis::MPMParticleContainer>();
 
-            auto cameraGameObject = node->AddGameObject("Camera");
-            auto camera           = cameraGameObject->AddComponent<Camera>();
-            camera->SetCameraType(CameraType::Orthographic);
-            camera->SetMainCamera(true);
-            camera->SetAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
-            camera->SetOrthoSpaceSize(1.0f);
-            camera->SetFar(20.0f);
-            camera->SetNear(0.10f);
+            // auto cameraGameObject = node->AddGameObject("Camera");
+            // auto camera           = cameraGameObject->AddComponent<Camera>();
+            // camera->SetCameraType(CameraType::Orthographic);
+            // camera->SetMainCamera(true);
+            // camera->SetAspect(1.0f * WINDOW_WIDTH / WINDOW_HEIGHT);
+            // camera->SetOrthoSpaceSize(1.0f);
+            // camera->SetFar(20.0f);
+            // camera->SetNear(0.10f);
 
-            auto cameraTransform = cameraGameObject->GetComponent<Transform>();
-            cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
-            cameraTransform->SetPosition({ 0.5f, 0.5f, -1.0f });
+            // auto cameraTransform = cameraGameObject->GetComponent<Transform>();
+            // cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
+            // cameraTransform->SetPosition({ 0.5f, 0.5f, -1.0f });
 
-            {
-                auto rigid     = node->AddGameObject("RigidCollider1");
-                auto rigidMesh = rigid->AddComponent<MeshFilter>();
-                rigidMesh->SetMeshSource(circleMesh);
-                auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
-                rigidRenderer->SetMaterialSource(material);
-                auto rigidTransform = rigid->GetComponent<Transform>();
-                rigidTransform->SetPosition({ 0.8f, 0.5f, 0.0f });
-                rigidTransform->SetDevice(TransformUpdateDevice::GPU);
-                auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
-                rigidCollider->SetRadius(0.05f);
-                rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
-                rigidCollider->SetEnable(false);
+            // {
+            //     auto rigid     = node->AddGameObject("RigidCollider1");
+            //     auto rigidMesh = rigid->AddComponent<MeshFilter>();
+            //     rigidMesh->SetMeshSource(circleMesh);
+            //     auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
+            //     rigidRenderer->SetMaterialSource(material);
+            //     auto rigidTransform = rigid->GetComponent<Transform>();
+            //     rigidTransform->SetPosition({ 0.8f, 0.5f, 0.0f });
+            //     rigidTransform->SetDevice(TransformUpdateDevice::GPU);
+            //     auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
+            //     rigidCollider->SetRadius(0.05f);
+            //     rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
+            //     rigidCollider->SetEnable(false);
 
-                collider2 = rigidCollider;
-            }
+            //     collider2 = rigidCollider;
+            // }
 
-            {
-                auto rigid     = node->AddGameObject("RigidCollider2");
-                auto rigidMesh = rigid->AddComponent<MeshFilter>();
-                rigidMesh->SetMeshSource(circleMesh);
-                auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
-                rigidRenderer->SetMaterialSource(material);
-                auto rigidTransform = rigid->GetComponent<Transform>();
-                rigidTransform->SetPosition({ 0.8f, 0.8f, 0.0f });
-                rigidTransform->SetDevice(TransformUpdateDevice::GPU);
-                auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
-                rigidCollider->SetRadius(0.05f);
-                rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
-                rigidCollider->SetEnable(false);
+            // {
+            //     auto rigid     = node->AddGameObject("RigidCollider2");
+            //     auto rigidMesh = rigid->AddComponent<MeshFilter>();
+            //     rigidMesh->SetMeshSource(circleMesh);
+            //     auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
+            //     rigidRenderer->SetMaterialSource(material);
+            //     auto rigidTransform = rigid->GetComponent<Transform>();
+            //     rigidTransform->SetPosition({ 0.8f, 0.8f, 0.0f });
+            //     rigidTransform->SetDevice(TransformUpdateDevice::GPU);
+            //     auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
+            //     rigidCollider->SetRadius(0.05f);
+            //     rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
+            //     rigidCollider->SetEnable(false);
 
-                collider1 = rigidCollider;
-            }
+            //     collider1 = rigidCollider;
+            // }
 
-            auto defaultEmitter = node->AddGameObject("ParticleEmitter");
-            auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();
-            if (GetApplicationState()->m_EditorMode)
-            {
-                emitter->SetEnable(false);
-            }
+            // auto defaultEmitter = node->AddGameObject("ParticleEmitter");
+            // auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();
+            // if (GetApplicationState()->m_EditorMode)
+            // {
+            //     emitter->SetEnable(false);
+            // }
 
             m_sceneManager->SetActiveScene(scene);
         }

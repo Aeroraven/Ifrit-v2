@@ -83,8 +83,9 @@ namespace Ifrit::Runtime
                 if (result != EAssetRegistrationResult::Success
                     && result != EAssetRegistrationResult::AlreadyRegistered)
                 {
-                    IF_LOG_ERROR("AssetReferenceId", "Failed to register asset: {}", mRelativePath);
+                    IF_LOG_CRITICAL("AssetReferenceId", "Failed to register asset: {}", mRelativePath);
                 }
+                mType = EAssetReferencingType::Registered;
             }
             else IF_UNLIKELY
             {

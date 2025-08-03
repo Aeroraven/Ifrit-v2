@@ -88,6 +88,8 @@ namespace Ifrit::Runtime::Artemis
         bool                                       m_HasGlobalDrain           = false;
         bool                                       m_ShouldIntegrateRigids    = false;
 
+        bool                                       mShouldHideContainerWarnings = false;
+
         std::variant<Vec<Vector2f>, Vec<Vector4f>> m_InitParticleLocations;
         Vec<MPMEmissionInfo>                       m_EmissionInfos;
         RHI::RhiTexture*                           m_DebugRenderTarget = nullptr;
@@ -1420,8 +1422,9 @@ namespace Ifrit::Runtime::Artemis
         m_RDGParticlePosition = &builder.ImportBuffer("MPM_ParticlePosition", m_ParticleData->m_ParticlePosition.get());
         m_RDGParticleEmitLocations = &builder.ImportBuffer("MPM_ParticleEmitLocations", m_ParticleEmitLocations.get());
         m_RDGParticleVelocity = &builder.ImportBuffer("MPM_ParticleVelocity", m_ParticleData->m_ParticleVelocity.get());
-        m_RDGParticleVelocityOld = &builder.ImportBuffer("MPM_ParticleVelocityOld", m_ParticleData->m_ParticleVelocityOld.get());
-        m_RDGParticleMass     = &builder.ImportBuffer("MPM_ParticleMass", m_ParticleData->m_ParticleMass.get());
+        m_RDGParticleVelocityOld =
+            &builder.ImportBuffer("MPM_ParticleVelocityOld", m_ParticleData->m_ParticleVelocityOld.get());
+        m_RDGParticleMass = &builder.ImportBuffer("MPM_ParticleMass", m_ParticleData->m_ParticleMass.get());
         m_RDGParticleDeformGrad =
             &builder.ImportBuffer("MPM_ParticleDeformGradient", m_ParticleData->m_ParticleDeformGrad.get());
         m_RDGParticleDeformGradDet = &builder.ImportBuffer(
@@ -1894,13 +1897,18 @@ namespace Ifrit::Runtime::Artemis
                 m_Data->m_RebuildGPUResources = true;
                 containerComponent.SetIsDeviceDataReady(true);
             }
+            m_Data->mShouldHideContainerWarnings = false;
         }
         else IF_UNLIKELY
         {
             m_Data->m_ParticleData = nullptr;
-            IF_LOG_WARNING("Artemis.MPM",
-                "MPMSimulator: No MPMParticleContainer found in the scene. "
-                "Please add one to manage particle data.");
+            if (!m_Data->mShouldHideContainerWarnings)
+            {
+                IF_LOG_WARNING("Artemis.MPM",
+                    "MPMSimulator: No MPMParticleContainer found in the scene. "
+                    "Please add one to manage particle data.");
+                m_Data->mShouldHideContainerWarnings = true;
+            }
         }
 
         // Rigid Coupling

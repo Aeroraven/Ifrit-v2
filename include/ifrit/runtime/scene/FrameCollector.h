@@ -333,6 +333,9 @@ namespace Ifrit::Runtime
 
         // Extra data
         HashMap<String, Ref<void>>                         m_ExtraData;
+
+        // Validity
+        u32                                                mSkipRendering = 0;
     };
 
 } // namespace Ifrit::Runtime
