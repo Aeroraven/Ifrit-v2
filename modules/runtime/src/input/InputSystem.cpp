@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/display/presentation/window/GLFWWindowProvider.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
 #include "ifrit/core/logging/Logging.h"
+#include "ifrit/runtime/application/ApplicationState.h"
 using namespace Ifrit;
 using namespace Ifrit::Runtime;
 
@@ -36,6 +37,18 @@ void                InputSystemKeyCallbackGlfw(int key, int scancode, int action
 
 void InputSystemMousePositionCallbackGlfw(double x, double y)
 {
+    auto appState = Runtime::GetActiveApplication()->GetApplicationState();
+    if (appState->m_EditorMode)
+    {
+        x = (x - appState->mEditorViewportX) / appState->mEditorViewportWidth;
+        y = (y - appState->mEditorViewportY) / appState->mEditorViewportHeight;
+    }
+    else
+    {
+        auto projectProperty = Runtime::GetActiveApplication()->GetProjectProperty();
+        x                    = (x / projectProperty.m_width);
+        y                    = (y / projectProperty.m_height);
+    }
     activeInputSystem->UpdateMousePosition(static_cast<float>(x), static_cast<float>(y));
 }
 

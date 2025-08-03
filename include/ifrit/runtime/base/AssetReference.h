@@ -28,8 +28,9 @@ namespace Ifrit::Runtime
 {
     enum class EAssetReferencingType : u8
     {
-        Registered,
-        PrefabExternal
+        Unknown,
+        Internal,
+        Imported
     };
 
     enum class EAssetType : u8
@@ -57,13 +58,14 @@ namespace Ifrit::Runtime
         {
             if (mType != other.mType)
                 return false;
-            if (mType == EAssetReferencingType::Registered)
+            if (mGuid != other.mGuid)
             {
-                return mGuid == other.mGuid;
+                if (mType != EAssetReferencingType::Internal)
+                    return mRelativePath == other.mRelativePath;
             }
             else
             {
-                return mRelativePath == other.mRelativePath;
+                return true;
             }
         }
 
@@ -85,9 +87,12 @@ namespace Ifrit::Runtime
         String mExternalPath;
 
         IF_PROPERTY()
-        String     mImporter;
+        String mImporter = "";
 
-        EAssetType mAssetType = EAssetType::General;
+        IF_PROPERTY()
+        EAssetReferencingType mReferencingType = EAssetReferencingType::Unknown;
+
+        EAssetType            mAssetType = EAssetType::General;
     };
 
     class IFRIT_APIDECL IF_CLASS() Asset
@@ -99,20 +104,12 @@ namespace Ifrit::Runtime
     public:
         Asset() = default;
         Asset(AssetMetadata metadata) : mMetadata(metadata) {}
-        const GUID&             GetGuid() const { return mMetadata.mGuid; }
-        const String&           GetName() const { return mMetadata.mName; }
-        const String&           GetExternalPath() const { return mMetadata.mExternalPath; }
-        virtual void            _PolyHolder() {}
+        const GUID&               GetGuid() const { return mMetadata.mGuid; }
+        const String&             GetName() const { return mMetadata.mName; }
+        const String&             GetExternalPath() const { return mMetadata.mExternalPath; }
+        virtual void              _PolyHolder() {}
 
-        const AssetReferenceId& GetAssetReference() const
-        {
-            static AssetReferenceId ref;
-            ref.mType         = EAssetReferencingType::Registered;
-            ref.mGuid         = mMetadata.mGuid;
-            ref.mRelativePath = mMetadata.mExternalPath;
-            return ref;
-        }
-
+        const AssetReferenceId&   GetAssetReference() const;
         inline virtual EAssetType GetAsseType() const { return EAssetType::General; }
     };
 

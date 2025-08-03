@@ -10,6 +10,12 @@ namespace Ifrit::Runtime
 
         // Profiler states
         bool mProfilerRequestFrameCapture = false;
+
+        // Editor states
+        f32  mEditorViewportX      = 0.0f;
+        f32  mEditorViewportY      = 0.0f;
+        f32  mEditorViewportWidth  = 0.0f;
+        f32  mEditorViewportHeight = 0.0f;
     };
 
 } // namespace Ifrit::Runtime

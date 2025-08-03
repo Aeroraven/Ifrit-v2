@@ -12,9 +12,7 @@ namespace Ifrit::Runtime
 
         auto app           = GetActiveApplication();
         auto assetRegistry = app->GetAssetRegistry();
-        IF_LOG_ASSERTION("MeshComponent", mMesh.mType == EAssetReferencingType::Registered,
-            "Mesh is not registered, cannot get mesh data.");
-        auto meshAsset = assetRegistry->GetAsset<MeshAsset>(mMesh.mGuid);
+        auto meshAsset     = assetRegistry->GetAsset<MeshAsset>(mMesh.mGuid);
         if (meshAsset == nullptr)
             return nullptr;
         return meshAsset->GetMesh();
@@ -24,8 +22,6 @@ namespace Ifrit::Runtime
     {
         auto app           = GetActiveApplication();
         auto assetRegistry = app->GetAssetRegistry();
-        IF_LOG_ASSERTION("MeshComponent", mMaterial.mType == EAssetReferencingType::Registered,
-            "Material is not registered, cannot get material data.");
         auto materialAsset = assetRegistry->GetAsset<MaterialAsset>(mMaterial.mGuid);
         if (materialAsset == nullptr)
             return nullptr;

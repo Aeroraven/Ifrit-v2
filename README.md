@@ -57,7 +57,11 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 - Render Hardware Interface (RHI)
 - Render Dependency Graph (RDG)
 - Modern Graphics API Features: Bindless Descriptors, Dynamic Rendering ...
-- Miscellaneous Utilities: Simple Editor*, Simple Reflection & Serialization Support, Task System, Shader Variants, Texture Compression Supports ...
+- Miscellaneous Utilities: Simple Editor*, Task System, Shader Variants, Texture Compression Supports ...
+- Reflection & Serialization Support: 
+  - Able to be non-intrusive**. No `GENERATED_BODY` and `CLASS(classname)` like macros. 
+  - User-friendly. Use `IF_PROPERTY(Editable,...)` `IF_FUNCTION()` to mark stuffs to register.
+
 
 #### Subproject Syaro
 
@@ -81,7 +85,9 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 
 
 
-*. These features might be severely unstable and time-consuming. For problems and details, refer to [CHANGELOG.md](./CHANGELOG.md)
+<small>*. This is an incomplete project for I am working on projects with higher priority. These features might be severely unstable and time-consuming. For problems and details, refer to [CHANGELOG.md](./CHANGELOG.md)</small>
+
+<small>**. This C++ reflection system supports both non-intrusive (manual, external registration) and intrusive (macro-based, codegen-assisted) reflection. The macro-based approach is technically intrusive, since the user has to modify the class definition, even though the macro is empty at compile time. It’s only used by tooling to generate registration code.</small>
 
 
 ## Quick Start

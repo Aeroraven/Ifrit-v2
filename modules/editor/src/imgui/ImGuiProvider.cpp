@@ -632,7 +632,14 @@ namespace Ifrit::Editor
             auto texLayout            = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             m_Data->m_EditorSceneView = ImGui_ImplVulkan_AddTexture(sampler, texView, texLayout);
         }
-        ImVec2 windowSize = ImGui::GetContentRegionAvail();
+        ImVec2 windowSize               = ImGui::GetContentRegionAvail();
+        ImVec2 windowPos                = ImGui::GetWindowPos();
+        auto   appState                 = m_Application->GetApplicationState();
+        appState->mEditorViewportX      = windowPos.x;
+        appState->mEditorViewportY      = windowPos.y;
+        appState->mEditorViewportWidth  = windowSize.x;
+        appState->mEditorViewportHeight = windowSize.y;
+
         ImGui::Image(m_Data->m_EditorSceneView, ImVec2(windowSize.x, windowSize.y), ImVec2(0, 0), ImVec2(1, 1));
         ImGui::End();
 

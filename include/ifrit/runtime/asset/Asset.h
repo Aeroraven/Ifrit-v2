@@ -30,7 +30,7 @@ namespace Ifrit::Runtime
 {
     IF_CONSTEXPR const char* cMetadataFileExtension = ".meta";
 
-    enum class EAssetRegistrationResult : u8
+    enum class EAssetRegistrationResultCode : u8
     {
         Success,
         AlreadyRegistered,
@@ -38,20 +38,21 @@ namespace Ifrit::Runtime
         InvalidArgument
     };
 
+    struct AssetRegistrationResult
+    {
+        EAssetRegistrationResultCode mCode;
+        GUID                         mGuid;
+        String                       mName;
+    };
+
     using AssetPath = std::filesystem::path;
     class AssetManager;
-    class AssetImporter;
+    class IAssetImporter;
 
-    class IFRIT_APIDECL AssetImporter
+    class IFRIT_APIDECL IF_CLASS() IAssetImporter
     {
-    protected:
-        AssetManager* mAssetManager = nullptr;
-
     public:
-        AssetImporter(AssetManager* manager) : mAssetManager(manager) {}
-        virtual void        ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata) = 0;
-        virtual void        ProcessMetadata(AssetMetadata& metadata)                                = 0;
-        virtual Vec<String> GetSupportedExtensionNames()                                            = 0;
+        virtual Owner<Asset> ImportAsset(const String& relativePath) = 0;
     };
 
     class IFRIT_APIDECL IF_CLASS() AssetManager : public NonCopyable
@@ -62,23 +63,29 @@ namespace Ifrit::Runtime
 
     private:
         // For faster lookup
-        HashMap<String, u32>    mNameToIndex;
-        HashMap<GUID, u32>      mGuidToIndex;
-        HashMap<String, String> mExtensionImporterMap;
-        std::filesystem::path   mBasePath;
-        IApplication*           mApp;
+        HashMap<String, u32>                   mNameToIndex;
+        HashMap<GUID, u32>                     mGuidToIndex;
+        HashMap<String, String>                mExtensionImporterMap;
+        std::filesystem::path                  mBasePath;
+        IApplication*                          mApp;
+
+        HashMap<String, Owner<IAssetImporter>> mImporters;
 
     private:
         AssetMetadata AllocateMetadata(const String& name);
+        String        GetAbsPath(const String& relativePath) const;
+        void          ImportAssetImpl(
+                     const String& relativePath, const String& importerId, const String& newName, const GUID& newGuid);
 
     public:
         AssetManager(std::filesystem::path path, IApplication* app) : mBasePath(path), mApp(app) {}
-        inline IApplication*     GetApplication() { return mApp; }
-        EAssetRegistrationResult TryRegisterAsset(Owner<Asset> asset);
-        EAssetRegistrationResult TryRegisterAssetWithRenaming(
-            Owner<Asset> asset, const String& newName, const GUID& newGuid);
-
-        Vec<AssetMetadata> GetAllAssetMetadata() const;
+        inline IApplication*    GetApplication() { return mApp; }
+        AssetRegistrationResult TryRegisterAsset(Owner<Asset> asset);
+        AssetRegistrationResult TryImportAssetWithRenaming(
+            const String& relativePath, const String& importerId, const String& newName, const GUID& newGuid);
+        Vec<AssetMetadata>      GetAllAssetMetadata() const;
+        void                    RegisterImporter(const String& importerId, Owner<IAssetImporter> importer);
+        AssetRegistrationResult ImportAsset(const String& importerId, const String& relativePath, const String& name);
 
         template <typename T, typename... Args>
             requires(std::is_base_of<Asset, T>::value && IConceptIsConstructible<T, Args...>)

@@ -15,7 +15,7 @@ function(ifrit_add_demo_project DEMO_NAME)
     endif()
     
     if(NOT DEMO_ASSETS_DIR)
-        set(DEMO_ASSETS_DIR "${CMAKE_SOURCE_DIR}/demo/shared/Assets")
+        set(DEMO_ASSETS_DIR "${CMAKE_SOURCE_DIR}/demo/shared/Content")
     endif()
     
     # Collect source files

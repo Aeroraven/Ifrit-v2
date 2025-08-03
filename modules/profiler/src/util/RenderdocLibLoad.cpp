@@ -2,6 +2,7 @@
 #include "ifrit/core/hal/HalDllImport.h"
 #include "ifrit/core/logging/Logging.h"
 #include "renderdoc/renderdoc_app.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
 #include <filesystem>
 
 namespace Ifrit::Profiler::Internal::Renderdoc
