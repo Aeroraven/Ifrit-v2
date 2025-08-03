@@ -534,7 +534,7 @@ namespace Ifrit::Editor::ImGuiInternal
 
                 String displayHeader = typeIcon + " " + typeName;
 
-                auto   isComponentMenuOpen = ImGui::CollapsingHeader(displayHeader.c_str());
+                auto   isComponentMenuOpen = ImGui::CollapsingHeader(displayHeader.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
                 ImGui::SetItemTooltip("Component Namespace: %s", typeNamespace.c_str());
                 if (isComponentMenuOpen)
                 {

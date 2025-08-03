@@ -11,7 +11,8 @@ namespace Ifrit::Runtime
     public:
         using Asset::Asset;
 
-        virtual Mesh* GetMesh() = 0;
+        virtual Mesh*             GetMesh() = 0;
+        inline virtual EAssetType GetAsseType() const final { return EAssetType::Mesh; }
     };
 
     class IFRIT_APIDECL IF_CLASS() ImportedMeshAsset : public MeshAsset
@@ -20,4 +21,4 @@ namespace Ifrit::Runtime
         using MeshAsset::MeshAsset;
     };
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

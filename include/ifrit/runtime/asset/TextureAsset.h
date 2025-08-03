@@ -10,6 +10,7 @@ namespace Ifrit::Runtime
     public:
         using Asset::Asset;
         virtual RHI::RhiTextureRef GetTexture() = 0;
+        inline virtual EAssetType  GetAsseType() const final { return EAssetType::Texture; }
     };
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

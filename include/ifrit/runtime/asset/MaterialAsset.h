@@ -12,6 +12,7 @@ namespace Ifrit::Runtime
     public:
         using Asset::Asset;
 
-        virtual Material* GetMaterial() = 0;
+        virtual Material*         GetMaterial() = 0;
+        inline virtual EAssetType GetAsseType() const final { return EAssetType::Material; }
     };
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

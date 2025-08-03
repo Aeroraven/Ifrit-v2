@@ -7,6 +7,9 @@ namespace Ifrit::Runtime
     {
         bool m_EditorMode              = false;
         bool m_EnableRenderingPipeline = true;
+
+        // Profiler states
+        bool mProfilerRequestFrameCapture = false;
     };
 
 } // namespace Ifrit::Runtime

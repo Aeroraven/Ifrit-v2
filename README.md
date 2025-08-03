@@ -103,6 +103,8 @@ git checkout checkpoint/v4 # for older demo projects
 - OpenGL 4.6+
 - CMake 3.25+
 - MSVC 19.29+
+  - Lower version might be acceptable, but make sure that it supports C++20
+
 - Python 3
 
 **Setup script:**

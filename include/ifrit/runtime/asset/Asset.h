@@ -75,7 +75,10 @@ namespace Ifrit::Runtime
         AssetManager(std::filesystem::path path, IApplication* app) : mBasePath(path), mApp(app) {}
         inline IApplication*     GetApplication() { return mApp; }
         EAssetRegistrationResult TryRegisterAsset(Owner<Asset> asset);
-        Vec<AssetMetadata>       GetAllAssetMetadata() const;
+        EAssetRegistrationResult TryRegisterAssetWithRenaming(
+            Owner<Asset> asset, const String& newName, const GUID& newGuid);
+
+        Vec<AssetMetadata> GetAllAssetMetadata() const;
 
         template <typename T, typename... Args>
             requires(std::is_base_of<Asset, T>::value && IConceptIsConstructible<T, Args...>)

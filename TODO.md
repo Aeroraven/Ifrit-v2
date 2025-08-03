@@ -7,13 +7,13 @@
 - Subproject Artemis: `ifrit.runtime/physics.artemis`
 - Architectural:
   - Serialization/Reflection
-    - Hybrid Reflection
-      - Dynamic Reflection (User-defined Types)
-      - Static Reflection (Core Types/STL Containers)
+    - <s>Hybrid Reflection</s>
+      - <s>Dynamic Reflection (User-defined Types)</s>
+      - <s>Static Reflection (Core Types/STL Containers)</s>
     - Ownership Reidentification
     - Refactoring Asset Manager
-      - Dropping Unity-like `meta` file
-    - Scene Saving
+      - <s>Dropping Unity-like `meta` file</s>
+    - <s>Scene Saving</s>
 
 #### Normal Priority
 

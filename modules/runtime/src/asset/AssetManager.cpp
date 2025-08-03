@@ -18,10 +18,17 @@ namespace Ifrit::Runtime
         {
             if (asset)
             {
-                metadataList.push_back(asset->mMetadata);
+                auto metaCopy       = asset->mMetadata;
+                metaCopy.mAssetType = asset->GetAsseType();
+                metadataList.push_back(metaCopy);
             }
         }
         return metadataList;
+    }
+    IFRIT_APIDECL EAssetRegistrationResult TryRegisterAssetWithRenaming(
+        Owner<Asset> asset, const String& newName, const GUID& newGuid)
+    {
+        return EAssetRegistrationResult::InvalidArgument;
     }
 
     IFRIT_APIDECL EAssetRegistrationResult AssetManager::TryRegisterAsset(Owner<Asset> asset)
@@ -29,22 +36,48 @@ namespace Ifrit::Runtime
         if (!asset)
             return EAssetRegistrationResult::InvalidArgument;
 
-        auto& metadata = asset->mMetadata;
-        if (mNameToIndex.contains(metadata.mName) || mGuidToIndex.contains(metadata.mGuid))
+        auto& metadata  = asset->mMetadata;
+        bool  nameExist = mNameToIndex.contains(metadata.mName);
+        bool  guidExist = mGuidToIndex.contains(metadata.mGuid);
+
+        if (nameExist && guidExist)
         {
-            if (typeid(*asset) != typeid(*mAssets[mNameToIndex[metadata.mName]]))
+            Asset* existAssetWithName = mAssets[mNameToIndex[metadata.mName]].get();
+            Asset* existAssetWithGuid = mAssets[mGuidToIndex[metadata.mGuid]].get();
+
+            if (existAssetWithName == existAssetWithGuid && typeid(*existAssetWithName) == typeid(*asset))
             {
-                IF_LOG_ERROR("AssetManager", "Asset with name {} or GUID {} already exists with different type.",
-                    metadata.mName, metadata.mGuid.ToString());
-                return EAssetRegistrationResult::Conflict;
+                IF_LOG_WARNING("AssetManager", "Asset with GUID {} already registered with name {}.",
+                    metadata.mGuid.ToString(), metadata.mName);
+                return EAssetRegistrationResult::AlreadyRegistered;
             }
-            IF_LOG_WARNING(
-                "AssetManager", "Asset with name {} or GUID {} already exists.", metadata.mName, metadata.mGuid.ToString());
-            return EAssetRegistrationResult::AlreadyRegistered;
         }
 
-        mNameToIndex[metadata.mName] = SizeCast<u32>(mAssets.size());
-        mGuidToIndex[metadata.mGuid] = SizeCast<u32>(mAssets.size());
+        GUID   guid = metadata.mGuid;
+        String name = metadata.mName;
+        if (guidExist)
+        {
+            guid = GUID::Generate();
+        }
+
+        if (nameExist)
+        {
+            for (int dupInd = 1;; dupInd++)
+            {
+                auto newName = name + "_" + std::to_string(dupInd);
+                if (!mNameToIndex.contains(newName))
+                {
+                    metadata.mName = newName;
+                    break;
+                }
+            }
+        }
+
+        mNameToIndex[name] = SizeCast<u32>(mAssets.size());
+        mGuidToIndex[guid] = SizeCast<u32>(mAssets.size());
+
+        asset->mMetadata.mName = name;
+        asset->mMetadata.mGuid = guid;
         mAssets.push_back(std::move(asset));
         IF_LOG_INFO("AssetManager", "Registered asset {} with GUID {}.", metadata.mName, metadata.mGuid.ToString());
         return EAssetRegistrationResult::Success;

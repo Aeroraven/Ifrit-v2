@@ -58,6 +58,163 @@ namespace Ifrit::Editor
         IF_LOG_ASSERTION("Editor.ImGui", false, "ImGui Vulkan error: {}", (int)err);
     }
 
+    void ShowAssetTreeView(ImGuiProviderData* data)
+    {
+        auto assetManager = Runtime::GetActiveApplication()->GetAssetRegistry();
+        auto assets       = assetManager->GetAllAssetMetadata();
+
+        // Categorize assets by type
+        HashMap<Runtime::EAssetType, Vec<Runtime::AssetMetadata>> categorizedAssets;
+
+        for (const auto& asset : assets)
+        {
+            categorizedAssets[asset.mAssetType].push_back(asset);
+        }
+
+        // Define asset type names and icons
+        auto getAssetTypeName = [](Runtime::EAssetType type) -> String {
+            switch (type)
+            {
+                case Runtime::EAssetType::General:
+                    return "General";
+                case Runtime::EAssetType::Texture:
+                    return "Textures";
+                case Runtime::EAssetType::Material:
+                    return "Materials";
+                case Runtime::EAssetType::Mesh:
+                    return "Meshes";
+                case Runtime::EAssetType::Prefab:
+                    return "Prefabs";
+                case Runtime::EAssetType::Shader:
+                    return "Shaders";
+                default:
+                    return "Unknown";
+            }
+        };
+
+        auto getAssetTypeIcon = [](Runtime::EAssetType type) -> const char* {
+            switch (type)
+            {
+                case Runtime::EAssetType::General:
+                    return ICON_FA_FILE;
+                case Runtime::EAssetType::Texture:
+                    return ICON_FA_IMAGE;
+                case Runtime::EAssetType::Material:
+                    return ICON_FA_PALETTE;
+                case Runtime::EAssetType::Mesh:
+                    return ICON_FA_CUBE;
+                case Runtime::EAssetType::Prefab:
+                    return ICON_FA_OBJECT_GROUP;
+                case Runtime::EAssetType::Shader:
+                    return ICON_FA_CODE;
+                default:
+                    return ICON_FA_QUESTION;
+            }
+        };
+
+        auto getAssetIcon = [](Runtime::EAssetType type) -> const char* {
+            switch (type)
+            {
+                case Runtime::EAssetType::Texture:
+                    return ICON_FA_FILE_IMAGE;
+                case Runtime::EAssetType::Material:
+                    return ICON_FA_FILL_DRIP;
+                case Runtime::EAssetType::Mesh:
+                    return ICON_FA_VECTOR_SQUARE;
+                case Runtime::EAssetType::Prefab:
+                    return ICON_FA_SHAPES;
+                case Runtime::EAssetType::Shader:
+                    return ICON_FA_FILE_CODE;
+                default:
+                    return ICON_FA_FILE;
+            }
+        };
+
+        // Render tree view for each category
+        for (const auto& [assetType, assetList] : categorizedAssets)
+        {
+            if (assetList.empty())
+                continue;
+
+            String             categoryName = String(getAssetTypeIcon(assetType)) + " " + getAssetTypeName(assetType);
+            String             categoryId   = "Category_" + std::to_string(static_cast<int>(assetType));
+
+            ImGuiTreeNodeFlags categoryFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+
+            // Check if this category should be expanded by default
+            if (assetType == Runtime::EAssetType::Texture || assetType == Runtime::EAssetType::Mesh)
+            {
+                categoryFlags |= ImGuiTreeNodeFlags_DefaultOpen;
+            }
+
+            bool categoryOpen = ImGui::TreeNodeEx(
+                categoryId.c_str(), categoryFlags, "%s (%zu)", categoryName.c_str(), assetList.size());
+
+            if (categoryOpen)
+            {
+                // Render assets in this category
+                for (const auto& asset : assetList)
+                {
+                    ImGui::PushID(asset.mGuid.ToString().c_str());
+
+                    String             assetDisplayName = String(getAssetIcon(assetType)) + " " + asset.mName;
+
+                    ImGuiTreeNodeFlags assetFlags =
+                        ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen | ImGuiTreeNodeFlags_Bullet;
+
+                    // if (data->m_SelectedAssetGUID == asset.mGuid)
+                    // {
+                    //     assetFlags |= ImGuiTreeNodeFlags_Selected;
+                    // }
+
+                    ImGui::TreeNodeEx(assetDisplayName.c_str(), assetFlags);
+
+                    // Handle asset selection
+                    if (ImGui::IsItemClicked())
+                    {
+                        // data->m_SelectedAssetGUID = asset.mGuid;
+                        // data->m_SelectedAssetType = asset.mAssetType;
+
+                        // Log or handle asset selection
+                        IF_LOG_INFO(
+                            "Editor.Assets", "Selected asset: {} (Type: {})", asset.mName, getAssetTypeName(assetType));
+                    }
+
+                    // Right-click context menu
+                    if (ImGui::BeginPopupContextItem())
+                    {
+                        if (ImGui::MenuItem("Open"))
+                        {
+                            // Handle asset opening
+                            IF_LOG_INFO("Editor.Assets", "Opening asset: {}", asset.mName);
+                        }
+                        if (ImGui::MenuItem("Delete"))
+                        {
+                            // Handle asset deletion
+                            IF_LOG_INFO("Editor.Assets", "Deleting asset: {}", asset.mName);
+                        }
+                        if (ImGui::MenuItem("Rename"))
+                        {
+                            // Handle asset renaming
+                            IF_LOG_INFO("Editor.Assets", "Renaming asset: {}", asset.mName);
+                        }
+                        ImGui::Separator();
+                        if (ImGui::MenuItem("Show in Explorer"))
+                        {
+                            // Handle showing asset in file explorer
+                            IF_LOG_INFO("Editor.Assets", "Showing asset in explorer: {}", asset.mName);
+                        }
+                        ImGui::EndPopup();
+                    }
+
+                    ImGui::PopID();
+                }
+
+                ImGui::TreePop();
+            }
+        }
+    }
+
     void ShowAssetGridWithIcons(ImGuiProviderData* data, float iconFontSize, float padding)
     {
         auto  assetManager = Runtime::GetActiveApplication()->GetAssetRegistry();
@@ -174,6 +331,17 @@ namespace Ifrit::Editor
                 {
                     ImGuiInternal::MenuBar_LoadAndOverrideCurrentScene(data->m_MenuBarModals);
                 }
+                ImGui::EndMenu();
+            }
+            if (ImGui::BeginMenu("Profiler"))
+            {
+                if (ImGui::MenuItem("Frame Capture"))
+                {
+                    auto app                                                 = Runtime::GetActiveApplication();
+                    app->GetApplicationState()->mProfilerRequestFrameCapture = true;
+                    IF_LOG_INFO("Editor.ImGui", "Renderdoc capture requested for next frame.");
+                }
+
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();
@@ -433,18 +601,20 @@ namespace Ifrit::Editor
             ImGui::DockBuilderAddNode(m_Data->m_DockspaceID, ImGuiDockNodeFlags_DockSpace);
             ImGui::DockBuilderSetNodeSize(m_Data->m_DockspaceID, ImGui::GetMainViewport()->Size);
 
-            ImGuiID dock_left, dock_down, dock_log;
+            ImGuiID dock_left, dock_right, dock_left_bottom, dock_bottom;
             ImGuiID dock_main = m_Data->m_DockspaceID;
-            dock_left         = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Left, 0.3f, nullptr, &dock_main);
-            dock_down         = ImGui::DockBuilderSplitNode(dock_left, ImGuiDir_Down, 0.5f, nullptr, &dock_left);
-            dock_log          = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Down, 0.25f, nullptr, &dock_main);
+
+            dock_left        = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Left, 0.15f, nullptr, &dock_main);
+            dock_right       = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Right, 0.25f, nullptr, &dock_main);
+            dock_left_bottom = ImGui::DockBuilderSplitNode(dock_left, ImGuiDir_Down, 0.5f, nullptr, &dock_left);
+            dock_bottom      = ImGui::DockBuilderSplitNode(dock_main, ImGuiDir_Down, 0.27f, nullptr, &dock_main);
 
             // Dock windows to specific areas
-            ImGui::DockBuilderDockWindow("Scene Hierarchy", dock_down);
-            ImGui::DockBuilderDockWindow("Inspector", dock_left);
-            ImGui::DockBuilderDockWindow("Viewport", dock_main);
-            ImGui::DockBuilderDockWindow("Console", dock_log);
-            ImGui::DockBuilderDockWindow("Asset", dock_log);
+            ImGui::DockBuilderDockWindow("Asset", dock_left);                  // Asset explorer - left top
+            ImGui::DockBuilderDockWindow("Scene Hierarchy", dock_left_bottom); // Scene hierarchy - left bottom
+            ImGui::DockBuilderDockWindow("Inspector", dock_right);             // Inspector - right side
+            ImGui::DockBuilderDockWindow("Viewport", dock_main);               // Viewport - center
+            ImGui::DockBuilderDockWindow("Console", dock_bottom);              // Console - bottom
 
             // Finish setup
             ImGui::DockBuilderFinish(m_Data->m_DockspaceID);
@@ -494,7 +664,8 @@ namespace Ifrit::Editor
         ImGui::End();
 
         ImGui::Begin("Asset");
-        ShowAssetGridWithIcons(m_Data, 96.0f * m_Data->m_DpiScaler, 8.0f * m_Data->m_DpiScaler);
+        // ShowAssetGridWithIcons(m_Data, 96.0f * m_Data->m_DpiScaler, 8.0f * m_Data->m_DpiScaler);
+        ShowAssetTreeView(m_Data);
         ImGui::End();
 
         ImGui::Begin("Console");

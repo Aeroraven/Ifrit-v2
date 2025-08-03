@@ -38,7 +38,8 @@ namespace Ifrit::Runtime
         Texture,
         Material,
         Mesh,
-        Prefab
+        Prefab,
+        Shader
     };
 
     struct IF_CLASS() AssetReferenceId
@@ -84,7 +85,9 @@ namespace Ifrit::Runtime
         String mExternalPath;
 
         IF_PROPERTY()
-        String mImporter;
+        String     mImporter;
+
+        EAssetType mAssetType = EAssetType::General;
     };
 
     class IFRIT_APIDECL IF_CLASS() Asset
@@ -109,6 +112,8 @@ namespace Ifrit::Runtime
             ref.mRelativePath = mMetadata.mExternalPath;
             return ref;
         }
+
+        inline virtual EAssetType GetAsseType() const { return EAssetType::General; }
     };
 
     class IF_CLASS() InternalAssetHolder

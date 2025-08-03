@@ -15,6 +15,7 @@ namespace Ifrit::Runtime
 
     public:
         using Asset::Asset;
-        ShaderRef* LoadShader(const Vec<String>& permutations);
+        ShaderRef*                LoadShader(const Vec<String>& permutations);
+        inline virtual EAssetType GetAsseType() const final { return EAssetType::Shader; }
     };
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

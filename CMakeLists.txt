@@ -189,7 +189,9 @@ ifrit_add_core_component(geomproc)
 ifrit_add_core_component(vkgraphics)
 ifrit_add_core_component(runtime)
 ifrit_add_core_component(rhi)
+ifrit_add_core_component(profiler)
 ifrit_add_core_component(editor)
+
 
 # Demo
 set(IFRIT_DEMO_LINK_LIBRARIES 
@@ -198,6 +200,7 @@ set(IFRIT_DEMO_LINK_LIBRARIES
     ifrit.vkgraphics 
     ifrit.runtime 
     ifrit.core
+    ifrit.profiler
     ifrit.editor
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 
@@ -209,6 +212,7 @@ set(IFRIT_DEMO_DEPENDENCIES
     ifrit.runtime 
     ifrit.rhi
     ifrit.imaging
+    ifrit.profiler
     ifrit.reflparser
 )
 
@@ -277,6 +281,8 @@ set_target_properties(ifrit.vkgraphics PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.editor PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+set_target_properties(ifrit.profiler PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+
 set_target_properties(ifrit.reflparser PROPERTIES FOLDER ${IFRIT_GROUP_TOOL})
 
 
@@ -316,4 +322,5 @@ add_dependencies(ifrit.editor
     nfd
     ifrit.external.imgui
     ifrit.vkgraphics 
+    ifrit.profiler
     ifrit.runtime)

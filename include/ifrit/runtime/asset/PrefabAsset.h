@@ -11,7 +11,8 @@ namespace Ifrit::Runtime
     public:
         using Asset::Asset;
 
-        virtual void InstantiatePrefab(SceneNode* node) = 0;
+        virtual void              InstantiatePrefab(SceneNode* node) = 0;
+        inline virtual EAssetType GetAsseType() const final { return EAssetType::Prefab; }
     };
 
 } // namespace Ifrit::Runtime

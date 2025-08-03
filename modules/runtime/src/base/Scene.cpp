@@ -314,8 +314,14 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL String        Scene::Serialize() const { return Reflection::SerializeToJSON(*this); }
     IFRIT_APIDECL void          Scene::Deserialize(const String& data)
     {
-        Reflection::DeserializeFromJSON(*this, data);
+        // unload scene
+        for (auto& gameObject : mGameObjectManager->mGameObjects)
+        {
+            gameObject = nullptr;
+        }
 
+        // deserialize
+        Reflection::DeserializeFromJSON(*this, data);
         mGameObjectManager->RebuildLookupTable();
         // setup nodes
         mRoot->m_Parent = this;

@@ -9,6 +9,7 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL ISubsystem
     {
     public:
+        virtual ~ISubsystem()                                                                         = default;
         virtual void                          OnInitialize(IApplication* app)                         = 0;
         virtual void                          OnShutdown()                                            = 0;
         virtual void                          OnFrameBegin()                                          = 0;
