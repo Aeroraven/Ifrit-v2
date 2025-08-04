@@ -80,6 +80,13 @@ namespace Ifrit::Runtime::Artemis
         u32                                        m_FrameId            = 0;
         u32                                        m_RigidFrameId       = 0;
         f32                                        m_ParticleRenderSize = 1.0f;
+        f32                                        m_MouseX             = -114514.0f;
+        f32                                        m_MouseY             = -114514.0f;
+        f32                                        m_MouseVelX          = 0.0f;
+        f32                                        m_MouseVelY          = 0.0f;
+        i32                                        m_MousePushMode      = 0;
+        f32                                        m_MouseRadius        = 0.1f;
+        f32                                        m_MouseActivation    = 0.001f;
         static IF_CONSTEXPR u32                    kDefaultTGX          = IfritShader::Artemis::MPM::kMpmTGSizeX;
 
         MPMSimulatorConfig*                        m_Config                   = nullptr;
@@ -198,10 +205,113 @@ namespace Ifrit::Runtime::Artemis
         void PbMpmRigidCollectBoundaryContactPairs(FrameGraphBuilder& builder);
         void PbMpmRigidBoundaryConstraintResolve(FrameGraphBuilder& builder);
 
+        void PbMpmRigidSolveVelocityRigidBoundaryColl(FrameGraphBuilder& builder, f32 dt);
+        void PbMpmRigidSolveVelocityParticleRigidColl(FrameGraphBuilder& builder, f32 dt);
+        void PbMpmRigidSolveVelocityRigidRigidColl(FrameGraphBuilder& builder, f32 dt);
+
         // Visualizer
         void ParticleRender2D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
         void ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
     };
+
+    void MPMSimulatorPrivateData::PbMpmRigidSolveVelocityRigidRigidColl(FrameGraphBuilder& builder, f32 dt)
+    {
+        struct PushConst
+        {
+            RHI::RhiSRVDesc m_NumConstraints;
+            RHI::RhiUAVDesc m_CollisionPairs;
+            RHI::RhiSRVDesc m_RigidColliders;
+            RHI::RhiUAVDesc m_RigidDynamics;
+            f32             m_DeltaTime;
+        } pc;
+
+        pc.m_DeltaTime = dt;
+
+        AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmRigidSolveVelocityRigidRigidColl",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMRigidSolveVelocityRigidRigidCollCS),
+            Vector3i(1, 1, 1), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_NumConstraints = ctx.m_FgDesc->GetSRV(*m_RDGRigidRigidContactCounter);
+                pc.m_CollisionPairs = ctx.m_FgDesc->GetUAV(*m_RDGRigidRigidContactList);
+                pc.m_RigidColliders = ctx.m_FgDesc->GetSRV(*m_RDGRigidColliders);
+                pc.m_RigidDynamics  = ctx.m_FgDesc->GetUAV(*m_RDGRigidDynamics);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGRigidRigidContactCounter)
+            .AddReadResource(*m_RDGRigidRigidContactList)
+            .AddReadResource(*m_RDGRigidColliders)
+            .AddReadWriteResource(*m_RDGRigidDynamics);
+    }
+
+    void MPMSimulatorPrivateData::PbMpmRigidSolveVelocityParticleRigidColl(FrameGraphBuilder& builder, f32 dt)
+    {
+        struct PushConst
+        {
+            RHI::RhiSRVDesc m_NumConstraints;
+            RHI::RhiUAVDesc m_CollisionPairs;
+            RHI::RhiSRVDesc m_ParticleLocations;
+            RHI::RhiSRVDesc m_RigidColliders;
+            RHI::RhiUAVDesc m_RigidDynamics;
+
+            RHI::RhiSRVDesc m_ParticleMass;
+            RHI::RhiUAVDesc m_ParticleDisplacements;
+            RHI::RhiUAVDesc m_ParticleDisplacementsOld;
+            f32             m_DeltaTime;
+        } pc;
+        pc.m_DeltaTime = dt;
+
+        AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmRigidSolveVelocityParticleRigidColl",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMRigidSolveVelocityParticleRigidCollCS),
+            Vector3i(1, 1, 1), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_NumConstraints           = ctx.m_FgDesc->GetSRV(*m_RDGRigidContactCounter);
+                pc.m_CollisionPairs           = ctx.m_FgDesc->GetUAV(*m_RDGRigidContactList);
+                pc.m_ParticleLocations        = ctx.m_FgDesc->GetSRV(*m_RDGParticlePosition);
+                pc.m_RigidColliders           = ctx.m_FgDesc->GetSRV(*m_RDGRigidColliders);
+                pc.m_RigidDynamics            = ctx.m_FgDesc->GetUAV(*m_RDGRigidDynamics);
+                pc.m_ParticleMass             = ctx.m_FgDesc->GetSRV(*m_RDGParticleMass);
+                pc.m_ParticleDisplacements    = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
+                pc.m_ParticleDisplacementsOld = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocityOld);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGRigidContactCounter)
+            .AddReadResource(*m_RDGRigidContactList)
+            .AddReadResource(*m_RDGParticlePosition)
+            .AddReadResource(*m_RDGRigidColliders)
+            .AddReadWriteResource(*m_RDGRigidDynamics)
+            .AddReadResource(*m_RDGParticleMass)
+            .AddReadWriteResource(*m_RDGParticleVelocity)
+            .AddReadWriteResource(*m_RDGParticleVelocityOld);
+    }
+
+    void MPMSimulatorPrivateData::PbMpmRigidSolveVelocityRigidBoundaryColl(FrameGraphBuilder& builder, f32 dt)
+    {
+
+        struct PushConst
+        {
+            RHI::RhiSRVDesc m_NumConstraints;
+            RHI::RhiUAVDesc m_CollisionPairs;
+            RHI::RhiSRVDesc m_RigidColliders;
+            RHI::RhiUAVDesc m_RigidDynamics;
+            f32             m_DeltaTime;
+        } pc;
+        pc.m_DeltaTime = dt;
+
+        AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmRigidSolveVelocityRigidBoundaryColl",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMRigidSolveVelocityRigidBoundaryCollCS),
+            Vector3i(1, 1, 1), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_NumConstraints = ctx.m_FgDesc->GetSRV(*m_RDGRigidBoundaryContactCounter);
+                pc.m_CollisionPairs = ctx.m_FgDesc->GetUAV(*m_RDGRigidBoundaryContactList);
+                pc.m_RigidColliders = ctx.m_FgDesc->GetSRV(*m_RDGRigidColliders);
+                pc.m_RigidDynamics  = ctx.m_FgDesc->GetUAV(*m_RDGRigidDynamics);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGRigidBoundaryContactCounter)
+            .AddReadResource(*m_RDGRigidBoundaryContactList)
+            .AddReadResource(*m_RDGRigidColliders)
+            .AddReadWriteResource(*m_RDGRigidDynamics);
+    }
 
     void MPMSimulatorPrivateData::PbMpmRigidCollectBoundaryContactPairs(FrameGraphBuilder& builder)
     {
@@ -688,10 +798,27 @@ namespace Ifrit::Runtime::Artemis
             u32             m_ParticleDebug;
             RHI::RhiUAVDesc m_ParticleVelocityOld;
             f32             m_ViscoPlasticity;
+
+            f32             m_MouseX;
+            f32             m_MouseY;
+            f32             m_MouseVx;
+            f32             m_MouseVy;
+            f32             m_MouseActivation;
+            f32             m_MouseRadius;
+            i32             m_NumSubsteps;
+            i32             m_IsPushMode;
         } pc;
         pc.m_Gravity         = Vector4f(m_Config->m_Gravity, 0.0f);
         pc.m_DeltaTime       = dt;
         pc.m_ViscoPlasticity = m_Config->m_DefaultViscoPlasticity;
+        pc.m_MouseX          = m_MouseX;
+        pc.m_MouseY          = m_MouseY;
+        pc.m_MouseVx         = m_MouseVelX;
+        pc.m_MouseVy         = m_MouseVelY;
+        pc.m_MouseActivation = m_MouseActivation;
+        pc.m_MouseRadius     = m_MouseRadius;
+        pc.m_NumSubsteps     = m_Config->m_Substeps;
+        pc.m_IsPushMode      = m_MousePushMode ? 1 : 0;
 
         AddIndirectComputePass<PushConst>(builder, "MPMSimulator.PbMpmParticleIntegrate",
             GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMPbMpmParticleIntegrateCS), *m_RDGParticleCount,
@@ -1571,7 +1698,11 @@ namespace Ifrit::Runtime::Artemis
                     {
                         PbMpmRigidIntegrate(builder, deltaTimePerSubstep);
                         // solve velocity here!!
+                        PbMpmRigidSolveVelocityParticleRigidColl(builder, deltaTimePerSubstep);
+                        PbMpmRigidSolveVelocityRigidBoundaryColl(builder, deltaTimePerSubstep);
+                        PbMpmRigidSolveVelocityRigidRigidColl(builder, deltaTimePerSubstep);
 
+                        // end velocity solve
                         PbMpmRigidIntegrateNextStep(builder, deltaTimePerSubstep);
                         PbMpmRigidSyncTransform(builder);
                     }
@@ -1933,5 +2064,24 @@ namespace Ifrit::Runtime::Artemis
     }
 
     IFRIT_APIDECL void MPMSimulator::SetDebugRenderTarget(RHI::RhiTexture* rt) { m_Data->m_DebugRenderTarget = rt; }
+
+    IFRIT_APIDECL void MPMSimulator::SetMousePosition(f32 x, f32 y)
+    {
+        m_Data->m_MouseX = x;
+        m_Data->m_MouseY = y;
+    }
+    IFRIT_APIDECL void MPMSimulator::SetMouseVelocity(f32 vx, f32 vy)
+    {
+        m_Data->m_MouseVelX = vx;
+        m_Data->m_MouseVelY = vy;
+    }
+
+    IFRIT_APIDECL void MPMSimulator::SetMousePushMode(bool enabled) { m_Data->m_MousePushMode = enabled ? 1 : 0; }
+
+    IFRIT_APIDECL void MPMSimulator::SetMouseRadAct(f32 act, f32 rad)
+    {
+        m_Data->m_MouseActivation = act;
+        m_Data->m_MouseRadius     = rad;
+    }
 
 } // namespace Ifrit::Runtime::Artemis

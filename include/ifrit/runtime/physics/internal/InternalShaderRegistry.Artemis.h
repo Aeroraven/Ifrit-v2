@@ -95,6 +95,12 @@ namespace Ifrit::Runtime::Internal
             DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.ContactRigidConstraintResolve");
         SDEF MPMRigidCollectRigidCollisionPairsCS =
             DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.CollectRigidCollisionPairs");
+        SDEF MPMRigidSolveVelocityRigidBoundaryCollCS =
+            DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.SolveVelocityRigidBoundaryColl");
+        SDEF MPMRigidSolveVelocityParticleRigidCollCS =
+            DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.SolveVelocityParticleRigidColl");
+        SDEF MPMRigidSolveVelocityRigidRigidCollCS =
+            DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.SolveVelocityRigidRigidColl");
 
         // PBMPM
         SDEF MPMPbMpmResolveConstraintsCS = DECLARE_CS("Artemis/MPM/MPM.PbMpmResolveConstraints");

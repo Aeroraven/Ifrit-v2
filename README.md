@@ -21,8 +21,8 @@ A collection of real-time rendering and simulation experiments featuring:
 | ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)                          |
 | **Artemis / Position Based Dynamics**                       | **Artemis / PBMPM + Property Editing**                       |
 | ![](docs/img/artemis_pbd1.png)                              | <img src="docs/img/artemis_pbmpm2.png" style="zoom:50%;" />  |
-| **Soft Renderer / Profile** (Nsight Compute)                | **Ayanami / Debug (Tracing Hierarchy, Incomplete) \*** (RenderDoc) |
-| <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag.png" style="zoom:80%;" />        |
+| **Soft Renderer / Profile** (Nsight Compute)                | **Ayanami / Debug (Hierarchical Tracing, Incomplete) \*** (RenderDoc) |
+| <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag2.png" style="zoom:80%;" />       |
 
 **📸 See [`GALLERY.md`](./GALLERY.md) for more screenshots**  
 **🎥 View Syaro's LoD transitions: `docs/img/syaro_lod.mkv`**
@@ -85,7 +85,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 
 
 
-<small>*. This is an incomplete project for I am working on projects with higher priority. These features might be severely unstable and time-consuming. For problems and details, refer to [CHANGELOG.md](./CHANGELOG.md)</small>
+<small>*. Ayanami is still an incomplete project for I am working on projects with higher priority. These features might be severely unstable and time-consuming. For problems and details, refer to [CHANGELOG.md](./CHANGELOG.md)  [TODO.md](./TODO.md)</small>
 
 <small>**. This C++ reflection system supports both non-intrusive (manual, external registration) and intrusive (macro-based, codegen-assisted) reflection. The macro-based approach is technically intrusive, since the user has to modify the class definition, even though the macro is empty at compile time. It’s only used by tooling to generate registration code.</small>
 
@@ -168,6 +168,7 @@ The source files can be decomposed into following parts.
 | ifrit.geomproc      | Algorithms for geometry processing, and CPU acceleration structures<br/>Including mesh cluster culling data generation, mesh tetrahedralization, mesh auto-lod and mesh-level signed distance field generation<br/>(Dependency: `metis`,`meshoptimizer`,`openvdb`,`tetgen`) |
 | ifrit.ircompile     | Backend for JIT runtime<br/>(Dependency: `llvm`)             |
 | ifrit.imaging       | Utilities for image processing<br/>Including some texture compression utilities.<br/>(Dependency: `ktx`) |
+| ifrit.profiler      | Debugging Utilities<br/>(Dependency: `renderdoc`)            |
 | ifrit.reflparser    | Tool for code parsing for `ifrit.core/reflection` utilities.<br/>(Dependency: `llvm/libclang`) |
 | ifrit.rhi           | Backend-agnostic render hardware interface.                  |
 | ifrit.runtime       | Implementations of renderer.<br/>Basic supports for mesh, assets, components and rendering |

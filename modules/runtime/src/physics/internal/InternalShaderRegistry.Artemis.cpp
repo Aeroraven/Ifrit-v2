@@ -125,6 +125,14 @@ namespace Ifrit::Runtime::Internal
             "MPMRigidContactRigidConstraintResolveCS");
         REG_COMPUTE_NEO(ISTArtemis.MPMRigidCollectRigidCollisionPairsCS,
             "Artemis/MPM/RigidCoupling/MPMRigid.CollectRigidCollisionPairs", "MPMRigidCollectRigidCollisionPairsCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidSolveVelocityRigidBoundaryCollCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.SolveVelocityRigidBoundaryColl",
+            "MPMRigidSolveVelocityRigidBoundaryCollCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidSolveVelocityParticleRigidCollCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.SolveVelocityParticleRigidColl",
+            "MPMRigidSolveVelocityParticleRigidCollCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMRigidSolveVelocityRigidRigidCollCS,
+            "Artemis/MPM/RigidCoupling/MPMRigid.SolveVelocityRigidRigidColl", "MPMRigidSolveVelocityRigidRigidCollCS");
 
         // Rigid
         REG_COMPUTE_NEO(ISTArtemis.RigidMotionTestCS, "Artemis/Rigid/Rigid.MotionTest", "RigidMotionTestCS");

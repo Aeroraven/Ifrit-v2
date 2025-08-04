@@ -9,6 +9,8 @@
 #include "ifrit/runtime/base/ApplicationInterface.h"
 #include "ifrit/runtime/asset/Asset.h"
 #include "ifrit/editor/util/SceneSerialization.h"
+#include "ifrit/runtime/scene/SceneManager.h"
+#include "ifrit/runtime/base/Transform.h"
 using namespace Ifrit::Runtime;
 
 namespace Ifrit::Editor::ImGuiInternal
@@ -237,7 +239,7 @@ namespace Ifrit::Editor::ImGuiInternal
 
             // Calculate available width
             float buttonWidth = ImGui::GetContentRegionAvail().x;
-
+            ImGui::SeparatorText("Actions");
             // Make the button use full width
             if (ImGui::Button("Add Child Node", ImVec2(buttonWidth, 0)))
             {
@@ -474,7 +476,7 @@ namespace Ifrit::Editor::ImGuiInternal
                     auto go = config.mTargetGameObject;
                     if (go)
                     {
-                        go->AddComponentFromeMeta(
+                        go->AddComponentFromMeta(
                             config.SelectedComponentMeta->MetaInfo.GetMetaInfo(), config.NewComponentEnabled);
                     }
                     ImGui::CloseCurrentPopup();
@@ -508,6 +510,7 @@ namespace Ifrit::Editor::ImGuiInternal
             float buttonWidth = ImGui::GetContentRegionAvail().x;
 
             // Make the button use full width
+            ImGui::SeparatorText("Actions");
             if (ImGui::Button("Add Component", ImVec2(buttonWidth, 0)))
             {
                 config.mComponentCreationPopup.mTargetGameObject = gameObject;
@@ -524,8 +527,18 @@ namespace Ifrit::Editor::ImGuiInternal
                     Util::ExportGameObjectAsPrefab(gameObject, dialogResult.mFilePath);
                 }
             }
-
-            auto components = obj->GetAllComponents();
+            if (ImGui::Button("Remove GameObject", ImVec2(buttonWidth, 0)))
+            {
+                auto scene = Ifrit::Runtime::GetActiveApplication()->GetSceneManager()->GetActiveScene();
+                if (scene)
+                {
+                    scene->RemoveGameObject(gameObject->GetManagerId());
+                }
+                return;
+            }
+            ImGui::SeparatorText("Components");
+            auto components     = obj->GetAllComponents();
+            bool skipComponents = false;
             for (auto& component : components)
             {
                 auto   typeName      = GetDynamicTypeNameWithoutNamespace(component);
@@ -534,13 +547,14 @@ namespace Ifrit::Editor::ImGuiInternal
 
                 String displayHeader = typeIcon + " " + typeName;
 
-                auto   isComponentMenuOpen = ImGui::CollapsingHeader(displayHeader.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+                auto   isComponentMenuOpen =
+                    ImGui::CollapsingHeader(displayHeader.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
                 ImGui::SetItemTooltip("Component Namespace: %s", typeNamespace.c_str());
                 if (isComponentMenuOpen)
                 {
                     float availableWidth = ImGui::GetContentRegionAvail().x;
                     ImGui::PushID(component->GetGUID().ToString().c_str());
-                    auto maxRows   = component->GetNumVisibleProperties() - 3;
+                    auto maxRows   = component->GetNumVisibleProperties() - 4;
                     f32  rowHeight = ImGui::GetTextLineHeightWithSpacing();
                     f32  maxHeight = rowHeight * maxRows;
                     if (ImGui::BeginTable("##properties", 2,
@@ -556,7 +570,22 @@ namespace Ifrit::Editor::ImGuiInternal
                     }
                     component->CallFunctionEditorHandle();
 
+                    if (typeid(*component) != typeid(Runtime::Transform))
+                    {
+                        if (ImGui::Button("Remove Component", ImVec2(buttonWidth, 0)))
+                        {
+                            auto internalHash = Reflection::Internal_GetTypeHashFromTypeInfoHash(
+                                Reflection::GetTypeIDHash(typeid(*component)));
+                            gameObject->RemoveComponentFromMeta(internalHash);
+                            skipComponents = true;
+                        }
+                    }
+
                     ImGui::PopID();
+                    if (skipComponents)
+                    {
+                        break;
+                    }
                 }
             }
         }

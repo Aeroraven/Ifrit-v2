@@ -138,12 +138,24 @@ namespace Ifrit::Runtime
                 archive->BeginObject("__ifrit_asset_importer");
                 archive->Serialize(importerId);
                 archive->EndObject();
+
+                auto assetRegistry = GetActiveApplication()->GetAssetRegistry();
+                auto result =
+                    assetRegistry->TryImportAssetWithRenaming(mRelativePath, importerId, mRelativePath, mGuid);
+                if (result.mCode != EAssetRegistrationResultCode::Success
+                    && result.mCode != EAssetRegistrationResultCode::AlreadyRegistered)
+                {
+                    IF_LOG_CRITICAL("AssetReferenceId", "Failed to import asset: {}", mRelativePath);
+                }
+                mGuid         = result.mGuid;
+                mRelativePath = result.mName;
+                mType         = EAssetReferencingType::Imported;
             }
+            archive->EndObject();
         }
-        archive->EndObject();
     }
 
-    IFRIT_APIDECL const AssetReferenceId& Asset::GetAssetReference() const
+    IFRIT_APIDECL const AssetReferenceId Asset::GetAssetReference() const
     {
         if (mMetadata.mReferencingType == EAssetReferencingType::Unknown)
         {

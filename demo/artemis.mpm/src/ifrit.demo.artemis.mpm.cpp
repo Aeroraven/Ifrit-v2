@@ -19,6 +19,8 @@
 #include "ifrit/runtime/geometry/preset/Square2D.h"
 #include "ifrit/runtime/base/MeshComponent.h"
 #include "MPMTiming.h"
+#include "MPMMouseInteractor.h"
+#include "RigidEmitter.h"
 #include "artemis.mpm.generated.h"
 
 #include "ifrit/core/reflection/SerializeHelper.h"
@@ -63,23 +65,15 @@ namespace Ifrit
             auto artemisController = GetSubsystem<Artemis::ArtemisController>();
             artemisController->AddPresetSolver(Artemis::EPresetArtemisSimulator::MPM);
 
-            // Asset
-            auto circleMesh = GetAssetRegistry()->CreateAsset<Geometry::Circle2DAsset>("Circle2DAsset", 0.05f, 32);
-            auto material   = GetAssetRegistry()->CreateAsset<DefaultMaterialAsset>("DefaultMaterialAsset");
-
             // Scene
             auto scene = m_sceneAssetManager->CreateScene("TestScene2");
             auto node  = scene->AddSceneNode("MPMScene");
             nodew      = node;
 
-            auto timeControl = node->AddGameObject("MPMTimeControl");
-            timeControl->AddComponent<MPMTiming>();
-
-            auto mpmGlobalConfig = node->AddGameObject("MPMGlobalConfig");
-            auto mpmConfig       = mpmGlobalConfig->AddComponent<Artemis::MPMSimulatorConfigurator>();
-
-            auto mpmContainer          = node->AddGameObject("MPMParticleContainer");
-            auto mpmContainerComponent = mpmContainer->AddComponent<Artemis::MPMParticleContainer>();
+            auto mpmGlobalConfig       = node->AddGameObject("MPMControl");
+            auto mpmConfig             = mpmGlobalConfig->AddComponent<Artemis::MPMSimulatorConfigurator>();
+            auto mpmContainerComponent = mpmGlobalConfig->AddComponent<Artemis::MPMParticleContainer>();
+            mpmGlobalConfig->AddComponent<MPMTiming>();
 
             auto cameraGameObject = node->AddGameObject("Camera");
             auto camera           = cameraGameObject->AddComponent<Camera>();
@@ -94,46 +88,17 @@ namespace Ifrit
             cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
             cameraTransform->SetPosition({ 0.5f, 0.5f, -1.0f });
 
-            {
-                auto rigid     = node->AddGameObject("RigidCollider1");
-                auto rigidMesh = rigid->AddComponent<MeshFilter>();
-                rigidMesh->SetMeshSource(circleMesh);
-                auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
-                rigidRenderer->SetMaterialSource(material);
-                auto rigidTransform = rigid->GetComponent<Transform>();
-                rigidTransform->SetPosition({ 0.8f, 0.5f, 0.0f });
-                rigidTransform->SetDevice(TransformUpdateDevice::GPU);
-                auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
-                rigidCollider->SetRadius(0.05f);
-                rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
-                rigidCollider->SetEnable(false);
-
-                collider2 = rigidCollider;
-            }
-
-            {
-                auto rigid     = node->AddGameObject("RigidCollider2");
-                auto rigidMesh = rigid->AddComponent<MeshFilter>();
-                rigidMesh->SetMeshSource(circleMesh);
-                auto rigidRenderer = rigid->AddComponent<MeshRenderer>();
-                rigidRenderer->SetMaterialSource(material);
-                auto rigidTransform = rigid->GetComponent<Transform>();
-                rigidTransform->SetPosition({ 0.8f, 0.8f, 0.0f });
-                rigidTransform->SetDevice(TransformUpdateDevice::GPU);
-                auto rigidCollider = rigid->AddComponent<Artemis::GPURigidCollider>();
-                rigidCollider->SetRadius(0.05f);
-                rigidCollider->SetColliderType(Artemis::GPURigidColliderType::Sphere);
-                rigidCollider->SetEnable(false);
-
-                collider1 = rigidCollider;
-            }
-
             auto defaultEmitter = node->AddGameObject("ParticleEmitter");
             auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();
             if (GetApplicationState()->m_EditorMode)
             {
                 emitter->SetEnable(false);
             }
+
+            auto interactor   = node->AddGameObject("InteractiveControl");
+            auto rigidEmitter = interactor->AddComponent<RigidEmitter>();
+            rigidEmitter->SetEnable(false);
+            interactor->AddComponent<MPMMouseInteractor>();
 
             m_sceneManager->SetActiveScene(scene);
         }

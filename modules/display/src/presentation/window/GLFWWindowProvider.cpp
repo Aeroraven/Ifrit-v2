@@ -190,4 +190,16 @@ namespace Ifrit::Display::Window
         return { width, height };
     }
     IFRIT_APIDECL void* GLFWWindowProvider::GetGLFWWindow() { return window; }
+    IFRIT_APIDECL u32   GLFWWindowProvider::GetWindowLeft() const
+    {
+        int xpos, ypos;
+        glfwGetWindowPos(window, &xpos, &ypos);
+        return static_cast<u32>(xpos);
+    }
+    IFRIT_APIDECL u32 GLFWWindowProvider::GetWindowTop() const
+    {
+        int xpos, ypos;
+        glfwGetWindowPos(window, &xpos, &ypos);
+        return static_cast<u32>(ypos);
+    }
 } // namespace Ifrit::Display::Window

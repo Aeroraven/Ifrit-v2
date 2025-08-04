@@ -36,6 +36,10 @@ namespace Ifrit::Runtime::Artemis
         void              SetDefaultSize(f32 size);
 
         void              SetDebugRenderTarget(RHI::RhiTexture* rt);
+        void              SetMousePosition(f32 x, f32 y);
+        void              SetMouseVelocity(f32 vx, f32 vy);
+        void              SetMousePushMode(bool enabled);
+        void              SetMouseRadAct(f32 activation, f32 radius);
 
     private:
         MPMSimulatorPrivateData* m_Data = nullptr;

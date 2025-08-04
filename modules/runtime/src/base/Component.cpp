@@ -27,6 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/reflection/SerializeHelper.h"
 
 #include "ifrit/runtime/asset/util/PrefabSerializer.h"
+#include "ifrit/runtime/base/Scene.h"
 using namespace Ifrit::Math;
 
 namespace Ifrit::Runtime
@@ -50,6 +51,10 @@ namespace Ifrit::Runtime
 
     IFRIT_APIDECL GameObject::~GameObject()
     {
+        if (mParentNode)
+        {
+            mParentNode->DetachGameObject(mIdInParent);
+        }
         for (auto& [typeHash, index] : mComponentsHashed)
         {
             auto component = m_ComponentManager->GetComponentFromReference<Component>({ typeHash, index });
@@ -59,6 +64,7 @@ namespace Ifrit::Runtime
                 m_ComponentManager->RequestRemove(component);
             }
         }
+        //
     }
 
     IFRIT_APIDECL void Component::SetEnable(bool enable)
@@ -138,11 +144,17 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void ComponentManager::RequestRemove(Component* component)
     {
 
-        auto  typeHash                                        = mIdToTypeHash[component->GetManagedIndex()];
-        auto& tailCom                                         = mComponentArray[typeHash].back();
-        tailCom->mArrayIndex                                  = component->GetArrayIndex();
+        auto  typeHash       = mIdToTypeHash[component->GetManagedIndex()];
+        auto& tailCom        = mComponentArray[typeHash].back();
+        tailCom->mArrayIndex = component->GetArrayIndex();
+        auto parent          = tailCom->GetParent();
+        if (parent)
+        {
+            parent->mComponentsHashed[typeHash] = component->GetArrayIndex();
+        }
         mComponentArray[typeHash][component->GetArrayIndex()] = std::move(tailCom);
         mComponentArray[typeHash].pop_back();
+
         // Release id
         mAllocatedComponents--;
     }
@@ -180,7 +192,10 @@ namespace Ifrit::Runtime
         auto             retd = Reflection::ConstructObject(metaTypeInfo);
         Owner<Component> ret;
         retd.ObjectValue.ForcedReinterpretTransferTo(ret);
-        ret->mEnabled = enabled;
+        ret->mEnabled            = enabled;
+        ret->m_ParentRef         = parentObject->GetManagerId();
+        ret->m_GameObjectManager = parentObject->m_GameObjectManager;
+        ret->mGuid               = GUID::Generate();
         SetComponentId(ret.get(), SizeCast<u32>(mComponentArray[typeHash].size()), typeHash);
         mComponentArray[typeHash].push_back(std::move(ret));
         return { typeHash, SizeCast<u32>(mComponentArray[typeHash].size() - 1) };
@@ -242,7 +257,31 @@ namespace Ifrit::Runtime
         return mGameObjects[ref].get();
     }
 
-    IFRIT_APIDECL void GameObject::AddComponentFromeMeta(const FMetaTypeInfo& metaTypeInfo, bool enabled)
+    void GameObjectManager::RequestRemove(GameObjectReference ref)
+    {
+        if (ref >= mGameObjects.size())
+        {
+            IF_LOG_CRITICAL("GameObjectManager", "Invalid GameObject reference: {}", ref);
+            return;
+        }
+        // swap ref to the tail and pop
+        auto& tailGameObject = mGameObjects.back();
+        tailGameObject->SetManagerId(ref);
+        for (auto& [k, v] : tailGameObject->mComponentsHashed)
+        {
+            auto component = tailGameObject->m_ComponentManager->GetComponentFromReference<Component>({ k, v });
+            if (component)
+            {
+                component->m_ParentRef = ref;
+            }
+        }
+
+        mGameObjects[ref] = std::move(tailGameObject);
+        mGameObjects.pop_back();
+        mAllocatedObjects--;
+    }
+
+    IFRIT_APIDECL void GameObject::AddComponentFromMeta(const FMetaTypeInfo& metaTypeInfo, bool enabled)
     {
         auto componentRef = m_ComponentManager->CreateComponentFromMeta(this, metaTypeInfo, enabled);
         auto typeHash     = metaTypeInfo.Hash;
@@ -252,6 +291,19 @@ namespace Ifrit::Runtime
             std::abort();
         }
         mComponentsHashed[typeHash] = componentRef.second;
+    }
+
+    IFRIT_APIDECL void GameObject::RemoveComponentFromMeta(u64 typeHash)
+    {
+        if (mComponentsHashed.count(typeHash) == 0)
+        {
+            IF_LOG_CRITICAL("GameObject", "Component type not found: {}", typeHash);
+            return;
+        }
+        auto itIndex = mComponentsHashed[typeHash];
+        m_ComponentManager->RequestRemove(
+            m_ComponentManager->GetComponentFromReference<Component>({ typeHash, itIndex }));
+        mComponentsHashed.erase(typeHash);
     }
 
     Owner<Prefab> GameObject::CreatePrefab()

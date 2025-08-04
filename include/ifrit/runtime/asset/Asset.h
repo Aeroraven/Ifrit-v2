@@ -73,12 +73,12 @@ namespace Ifrit::Runtime
 
     private:
         AssetMetadata AllocateMetadata(const String& name);
-        String        GetAbsPath(const String& relativePath) const;
         void          ImportAssetImpl(
                      const String& relativePath, const String& importerId, const String& newName, const GUID& newGuid);
 
     public:
         AssetManager(std::filesystem::path path, IApplication* app) : mBasePath(path), mApp(app) {}
+        String                  GetAbsPath(const String& relativePath) const;
         inline IApplication*    GetApplication() { return mApp; }
         AssetRegistrationResult TryRegisterAsset(Owner<Asset> asset);
         AssetRegistrationResult TryImportAssetWithRenaming(
@@ -93,6 +93,7 @@ namespace Ifrit::Runtime
         {
             Owner<T> asset                       = MakeOwner<T>(std::forward<Args>(args)...);
             asset->mMetadata                     = AllocateMetadata(name);
+            asset->mMetadata.mReferencingType    = EAssetReferencingType::Internal;
             mNameToIndex[asset->mMetadata.mName] = SizeCast<u32>(mAssets.size());
             mGuidToIndex[asset->mMetadata.mGuid] = SizeCast<u32>(mAssets.size());
             auto ptr                             = asset.get();

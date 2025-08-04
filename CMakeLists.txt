@@ -268,7 +268,7 @@ set_target_properties(ifrit.external.imgui PROPERTIES FOLDER ${IFRIT_GROUP_DEPEN
 
 # nfd targets
 set_target_properties(nfd PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/nfd)
-
+ 
 # ifrit targets
 set_target_properties(ifrit.core PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.shadercompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
@@ -292,6 +292,9 @@ add_dependencies(ifrit.core
     ifrit.reflparser
     spdlog
     mimalloc)
+add_dependencies(ifrit.profiler
+    ifrit.core
+)
 add_dependencies(ifrit.geomproc 
     openvdb_shared
     meshoptimizer 

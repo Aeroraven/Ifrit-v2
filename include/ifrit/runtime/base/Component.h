@@ -30,6 +30,7 @@ namespace Ifrit::Runtime
     class Transform;
     class ComponentManager;
     class GameObjectManager;
+    class SceneNode;
 
     using ComponentTypeHash   = u64;
     using ComponentReference  = Pair<ComponentTypeHash, u32>;
@@ -100,6 +101,7 @@ namespace Ifrit::Runtime
         }
 
         friend class GameObject;
+        friend class GameObjectManager;
     };
 
     class IFRIT_APIDECL IF_CLASS() GameObjectManager : public NonCopyable
@@ -140,7 +142,7 @@ namespace Ifrit::Runtime
         u32 mManagedIndex;
 
         IF_PROPERTY()
-        u32 mId;
+        u32 mIdInParent;
 
         IF_PROPERTY()
         GUID mGuid;
@@ -150,6 +152,8 @@ namespace Ifrit::Runtime
 
         IF_PROPERTY()
         HashMap<ComponentTypeHash, u32> mComponentsHashed;
+
+        SceneNode*                      mParentNode = nullptr;
 
     public:
         ComponentManager*  m_ComponentManager  = nullptr;
@@ -179,7 +183,7 @@ namespace Ifrit::Runtime
             return m_ComponentManager->GetComponentFromReference<T>(componentRef);
         }
 
-        void AddComponentFromeMeta(const FMetaTypeInfo& metaTypeInfo, bool enabled);
+        void AddComponentFromMeta(const FMetaTypeInfo& metaTypeInfo, bool enabled);
 
         template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* GetComponent()
         {
@@ -192,6 +196,8 @@ namespace Ifrit::Runtime
             auto component = m_ComponentManager->GetComponentFromReference<T>({ typeHash, itIndex });
             return component ? component : nullptr;
         }
+
+        void                   RemoveComponentFromMeta(u64 typeHash);
 
         inline Vec<Component*> GetAllComponents()
         {
@@ -254,7 +260,7 @@ namespace Ifrit::Runtime
         inline u32   GetManagedIndex() const { return mManagedIndex; }
 
     public:
-        Component(){}; // for deserializatioin
+        Component() {}; // for deserializatioin
         Component(GameObject* parentObject);
         virtual ~Component() = default;
 

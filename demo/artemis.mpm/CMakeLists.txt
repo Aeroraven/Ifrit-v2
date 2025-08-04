@@ -10,4 +10,4 @@ include(${IFRIT_PROJECT_DIR}/cmake/ProjectShared.cmake)
 include(${IFRIT_PROJECT_DIR}/cmake/DemoTemplate.cmake)
 
 # Create the demo project
-ifrit_add_demo_project(artemis.mpm)
+ifrit_add_demo_project(artemis.mpm)

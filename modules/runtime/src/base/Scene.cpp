@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/core/reflection/SerializeHelper.h"
 #include "ifrit/runtime/base/Transform.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
 namespace Ifrit::Runtime
 {
     IFRIT_APIDECL            SceneNode::SceneNode() : m_Parent(nullptr) {}
@@ -52,12 +53,32 @@ namespace Ifrit::Runtime
         return result;
     }
 
+    IFRIT_APIDECL void SceneNode::DetachGameObject(u32 inNodeOffset)
+    {
+        IF_LOG_ASSERTION(
+            "SceneNode", inNodeOffset < mGameObjectRefs.size(), "Invalid GameObject offset: {}", inNodeOffset);
+        if (inNodeOffset < mGameObjectRefs.size())
+        {
+            mGameObjectRefs[inNodeOffset]     = mGameObjectRefs.back();
+            m_GameObjects[inNodeOffset]       = m_GameObjects.back();
+            m_GameObjects.back()->mIdInParent = inNodeOffset;
+            mGameObjectRefs.pop_back();
+            m_GameObjects.pop_back();
+        }
+        else
+        {
+            IF_LOG_CRITICAL("SceneNode", "Invalid GameObject offset: {}", inNodeOffset);
+        }
+    }
+
     IFRIT_APIDECL GameObject* SceneNode::AddGameObject(const String& name)
     {
         auto objId = m_Parent->GetGameObjectManager()->CreateGameObject(name);
         auto obj   = m_Parent->GetGameObjectManager()->GetGameObject(objId);
         obj->Initialize(m_Parent->GetComponentManager(), m_Parent->GetGameObjectManager());
         obj->SetName(name);
+        obj->mIdInParent = static_cast<u32>(m_GameObjects.size());
+        obj->mParentNode = this;
         m_GameObjects.push_back(obj);
         mGameObjectRefs.push_back(objId);
         return obj;
@@ -87,11 +108,19 @@ namespace Ifrit::Runtime
         for (auto& childId : mChildren)
         {
             auto child = m_Parent->GetSceneNode(childId);
+            if (child == nullptr)
+            {
+                IF_LOG_CRITICAL("Scene", "Invalid child {}", childId);
+            }
             child->OnUpdate();
         }
-        for (auto& obj : m_GameObjects)
+
+        for (auto i = 0; i < m_GameObjects.size(); i++)
         {
-            for (auto& comp : obj->GetAllComponents())
+            // dont use iterators!
+            auto& obj = m_GameObjects[i];
+            auto  v   = obj->GetAllComponents();
+            for (auto& comp : v)
             {
                 if (comp->IsEnabled())
                     comp->OnUpdate();
@@ -160,6 +189,7 @@ namespace Ifrit::Runtime
     {
         if (id < mSceneNodes.size())
         {
+            IF_LOG_ASSERTION("Scene", mSceneNodes[id]->GetName().size(), "Invalid scene");
             return mSceneNodes[id].get();
         }
         IF_LOG_CRITICAL("Scene", "Invalid SceneNode ID: {}", id);
@@ -308,16 +338,27 @@ namespace Ifrit::Runtime
         mComponentManager  = MakeOwner<ComponentManager>();
         mGameObjectManager = MakeOwner<GameObjectManager>();
     }
+    IFRIT_APIDECL Scene::~Scene()
+    {
+        // Clear all game objects
+        for (int i = mGameObjectManager->mGameObjects.size() - 1; i >= 0; i--)
+        {
+            RemoveGameObject(i);
+        }
+    }
 
     IFRIT_APIDECL PerFrameData* Scene::GetPerFrameData() { return m_PerFrameData.get(); }
 
     IFRIT_APIDECL String        Scene::Serialize() const { return Reflection::SerializeToJSON(*this); }
     IFRIT_APIDECL void          Scene::Deserialize(const String& data)
     {
+        auto rhi = GetActiveApplication()->GetRhi();
+        rhi->WaitDeviceIdle();
+
         // unload scene
-        for (auto& gameObject : mGameObjectManager->mGameObjects)
+        for (int i = mGameObjectManager->mGameObjects.size() - 1; i >= 0; i--)
         {
-            gameObject = nullptr;
+            RemoveGameObject(i);
         }
 
         // deserialize
@@ -338,6 +379,7 @@ namespace Ifrit::Runtime
             {
                 mSceneNodes[i]->m_GameObjects[j] =
                     mGameObjectManager->GetGameObject(mSceneNodes[i]->mGameObjectRefs[j]);
+                mSceneNodes[i]->m_GameObjects[j]->mParentNode = mSceneNodes[i].get();
             }
         }
         // setup game objects
@@ -362,5 +404,5 @@ namespace Ifrit::Runtime
             }
         }
     }
-
+    IFRIT_APIDECL void Scene::RemoveGameObject(GameObjectReference ref) { mGameObjectManager->RequestRemove(ref); }
 } // namespace Ifrit::Runtime

@@ -23,6 +23,15 @@ namespace MPM{
         FPackedMatrixHandle m_ParticleDebug;
         FRWSpatialVectorHandle m_ParticleVelocityOld; // For PBMPM-RigidCoupling (Displacement)
         float m_ViscoPlasticity;
+
+        float m_MouseX;
+        float m_MouseY;
+        float m_MouseVx;
+        float m_MouseVy;
+        float m_MouseActivation;
+        float m_MouseRadius;
+        int m_NumSubsteps;
+        int m_IsPushMode;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -109,7 +118,33 @@ namespace MPM{
 
         FSpatialVector Gravity = ToSpatialVector(PushConst.m_Gravity);
         FSpatialVector GravityDisplacement = Gravity * PushConst.m_DeltaTime * PushConst.m_DeltaTime * 0.5f;
-        FSpatialVector OverallDisplacement = ParticleDisplacement + GravityDisplacement;
+        FSpatialVector MouseDisplacement = FSpatialVector(0.0f);
+#ifndef IFSHADER_MPM_3D
+        if(PushConst.m_MouseActivation > 0.0f)
+        {
+            FScalar MouseX = PushConst.m_MouseX;
+            FScalar MouseY = PushConst.m_MouseY;
+            FSpatialVector MousePos = FSpatialVector(MouseX, MouseY);
+            FSpatialVector ParticlePos = NewParticleLocation;
+
+            FScalar Dist = length(MousePos - ParticlePos);
+            FSpatialVector PushDir = normalize(ParticlePos - MousePos);
+            if(Dist < PushConst.m_MouseRadius)
+            {
+                if(PushConst.m_IsPushMode == 1)
+                {
+                    MouseDisplacement = PushDir * PushConst.m_MouseActivation;
+                }
+                else
+                {
+                    ParticleDisplacement = FSpatialVector(0.0f);
+                    GravityDisplacement = FSpatialVector(0.0f);
+                    MouseDisplacement = FSpatialVector(PushConst.m_MouseVx, PushConst.m_MouseVy) / float(PushConst.m_NumSubsteps);
+                }
+            }
+        }
+#endif
+        FSpatialVector OverallDisplacement = ParticleDisplacement + GravityDisplacement + MouseDisplacement;
 
         PushConst.m_ParticleLocation.Store(ThreadId.x, NewParticleLocation);
         PushConst.m_ParticleVelocity.Store(ThreadId.x, OverallDisplacement);

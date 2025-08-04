@@ -1,0 +1,1005 @@
+{
+    "Component Manager": {
+        "__ifrit_unique_ptr_polymorphic": 0,
+        "__ifrit_unique_ptr_type_hash": 15674923679389892257,
+        "__ifrit_unique_ptr_valid": 1,
+        "__ifrit_unique_ptr_value": {
+            "Allocated Components": 11,
+            "Component Array": {
+                "__ifrit_map": [
+                    {
+                        "__ifrit_map_key": 14950348303763122714,
+                        "__ifrit_map_value": {
+                            "__ifrit_vector": [
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 17211961416784847905,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 0,
+                                        "Enabled": true,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "45598f0b-f17b-46dc-9a9a-360a0427cf90",
+                                                "Data": [
+                                                    69,
+                                                    89,
+                                                    143,
+                                                    11,
+                                                    241,
+                                                    123,
+                                                    70,
+                                                    220,
+                                                    154,
+                                                    154,
+                                                    54,
+                                                    10,
+                                                    4,
+                                                    39,
+                                                    207,
+                                                    144
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 1152,
+                                        "Managed Index": 0,
+                                        "Name": "",
+                                        "Position": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.0,
+                                                "y": 0.0,
+                                                "z": 0.0
+                                            }
+                                        },
+                                        "Rotation": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.0,
+                                                "y": 0.0,
+                                                "z": 0.0
+                                            }
+                                        },
+                                        "Scale": {
+                                            "__ifrit_vector3": {
+                                                "x": 1.0,
+                                                "y": 1.0,
+                                                "z": 1.0
+                                            }
+                                        },
+                                        "Update Device": {
+                                            "__ifrit_enum_class_value": 0
+                                        },
+                                        "__ifrit_reflection_id": 17211961416784847905,
+                                        "__ifrit_reflection_type": "class Ifrit::Runtime::Transform"
+                                    }
+                                },
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 17211961416784847905,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 1,
+                                        "Enabled": true,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "c5715477-46ee-41b7-b6b9-b1b98833a669",
+                                                "Data": [
+                                                    197,
+                                                    113,
+                                                    84,
+                                                    119,
+                                                    70,
+                                                    238,
+                                                    65,
+                                                    183,
+                                                    182,
+                                                    185,
+                                                    177,
+                                                    185,
+                                                    136,
+                                                    51,
+                                                    166,
+                                                    105
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 3145760,
+                                        "Managed Index": 4,
+                                        "Name": "",
+                                        "Position": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.5,
+                                                "y": 0.5,
+                                                "z": -1.0
+                                            }
+                                        },
+                                        "Rotation": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.0,
+                                                "y": 0.0,
+                                                "z": 0.0
+                                            }
+                                        },
+                                        "Scale": {
+                                            "__ifrit_vector3": {
+                                                "x": 1.0,
+                                                "y": 1.0,
+                                                "z": 1.0
+                                            }
+                                        },
+                                        "Update Device": {
+                                            "__ifrit_enum_class_value": 0
+                                        },
+                                        "__ifrit_reflection_id": 17211961416784847905,
+                                        "__ifrit_reflection_type": "class Ifrit::Runtime::Transform"
+                                    }
+                                },
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 17211961416784847905,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 2,
+                                        "Enabled": true,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "b4379127-4a3d-4005-8dd5-5362462c836c",
+                                                "Data": [
+                                                    180,
+                                                    55,
+                                                    145,
+                                                    39,
+                                                    74,
+                                                    61,
+                                                    64,
+                                                    5,
+                                                    141,
+                                                    213,
+                                                    83,
+                                                    98,
+                                                    70,
+                                                    44,
+                                                    131,
+                                                    108
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 2046,
+                                        "Managed Index": 6,
+                                        "Name": "",
+                                        "Position": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.0,
+                                                "y": 0.0,
+                                                "z": 0.0
+                                            }
+                                        },
+                                        "Rotation": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.0,
+                                                "y": 0.0,
+                                                "z": 0.0
+                                            }
+                                        },
+                                        "Scale": {
+                                            "__ifrit_vector3": {
+                                                "x": 1.0,
+                                                "y": 1.0,
+                                                "z": 1.0
+                                            }
+                                        },
+                                        "Update Device": {
+                                            "__ifrit_enum_class_value": 0
+                                        },
+                                        "__ifrit_reflection_id": 17211961416784847905,
+                                        "__ifrit_reflection_type": "class Ifrit::Runtime::Transform"
+                                    }
+                                },
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 17211961416784847905,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 3,
+                                        "Enabled": true,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "c3ba1259-6bdf-4047-b55b-7b50e893c74e",
+                                                "Data": [
+                                                    195,
+                                                    186,
+                                                    18,
+                                                    89,
+                                                    107,
+                                                    223,
+                                                    64,
+                                                    71,
+                                                    181,
+                                                    91,
+                                                    123,
+                                                    80,
+                                                    232,
+                                                    147,
+                                                    199,
+                                                    78
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 1123,
+                                        "Managed Index": 8,
+                                        "Name": "",
+                                        "Position": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.0,
+                                                "y": 0.0,
+                                                "z": 0.0
+                                            }
+                                        },
+                                        "Rotation": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.0,
+                                                "y": 0.0,
+                                                "z": 0.0
+                                            }
+                                        },
+                                        "Scale": {
+                                            "__ifrit_vector3": {
+                                                "x": 1.0,
+                                                "y": 1.0,
+                                                "z": 1.0
+                                            }
+                                        },
+                                        "Update Device": {
+                                            "__ifrit_enum_class_value": 0
+                                        },
+                                        "__ifrit_reflection_id": 17211961416784847905,
+                                        "__ifrit_reflection_type": "class Ifrit::Runtime::Transform"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "__ifrit_map_key": 3400802749304126129,
+                        "__ifrit_map_value": {
+                            "__ifrit_vector": [
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 1428579596665815614,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 0,
+                                        "Emit Color": {
+                                            "__ifrit_vector4": {
+                                                "w": 1.0,
+                                                "x": 0.0,
+                                                "y": 1.0,
+                                                "z": 1.0
+                                            }
+                                        },
+                                        "Emit Interval": 15,
+                                        "Emit Material Type": {
+                                            "__ifrit_enum_class_value": 1
+                                        },
+                                        "Emit Max Range": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.550000011920929,
+                                                "y": 0.949999988079071,
+                                                "z": 0.550000011920929
+                                            }
+                                        },
+                                        "Emit Min Range": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.44999998807907104,
+                                                "y": 0.9200000166893005,
+                                                "z": 0.44999998807907104
+                                            }
+                                        },
+                                        "Emit Trigger Type": {
+                                            "__ifrit_enum_class_value": 1
+                                        },
+                                        "Enabled": false,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "a8a7434b-45cd-45ca-9f86-919b2618086e",
+                                                "Data": [
+                                                    168,
+                                                    167,
+                                                    67,
+                                                    75,
+                                                    69,
+                                                    205,
+                                                    69,
+                                                    202,
+                                                    159,
+                                                    134,
+                                                    145,
+                                                    155,
+                                                    38,
+                                                    24,
+                                                    8,
+                                                    110
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 770705923,
+                                        "Managed Index": 7,
+                                        "Name": "",
+                                        "Particle Mass": 0.0078125,
+                                        "__ifrit_reflection_id": 1428579596665815614,
+                                        "__ifrit_reflection_type": "class Ifrit::Runtime::Artemis::MPMParticleEmitter"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "__ifrit_map_key": 2804611506483654524,
+                        "__ifrit_map_value": {
+                            "__ifrit_vector": [
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 12626357472925901655,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 0,
+                                        "Enabled": true,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "03c08dd2-5167-4890-bfe3-00bb4d1c1ff6",
+                                                "Data": [
+                                                    3,
+                                                    192,
+                                                    141,
+                                                    210,
+                                                    81,
+                                                    103,
+                                                    72,
+                                                    144,
+                                                    191,
+                                                    227,
+                                                    0,
+                                                    187,
+                                                    77,
+                                                    28,
+                                                    31,
+                                                    246
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 1565,
+                                        "Managed Index": 2,
+                                        "Max Particle Count": 114514,
+                                        "Name": "",
+                                        "__ifrit_reflection_id": 12626357472925901655,
+                                        "__ifrit_reflection_type": "class Ifrit::Runtime::Artemis::MPMParticleContainer"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "__ifrit_map_key": 10499810326549866076,
+                        "__ifrit_map_value": {
+                            "__ifrit_vector": [
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 7432989581052208785,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 0,
+                                        "Clear Particles": false,
+                                        "Enable Rigid Coupling": true,
+                                        "Enabled": true,
+                                        "Gravity": {
+                                            "__ifrit_vector3": {
+                                                "x": 0.0,
+                                                "y": -1.0,
+                                                "z": 0.0
+                                            }
+                                        },
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "3b73c89b-5b86-4e1b-b269-9e19b5df540d",
+                                                "Data": [
+                                                    59,
+                                                    115,
+                                                    200,
+                                                    155,
+                                                    91,
+                                                    134,
+                                                    78,
+                                                    27,
+                                                    178,
+                                                    105,
+                                                    158,
+                                                    25,
+                                                    181,
+                                                    223,
+                                                    84,
+                                                    13
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 1701077352,
+                                        "Managed Index": 1,
+                                        "Mpm Substeps": 3,
+                                        "Name": "",
+                                        "Pbmpm Elasticity Ratio": 0.5,
+                                        "Pbmpm Elasticity Relax": 1.5,
+                                        "Pbmpm Iterations": 8,
+                                        "Point Size": 2.0,
+                                        "__ifrit_reflection_id": 7432989581052208785,
+                                        "__ifrit_reflection_type": "class Ifrit::Runtime::Artemis::MPMSimulatorConfigurator"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "__ifrit_map_key": 9801214222287422372,
+                        "__ifrit_map_value": {
+                            "__ifrit_vector": [
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 2747967645155187184,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 0,
+                                        "Aspect": 1.875,
+                                        "Enabled": true,
+                                        "Far": 20.0,
+                                        "Fov": 60.0,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "f104f5ca-c990-4c85-af05-2526a7ae2ea0",
+                                                "Data": [
+                                                    241,
+                                                    4,
+                                                    245,
+                                                    202,
+                                                    201,
+                                                    144,
+                                                    76,
+                                                    133,
+                                                    175,
+                                                    5,
+                                                    37,
+                                                    38,
+                                                    167,
+                                                    174,
+                                                    46,
+                                                    160
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 1073,
+                                        "Is Main Camera": true,
+                                        "Managed Index": 5,
+                                        "Name": "",
+                                        "Near": 0.10000000149011612,
+                                        "Ortho Space Size": 1.0,
+                                        "Type": {
+                                            "__ifrit_enum_class_value": 1
+                                        },
+                                        "__ifrit_reflection_id": 2747967645155187184,
+                                        "__ifrit_reflection_type": "class Ifrit::Runtime::Camera"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "__ifrit_map_key": 14246829516399630671,
+                        "__ifrit_map_value": {
+                            "__ifrit_vector": [
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 12577393118551310949,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 0,
+                                        "Enabled": true,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "7ea54cb4-6a12-4375-8b4d-1df34bcb1685",
+                                                "Data": [
+                                                    126,
+                                                    165,
+                                                    76,
+                                                    180,
+                                                    106,
+                                                    18,
+                                                    67,
+                                                    117,
+                                                    139,
+                                                    77,
+                                                    29,
+                                                    243,
+                                                    75,
+                                                    203,
+                                                    22,
+                                                    133
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 1769300538,
+                                        "Inv Timestep": 100.0,
+                                        "Managed Index": 3,
+                                        "Name": "",
+                                        "__ifrit_reflection_id": 12577393118551310949,
+                                        "__ifrit_reflection_type": "class Ifrit::MPMTiming"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "__ifrit_map_key": 11454653230820140308,
+                        "__ifrit_map_value": {
+                            "__ifrit_vector": [
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 8530452132472842413,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Activation": 0.0010000000474974513,
+                                        "Array Index": 0,
+                                        "Enabled": true,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "69d5c2ad-d5b1-44cd-80ca-2cc50f100ddc",
+                                                "Data": [
+                                                    105,
+                                                    213,
+                                                    194,
+                                                    173,
+                                                    213,
+                                                    177,
+                                                    68,
+                                                    205,
+                                                    128,
+                                                    202,
+                                                    44,
+                                                    197,
+                                                    15,
+                                                    16,
+                                                    13,
+                                                    220
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 0,
+                                        "Interaction Mode": {
+                                            "__ifrit_enum_class_value": 1
+                                        },
+                                        "Managed Index": 10,
+                                        "Name": "",
+                                        "Radius": 0.10000000149011612,
+                                        "__ifrit_reflection_id": 8530452132472842413,
+                                        "__ifrit_reflection_type": "class Ifrit::MPMMouseInteractor"
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "__ifrit_map_key": 10898387837886539209,
+                        "__ifrit_map_value": {
+                            "__ifrit_vector": [
+                                {
+                                    "__ifrit_unique_ptr_polymorphic": 1,
+                                    "__ifrit_unique_ptr_type_hash": 1741463739658970182,
+                                    "__ifrit_unique_ptr_valid": 1,
+                                    "__ifrit_unique_ptr_value": {
+                                        "Array Index": 0,
+                                        "Enabled": false,
+                                        "Guid": {
+                                            "GUID": {
+                                                "CvtString": "51b0983e-e54f-4937-b773-094aa8468a0c",
+                                                "Data": [
+                                                    81,
+                                                    176,
+                                                    152,
+                                                    62,
+                                                    229,
+                                                    79,
+                                                    73,
+                                                    55,
+                                                    183,
+                                                    115,
+                                                    9,
+                                                    74,
+                                                    168,
+                                                    70,
+                                                    138,
+                                                    12
+                                                ],
+                                                "Generated": true
+                                            }
+                                        },
+                                        "Id": 5046386,
+                                        "Managed Index": 9,
+                                        "Name": "",
+                                        "__ifrit_reflection_id": 1741463739658970182,
+                                        "__ifrit_reflection_type": "class Ifrit::RigidEmitter"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "Id To Type Hash": {
+                "__ifrit_map": [
+                    {
+                        "__ifrit_map_key": 0,
+                        "__ifrit_map_value": 14950348303763122714
+                    },
+                    {
+                        "__ifrit_map_key": 1,
+                        "__ifrit_map_value": 10499810326549866076
+                    },
+                    {
+                        "__ifrit_map_key": 2,
+                        "__ifrit_map_value": 2804611506483654524
+                    },
+                    {
+                        "__ifrit_map_key": 3,
+                        "__ifrit_map_value": 14246829516399630671
+                    },
+                    {
+                        "__ifrit_map_key": 4,
+                        "__ifrit_map_value": 14950348303763122714
+                    },
+                    {
+                        "__ifrit_map_key": 5,
+                        "__ifrit_map_value": 9801214222287422372
+                    },
+                    {
+                        "__ifrit_map_key": 6,
+                        "__ifrit_map_value": 14950348303763122714
+                    },
+                    {
+                        "__ifrit_map_key": 7,
+                        "__ifrit_map_value": 3400802749304126129
+                    },
+                    {
+                        "__ifrit_map_key": 8,
+                        "__ifrit_map_value": 14950348303763122714
+                    },
+                    {
+                        "__ifrit_map_key": 9,
+                        "__ifrit_map_value": 10898387837886539209
+                    },
+                    {
+                        "__ifrit_map_key": 10,
+                        "__ifrit_map_value": 11454653230820140308
+                    }
+                ]
+            },
+            "__ifrit_reflection_id": 15674923679389892257,
+            "__ifrit_reflection_type": "class Ifrit::Runtime::ComponentManager"
+        }
+    },
+    "Game Object Manager": {
+        "__ifrit_unique_ptr_polymorphic": 0,
+        "__ifrit_unique_ptr_type_hash": 3963296905160224977,
+        "__ifrit_unique_ptr_valid": 1,
+        "__ifrit_unique_ptr_value": {
+            "Allocated Objects": 4,
+            "Game Objects": {
+                "__ifrit_vector": [
+                    {
+                        "__ifrit_unique_ptr_polymorphic": 1,
+                        "__ifrit_unique_ptr_type_hash": 4341722306354730026,
+                        "__ifrit_unique_ptr_valid": 1,
+                        "__ifrit_unique_ptr_value": {
+                            "Components Hashed": {
+                                "__ifrit_map": [
+                                    {
+                                        "__ifrit_map_key": 14950348303763122714,
+                                        "__ifrit_map_value": 0
+                                    },
+                                    {
+                                        "__ifrit_map_key": 2804611506483654524,
+                                        "__ifrit_map_value": 0
+                                    },
+                                    {
+                                        "__ifrit_map_key": 10499810326549866076,
+                                        "__ifrit_map_value": 0
+                                    },
+                                    {
+                                        "__ifrit_map_key": 14246829516399630671,
+                                        "__ifrit_map_value": 0
+                                    }
+                                ]
+                            },
+                            "Guid": {
+                                "GUID": {
+                                    "CvtString": "f4aaefaf-e22e-4a4d-92cd-925b5dd96e58",
+                                    "Data": [
+                                        244,
+                                        170,
+                                        239,
+                                        175,
+                                        226,
+                                        46,
+                                        74,
+                                        77,
+                                        146,
+                                        205,
+                                        146,
+                                        91,
+                                        93,
+                                        217,
+                                        110,
+                                        88
+                                    ],
+                                    "Generated": true
+                                }
+                            },
+                            "Id In Parent": 0,
+                            "Managed Index": 0,
+                            "Name": "MPMControl",
+                            "__ifrit_reflection_id": 4341722306354730026,
+                            "__ifrit_reflection_type": "class Ifrit::Runtime::GameObject"
+                        }
+                    },
+                    {
+                        "__ifrit_unique_ptr_polymorphic": 1,
+                        "__ifrit_unique_ptr_type_hash": 4341722306354730026,
+                        "__ifrit_unique_ptr_valid": 1,
+                        "__ifrit_unique_ptr_value": {
+                            "Components Hashed": {
+                                "__ifrit_map": [
+                                    {
+                                        "__ifrit_map_key": 14950348303763122714,
+                                        "__ifrit_map_value": 1
+                                    },
+                                    {
+                                        "__ifrit_map_key": 9801214222287422372,
+                                        "__ifrit_map_value": 0
+                                    }
+                                ]
+                            },
+                            "Guid": {
+                                "GUID": {
+                                    "CvtString": "920ed206-bbe8-43c9-b07f-cf2fe278b7ed",
+                                    "Data": [
+                                        146,
+                                        14,
+                                        210,
+                                        6,
+                                        187,
+                                        232,
+                                        67,
+                                        201,
+                                        176,
+                                        127,
+                                        207,
+                                        47,
+                                        226,
+                                        120,
+                                        183,
+                                        237
+                                    ],
+                                    "Generated": true
+                                }
+                            },
+                            "Id In Parent": 1,
+                            "Managed Index": 1,
+                            "Name": "Camera",
+                            "__ifrit_reflection_id": 4341722306354730026,
+                            "__ifrit_reflection_type": "class Ifrit::Runtime::GameObject"
+                        }
+                    },
+                    {
+                        "__ifrit_unique_ptr_polymorphic": 1,
+                        "__ifrit_unique_ptr_type_hash": 4341722306354730026,
+                        "__ifrit_unique_ptr_valid": 1,
+                        "__ifrit_unique_ptr_value": {
+                            "Components Hashed": {
+                                "__ifrit_map": [
+                                    {
+                                        "__ifrit_map_key": 14950348303763122714,
+                                        "__ifrit_map_value": 2
+                                    },
+                                    {
+                                        "__ifrit_map_key": 3400802749304126129,
+                                        "__ifrit_map_value": 0
+                                    }
+                                ]
+                            },
+                            "Guid": {
+                                "GUID": {
+                                    "CvtString": "160b1791-be38-4024-a355-61781911a34c",
+                                    "Data": [
+                                        22,
+                                        11,
+                                        23,
+                                        145,
+                                        190,
+                                        56,
+                                        64,
+                                        36,
+                                        163,
+                                        85,
+                                        97,
+                                        120,
+                                        25,
+                                        17,
+                                        163,
+                                        76
+                                    ],
+                                    "Generated": true
+                                }
+                            },
+                            "Id In Parent": 2,
+                            "Managed Index": 2,
+                            "Name": "ParticleEmitter",
+                            "__ifrit_reflection_id": 4341722306354730026,
+                            "__ifrit_reflection_type": "class Ifrit::Runtime::GameObject"
+                        }
+                    },
+                    {
+                        "__ifrit_unique_ptr_polymorphic": 1,
+                        "__ifrit_unique_ptr_type_hash": 4341722306354730026,
+                        "__ifrit_unique_ptr_valid": 1,
+                        "__ifrit_unique_ptr_value": {
+                            "Components Hashed": {
+                                "__ifrit_map": [
+                                    {
+                                        "__ifrit_map_key": 14950348303763122714,
+                                        "__ifrit_map_value": 3
+                                    },
+                                    {
+                                        "__ifrit_map_key": 11454653230820140308,
+                                        "__ifrit_map_value": 0
+                                    },
+                                    {
+                                        "__ifrit_map_key": 10898387837886539209,
+                                        "__ifrit_map_value": 0
+                                    }
+                                ]
+                            },
+                            "Guid": {
+                                "GUID": {
+                                    "CvtString": "6a3ce180-453f-4460-bd79-d2c3e46e8616",
+                                    "Data": [
+                                        106,
+                                        60,
+                                        225,
+                                        128,
+                                        69,
+                                        63,
+                                        68,
+                                        96,
+                                        189,
+                                        121,
+                                        210,
+                                        195,
+                                        228,
+                                        110,
+                                        134,
+                                        22
+                                    ],
+                                    "Generated": true
+                                }
+                            },
+                            "Id In Parent": 3,
+                            "Managed Index": 3,
+                            "Name": "InteractiveControl",
+                            "__ifrit_reflection_id": 4341722306354730026,
+                            "__ifrit_reflection_type": "class Ifrit::Runtime::GameObject"
+                        }
+                    }
+                ]
+            },
+            "__ifrit_reflection_id": 3963296905160224977,
+            "__ifrit_reflection_type": "class Ifrit::Runtime::GameObjectManager"
+        }
+    },
+    "Root": {
+        "__ifrit_unique_ptr_polymorphic": 1,
+        "__ifrit_unique_ptr_type_hash": 16995271604508794341,
+        "__ifrit_unique_ptr_valid": 1,
+        "__ifrit_unique_ptr_value": {
+            "Children": {
+                "__ifrit_vector": [
+                    0
+                ]
+            },
+            "Game Object Refs": {
+                "__ifrit_vector": []
+            },
+            "Guid": {
+                "GUID": {
+                    "CvtString": "",
+                    "Data": [
+                        32,
+                        65,
+                        80,
+                        73,
+                        95,
+                        49,
+                        95,
+                        49,
+                        95,
+                        49,
+                        32,
+                        65,
+                        80,
+                        73,
+                        95,
+                        49
+                    ],
+                    "Generated": false
+                }
+            },
+            "Name": "",
+            "__ifrit_reflection_id": 16995271604508794341,
+            "__ifrit_reflection_type": "class Ifrit::Runtime::SceneNode"
+        }
+    },
+    "Scene Nodes": {
+        "__ifrit_vector": [
+            {
+                "__ifrit_unique_ptr_polymorphic": 1,
+                "__ifrit_unique_ptr_type_hash": 16995271604508794341,
+                "__ifrit_unique_ptr_valid": 1,
+                "__ifrit_unique_ptr_value": {
+                    "Children": {
+                        "__ifrit_vector": []
+                    },
+                    "Game Object Refs": {
+                        "__ifrit_vector": [
+                            0,
+                            1,
+                            2,
+                            3
+                        ]
+                    },
+                    "Guid": {
+                        "GUID": {
+                            "CvtString": "11e0e287-997b-42dc-b88e-0182e5b50557",
+                            "Data": [
+                                17,
+                                224,
+                                226,
+                                135,
+                                153,
+                                123,
+                                66,
+                                220,
+                                184,
+                                142,
+                                1,
+                                130,
+                                229,
+                                181,
+                                5,
+                                87
+                            ],
+                            "Generated": true
+                        }
+                    },
+                    "Name": "MPMScene",
+                    "__ifrit_reflection_id": 16995271604508794341,
+                    "__ifrit_reflection_type": "class Ifrit::Runtime::SceneNode"
+                }
+            }
+        ]
+    },
+    "__ifrit_reflection_id": 2889172965423505789,
+    "__ifrit_reflection_type": "class Ifrit::Runtime::Scene"
+}

@@ -91,7 +91,7 @@ namespace MPM {
             FCircleContactResult CollResult = CircleToCircleContact2D(
                 RigidCenter1.xy, Radius1, RigidCenter2.xy, Radius2
             );
-            Result.m_Collided = true;
+            Result.m_Collided = CollResult.Collided;
             Result.m_ContactNormal = CollResult.Normal;
             Result.m_ContactPointRigid1 = CollResult.ContactPoint1;
             Result.m_ContactPointRigid2 = CollResult.ContactPoint2;

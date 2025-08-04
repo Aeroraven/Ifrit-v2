@@ -76,11 +76,15 @@ namespace Ifrit::Runtime
     {
         return m_keyStatus[static_cast<int>(key)].stat == 0;
     }
-    IFRIT_APIDECL bool InputSystem::IsMouseButtonPressed(EInputMouseButton button)
+    IFRIT_APIDECL bool InputSystem::IsMouseButtonHold(EInputMouseButton button)
     {
         return mMouseButtonStatus[static_cast<int>(button)].stat == 1;
     }
-    IFRIT_APIDECL bool InputSystem::IsMouseButtonReleased(EInputMouseButton button)
+    IFRIT_APIDECL bool InputSystem::IsMouseButtonPressed(EInputMouseButton button)
+    {
+        return mMouseButtonStatusImmediate[static_cast<int>(button)].stat == 1;
+    }
+    IFRIT_APIDECL bool InputSystem::IsMouseButtonFreed(EInputMouseButton button)
     {
         return mMouseButtonStatus[static_cast<int>(button)].stat == 0;
     }
@@ -98,7 +102,8 @@ namespace Ifrit::Runtime
     {
         if (button < mMouseButtonStatus.size())
         {
-            mMouseButtonStatus[button].stat = status;
+            mMouseButtonStatus[button].stat          = status;
+            mMouseButtonStatusImmediate[button].stat = status;
             // IF_LOG_INFO("Input", "Mouse Button {} Status Updated: {}", button, status);
         }
         else
@@ -130,6 +135,13 @@ namespace Ifrit::Runtime
             if (key.stat == 1)
             {
                 key.stat = 0;
+            }
+        }
+        for (auto& button : mMouseButtonStatusImmediate)
+        {
+            if (button.stat == 1)
+            {
+                button.stat = 0;
             }
         }
     }

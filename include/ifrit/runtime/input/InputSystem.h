@@ -8,9 +8,9 @@ namespace Ifrit::Runtime
 {
     enum class EInputMouseButton : u8
     {
-        Left   = 1,
-        Right  = 2,
-        Middle = 3
+        Left   = 0,
+        Right  = 1,
+        Middle = 2
     };
     enum class EInputKeyCode
     {
@@ -137,6 +137,7 @@ namespace Ifrit::Runtime
         };
         Array<KeyStatus, 349> m_keyStatus;
         Array<KeyStatus, 3>   mMouseButtonStatus;
+        Array<KeyStatus, 3>   mMouseButtonStatusImmediate;
         IApplication*         m_app;
         float                 mMouseX = 0.0f;
         float                 mMouseY = 0.0f;
@@ -146,8 +147,9 @@ namespace Ifrit::Runtime
 
         bool                                  IsKeyPressed(EInputKeyCode key);
         bool                                  IsKeyReleased(EInputKeyCode key);
+        bool                                  IsMouseButtonHold(EInputMouseButton button);
         bool                                  IsMouseButtonPressed(EInputMouseButton button);
-        bool                                  IsMouseButtonReleased(EInputMouseButton button);
+        bool                                  IsMouseButtonFreed(EInputMouseButton button);
         float                                 GetMouseX() const;
         float                                 GetMouseY() const;
 

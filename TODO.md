@@ -7,18 +7,14 @@
 - Subproject Artemis: `ifrit.runtime/physics.artemis`
 - Architectural:
   - Serialization/Reflection
-    - <s>Hybrid Reflection</s>
-      - <s>Dynamic Reflection (User-defined Types)</s>
-      - <s>Static Reflection (Core Types/STL Containers)</s>
-    - Ownership Reidentification
-    - Refactoring Asset Manager
-      - <s>Dropping Unity-like `meta` file</s>
-    - <s>Scene Saving</s>
+    - Stability Improvements
 
 #### Normal Priority
 
-- Subproject Ayanami: `ifrit.runtime/render.ayanami`
+- Subproject Artemis: `ifrit.runtime/physics.artemis`
+  - Procedural Mesh Support
 
+- Subproject Ayanami: `ifrit.runtime/render.ayanami`
   - Indirect Lighting on Surface Atlas (Debugging Phase)
 
   - Hardware Path Tracer (Reference Purpose)
@@ -26,6 +22,9 @@
   - Denoising / ReSTIR
 - Subproject Syaro: `ifrit.runtime/render.syaro.v2`
   - Refactoring with RDGs
+- RHI
+  - HWRT Support
+
 - Architectural
   - Dropping Legacy Designs:
     - Render Graph in `ifrit.vkgraphics`
@@ -36,10 +35,9 @@
   - Multithreaded Rendering
     - Async Compute
   - Streaming
-
 - Bug Fixing
   - (vkgraphics) Dangling view identifiers after resource destruction
-  - (runtime/asset) Potential crash when loading gltf models
+  - <s>(runtime/asset) Potential crash when loading gltf models</s> 
   - (shader/neo) Bindless declarations might violate `spirv-val` (but it does work)
 
 

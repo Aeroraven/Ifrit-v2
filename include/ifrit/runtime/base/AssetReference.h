@@ -62,6 +62,7 @@ namespace Ifrit::Runtime
             {
                 if (mType != EAssetReferencingType::Internal)
                     return mRelativePath == other.mRelativePath;
+                return false;
             }
             else
             {
@@ -102,14 +103,16 @@ namespace Ifrit::Runtime
         AssetMetadata mMetadata;
 
     public:
-        Asset() = default;
+        Asset()          = default;
+        virtual ~Asset() = default;
+
         Asset(AssetMetadata metadata) : mMetadata(metadata) {}
         const GUID&               GetGuid() const { return mMetadata.mGuid; }
         const String&             GetName() const { return mMetadata.mName; }
         const String&             GetExternalPath() const { return mMetadata.mExternalPath; }
         virtual void              _PolyHolder() {}
 
-        const AssetReferenceId&   GetAssetReference() const;
+        const AssetReferenceId    GetAssetReference() const;
         inline virtual EAssetType GetAsseType() const { return EAssetType::General; }
     };
 

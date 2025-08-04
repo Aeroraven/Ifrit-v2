@@ -58,6 +58,7 @@ namespace Ifrit::Runtime
         GameObject*             AddGameObject(const String& name);
         GameObject*             AddGameObjectGPUTransform(const String& name);
         GameObject*             AddGameObjectTransferred(GameObject* obj);
+        void                    DetachGameObject(u32 inNodeOffset);
 
         SceneNode*              GetSceneNode(u32 x);
         inline GameObject*      GetGameObject(u32 x) { return m_GameObjects.at(x); }
@@ -98,6 +99,7 @@ namespace Ifrit::Runtime
 
     public:
         Scene();
+        ~Scene();
 
         SceneNode*         GetRootNode();
         Camera*            GetMainCamera();
@@ -126,6 +128,7 @@ namespace Ifrit::Runtime
 
         String Serialize() const;
         void   Deserialize(const String& data);
+        void   RemoveGameObject(GameObjectReference ref);
     };
 
 } // namespace Ifrit::Runtime

@@ -10,6 +10,7 @@ namespace MPM{
         float2 ContactPoint1;
         float2 ContactPoint2;
         float2 Normal;
+        bool Collided;
     };
 
     FCircleContactResult CircleToCircleContact2D(float2 CenterA, float RadiusA, float2 CenterB, float RadiusB)
@@ -18,6 +19,7 @@ namespace MPM{
 
         float2 Direction = CenterA - CenterB;
         float Distance = length(Direction);
+        Result.Collided = false;
         
         if (Distance < RadiusA + RadiusB)
         {
@@ -25,6 +27,7 @@ namespace MPM{
             float PenetrationDepth = (RadiusA + RadiusB) - Distance;
             Result.ContactPoint1 = CenterA - Result.Normal * (RadiusA);
             Result.ContactPoint2 = CenterB + Result.Normal * (RadiusB);
+            Result.Collided = true;
         }
         
         return Result;

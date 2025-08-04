@@ -44,5 +44,7 @@ namespace Ifrit::Display::Window
         virtual void         RegisterKeyCallback(std::function<void(int, int, int, int)>) {}
         virtual void         RegisterMousePostionCallback(std::function<void(double, double)>){};
         virtual void         RegisterMouseButtonCallback(std::function<void(int, int, int)>){};
+        virtual u32          GetWindowLeft() const { return 0; }
+        virtual u32          GetWindowTop() const { return 0; }
     };
 } // namespace Ifrit::Display::Window
