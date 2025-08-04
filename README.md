@@ -19,8 +19,8 @@ A collection of real-time rendering and simulation experiments featuring:
 | <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" /> | ![](docs/img/soft_dx1.png)                                   |
 | **Ayanami / GDF Object Grids + Surface Cache Lookup***      | **Ayanami / Global Distance Field (GDF)\***                  |
 | ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)                          |
-| **Artemis / Position Based Dynamics**                       | **Artemis / PBMPM + Property Editing**                       |
-| ![](docs/img/artemis_pbd1.png)                              | <img src="docs/img/artemis_pbmpm2.png" style="zoom:50%;" />  |
+| **Artemis / Position Based Dynamics**                       | **Artemis / PBMPM + Editor**                                 |
+| ![](docs/img/artemis_pbd1.png)                              | <img src="docs/img/artemis_pbmpm3.png" style="zoom:50%;" />  |
 | **Soft Renderer / Profile** (Nsight Compute)                | **Ayanami / Debug (Hierarchical Tracing, Incomplete) \*** (RenderDoc) |
 | <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag2.png" style="zoom:80%;" />       |
 
