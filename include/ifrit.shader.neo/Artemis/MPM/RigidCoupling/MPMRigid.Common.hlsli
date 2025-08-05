@@ -43,6 +43,15 @@ namespace MPM{
             Casted.AtomicAdd(Offset + 0, Rotation);
 #endif
         }
+
+
+    }
+
+    FScalar GetRotMass2D(FScalar Inertia2D, float2 R, float2 N)
+    {
+        FScalar Rn = Math::Cross2D(R, N);
+        FScalar W2 = Inertia2D * Rn * Rn;
+        return W2;
     }
 
 }}}

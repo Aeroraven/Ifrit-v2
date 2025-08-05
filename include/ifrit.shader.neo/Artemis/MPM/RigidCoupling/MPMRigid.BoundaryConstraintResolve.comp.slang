@@ -40,17 +40,20 @@ namespace MPM{
 
         FSpatialVector ColliderCenterPositionPrev = ColliderDynamics.m_Position;
         FSpatialVector ColliderCenterDisplacement = ColliderDynamics.m_Displacement;
-        FSpatialVector N = ToSpatialVector(Contact.m_ContactNormal);
+        FSpatialVector N = -ToSpatialVector(Contact.m_ContactNormal);
 
         FSpatialVector ColliderCenterPosition = ColliderCenterPositionPrev + ColliderCenterDisplacement;
-        FSpatialVector P1 = ColliderCenterPosition - N * Collider.m_ColliderRadius;
-        FSpatialVector P2 = ToSpatialVector(Contact.m_ContactPoint);
+        FSpatialVector P1 = ToSpatialVector(Contact.m_ContactPointWrtCenter) + ColliderCenterPosition;
+        FSpatialVector P2 = ToSpatialVector(Contact.m_ContactPointBoundary);
         
-        FScalar Dist = -dot(P1 - P2, N);
+        FScalar Dist = dot(P1 - P2, N);
+
+        // dL = -Dist/(W1)
+        // Imp = dL*N = -Dist/W1*N
         bool IsColliding = Dist > 0.0f;
         if(!IsColliding) return;
 
-        FSpatialVector Impulse = Dist * N * 2.0f;
+        FSpatialVector Impulse = -Dist * N;
         FSpatialVector Shift = Impulse;
 
         PushConst.m_RigidDynamics.AtomicAddDisplacement(Collider.m_RuntimeId, Shift);

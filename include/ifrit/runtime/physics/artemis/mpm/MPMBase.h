@@ -74,7 +74,7 @@ namespace Ifrit::Runtime::Artemis
         f32                          m_DefaultViscoPlasticity = 0.7f;
         u32                          m_DefaultNumParticles    = 11451;
         u32                          m_Substeps               = 5;
-        MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Jelly;
+        MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Fluid;
 
         // PBMPM
         u32                          m_PbMpmIterations                           = 4;

@@ -32,7 +32,6 @@ namespace MPM{
     {
         int NumConstraints = PushConst.m_NumConstraints.Load(0);
         if (ThreadId.x >= NumConstraints) return;
-
         FMPMRigidCouplingRigidContactPair Contact = PushConst.m_CollisionPairs.Load(ThreadId.x);
         int RigidId1 = Contact.m_RigidId1;
         int RigidId2 = Contact.m_RigidId2;
@@ -45,11 +44,14 @@ namespace MPM{
         FScalar RigidMass1 = Collider1.m_RigidMass;
         FScalar RigidMass2 = Collider2.m_RigidMass;
 
-        FSpatialVector ColliderContactPointWS1 = ToSpatialVector(Contact.m_ContactPointRigid1);
-        FSpatialVector ColliderContactPointWS2 = ToSpatialVector(Contact.m_ContactPointRigid2);
+        FSpatialVector ColliderCenterPosition1 = ColliderDynamics1.m_Position + ColliderDynamics1.m_Displacement;
+        FSpatialVector ColliderCenterPosition2 = ColliderDynamics2.m_Position + ColliderDynamics2.m_Displacement;
+
+        FSpatialVector ColliderContactPointWS1 = ConvertRigidPointToWorldSpace(ToSpatialVector(Contact.m_ContactPointRigidWrtCenter1), ColliderDynamics1);
+        FSpatialVector ColliderContactPointWS2 = ConvertRigidPointToWorldSpace(ToSpatialVector(Contact.m_ContactPointRigidWrtCenter2), ColliderDynamics2);
                 
-        FSpatialVector R1 = ColliderContactPointWS1 - (ColliderDynamics1.m_Position + ColliderDynamics1.m_Displacement);
-        FSpatialVector R2 = ColliderContactPointWS2 - (ColliderDynamics2.m_Position + ColliderDynamics2.m_Displacement);
+        FSpatialVector R1 = ConvertRigidPointWrtCenterDirToWS(ToSpatialVector(Contact.m_ContactPointRigidWrtCenter1), ColliderDynamics1);
+        FSpatialVector R2 = ConvertRigidPointWrtCenterDirToWS(ToSpatialVector(Contact.m_ContactPointRigidWrtCenter2), ColliderDynamics2);
         
         FSpatialVector N = ToSpatialVector(Contact.m_ContactNormal);
         FSpatialVector P1 = ColliderContactPointWS1;
@@ -64,18 +66,19 @@ namespace MPM{
 #endif
 
         // dx = (p1-p2)*n
-        FScalar Dist = -dot(P1 - P2, N);
+        FScalar Dist = dot(P1 - P2, N);
         bool IsColliding = Dist > 0.0f;
         if (!IsColliding) return;
-
-        FScalar W1 = rcp(RigidMass1) + W1Extra;
-        FScalar W2 = rcp(RigidMass2) + W2Extra;
-        FScalar DeltaLambda = Dist/(W1 + W2);
+        FScalar InvMass1 = rcp(RigidMass1); 
+        FScalar InvMass2 = rcp(RigidMass2);
+        FScalar W1 = InvMass1 + W1Extra; 
+        FScalar W2 = InvMass2 + W2Extra;
+        FScalar DeltaLambda = -Dist/(W1 + W2);
 
         FSpatialVector Impulse = DeltaLambda * N;
 
-        FSpatialVector Shift1 = W1 * Impulse;
-        FSpatialVector Shift2 = -W2 * Impulse;
+        FSpatialVector Shift1 = InvMass1 * Impulse;
+        FSpatialVector Shift2 = -InvMass2 * Impulse;
 
         Rigid::FAngularRotation RotationImp1;
         Rigid::FAngularRotation RotationImp2;
@@ -83,12 +86,15 @@ namespace MPM{
 #ifdef IFSHADER_RIGID_DYNAMICS_3D
         //TODO: Handle 3D rotation
 #else
-        RotationImp1 = -rcp(Collider1.m_Inertia2D) * Math::Cross2D(R1, Impulse);
+        RotationImp1 = rcp(Collider1.m_Inertia2D) * Math::Cross2D(R1, Impulse);
         PushConst.m_RigidDynamics.AtomicAddRotation(Collider1.m_RuntimeId, RotationImp1);
         RotationImp2 = -rcp(Collider2.m_Inertia2D) * Math::Cross2D(R2, Impulse);
         PushConst.m_RigidDynamics.AtomicAddRotation(Collider2.m_RuntimeId, RotationImp2);
 #endif
         PushConst.m_RigidDynamics.AtomicAddDisplacement(Collider1.m_RuntimeId, Shift1);
         PushConst.m_RigidDynamics.AtomicAddDisplacement(Collider2.m_RuntimeId, Shift2);
+    
+        //
+
     }
 }}}

@@ -74,8 +74,8 @@ namespace MPM{
             Pair.m_RigidId1 = RigidId1;
             Pair.m_RigidId2 = RigidId2;
             Pair.m_ContactNormal = SpatialVectorToFloat4(Result.m_ContactNormal);
-            Pair.m_ContactPointRigid1 = SpatialVectorToFloat4(Result.m_ContactPointRigid1);
-            Pair.m_ContactPointRigid2 = SpatialVectorToFloat4(Result.m_ContactPointRigid2);
+            Pair.m_ContactPointRigidWrtCenter1 = SpatialVectorToFloat4(Result.m_ContactPointRigidWrtCenter1);
+            Pair.m_ContactPointRigidWrtCenter2 = SpatialVectorToFloat4(Result.m_ContactPointRigidWrtCenter2);
             PushConst.m_CollisionPairs.Store(Pair, OverallOffset);
         }
 

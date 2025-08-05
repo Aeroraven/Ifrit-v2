@@ -24,8 +24,8 @@ namespace IfritShader
     struct FMPMRigidCouplingRigidContactPair
     {
         float4 m_ContactNormal;
-        float4 m_ContactPointRigid1;
-        float4 m_ContactPointRigid2;
+        float4 m_ContactPointRigidWrtCenter1;
+        float4 m_ContactPointRigidWrtCenter2;
         int    m_RigidId1;
         int    m_RigidId2;
         int2   m_Pad;
@@ -34,7 +34,8 @@ namespace IfritShader
     struct FMPMRigidBoundaryContactPair
     {
         float4 m_ContactNormal;
-        float4 m_ContactPoint;
+        float4 m_ContactPointWrtCenter;
+        float4 m_ContactPointBoundary;
         int    m_RigidId;
     };
 

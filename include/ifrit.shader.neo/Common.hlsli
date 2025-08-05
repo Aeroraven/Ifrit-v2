@@ -32,6 +32,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #ifdef COMPILER_DXC
     #ifdef __HLSL_VERSION 
+        #define IFSHADER_UNROLL [unroll]
         #define IFSHADER_TEMPLATE template
         #define IFSHADER_TEMPLATE_STRUCT(x,T) template<typename T> struct x
         #define IFSHADER_REQUIRES(x)
@@ -61,6 +62,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
         #error "This shader module is only supported in HLSL or Slang."
     #endif
 #else
+    #define IFSHADER_UNROLL [ForceUnroll]
     #define IFSHADER_TEMPLATE __generic
     #define IFSHADER_TEMPLATE_STRUCT(x,T) struct x<T>
     #define IFSHADER_REQUIRES(x) where x

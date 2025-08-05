@@ -24,7 +24,7 @@ namespace MPM{
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
 
-    void HandleBoundaryContact(int RigidId, FSpatialVector RigidCenter, FSpatialVector GridMinBound, 
+    void HandleBoundaryContact(int RigidId, FSpatialVector RigidCenter, FScalar Radius, FSpatialVector GridMinBound, 
         FSpatialVector GridMaxBound, FSpatialVector ContactNormal, bool IsColliding)
     {
         FSpatialVector RemainMask = FSpatialVector(1.0f) - abs(ContactNormal);
@@ -36,7 +36,7 @@ namespace MPM{
         int sCollidingPairsInWave = WaveActiveCountBits(IsColliding);
         int sCollidingPairsWaveOffset = WavePrefixCountBits(IsColliding);
         int sCollidingPairsGlobalStartOffset = 0;
-
+ 
         if(WaveIsFirstLane())
         {
             sCollidingPairsGlobalStartOffset = PushConst.m_CollisionPairCounter.AtomicAdd(0, sCollidingPairsInWave);
@@ -50,7 +50,8 @@ namespace MPM{
             FMPMRigidBoundaryContactPair ContactPair;
             ContactPair.m_RigidId = RigidId;
             ContactPair.m_ContactNormal = SpatialVectorToFloat4(ContactNormal);
-            ContactPair.m_ContactPoint = SpatialVectorToFloat4(ContactPosition);
+            ContactPair.m_ContactPointWrtCenter = -SpatialVectorToFloat4(ContactNormal) * Radius;
+            ContactPair.m_ContactPointBoundary = SpatialVectorToFloat4(ContactPosition);
             PushConst.m_CollisionPairs.Store(ContactPair, OverallOffset);
         }
     }
@@ -76,7 +77,7 @@ namespace MPM{
         FSpatialVector ColliderPosition = FSpatialVector(0.0f);
         FSpatialVector ColliderMinBound = FSpatialVector(0.0f);
         FSpatialVector ColliderMaxBound = FSpatialVector(0.0f);
-
+        FScalar ColliderRadius = 0.0f;
         if(RigidId < PushConst.m_NumRigids)
         {
             Rigid::FRigidColliderEntry Collider = PushConst.m_RigidColliders.Load(RigidId);
@@ -84,7 +85,7 @@ namespace MPM{
 
             FSpatialVector ColliderPositionPrev = ColliderDynamics.m_Position;
             FSpatialVector ColliderDisplacement = ColliderDynamics.m_Displacement;
-            FScalar ColliderRadius = Collider.m_ColliderRadius;
+            ColliderRadius = Collider.m_ColliderRadius;
 
             ColliderPosition = ColliderPositionPrev + ColliderDisplacement;
             ColliderMinBound = ColliderPosition - FSpatialVector(ColliderRadius);
@@ -109,13 +110,13 @@ namespace MPM{
         FSpatialVector BackPlaneNormal = ToSpatialVector(float4(0.0f, 0.0f, -1.0f, 0.0f));
 #endif
 
-        HandleBoundaryContact(RigidId, ColliderPosition, GridMinBound, GridMaxBound, LeftPlaneNormal, IsLeftPlaneIntersect);
-        HandleBoundaryContact(RigidId, ColliderPosition, GridMinBound, GridMaxBound, RightPlaneNormal, IsRightPlaneIntersect);
-        HandleBoundaryContact(RigidId, ColliderPosition, GridMinBound, GridMaxBound, TopPlaneNormal, IsTopPlaneIntersect);
-        HandleBoundaryContact(RigidId, ColliderPosition, GridMinBound, GridMaxBound, BottomPlaneNormal, IsBottomPlaneIntersect);
+        HandleBoundaryContact(RigidId, ColliderPosition, ColliderRadius, GridMinBound, GridMaxBound, LeftPlaneNormal, IsLeftPlaneIntersect);
+        HandleBoundaryContact(RigidId, ColliderPosition, ColliderRadius, GridMinBound, GridMaxBound, RightPlaneNormal, IsRightPlaneIntersect);
+        HandleBoundaryContact(RigidId, ColliderPosition, ColliderRadius, GridMinBound, GridMaxBound, TopPlaneNormal, IsTopPlaneIntersect);
+        HandleBoundaryContact(RigidId, ColliderPosition, ColliderRadius, GridMinBound, GridMaxBound, BottomPlaneNormal, IsBottomPlaneIntersect);
 #ifdef IFSHADER_MPM_3D
-        HandleBoundaryContact(RigidId, ColliderPosition, GridMinBound, GridMaxBound, FrontPlaneNormal, IsFrontPlaneIntersect);
-        HandleBoundaryContact(RigidId, ColliderPosition, GridMinBound, GridMaxBound, BackPlaneNormal, IsBackPlaneIntersect);
+        HandleBoundaryContact(RigidId, ColliderPosition, ColliderRadius, GridMinBound, GridMaxBound, FrontPlaneNormal, IsFrontPlaneIntersect);
+        HandleBoundaryContact(RigidId, ColliderPosition, ColliderRadius, GridMinBound, GridMaxBound, BackPlaneNormal, IsBackPlaneIntersect);
 #endif  
     }
 

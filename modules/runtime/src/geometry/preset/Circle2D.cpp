@@ -25,7 +25,8 @@ namespace Ifrit::Runtime::Geometry
         {
             f32 angle                 = 2.0f * std::numbers::pi_v<f32> * i / m_Divisions;
             m_SelfData->m_vertices[i] = Vector3f(m_Radius * std::cos(angle), m_Radius * std::sin(angle), 0.0f);
-            m_SelfData->m_normals[i]  = Vector3f(0.0f, 0.0f, 0.0f);
+            m_SelfData->m_normals[i] = Vector3f(1.0f * i / m_Divisions * 2.0f - 1.0f,
+                 1.0f * i / m_Divisions * 2.0f - 1.0f, 1.0f * i / m_Divisions * 2.0f - 1.0f);
             m_SelfData->m_uvs[i]      = Vector2f(0.0f, 0.0f);
             m_SelfData->m_tangents[i] = Vector4f(0.0f, 0.0f, 0.0f, 0.0f);
             m_SelfData->m_verticesAligned[i] =

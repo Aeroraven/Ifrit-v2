@@ -21,6 +21,7 @@ namespace MPM{
         TStructuredBufferHandle<Rigid::FRigidColliderEntry> m_RigidColliders;
         FRigidColliderDynamicsHandle m_RigidDynamics;
         float m_DeltaTime;
+        float m_GravityNorm;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -44,7 +45,7 @@ namespace MPM{
             Rigid::FRigidColliderEntry RigidCollider = PushConst.m_RigidColliders.Load(ContactPair.m_RigidId);
             Rigid::FRigidColliderDynamicsData RigidDynamics = PushConst.m_RigidDynamics.Load(RigidCollider.m_RuntimeId);
 
-            FSpatialVector R1 = ToSpatialVector(ContactPair.m_ContactPoint) - RigidDynamics.m_Position;
+            FSpatialVector R1 = ConvertRigidPointWrtCenterDirToWS(ToSpatialVector(ContactPair.m_ContactPointWrtCenter), RigidDynamics);
 
             Rigid::FAngularValue W1 = RigidDynamics.m_AngularVelocity;
             Rigid::FAngularValue W1t = RigidDynamics.m_AngularVelocityOld;
@@ -55,15 +56,39 @@ namespace MPM{
             RotVelocity = W1 * float2(-R1.y, R1.x);
             RotVelocityT = W1t * float2(-R1.y, R1.x);
 #endif
-            FSpatialVector Displacement = RigidDynamics.m_Displacement + RotVelocity * PushConst.m_DeltaTime;
-            FSpatialVector DisplacementT = RigidDynamics.m_DisplacementOld + RotVelocityT * PushConst.m_DeltaTime;  
+            FSpatialVector Displacement = RigidDynamics.m_Displacement;// + RotVelocity * PushConst.m_DeltaTime;
+            FSpatialVector V1 = Displacement + RotVelocity * PushConst.m_DeltaTime;
+            FSpatialVector DisplacementT = RigidDynamics.m_DisplacementOld;// + RotVelocityT * PushConst.m_DeltaTime;  
+            FSpatialVector V1t = DisplacementT + RotVelocityT * PushConst.m_DeltaTime;
             FSpatialVector ContactNormal = -ToSpatialVector(ContactPair.m_ContactNormal);
-            FSpatialVector Vn = dot(ContactNormal, Displacement);
-            FSpatialVector Vnt = dot(ContactNormal, DisplacementT);
+            FScalar Vn = dot(ContactNormal, V1);
+            FScalar Vnt = dot(ContactNormal, V1t);
+            if(abs(Vn) < 2 * PushConst.m_GravityNorm * PushConst.m_DeltaTime * PushConst.m_DeltaTime)
+            {
+                //Vnt = 0.0f;
+            }
 
             FSpatialVector Dv = ContactNormal * (-Vn + min(-Vnt,0.0f));
+            FScalar InvMass1 = rcp(RigidCollider.m_RigidMass);
+            FScalar InvMass1Eff = 0.0f;
+#ifndef IFSHADER_RIGID_DYNAMICS_3D
+            InvMass1Eff = InvMass1 + GetRotMass2D(RigidCollider.m_Inertia2D, R1, ContactNormal);
+#else
+            //TODO: Handle 3D rotation
+#endif
+            FSpatialVector P = Dv / InvMass1Eff;
+            FSpatialVector DvNew = P * InvMass1;
+            FSpatialVector Pwt = DvNew / PushConst.m_DeltaTime;
+
+            Rigid::FAngularValue W1New = RigidDynamics.m_AngularVelocity;
+#ifndef IFSHADER_RIGID_DYNAMICS_3D
+            W1New += rcp(RigidCollider.m_Inertia2D) * Math::Cross2D(R1,Pwt);
+#else
+
+#endif
             
-            RigidDynamics.m_Displacement = Displacement + Dv;
+            RigidDynamics.m_Displacement = Displacement + DvNew;
+            RigidDynamics.m_AngularVelocity = W1New;
             PushConst.m_RigidDynamics.m_RigidDynamics.Store(RigidDynamics, RigidCollider.m_RuntimeId);
         }
     }

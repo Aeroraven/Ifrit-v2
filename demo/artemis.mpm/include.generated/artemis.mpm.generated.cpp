@@ -6,65 +6,67 @@
 #include "artemis.mpm.generated.h"
 
 // Begin Body
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\Asset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\importer\GameObjectPrefabImporter.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MaterialAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\prefab\GameObjectPrefabAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\PrefabAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\util\PrefabSerializer.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Component.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Light.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\MeshComponent.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Prefab.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleEmitter.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMSimulatorConfigurator.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\pbd\PBDCloth.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\rigid\GpuRigidCollider.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshDF.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshMarker.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\Asset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\importer\GameObjectPrefabImporter.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MaterialAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\prefab\GameObjectPrefabAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\PrefabAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\asset\util\PrefabSerializer.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Component.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Light.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\MeshComponent.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Prefab.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleEmitter.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMSimulatorConfigurator.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\pbd\PBDCloth.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\rigid\GpuRigidCollider.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshDF.h"
-#include "C:/WR/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshMarker.h"
-#include "C:/WR/Ifrit-v2/demo/artemis.mpm/include\MPMMouseInteractor.h"
-#include "C:/WR/Ifrit-v2/demo/artemis.mpm/include\MPMTiming.h"
-#include "C:/WR/Ifrit-v2/demo/artemis.mpm/include\RigidEmitter.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\Asset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\importer\GameObjectPrefabImporter.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\MaterialAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\prefab\GameObjectPrefabAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\PrefabAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\util\PrefabSerializer.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Component.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Light.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\MeshComponent.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Prefab.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Square2D.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleEmitter.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMSimulatorConfigurator.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\pbd\PBDCloth.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\rigid\GpuRigidCollider.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshDF.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshMarker.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\Asset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\importer\GameObjectPrefabImporter.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\MaterialAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\prefab\GameObjectPrefabAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\PrefabAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\util\PrefabSerializer.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Component.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Light.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\MeshComponent.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Prefab.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Square2D.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleEmitter.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMSimulatorConfigurator.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\pbd\PBDCloth.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\rigid\GpuRigidCollider.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshDF.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshMarker.h"
+#include "E:/Projects/Ifrit-v2/demo/artemis.mpm/include\MPMMouseInteractor.h"
+#include "E:/Projects/Ifrit-v2/demo/artemis.mpm/include\MPMTiming.h"
+#include "E:/Projects/Ifrit-v2/demo/artemis.mpm/include\RigidEmitter.h"
 namespace Ifrit::Reflection
 {
     void RegisterReflectionTypes()
@@ -266,6 +268,12 @@ namespace Ifrit::Reflection
         RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mRadius>("Radius");
         RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mDivisions>("Divisions");
 
+        // Ifrit::Runtime::Geometry::Square2DAsset
+        RegisterType<Ifrit::Runtime::Geometry::Square2DAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::Geometry::Square2DAsset, Ifrit::Runtime::MeshAsset>();
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::Square2DAsset::mWidth>("Width");
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::Square2DAsset::mHeight>("Height");
+
         // Ifrit::Runtime::DefaultMaterialAsset
         RegisterType<Ifrit::Runtime::DefaultMaterialAsset>();
         RegisterPolymorphicRelation<Ifrit::Runtime::DefaultMaterialAsset, Ifrit::Runtime::MaterialAsset>();
@@ -389,9 +397,20 @@ namespace Ifrit::Reflection
         RegisterPropertyHint<&Ifrit::MPMTiming::mInvTimestep>("Editable", "");
         RegisterPropertyHint<&Ifrit::MPMTiming::mInvTimestep>("UISlider.min", (double)60);
         RegisterPropertyHint<&Ifrit::MPMTiming::mInvTimestep>("UISlider.max", (double)1000);
+        RegisterPropertyField<&Ifrit::MPMTiming::mSleep>("Sleep");
+        RegisterPropertyHint<&Ifrit::MPMTiming::mSleep>("Editable", "");
+        RegisterPropertyHint<&Ifrit::MPMTiming::mSleep>("UISlider.min", (double)0);
+        RegisterPropertyHint<&Ifrit::MPMTiming::mSleep>("UISlider.max", (double)1000);
 
         // Ifrit::RigidEmitter
         RegisterType<Ifrit::RigidEmitter>();
         RegisterPolymorphicRelation<Ifrit::RigidEmitter, Ifrit::Runtime::ActorBehavior>();
+        RegisterPropertyField<&Ifrit::RigidEmitter::mMass>("Mass");
+        RegisterPropertyHint<&Ifrit::RigidEmitter::mMass>("Editable", "");
+        RegisterPropertyHint<&Ifrit::RigidEmitter::mMass>("UISlider.min", (double)0.01);
+        RegisterPropertyHint<&Ifrit::RigidEmitter::mMass>("UISlider.max", (double)100);
+        RegisterPropertyField<&Ifrit::RigidEmitter::mShape>("Shape");
+        RegisterPropertyHint<&Ifrit::RigidEmitter::mShape>("Editable", "");
+        RegisterPropertyHint<&Ifrit::RigidEmitter::mShape>("UISelect", "");
     }
 }

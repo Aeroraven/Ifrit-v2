@@ -17,7 +17,7 @@ namespace MPM{
     {
         FCircleContactResult Result = { float2(0.0f, 0.0f), float2(0.0f, 0.0f), float2(0.0f, 0.0f) };
 
-        float2 Direction = CenterA - CenterB;
+        float2 Direction = CenterB - CenterA;
         float Distance = length(Direction);
         Result.Collided = false;
         
@@ -25,8 +25,8 @@ namespace MPM{
         {
             Result.Normal = normalize(Direction);
             float PenetrationDepth = (RadiusA + RadiusB) - Distance;
-            Result.ContactPoint1 = CenterA - Result.Normal * (RadiusA);
-            Result.ContactPoint2 = CenterB + Result.Normal * (RadiusB);
+            Result.ContactPoint1 = CenterA + Result.Normal * (RadiusA);
+            Result.ContactPoint2 = CenterB - Result.Normal * (RadiusB);
             Result.Collided = true;
         }
         

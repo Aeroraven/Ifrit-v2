@@ -21,6 +21,7 @@ namespace MPM{
         TStructuredBufferHandle<Rigid::FRigidColliderEntry> m_RigidColliders;
         FRigidColliderDynamicsHandle m_RigidDynamics;
         float m_DeltaTime;
+        float m_GravityNorm;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -49,8 +50,8 @@ namespace MPM{
             Rigid::FRigidColliderEntry RigidCollider2 = PushConst.m_RigidColliders.Load(RigidId2);
             Rigid::FRigidColliderDynamicsData RigidDynamics2 = PushConst.m_RigidDynamics.Load(RigidCollider2.m_RuntimeId);
             
-            FSpatialVector R1 = Contact.m_RigidId1 - RigidDynamics1.m_Position;
-            FSpatialVector R2 = Contact.m_RigidId2 - RigidDynamics1.m_Position;
+            FSpatialVector R1 = ConvertRigidPointWrtCenterDirToWS(ToSpatialVector(Contact.m_ContactPointRigidWrtCenter1), RigidDynamics1);
+            FSpatialVector R2 = ConvertRigidPointWrtCenterDirToWS(ToSpatialVector(Contact.m_ContactPointRigidWrtCenter2), RigidDynamics2);
 
             Rigid::FAngularValue W1 = RigidDynamics1.m_AngularVelocity;
             Rigid::FAngularValue W1t = RigidDynamics1.m_AngularVelocityOld;
@@ -68,27 +69,54 @@ namespace MPM{
             RotVelocity2 = W2 * float2(-R2.y, R2.x);
             RotVelocityT2 = W2t * float2(-R2.y, R2.x);
 #endif
-            FSpatialVector V2 = RigidDynamics2.m_Displacement + RotVelocity2 * PushConst.m_DeltaTime;
-            FSpatialVector V2t = RigidDynamics2.m_DisplacementOld + RotVelocityT2 * PushConst.m_DeltaTime;
+            FSpatialVector V2b = RigidDynamics2.m_Displacement;
+            FSpatialVector V2 = V2b + RotVelocity2 * PushConst.m_DeltaTime;
+            FSpatialVector V2bt = RigidDynamics2.m_DisplacementOld;
+            FSpatialVector V2t = V2bt + RotVelocityT2 * PushConst.m_DeltaTime;
 
-            FSpatialVector V1 = RigidDynamics1.m_Displacement + RotVelocity1 * PushConst.m_DeltaTime;
-            FSpatialVector V1t = RigidDynamics1.m_DisplacementOld + RotVelocityT1 * PushConst.m_DeltaTime;
+            FSpatialVector V1b = RigidDynamics1.m_Displacement;
+            FSpatialVector V1 = V1b + RotVelocity1 * PushConst.m_DeltaTime;
+            FSpatialVector V1bt = RigidDynamics1.m_DisplacementOld;
+            FSpatialVector V1t = V1bt + RotVelocityT1 * PushConst.m_DeltaTime;
 
-            FSpatialVector ContactNormal = -ToSpatialVector(Contact.m_ContactNormal);
+            FSpatialVector ContactNormal = ToSpatialVector(Contact.m_ContactNormal);
             FSpatialVector Vrel = V1 - V2;
             FSpatialVector VrelT = V1t - V2t;
-            FSpatialVector Vn = dot(ContactNormal, Vrel);
-            FSpatialVector Vnt = dot(ContactNormal, VrelT);
+            FScalar Vn = dot(ContactNormal, Vrel);
+            FScalar Vnt = dot(ContactNormal, VrelT);
+
+            if(abs(Vn) < 2*PushConst.m_GravityNorm * PushConst.m_DeltaTime * PushConst.m_DeltaTime)
+            {
+                //Vnt = 0.0f;
+            }
 
             FSpatialVector Dv = ContactNormal * (-Vn + min(-Vnt, 0.0f));
 
             FScalar InvMass1 = rcp(RigidCollider1.m_RigidMass);
             FScalar InvMass2 = rcp(RigidCollider2.m_RigidMass);
+            FScalar InvMass2Eff = 0.0f;
+            FScalar InvMass1Eff = 0.0f;
+#ifndef IFSHADER_RIGID_DYNAMICS_3D
+            InvMass1Eff = InvMass1 + GetRotMass2D(RigidCollider1.m_Inertia2D, R1, ContactNormal);
+            InvMass2Eff = InvMass2 + GetRotMass2D(RigidCollider2.m_Inertia2D, R2, ContactNormal);
+#else
+            //TODO: Handle 3D rotation
+#endif
 
-            FSpatialVector P = Dv / (InvMass1 + InvMass2);
+            FSpatialVector P = Dv / (InvMass1Eff + InvMass2Eff);
+            FSpatialVector Pwt = P / PushConst.m_DeltaTime;
 
-            FSpatialVector V1New = V1 + P;
-            FSpatialVector V2New = V2 - P;
+            FSpatialVector V1New = V1b + P * InvMass1;
+            FSpatialVector V2New = V2b - P * InvMass2;
+
+#ifndef IFSHADER_RIGID_DYNAMICS_3D
+            FScalar Rot1Contrib = rcp(RigidCollider1.m_Inertia2D) * Math::Cross2D(R1, Pwt);
+            FScalar Rot2Contrib = -rcp(RigidCollider2.m_Inertia2D) * Math::Cross2D(R2, Pwt);
+            //RigidDynamics1.m_AngularVelocity = RigidDynamics1.m_AngularVelocity + Rot1Contrib;
+            //RigidDynamics2.m_AngularVelocity = RigidDynamics2.m_AngularVelocity + Rot2Contrib;
+#else
+            //TODO: Handle 3D rotation
+#endif
 
             RigidDynamics1.m_Displacement = V1New;
             PushConst.m_RigidDynamics.m_RigidDynamics.Store(RigidDynamics1, RigidCollider1.m_RuntimeId);

@@ -83,4 +83,13 @@ namespace Ifrit::Runtime::Geometry
     IFRIT_APIDECL Vec<u32> Square2D::GetIndexBufferHost() { return m_SelfData->m_indices; }
     IFRIT_APIDECL Vec<Vector3f> Square2D::GetVertexBufferHost() { return m_SelfData->m_vertices; }
 
+    IFRIT_APIDECL Mesh*         Square2DAsset::GetMesh()
+    {
+        if (mMesh == nullptr)
+        {
+            mMesh = MakeOwner<Square2D>(mWidth, mHeight);
+        }
+        return mMesh.get();
+    }
+
 } // namespace Ifrit::Runtime::Geometry

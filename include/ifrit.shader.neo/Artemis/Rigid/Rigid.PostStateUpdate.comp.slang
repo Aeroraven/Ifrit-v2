@@ -37,7 +37,10 @@ namespace Rigid{
 
         FRigidColliderEntry ColliderEntry = PushConst.m_ColliderEntries.Load(ThreadId.x);
         FRigidColliderDynamicsData DynamicsData = PushConst.m_ColliderDynamics.Load(ColliderEntry.m_RuntimeId);
-        
+        if(length(DynamicsData.m_Displacement)<1e-6f)
+        {
+            //DynamicsData.m_Displacement = FSpatialVector(0.0f);
+        }
         DynamicsData.m_Position += DynamicsData.m_Displacement;
         
 #ifndef IFSHADER_RIGID_DYNAMICS_3D

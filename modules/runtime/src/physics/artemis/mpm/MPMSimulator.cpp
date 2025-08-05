@@ -223,9 +223,11 @@ namespace Ifrit::Runtime::Artemis
             RHI::RhiSRVDesc m_RigidColliders;
             RHI::RhiUAVDesc m_RigidDynamics;
             f32             m_DeltaTime;
+            f32             m_GravityNorm;
         } pc;
 
-        pc.m_DeltaTime = dt;
+        pc.m_DeltaTime   = dt;
+        pc.m_GravityNorm = Math::Length(m_Config->m_Gravity);
 
         AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmRigidSolveVelocityRigidRigidColl",
             GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMRigidSolveVelocityRigidRigidCollCS),
@@ -257,8 +259,10 @@ namespace Ifrit::Runtime::Artemis
             RHI::RhiUAVDesc m_ParticleDisplacements;
             RHI::RhiUAVDesc m_ParticleDisplacementsOld;
             f32             m_DeltaTime;
+            f32             m_GravityNorm;
         } pc;
-        pc.m_DeltaTime = dt;
+        pc.m_DeltaTime   = dt;
+        pc.m_GravityNorm = Math::Length(m_Config->m_Gravity);
 
         AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmRigidSolveVelocityParticleRigidColl",
             GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMRigidSolveVelocityParticleRigidCollCS),
@@ -294,8 +298,10 @@ namespace Ifrit::Runtime::Artemis
             RHI::RhiSRVDesc m_RigidColliders;
             RHI::RhiUAVDesc m_RigidDynamics;
             f32             m_DeltaTime;
+            f32             m_GravityNorm;
         } pc;
-        pc.m_DeltaTime = dt;
+        pc.m_DeltaTime   = dt;
+        pc.m_GravityNorm = Math::Length(m_Config->m_Gravity);
 
         AddComputePass<PushConst>(builder, "MPMSimulator.PbMpmRigidSolveVelocityRigidBoundaryColl",
             GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMRigidSolveVelocityRigidBoundaryCollCS),

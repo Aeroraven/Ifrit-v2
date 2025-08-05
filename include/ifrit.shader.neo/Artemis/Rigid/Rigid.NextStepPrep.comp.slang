@@ -43,6 +43,7 @@ namespace Rigid{
         FSpatialVector Gravity = ToSpatialVector(PushConst.m_Gravity);
         FSpatialVector Accel = Gravity;
         FSpatialVector Displacement = DynamicsData.m_Displacement;
+        DynamicsData.m_DisplacementOld = DynamicsData.m_Displacement;
         Displacement += Accel * PushConst.m_DeltaTime * PushConst.m_DeltaTime * 0.5f;   
 
         // q_prev<-q
@@ -56,7 +57,7 @@ namespace Rigid{
 
         FAngularMatrix InertiaInv = Math::Inverse(Inertia);
         FAngularValue DeltaW = Math::Mul(InertiaInv, TauExt) * PushConst.m_DeltaTime;
-        AngularVelocity += DeltaW;
+        //AngularVelocity += DeltaW;
 
         DynamicsData.m_AngularVelocityOld = DynamicsData.m_AngularVelocity; // Store old angular velocity for next iteration
 
