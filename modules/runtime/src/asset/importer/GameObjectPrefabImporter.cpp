@@ -10,7 +10,7 @@ namespace Ifrit::Runtime
     Owner<Asset> GameObjectPrefabImporter::ImportAsset(const String& relativePath)
     {
         // Read the content of the prefab file
-        auto assetPath = GetActiveApplication()->GetAssetRegistry()->GetAbsPath(relativePath);
+        auto assetPath = relativePath;
         if (!std::filesystem::exists(assetPath))
         {
             IF_LOG_CRITICAL("GameObjectPrefabImporter", "Prefab file does not exist: {}", assetPath);
@@ -25,4 +25,4 @@ namespace Ifrit::Runtime
         return MakeOwner<GameObjectPrefabAsset>(content);
     }
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

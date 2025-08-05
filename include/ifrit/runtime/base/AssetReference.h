@@ -40,7 +40,8 @@ namespace Ifrit::Runtime
         Material,
         Mesh,
         Prefab,
-        Shader
+        Shader,
+        VolumetricData
     };
 
     struct IF_CLASS() AssetReferenceId

@@ -24,8 +24,9 @@ namespace Ifrit::Runtime
         const String& relativePath, const String& importerId, const String& newName, const GUID& newGuid)
     {
         // this function call does not check safety guards
+        auto fullPath                     = GetAbsPath(relativePath);
         auto importer                     = mImporters[importerId].get();
-        auto asset                        = importer->ImportAsset(relativePath);
+        auto asset                        = importer->ImportAsset(fullPath);
         asset->mMetadata.mName            = newName;
         asset->mMetadata.mGuid            = newGuid;
         asset->mMetadata.mExternalPath    = relativePath;
@@ -116,6 +117,7 @@ namespace Ifrit::Runtime
         }
         ret.mGuid = guid;
         ret.mCode = EAssetRegistrationResultCode::Success;
+
         ImportAssetImpl(relativePath, importerId, ret.mName, ret.mGuid);
         return ret;
     }
