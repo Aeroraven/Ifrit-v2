@@ -1798,9 +1798,9 @@ namespace Ifrit::Runtime::Artemis
 
         auto blockDispatchArgs          = SizeCast<u32>(sizeof(u32) * 3);
         auto blockAllocatedOffsetSz     = SizeCast<u32>(sizeof(u32));
-        auto blockParticleCountSz       = SizeCast<u32>(sizeof(u32) * numBlocks);
-        auto blockParticleCountInPageSz = SizeCast<u32>(sizeof(u32) * numBlocks * 2);
-        auto blockParticleIndexSz       = SizeCast<u32>(sizeof(u32) * numBlocks);
+        auto blockParticleCountSz       = SizeCast<u32>(sizeof(u32) * numBlocks * 114);
+        auto blockParticleCountInPageSz = SizeCast<u32>(sizeof(u32) * numBlocks * 114);
+        auto blockParticleIndexSz       = SizeCast<u32>(sizeof(u32) * numBlocks * 114);
         auto blockAttrSz                = SizeCast<u32>(sizeof(MPMSimulatorBlockAttribute));
 
         auto contactIndSz = SizeCast<u32>(sizeof(u32) * 4);
@@ -2051,16 +2051,16 @@ namespace Ifrit::Runtime::Artemis
                                 PbMpmRigidContactRigidConstraintResolve(builder);
                             }
 
-                            ParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
-                            // BlockParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
+                            // ParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
+                            BlockParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
 
                             if (isFirstIteration)
                             {
                                 GridVelocityNormalize(builder);
                             }
                             GridVelocityUpdate(builder, deltaTimePerSubstep, isFirstIteration);
-                            GridToParticleTransfer(builder, deltaTimePerSubstep);
-                            // BlockGridToParticleTransfer(builder, deltaTimePerSubstep);
+                            // GridToParticleTransfer(builder, deltaTimePerSubstep);
+                            BlockGridToParticleTransfer(builder, deltaTimePerSubstep);
                         }
                         isFirstRun = false;
                     }

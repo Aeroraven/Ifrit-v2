@@ -67,7 +67,7 @@ namespace Ifrit
             auto mpmSimulator = reinterpret_cast<Artemis::MPMSimulator*>(
                 artemisController->GetPresetSolver(Artemis::EPresetArtemisSimulator::MPM));
             auto mpmInternalConfig        = mpmSimulator->GetActiveConfig();
-            mpmInternalConfig.m_Dimension = Artemis::MPMSimulatorProblemDimension::TwoDimensional;
+            mpmInternalConfig.m_Dimension = Artemis::MPMSimulatorProblemDimension::ThreeDimensional;
             mpmSimulator->SetConfig(mpmInternalConfig);
 
             // Scene

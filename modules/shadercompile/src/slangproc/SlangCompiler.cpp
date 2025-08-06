@@ -92,7 +92,7 @@ namespace Ifrit::ShaderCompile::SlangProc
                 { slang::CompilerOptionValueKind::Int, capNonUniformBallot, 0, nullptr, nullptr } },
             { slang::CompilerOptionName::Include,
                 { slang::CompilerOptionValueKind::String, 0, 0, m_IncludeBase.c_str(), nullptr } },
-            { slang::CompilerOptionName::Optimization, { slang::CompilerOptionValueKind::Int, 0, 0, nullptr, nullptr } }
+            { slang::CompilerOptionName::Optimization, { slang::CompilerOptionValueKind::Int, 3, 0, nullptr, nullptr } }
 
         };
 

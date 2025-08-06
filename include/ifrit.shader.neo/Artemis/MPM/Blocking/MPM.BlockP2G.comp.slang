@@ -37,8 +37,8 @@ namespace MPM{
     IFSHADER_PUSHCONST PushConst_T PushConst;
     static const int kAffRange = kMpmBlockWidth + 2;
 
-#define IFSHADER_MPM_BLOCKING_FIXED_POINT_MATH 1
-    static const float kFixedPointScale = 4e10f;
+//#define IFSHADER_MPM_BLOCKING_FIXED_POINT_MATH 1
+    static const float kFixedPointScale = 2e10f;
     static const float kFixedPointScaleInv = 1.0f / kFixedPointScale;
 
     
@@ -330,4 +330,4 @@ namespace MPM{
     
     }
 
-}}}
+}}}

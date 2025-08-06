@@ -7,7 +7,7 @@ namespace Ifrit::Profiler
     {
         if (!Internal::Renderdoc::LoadRenderdocLibrary())
         {
-            IF_LOG_CRITICAL("Renderdoc", "Failed to load Renderdoc library.");
+            IF_LOG_ERROR("Renderdoc", "Failed to load Renderdoc library.");
         }
     }
     void RenderdocCapturer::StartCapture() { Internal::Renderdoc::RequestRenderdocCaptureStart(); }
