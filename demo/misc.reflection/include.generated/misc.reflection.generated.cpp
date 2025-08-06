@@ -8,6 +8,7 @@
 // Begin Body
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\Asset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\importer\GameObjectPrefabImporter.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\importer\VDBAssetImpoter.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\MaterialAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
@@ -16,6 +17,8 @@
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\util\PrefabSerializer.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\volume\VDBAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\VolumeAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
@@ -26,6 +29,7 @@
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Square2D.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleEmitter.h"
@@ -36,6 +40,7 @@
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshMarker.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\Asset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\importer\GameObjectPrefabImporter.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\importer\VDBAssetImpoter.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\MaterialAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\mesh\WaveFrontAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\MeshAsset.h"
@@ -44,6 +49,8 @@
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\ShaderAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\TextureAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\util\PrefabSerializer.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\volume\VDBAsset.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\asset\VolumeAsset.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\ActorBehavior.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\AssetReference.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Camera.h"
@@ -54,6 +61,7 @@
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Square2D.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleEmitter.h"
@@ -186,6 +194,10 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::Runtime::GameObjectPrefabImporter>();
         RegisterPolymorphicRelation<Ifrit::Runtime::GameObjectPrefabImporter, Ifrit::Runtime::IAssetImporter>();
 
+        // Ifrit::Runtime::VDBAssetImporter
+        RegisterType<Ifrit::Runtime::VDBAssetImporter>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::VDBAssetImporter, Ifrit::Runtime::IAssetImporter>();
+
         // Ifrit::Runtime::MaterialAsset
         RegisterType<Ifrit::Runtime::MaterialAsset>();
         RegisterPolymorphicRelation<Ifrit::Runtime::MaterialAsset, Ifrit::Runtime::Asset>();
@@ -214,6 +226,14 @@ namespace Ifrit::Reflection
         RegisterType<Ifrit::Runtime::TempPrefabSerializationData>();
         RegisterPropertyField<&Ifrit::Runtime::TempPrefabSerializationData::mGameObject>("Game Object");
         RegisterPropertyField<&Ifrit::Runtime::TempPrefabSerializationData::mComponents>("Components");
+
+        // Ifrit::Runtime::VolumeAsset
+        RegisterType<Ifrit::Runtime::VolumeAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::VolumeAsset, Ifrit::Runtime::Asset>();
+
+        // Ifrit::Runtime::VDBAsset
+        RegisterType<Ifrit::Runtime::VDBAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::VDBAsset, Ifrit::Runtime::VolumeAsset>();
 
         // Ifrit::Runtime::ActorBehavior
         RegisterType<Ifrit::Runtime::ActorBehavior>();
@@ -262,6 +282,12 @@ namespace Ifrit::Reflection
         RegisterPolymorphicRelation<Ifrit::Runtime::Geometry::Circle2DAsset, Ifrit::Runtime::MeshAsset>();
         RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mRadius>("Radius");
         RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mDivisions>("Divisions");
+
+        // Ifrit::Runtime::Geometry::Square2DAsset
+        RegisterType<Ifrit::Runtime::Geometry::Square2DAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::Geometry::Square2DAsset, Ifrit::Runtime::MeshAsset>();
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::Square2DAsset::mWidth>("Width");
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::Square2DAsset::mHeight>("Height");
 
         // Ifrit::Runtime::DefaultMaterialAsset
         RegisterType<Ifrit::Runtime::DefaultMaterialAsset>();

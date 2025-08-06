@@ -599,7 +599,10 @@ namespace Ifrit::RHI::VulkanAdapter
             shaderAtomicFloatFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT_FEATURES_EXT;
             shaderAtomicFloatFeatures.shaderBufferFloat32Atomics   = VK_TRUE;
             shaderAtomicFloatFeatures.shaderBufferFloat32AtomicAdd = VK_TRUE;
-            m_Capability.m_ShaderFloatAtomicsEnabled               = true;
+            shaderAtomicFloatFeatures.shaderSharedFloat32AtomicAdd = VK_TRUE;
+            shaderAtomicFloatFeatures.shaderSharedFloat32Atomics   = VK_TRUE;
+
+            m_Capability.m_ShaderFloatAtomicsEnabled = true;
             ADD_TO_FEATURES(shaderAtomicFloatFeatures, pLinklistHead, "Shader Atomic Float Features");
         }
         else

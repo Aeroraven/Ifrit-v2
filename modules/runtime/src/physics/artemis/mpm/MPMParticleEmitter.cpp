@@ -44,6 +44,16 @@ namespace Ifrit::Runtime::Artemis
         auto samples = GeometryProc::Sampler::TrivialRandomSample(args, [](const Vector2f& pos) { return true; });
         return samples;
     }
+    IFRIT_APIDECL Vec<Vector3f> MPMParticleEmitter::GetEmitParticlePosition3D()
+    {
+        GeometryProc::Sampler::TrivialRandomSamplerArgs<f32, 3> args;
+        args.m_SampleCount = 100;
+        args.m_MinBound    = Vector3f(mEmitMinRange.x, mEmitMinRange.y, mEmitMinRange.z);
+        args.m_MaxBound    = Vector3f(mEmitMaxRange.x, mEmitMaxRange.y, mEmitMaxRange.z);
+
+        auto samples = GeometryProc::Sampler::TrivialRandomSample(args, [](const Vector3f& pos) { return true; });
+        return samples;
+    }
 
     IFRIT_APIDECL bool MPMParticleEmitter::ShouldEmitParticle(i32 frameIdx) const
     {

@@ -497,21 +497,18 @@ namespace MPM{
         void AddVelocity(FSpatialIndex Index, FSpatialVector Velocity)
         {
             int EncodedIndex = EncodeSpatialIndex(Index);
-            if(EncodedIndex>128*128) return ;
             m_GridVelocity.AtomicAdd(EncodedIndex, Velocity);
         }
 
         void AddForce(FSpatialIndex Index, FSpatialVector Force)
         {
             int EncodedIndex = EncodeSpatialIndex(Index);
-            if(EncodedIndex>128*128) return ;
             m_GridForce.AtomicAdd(EncodedIndex, Force);
         }
 
         void AddMass(FSpatialIndex Index, FScalar Mass)
         {
             int EncodedIndex = EncodeSpatialIndex(Index);
-            if(EncodedIndex>128*128) return ;
             m_GridMass.AtomicAdd(EncodedIndex, Mass);
         }
 
@@ -657,6 +654,7 @@ namespace MPM{
             m_BlockDispatchArgs.Store(0, 0);
             m_BlockDispatchArgs.Store(1, 1);
             m_BlockDispatchArgs.Store(1, 2);
+            m_AllocBlockOffset.Store(0, 0);
         }
 
         void StoreParticleIndex(int OverallOffset,int ParticleIndex)
@@ -694,13 +692,13 @@ namespace MPM{
         FMpmBlockPageAllocData AllocatePagesWithElementSize(int ElementCount,int BlockId)
         {
             int NumPages = DivRoundUp(ElementCount, kMpmBlockPageSize);
-            int Offset = m_AllocBlockOffset.AtomicAdd(BlockId, NumPages* kMpmBlockPageSize);
+            int Offset = m_AllocBlockOffset.AtomicAdd(0, NumPages);
             m_BlockDispatchArgs.AtomicAdd(0, NumPages);
             
             FMpmBlockPageAllocData Ret;
             Ret.m_NumPages = NumPages;
-            Ret.m_Offset = Offset;
-            Ret.m_StartingPageId = Offset / kMpmBlockPageSize;
+            Ret.m_Offset = Offset * kMpmBlockPageSize;
+            Ret.m_StartingPageId = Offset;
             return Ret; 
         }
 

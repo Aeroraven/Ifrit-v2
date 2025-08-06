@@ -109,6 +109,18 @@ namespace Ifrit::Runtime::Internal
         REG_COMPUTE_NEO(ISTArtemis.MPMParticleEmitCS, "Artemis/MPM/MPM.ParticleEmit", "MpmParticleEmitCS");
         REG_COMPUTE_NEO(ISTArtemis.MPMParticleDrainAllCS, "Artemis/MPM/MPM.ParticleDrainAll", "MpmParticleDrainAllCS");
 
+        // MPM Blocking
+        REG_COMPUTE_NEO(ISTArtemis.MPMBlockParticleScatterPrepareCS, "Artemis/MPM/Blocking/MPM.ParticleScatter.Prepare",
+            "MpmParticleScatterPrepareCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMBlockParticleScatterCountCS, "Artemis/MPM/Blocking/MPM.ParticleScatter.Count",
+            "MpmParticleScatterCountCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMBlockParticleScatterReserveCS, "Artemis/MPM/Blocking/MPM.ParticleScatter.Reserve",
+            "MpmParticleScatterReserveCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMBlockParticleScatterInsertCS, "Artemis/MPM/Blocking/MPM.ParticleScatter.Insert",
+            "MpmParticleScatterInsertCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMBlockP2GCS, "Artemis/MPM/Blocking/MPM.BlockP2G", "MpmBlockParticleToGridCS");
+        REG_COMPUTE_NEO(ISTArtemis.MPMBlockG2PCS, "Artemis/MPM/Blocking/MPM.BlockG2P", "MpmBlockGridToParticleCS");
+
         // MPM Rigid Coupling
         REG_COMPUTE_NEO(ISTArtemis.MPMRigidContactConstraintResolveCS,
             "Artemis/MPM/RigidCoupling/MPMRigid.ContactConstraintResolve", "MPMRigidContactConstraintResolveCS");

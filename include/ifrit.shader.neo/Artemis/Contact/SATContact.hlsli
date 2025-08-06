@@ -165,15 +165,24 @@ namespace Artemis{
         Manifold.ContactNormal = SATAxis;
         for(int i=0;i<4;i++)
         {
+            Manifold.ContactPointsOnA[i] = float2(0.0f, 0.0f);
+            Manifold.ContactPointsOnB[i] = float2(0.0f, 0.0f);
+        }
+        for(int i=0;i<4;i++)
+        {
             if(IsPointInQuad2D(Reference, Incident.Points[i]))
             {
-                Manifold.ContactPointsOnA[Manifold.NumIncidentPoints] = Incident.Points[i];
+                Manifold.ContactPointsOnB[Manifold.NumIncidentPoints] = Incident.Points[i];
                 float2 FaceS = Reference.Points[ReferenceFace];
                 float2 FaceE = Reference.Points[(ReferenceFace + 1) % 4];
-                float Dist = Math::ShortestUnsignedDistanceToLine2D(Incident.Points[i],FaceS, FaceE - FaceS);
-                float2 ContactPointOnB = Incident.Points[i] - SATAxis * Dist;
-                Manifold.ContactPointsOnB[Manifold.NumIncidentPoints] = ContactPointOnB;
-                Manifold.NumIncidentPoints++;
+
+                float T;
+                bool InBound = Math::ProjectedPointInSegment2D(Incident.Points[i], FaceS, FaceE,T);
+                if(InBound)
+                {
+                    Manifold.ContactPointsOnA[Manifold.NumIncidentPoints] =  T*(FaceE - FaceS) + FaceS;
+                    Manifold.NumIncidentPoints++;
+                }
             }
         }
         return Manifold;
@@ -200,6 +209,16 @@ namespace Artemis{
         float BestDotA, BestDotB;
         int ReferenceFaceA = GetReferenceFace(QuadA, ContactResult.SeparatingAxis, PenetrationRegion, BestDotA);
         int ReferenceFaceB = GetReferenceFace(QuadB, ContactResult.SeparatingAxis, PenetrationRegion, BestDotB);
+
+        // SATQuadContactManifold2D ManifoldA = QuadToQuadContactManifoldSAT2DImpl(QuadA, QuadB,
+        //         ContactResult.SeparatingAxis, ReferenceFaceA);
+        // Manifold.ContactNormal = ContactResult.SeparatingAxis;
+        // Manifold.NumIncidentPoints = ManifoldA.NumIncidentPoints;
+        // for(int i=0;i<Manifold.NumIncidentPoints;i++)
+        // {
+        //     Manifold.ContactPointsOnA[i] = ManifoldA.ContactPointsOnA[i];
+        //     Manifold.ContactPointsOnB[i] = ManifoldA.ContactPointsOnB[i];
+        // }
 
         if(BestDotA < BestDotB)
         {

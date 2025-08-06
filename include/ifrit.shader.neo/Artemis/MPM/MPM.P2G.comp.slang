@@ -21,7 +21,7 @@ namespace MPM{
         FDenseGridStructureHandle m_Grid;
         FPackedMatrixHandle m_ParticleDeformationGrad;
         FRWScalarHandle m_ParticlePlasticity; //m_ParticleDeformationGradDet
-        FPackedMatrixHandle m_ParticleDebug;
+        FRWSpatialVectorHandle m_ParticleDebug;
         FPackedMatrixHandle m_ParticleStressContrib;
         TRWStructuredBufferHandle<FMpmParticleMaterial> m_ParticleMaterial;
 
@@ -81,21 +81,12 @@ namespace MPM{
         FSpatialVector BaseMomentum = ParticleMass * ParticleVelocity;
 
         
+        float fw = 0.0f;
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)
             FSpatialIndex GridOffset = ToSpatialIndex(dx,dy,dz);
             FSpatialIndex GridLocIndex = CenterGrid + GridOffset;
-            int GridId = Grid.EncodeSpatialIndex(GridLocIndex);
 
             if(!Grid.IsValidGrid(GridLocIndex)) continue;
-
-#ifdef IFSHADER_MPM_CPIC
-            FCpicSignTagSet CpicGridTagSet = GetCpicGridAffinityAndTags(
-                GridId, PushConst.m_CpicGAffinity, PushConst.m_CpicGSign
-            );
-
-            bool CpicCompatible = CheckCpicCompatibility(CpicGridTagSet, CpicParticleTagSet);
-            if(!CpicCompatible) continue;
-#endif
 
             FSpatialVector GridCenter = Grid.GetGridLocation(GridLocIndex);
             FSpatialVector G2PVector = GridCenter - ParticleLocation;

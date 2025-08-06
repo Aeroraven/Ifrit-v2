@@ -18,6 +18,7 @@ using namespace Ifrit::Runtime::FrameGraphUtils;
 
 namespace Ifrit::Runtime::Artemis
 {
+    constexpr static u32 kMpmBlockSize = 4; // In unit of grid cells
     template <u32 Dimension> struct MPMSimulatorTypes;
 
     struct MPMEmissionInfo
@@ -75,6 +76,16 @@ namespace Ifrit::Runtime::Artemis
         f32      m_GridSpacing;
     };
 
+    struct MPMSimulatorBlockAttribute
+    {
+        Vector4i        m_BlockSize;
+        RHI::RhiUAVDesc m_BlockDispatchArgs; //(NumBlockPages, 1, 1)
+        RHI::RhiUAVDesc m_ParticleIndices;
+        RHI::RhiUAVDesc m_AllocBlockOffset;
+        RHI::RhiUAVDesc m_ParticleCountsInBlock;
+        RHI::RhiUAVDesc m_BlockStoreOffset;
+    };
+
     struct MPMSimulatorPrivateData
     {
         u32                                        m_FrameId            = 0;
@@ -105,13 +116,21 @@ namespace Ifrit::Runtime::Artemis
         RhiBufferRef                               m_ParticleEmitLocations;
         MPMGpuParticleBufferCollection*            m_ParticleData = nullptr;
 
+        // Grid data
         RhiBufferRef                               m_GridForce;
         RhiBufferRef                               m_GridVelocity;
         RhiBufferRef                               m_GridMass;
-
         RhiBufferRef                               m_GridAttribute;
-        RhiBufferRef                               m_RenderParticleIndDrawBuffer;
 
+        // Block data
+        RhiBufferRef                               m_BlockDispatchArgsInd; // one block per thread block
+        RhiBufferRef                               m_BlockAllocatedOffset;
+        RhiBufferRef                               m_BlockParticleCountInBlock;
+        RhiBufferRef                               m_BlockParticleCountInPage;
+        RhiBufferRef                               m_BlockStoreOffset;
+        RhiBufferRef                               m_BlockAttribute;
+
+        RhiBufferRef                               m_RenderParticleIndDrawBuffer;
         RhiBufferRef                               m_RigidContactCounter;
         RhiBufferRef                               m_RigidContactList;
         RhiBufferRef                               m_RigidBoundaryContactCounter;
@@ -138,11 +157,20 @@ namespace Ifrit::Runtime::Artemis
         FGBufferNodeRef                            m_RDGParticleStressContrib;
         FGBufferNodeRef                            m_RDGParticleMatProperty;
         FGBufferNodeRef                            m_RDGParticleLiquidDensity; // For PBMPM
+        FGBufferNodeRef                            m_RDGParticleIndexInPages;  // For Grid Blocking
+        FGBufferNodeRef                            m_RDGParticleOffsetTemp;    // For Grid Blocking
 
         FGBufferNodeRef                            m_RDGGridForce;
         FGBufferNodeRef                            m_RDGGridVelocity;
         FGBufferNodeRef                            m_RDGGridMass;
         FGBufferNodeRef                            m_RDGGridAttribute;
+
+        FGBufferNodeRef                            m_RDGBlockDispatchArgs;
+        FGBufferNodeRef                            m_RDGBlockAllocatedOffset;
+        FGBufferNodeRef                            m_RDGBlockParticleCountInBlock;
+        FGBufferNodeRef                            m_RDGBlockParticleCountInPage;
+        FGBufferNodeRef                            m_RDGBlockStoreOffset;
+        FGBufferNodeRef                            m_RDGBlockAttribute;
 
         FGBufferNodeRef                            m_RDGRenderParticleIndDrawBuffer;
 
@@ -173,6 +201,7 @@ namespace Ifrit::Runtime::Artemis
         void                                       RunSolverStep(FrameGraphBuilder& builder, f32 dt);
         ShaderVariantDesc                          GetShader(const String& name, const Vec<String>& extra = {}) const;
         u32                                        GetNumGrids() const;
+        u32                                        GetNumBlocks() const;
         template <u32 Dimension> void              HandleManualParticleEmit(FrameGraphBuilder& builder);
 
         // Solver steps
@@ -187,6 +216,14 @@ namespace Ifrit::Runtime::Artemis
         void GridVelocityUpdate(FrameGraphBuilder& builder, f32 dt, bool firstIteration);
         void GridToParticleTransfer(FrameGraphBuilder& builder, f32 dt);
         void ParticleAdvect(FrameGraphBuilder& builder, f32 dt);
+
+        // MPM Blocking
+        void BlockParticleScatterReset(FrameGraphBuilder& builder);
+        void BlockParticleScatterCount(FrameGraphBuilder& builder);
+        void BlockParticleScatterReserve(FrameGraphBuilder& builder);
+        void BlockParticleScatterInsert(FrameGraphBuilder& builder);
+        void BlockParticleToGridTransfer(FrameGraphBuilder& builder, f32 dt, u32 last);
+        void BlockGridToParticleTransfer(FrameGraphBuilder& builder, f32 dt);
 
         // Position-based MPM
         void PbMpmResolveConstraints(FrameGraphBuilder& builder, f32 dt);
@@ -213,6 +250,265 @@ namespace Ifrit::Runtime::Artemis
         void ParticleRender2D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
         void ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget);
     };
+
+    void MPMSimulatorPrivateData::BlockGridToParticleTransfer(FrameGraphBuilder& builder, f32 deltaTime)
+    {
+        struct PushConst
+        {
+            u32             m_ParticleCounterBuf;
+            f32             m_DeltaTime;
+            u32             m_Grid;
+            u32             m_ParticleDeformationGrad;
+            u32             m_ParticleLocation;
+            u32             m_ParticleB;
+            u32             m_ParticleVelocity;
+
+            RHI::RhiUAVDesc m_Block;
+            RHI::RhiSRVDesc m_ParticleIndexesInPages;
+            RHI::RhiSRVDesc m_ParticleCountInPages;
+        } pc;
+
+        pc.m_DeltaTime               = deltaTime;
+        pc.m_Grid                    = 0;
+        pc.m_ParticleDeformationGrad = 0;
+        pc.m_ParticleLocation        = 0;
+        pc.m_ParticleB               = 0;
+        pc.m_ParticleVelocity        = 0;
+
+        Vec<String> extra;
+        auto        isPbMpm = m_Config->m_Variant == MPMSimulatorVariant::PBMPM;
+        if (isPbMpm)
+        {
+            extra.push_back("IFSHADER_MPM_PBMPM");
+        }
+
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.GridToParticleTransfer(Block)",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMBlockG2PCS, extra), *m_RDGBlockDispatchArgs, 0, pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounterBuf      = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                pc.m_Grid                    = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                pc.m_ParticleDeformationGrad = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
+                pc.m_ParticleLocation        = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
+                pc.m_ParticleB               = ctx.m_FgDesc->GetUAV(*m_RDGParticleApicB);
+                pc.m_ParticleVelocity        = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
+
+                pc.m_Block                  = ctx.m_FgDesc->GetUAV(*m_RDGBlockAttribute);
+                pc.m_ParticleIndexesInPages = ctx.m_FgDesc->GetSRV(*m_RDGParticleIndexInPages);
+                pc.m_ParticleCountInPages   = ctx.m_FgDesc->GetSRV(*m_RDGBlockParticleCountInPage);
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGParticleCount)
+            .AddReadResource(*m_RDGGridAttribute)
+            .AddReadResource(*m_RDGGridVelocity)
+            .AddReadResource(*m_RDGGridMass)
+            .AddReadWriteResource(*m_RDGParticleDeformGrad)
+            .AddReadResource(*m_RDGParticlePosition)
+            .AddReadWriteResource(*m_RDGParticleApicB)
+            .AddReadWriteResource(*m_RDGParticlePosition)
+            .AddReadWriteResource(*m_RDGParticleIndexInPages)
+            .AddReadResource(*m_RDGBlockParticleCountInPage)
+            .AddWriteResource(*m_RDGParticleVelocity);
+    }
+
+    void MPMSimulatorPrivateData::BlockParticleToGridTransfer(
+        FrameGraphBuilder& builder, f32 deltaTime, u32 firstOrLastRun)
+    {
+        struct PushConst
+        {
+            u32             m_ParticleCounterBuf;
+            f32             m_DeltaTime;
+            u32             m_ParticleVelocity;
+            u32             m_ParticleLocation;
+            u32             m_ParticleMass;
+            u32             m_ParticleB;
+            u32             m_Grid;
+            u32             m_ParticleDeformGrad;
+            u32             m_ParticleDeformGradDet;
+            u32             m_ParticleDebug;
+            u32             m_ParticleStressContrib;
+            u32             m_ParticleMatProperty;
+            u32             m_IsFirstOrLastRun;
+
+            RHI::RhiUAVDesc m_Block;
+            RHI::RhiSRVDesc m_ParticleIndexesInPages;
+            RHI::RhiSRVDesc m_ParticleCountInPages;
+        } pc{};
+
+        pc.m_DeltaTime        = deltaTime;
+        pc.m_IsFirstOrLastRun = firstOrLastRun;
+
+        Vec<String> extra;
+        auto        isPbMpm = m_Config->m_Variant == MPMSimulatorVariant::PBMPM;
+        if (isPbMpm)
+        {
+            extra.push_back("IFSHADER_MPM_PBMPM");
+        }
+
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.ParticleToGridTransfer(Block)",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMBlockP2GCS, extra), *m_RDGBlockDispatchArgs, 0, pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounterBuf     = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                pc.m_ParticleVelocity       = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocity);
+                pc.m_ParticleLocation       = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
+                pc.m_ParticleMass           = ctx.m_FgDesc->GetUAV(*m_RDGParticleMass);
+                pc.m_ParticleB              = ctx.m_FgDesc->GetUAV(*m_RDGParticleApicB);
+                pc.m_Grid                   = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                pc.m_ParticleDeformGrad     = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGrad);
+                pc.m_ParticleDeformGradDet  = ctx.m_FgDesc->GetUAV(*m_RDGParticleDeformGradDet);
+                pc.m_ParticleDebug          = ctx.m_FgDesc->GetUAV(*m_RDGParticleDebug);
+                pc.m_ParticleStressContrib  = ctx.m_FgDesc->GetUAV(*m_RDGParticleStressContrib);
+                pc.m_ParticleMatProperty    = ctx.m_FgDesc->GetUAV(*m_RDGParticleMatProperty);
+                pc.m_Block                  = ctx.m_FgDesc->GetUAV(*m_RDGBlockAttribute);
+                pc.m_ParticleIndexesInPages = ctx.m_FgDesc->GetSRV(*m_RDGParticleIndexInPages);
+                pc.m_ParticleCountInPages   = ctx.m_FgDesc->GetSRV(*m_RDGBlockParticleCountInPage);
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGParticleCount)
+            .AddReadResource(*m_RDGParticleVelocity)
+            .AddReadResource(*m_RDGParticlePosition)
+            .AddReadResource(*m_RDGParticleMass)
+            .AddReadResource(*m_RDGParticleApicB)
+            .AddWriteResource(*m_RDGGridAttribute)
+            .AddWriteResource(*m_RDGGridVelocity)
+            .AddWriteResource(*m_RDGGridMass)
+            .AddWriteResource(*m_RDGParticleDebug)
+            .AddReadWriteResource(*m_RDGParticleDeformGradDet)
+            .AddReadWriteResource(*m_RDGParticleStressContrib)
+            .AddReadResource(*m_RDGParticleMatProperty)
+            .AddReadWriteResource(*m_RDGParticleDeformGrad)
+            .AddReadResource(*m_RDGParticleIndexInPages)
+            .AddReadResource(*m_RDGBlockParticleCountInPage)
+            .AddReadWriteResource(*m_RDGBlockAttribute)
+            .AddReadWriteResource(*m_RDGBlockDispatchArgs);
+    }
+
+    void MPMSimulatorPrivateData::BlockParticleScatterReset(FrameGraphBuilder& builder)
+    {
+        AddClearUAVPass(builder, "MPMSimulator.BlockParticleScatterReset", *m_RDGBlockParticleCountInBlock, 0);
+        AddClearUAVPass(builder, "MPMSimulator.BlockParticleScatterReset", *m_RDGBlockStoreOffset, 0);
+
+        // Debug
+        AddClearUAVPass(builder, "MPMSimulator.BlockParticleScatterReset2", *m_RDGParticleIndexInPages, 0);
+
+        struct PushConst
+        {
+            RHI::RhiUAVDesc m_BlockAttribute;
+        } pc{};
+
+        AddComputePass<PushConst>(builder, "MPMSimulator.BlockParticleScatterReset",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMBlockParticleScatterPrepareCS), Vector3i(1, 1, 1),
+            pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_BlockAttribute = ctx.m_FgDesc->GetUAV(*m_RDGBlockAttribute);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadWriteResource(*m_RDGBlockAttribute)
+            .AddReadResource(*m_RDGBlockDispatchArgs);
+    }
+    void MPMSimulatorPrivateData::BlockParticleScatterCount(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            RHI::RhiUAVDesc m_ParticleCounter;
+            RHI::RhiUAVDesc m_Block;
+            RHI::RhiUAVDesc m_Grid;
+            RHI::RhiSRVDesc m_ParticleLocation;
+            RHI::RhiUAVDesc m_ParticleOffset;
+            RHI::RhiUAVDesc m_ParticleDebug;
+        } pc{};
+
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.BlockParticleScatterCount",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMBlockParticleScatterCountCS), *m_RDGParticleCount,
+            sizeof(u32), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounter  = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                pc.m_Block            = ctx.m_FgDesc->GetUAV(*m_RDGBlockAttribute);
+                pc.m_Grid             = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                pc.m_ParticleLocation = ctx.m_FgDesc->GetSRV(*m_RDGParticlePosition);
+                pc.m_ParticleOffset   = ctx.m_FgDesc->GetUAV(*m_RDGParticleOffsetTemp);
+                pc.m_ParticleDebug    = ctx.m_FgDesc->GetUAV(*m_RDGParticleDebug);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGParticleCount)
+            .AddReadResource(*m_RDGBlockAttribute)
+            .AddReadResource(*m_RDGGridAttribute)
+            .AddReadResource(*m_RDGParticlePosition)
+            .AddReadWriteResource(*m_RDGBlockStoreOffset)
+            .AddReadWriteResource(*m_RDGBlockParticleCountInBlock)
+            .AddReadWriteResource(*m_RDGBlockDispatchArgs)
+            .AddReadWriteResource(*m_RDGBlockAllocatedOffset)
+            .AddReadWriteResource(*m_RDGParticleDebug)
+            .AddReadWriteResource(*m_RDGBlockAttribute);
+    }
+    void MPMSimulatorPrivateData::BlockParticleScatterReserve(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            RHI::RhiUAVDesc m_ParticleCounter;
+            RHI::RhiUAVDesc m_Block;
+            RHI::RhiUAVDesc m_Grid;
+            RHI::RhiUAVDesc m_BlockPageNumParticles;
+        } pc{};
+
+        auto numBlocks = GetNumBlocks();
+        auto tgX       = DivRoundUp(numBlocks, IfritShader::Artemis::MPM::kMpmTGSizeX);
+
+        AddComputePass<PushConst>(builder, "MPMSimulator.BlockParticleScatterReserve",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMBlockParticleScatterReserveCS), Vector3i(tgX, 1, 1),
+            pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounter       = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                pc.m_Block                 = ctx.m_FgDesc->GetUAV(*m_RDGBlockAttribute);
+                pc.m_Grid                  = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                pc.m_BlockPageNumParticles = ctx.m_FgDesc->GetUAV(*m_RDGBlockParticleCountInPage);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGParticleCount)
+            .AddReadResource(*m_RDGBlockAttribute)
+            .AddReadResource(*m_RDGGridAttribute)
+            .AddReadWriteResource(*m_RDGBlockDispatchArgs)
+            .AddReadWriteResource(*m_RDGBlockAllocatedOffset)
+            .AddReadWriteResource(*m_RDGBlockParticleCountInPage)
+            .AddReadWriteResource(*m_RDGBlockStoreOffset)
+            .AddReadWriteResource(*m_RDGBlockAttribute);
+    }
+    void MPMSimulatorPrivateData::BlockParticleScatterInsert(FrameGraphBuilder& builder)
+    {
+
+        struct PushConst
+        {
+            RHI::RhiUAVDesc m_ParticleCounter;
+            RHI::RhiUAVDesc m_Block;
+            RHI::RhiUAVDesc m_Grid;
+            RHI::RhiSRVDesc m_ParticleLocation;
+            RHI::RhiUAVDesc m_ParticleOffset;
+        } pc{};
+
+        AddIndirectComputePass<PushConst>(builder, "MPMSimulator.BlockParticleScatterInsert",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.MPMBlockParticleScatterInsertCS), *m_RDGParticleCount,
+            sizeof(u32), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_ParticleCounter  = ctx.m_FgDesc->GetUAV(*m_RDGParticleCount);
+                pc.m_Block            = ctx.m_FgDesc->GetUAV(*m_RDGBlockAttribute);
+                pc.m_Grid             = ctx.m_FgDesc->GetUAV(*m_RDGGridAttribute);
+                pc.m_ParticleLocation = ctx.m_FgDesc->GetSRV(*m_RDGParticlePosition);
+                pc.m_ParticleOffset   = ctx.m_FgDesc->GetUAV(*m_RDGParticleOffsetTemp);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGParticleCount)
+            .AddReadResource(*m_RDGBlockAttribute)
+            .AddReadResource(*m_RDGGridAttribute)
+            .AddReadResource(*m_RDGParticlePosition)
+            .AddReadWriteResource(*m_RDGBlockDispatchArgs)
+            .AddReadWriteResource(*m_RDGBlockAllocatedOffset)
+            .AddReadWriteResource(*m_RDGBlockParticleCountInBlock)
+            .AddReadWriteResource(*m_RDGBlockStoreOffset)
+            .AddReadWriteResource(*m_RDGParticleIndexInPages)
+            .AddReadWriteResource(*m_RDGParticleOffsetTemp)
+            .AddReadWriteResource(*m_RDGBlockAttribute);
+    }
 
     void MPMSimulatorPrivateData::PbMpmRigidSolveVelocityRigidRigidColl(FrameGraphBuilder& builder, f32 dt)
     {
@@ -1309,15 +1605,25 @@ namespace Ifrit::Runtime::Artemis
         gridAttr.m_GridMass     = RHI->GetUAVDescriptor(m_GridMass.get());
         gridAttr.m_GridSpacing  = m_Config->m_GridSpacing;
 
-        auto tq             = RHI->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
-        auto stagedIndex    = RHI->CreateStagedSingleBuffer(m_ParticleData->m_ParticleIndex.get());
-        auto stagedGridAttr = RHI->CreateStagedSingleBuffer(m_GridAttribute.get());
-        auto stagedPosition = RHI->CreateStagedSingleBuffer(m_ParticleData->m_ParticlePosition.get());
-        auto stagedCounter  = RHI->CreateStagedSingleBuffer(m_ParticleData->m_ParticleCount.get());
+        MPMSimulatorBlockAttribute blockAttr;
+        blockAttr.m_BlockSize             = Vector4i(TypeCast<u32, i32>(m_Config->m_GridSize.xyz() / 4u), 0);
+        blockAttr.m_BlockDispatchArgs     = RHI->GetUAVDescriptor(m_BlockDispatchArgsInd.get());
+        blockAttr.m_AllocBlockOffset      = RHI->GetUAVDescriptor(m_BlockAllocatedOffset.get());
+        blockAttr.m_BlockStoreOffset      = RHI->GetUAVDescriptor(m_BlockStoreOffset.get());
+        blockAttr.m_ParticleCountsInBlock = RHI->GetUAVDescriptor(m_BlockParticleCountInBlock.get());
+        blockAttr.m_ParticleIndices       = RHI->GetUAVDescriptor(m_ParticleData->m_ParticleIndexInPages.get());
+
+        auto tq              = RHI->GetQueue(RhiQueueCapability::RhiQueue_Transfer);
+        auto stagedIndex     = RHI->CreateStagedSingleBuffer(m_ParticleData->m_ParticleIndex.get());
+        auto stagedGridAttr  = RHI->CreateStagedSingleBuffer(m_GridAttribute.get());
+        auto stagedBlockAttr = RHI->CreateStagedSingleBuffer(m_BlockAttribute.get());
+        auto stagedPosition  = RHI->CreateStagedSingleBuffer(m_ParticleData->m_ParticlePosition.get());
+        auto stagedCounter   = RHI->CreateStagedSingleBuffer(m_ParticleData->m_ParticleCount.get());
         tq->RunSyncCommand([&](const RhiCommandList* cmd) {
             stagedIndex->CmdCopyToDevice(
                 cmd, particleIndexData.data(), SizeCast<u32>(particleIndexData.size() * sizeof(u32)), 0);
             stagedGridAttr->CmdCopyToDevice(cmd, &gridAttr, sizeof(MPMSimulatorGridAttribute), 0);
+            stagedBlockAttr->CmdCopyToDevice(cmd, &blockAttr, sizeof(MPMSimulatorBlockAttribute), 0);
             stagedCounter->CmdCopyToDevice(
                 cmd, particleDataSection.data(), SizeCast<u32>(particleDataSection.size() * sizeof(u32)), 0);
 
@@ -1406,6 +1712,17 @@ namespace Ifrit::Runtime::Artemis
             .AddWriteResource(*m_RDGParticleVelocity);
     }
 
+    u32 MPMSimulatorPrivateData::GetNumBlocks() const
+    {
+        IF_LOG_ASSERTION(
+            "Artemis.MPM", m_Config, "MPMSimulator: Config must be set before getting the number of blocks.");
+        if (m_Config->m_Dimension == MPMSimulatorProblemDimension::TwoDimensional)
+            return DivRoundUp(m_Config->m_GridSize.x, kMpmBlockSize)
+                * DivRoundUp(m_Config->m_GridSize.y, kMpmBlockSize);
+        else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
+            return DivRoundUp(m_Config->m_GridSize.x, kMpmBlockSize) * DivRoundUp(m_Config->m_GridSize.y, kMpmBlockSize)
+                * DivRoundUp(m_Config->m_GridSize.z, kMpmBlockSize);
+    }
     u32 MPMSimulatorPrivateData::GetNumGrids() const
     {
         IF_LOG_ASSERTION(
@@ -1455,6 +1772,7 @@ namespace Ifrit::Runtime::Artemis
 
         auto numParticles = m_Config->m_MaxParticles;
         auto numGrids     = GetNumGrids();
+        auto numBlocks    = GetNumBlocks();
 
         auto particleCountSz = SizeCast<u32>(sizeof(u32) * 4);
 
@@ -1471,11 +1789,19 @@ namespace Ifrit::Runtime::Artemis
         auto particleStressContribSz = SizeCast<u32>(numParticles * MTypes::kFSpatialTransformAlignedSize);
         auto particleMatPropertySz   = SizeCast<u32>(numParticles * sizeof(MPMParticleMaterials));
         auto particleLiquidSz        = SizeCast<u32>(numParticles * sizeof(f32));
+        auto particleGridBlockIdxSz  = SizeCast<u32>(numParticles * 2 * sizeof(u32));
 
         auto gridForceSz = numGrids * MTypes::kFSpatialVectorAlignedSize;
         auto gridVelSz   = numGrids * MTypes::kFSpatialVectorAlignedSize;
         auto gridMassSz  = numGrids * MTypes::kFScalarSize;
         auto gridAttrSz  = SizeCast<u32>(sizeof(MPMSimulatorGridAttribute));
+
+        auto blockDispatchArgs          = SizeCast<u32>(sizeof(u32) * 3);
+        auto blockAllocatedOffsetSz     = SizeCast<u32>(sizeof(u32));
+        auto blockParticleCountSz       = SizeCast<u32>(sizeof(u32) * numBlocks);
+        auto blockParticleCountInPageSz = SizeCast<u32>(sizeof(u32) * numBlocks * 2);
+        auto blockParticleIndexSz       = SizeCast<u32>(sizeof(u32) * numBlocks);
+        auto blockAttrSz                = SizeCast<u32>(sizeof(MPMSimulatorBlockAttribute));
 
         auto contactIndSz = SizeCast<u32>(sizeof(u32) * 4);
         auto contactSz = SizeCast<u32>(sizeof(Shader::Artemis::FMPMRigidCouplingContactPair) * m_Config->m_MaxContacts);
@@ -1522,11 +1848,26 @@ namespace Ifrit::Runtime::Artemis
             RHI->CreateBufferDevice("MPM_ParticleMaterialProperty", particleMatPropertySz, defaultUsage, true);
         m_ParticleData->m_ParticleLiquidDensity =
             RHI->CreateBufferDevice("MPM_ParticleLiquiddDensity", particleLiquidSz, defaultUsage, true);
+        m_ParticleData->m_ParticleIndexInPages =
+            RHI->CreateBufferDevice("MPM_ParticleIndexInPages", particleIndexSz, defaultUsage, true);
+        m_ParticleData->m_ParticleOffsetTemp =
+            RHI->CreateBufferDevice("MPM_ParticleOffsetTemp", particleIndexSz, defaultUsage, true);
 
         m_GridForce     = RHI->CreateBufferDevice("MPM_GridForce", gridForceSz, defaultUsage, true);
         m_GridVelocity  = RHI->CreateBufferDevice("MPM_GridVelocity", gridVelSz, defaultUsage, true);
         m_GridMass      = RHI->CreateBufferDevice("MPM_GridMass", gridMassSz, defaultUsage, true);
         m_GridAttribute = RHI->CreateBufferDevice("MPM_GridAttribute", gridAttrSz, defaultUsage, true);
+
+        m_BlockDispatchArgsInd =
+            RHI->CreateBufferDevice("MPM_BlockDispatchArgs", blockDispatchArgs, indirectUsage, true);
+        m_BlockAllocatedOffset =
+            RHI->CreateBufferDevice("MPM_BlockAllocatedOffset", blockAllocatedOffsetSz, defaultUsage, true);
+        m_BlockParticleCountInBlock =
+            RHI->CreateBufferDevice("MPM_BlockParticleCount", blockParticleCountSz, defaultUsage, true);
+        m_BlockParticleCountInPage =
+            RHI->CreateBufferDevice("MPM_BlockParticleIndex", blockParticleCountInPageSz, defaultUsage, true);
+        m_BlockStoreOffset = RHI->CreateBufferDevice("MPM_BlockStoreOffset", blockParticleCountSz, defaultUsage, true);
+        m_BlockAttribute   = RHI->CreateBufferDevice("MPM_BlockAttribute", blockAttrSz, defaultUsage, true);
 
         m_RigidContactCounter = RHI->CreateBufferDevice("MPM_RigidContactCounter", contactIndSz, indirectUsage, true);
         m_RigidRigidContactCounter =
@@ -1571,11 +1912,24 @@ namespace Ifrit::Runtime::Artemis
             &builder.ImportBuffer("MPM_ParticleMaterialProperty", m_ParticleData->m_ParticleMatProperty.get());
         m_RDGParticleLiquidDensity =
             &builder.ImportBuffer("MPM_ParticleLiquidDensity", m_ParticleData->m_ParticleLiquidDensity.get());
+        m_RDGParticleIndexInPages =
+            &builder.ImportBuffer("MPM_ParticleGridBlockIdx", m_ParticleData->m_ParticleIndexInPages.get());
+        m_RDGParticleOffsetTemp =
+            &builder.ImportBuffer("MPM_ParticleOffsetTemp", m_ParticleData->m_ParticleOffsetTemp.get());
 
         m_RDGGridForce     = &builder.ImportBuffer("MPM_GridForce", m_GridForce.get());
         m_RDGGridVelocity  = &builder.ImportBuffer("MPM_GridVelocity", m_GridVelocity.get());
         m_RDGGridMass      = &builder.ImportBuffer("MPM_GridMass", m_GridMass.get());
         m_RDGGridAttribute = &builder.ImportBuffer("MPM_GridAttribute", m_GridAttribute.get());
+
+        m_RDGBlockDispatchArgs    = &builder.ImportBuffer("MPM_BlockDispatchArgs", m_BlockDispatchArgsInd.get());
+        m_RDGBlockAllocatedOffset = &builder.ImportBuffer("MPM_BlockAllocatedOffset", m_BlockAllocatedOffset.get());
+        m_RDGBlockParticleCountInBlock =
+            &builder.ImportBuffer("MPM_BlockParticleCount", m_BlockParticleCountInBlock.get());
+        m_RDGBlockParticleCountInPage =
+            &builder.ImportBuffer("MPM_BlockParticleCountInPage", m_BlockParticleCountInPage.get());
+        m_RDGBlockStoreOffset = &builder.ImportBuffer("MPM_BlockStoreOffset", m_BlockStoreOffset.get());
+        m_RDGBlockAttribute   = &builder.ImportBuffer("MPM_BlockAttribute", m_BlockAttribute.get());
 
         m_RDGRenderParticleIndDrawBuffer =
             &builder.ImportBuffer("MPM_RenderParticleIndDraw", m_RenderParticleIndDrawBuffer.get());
@@ -1663,6 +2017,14 @@ namespace Ifrit::Runtime::Artemis
             {
                 {
                     IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmSubstep");
+                    {
+                        // Scatter particles to blocks
+                        BlockParticleScatterReset(builder);
+                        BlockParticleScatterCount(builder);
+                        BlockParticleScatterReserve(builder);
+                        BlockParticleScatterInsert(builder);
+                    }
+
                     if (m_ShouldIntegrateRigids)
                     {
                         PbMpmRigidResetContactCounter(builder);
@@ -1690,12 +2052,15 @@ namespace Ifrit::Runtime::Artemis
                             }
 
                             ParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
+                            // BlockParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
+
                             if (isFirstIteration)
                             {
                                 GridVelocityNormalize(builder);
                             }
                             GridVelocityUpdate(builder, deltaTimePerSubstep, isFirstIteration);
                             GridToParticleTransfer(builder, deltaTimePerSubstep);
+                            // BlockGridToParticleTransfer(builder, deltaTimePerSubstep);
                         }
                         isFirstRun = false;
                     }
@@ -1817,6 +2182,21 @@ namespace Ifrit::Runtime::Artemis
     void MPMSimulatorPrivateData::ParticleRender3D(FrameGraphBuilder& builder, FGTextureNode* renderTarget)
     {
         IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.ParticleRender");
+        struct PushConst_PrepareInd
+        {
+            u32 m_CounterId;
+            u32 m_IndirectDrawId;
+        } pci{};
+        AddComputePass<PushConst_PrepareInd>(builder, "MPMSimulator.ParticleRenderPrepareIndirect",
+            GetShader(Runtime::Internal::kIntShaderTableArtemis.ParticleIndDrawBufferPrepCS), Vector3i(1, 1, 1), pci,
+            [this](PushConst_PrepareInd pc, const FrameGraphPassContext& ctx) {
+                pc.m_CounterId      = ctx.m_FgDesc->GetSRV(*m_RDGParticleCount);
+                pc.m_IndirectDrawId = ctx.m_FgDesc->GetUAV(*m_RDGRenderParticleIndDrawBuffer);
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGParticleCount)
+            .AddWriteResource(*m_RDGRenderParticleIndDrawBuffer);
 
         f32      camNear  = 0.1f;
         auto     rtWidth  = renderTarget->GetWidth();
@@ -1863,10 +2243,9 @@ namespace Ifrit::Runtime::Artemis
             cmd->AttachIndexBuffer(m_ParticleData->m_ParticleIndex.get());
             cmd->SetCullMode(RhiCullMode::None);
             cmd->SetPushConst(&pc, 0, sizeof(PushConst));
-            cmd->DrawIndexed(m_Config->m_DefaultNumParticles, 1, 0, 0, 0);
+            cmd->DrawIndirect(m_RenderParticleIndDrawBuffer.get(), 0);
         });
-        pass.AddRenderTarget(*renderTarget).AddReadResource(*m_RDGParticlePosition);
-        // Sleep(500);
+        pass.AddRenderTarget(*renderTarget, RHI::RhiRenderTargetLoadOp::Load).AddReadResource(*m_RDGParticlePosition);
     }
 
     // MPMSimulator implementation
@@ -1998,6 +2377,8 @@ namespace Ifrit::Runtime::Artemis
 
     IFRIT_APIDECL void MPMSimulator::CollectScene(Scene* scene)
     {
+        static bool s3DWarningOnParticleIntegration = false;
+
         m_Data->m_FrameId++;
 
         // Emitters
@@ -2010,9 +2391,18 @@ namespace Ifrit::Runtime::Artemis
             auto& emitterComponent = *emitter->GetComponent<MPMParticleEmitter>();
             if (emitterComponent.ShouldEmitParticle(m_Data->m_FrameId))
             {
-                auto particleLoc = emitterComponent.GetEmitParticlePosition2D();
-                auto emitArgs    = emitterComponent.GetEmitArgs();
-                EmitParticles<2>(particleLoc, emitArgs);
+                if (m_Data->m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
+                {
+                    auto particleLoc = emitterComponent.GetEmitParticlePosition3D();
+                    auto emitArgs    = emitterComponent.GetEmitArgs();
+                    EmitParticles<3>(particleLoc, emitArgs);
+                }
+                else
+                {
+                    auto particleLoc = emitterComponent.GetEmitParticlePosition2D();
+                    auto emitArgs    = emitterComponent.GetEmitArgs();
+                    EmitParticles<2>(particleLoc, emitArgs);
+                }
             }
         }
 
@@ -2051,20 +2441,34 @@ namespace Ifrit::Runtime::Artemis
         // Rigid Coupling
         if (m_Data->m_Config->m_EnableRigidCoupling)
         {
-            m_Data->m_ShouldIntegrateRigids = true;
-
-            auto perFrameData = scene->GetPerFrameData();
-            if (perFrameData->m_ExtraData.count(Internal::kArtemisSceneDataKey) == 0) IF_UNLIKELY
+            if (m_Data->m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
             {
-                IF_LOG_ERROR("Artemis.MPM",
-                    "MPMSimulator: No Artemis scene data found.Please ensure the scene is properly initialized.");
-                m_Data->m_ShouldIntegrateRigids = false;
+                if (s3DWarningOnParticleIntegration) IF_UNLIKELY
+                {
+                    IF_LOG_WARNING("Artemis.MPM",
+                        "MPMSimulator: Rigid coupling is not supported in 3D simulations. "
+                        "Disabling rigid coupling for this simulation.");
+                    s3DWarningOnParticleIntegration = false;
+                }
+                m_Data->m_Config->m_EnableRigidCoupling = false;
             }
             else
             {
-                auto ptr               = perFrameData->m_ExtraData[Internal::kArtemisSceneDataKey].get();
-                m_Data->m_SceneData    = static_cast<ArtemisSceneData*>(ptr);
-                m_Data->m_RigidFrameId = m_Data->m_SceneData->m_FrameId;
+                m_Data->m_ShouldIntegrateRigids = true;
+
+                auto perFrameData = scene->GetPerFrameData();
+                if (perFrameData->m_ExtraData.count(Internal::kArtemisSceneDataKey) == 0) IF_UNLIKELY
+                {
+                    IF_LOG_ERROR("Artemis.MPM",
+                        "MPMSimulator: No Artemis scene data found.Please ensure the scene is properly initialized.");
+                    m_Data->m_ShouldIntegrateRigids = false;
+                }
+                else
+                {
+                    auto ptr               = perFrameData->m_ExtraData[Internal::kArtemisSceneDataKey].get();
+                    m_Data->m_SceneData    = static_cast<ArtemisSceneData*>(ptr);
+                    m_Data->m_RigidFrameId = m_Data->m_SceneData->m_FrameId;
+                }
             }
         }
     }

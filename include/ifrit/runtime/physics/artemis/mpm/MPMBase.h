@@ -53,7 +53,7 @@ namespace Ifrit::Runtime::Artemis
 
     struct MPMSimulatorConfig
     {
-        IF_CONSTEXPR static u32      kDefaultGridSizeX = 128;
+        IF_CONSTEXPR static u32      kDefaultGridSizeX = 64;
 
         MPMSimulatorTopologySource   m_TopoSource = MPMSimulatorTopologySource::Preset;
         MPMSimulatorProblemDimension m_Dimension  = MPMSimulatorProblemDimension::TwoDimensional;

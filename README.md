@@ -81,7 +81,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 #### Subproject Artemis
 
 - Position Based Dynamics (PBD) : SDF Collision Constraints / Volume Constraints / XPBD
-- Material Point Method (MPM):  MLS-MPM (2D/3D), PB-MPM (2D/3D)
+- Material Point Method (MPM):  MLS-MPM (2D/3D), PB-MPM (2D/3D), Two-way Rigid Coupling
 
 
 

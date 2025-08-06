@@ -14,6 +14,7 @@ namespace MPM{
         FDenseGridStructureHandle m_Grid;
         FSpatialVectorHandle m_ParticleLocation;
         TRWStructuredBufferHandle<int> m_ParticleOffset;
+        FRWSpatialVectorHandle m_ParticleDebug;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -33,6 +34,9 @@ namespace MPM{
         FSpatialVector ParticleLocation = PushConst.m_ParticleLocation.Load(ThreadId.x);
         FSpatialIndex GridIndex = Grid.GetCentralGridRounded(ParticleLocation);
         FSpatialIndex BlockCoord = Block.GetBlockCoord(GridIndex);
+
+        PushConst.m_ParticleDebug.Store(ThreadId.x, BlockCoord * 1.0f);
+
         int BlockId = Block.GetBlockId(BlockCoord);
         int Offset = Block.ScatterToBlock(BlockId);
         PushConst.m_ParticleOffset.Store(Offset, ThreadId.x);

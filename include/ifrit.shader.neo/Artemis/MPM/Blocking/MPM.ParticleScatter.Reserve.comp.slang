@@ -12,9 +12,7 @@ namespace MPM{
         FParticleCounterHandle m_ParticleCounter;
         FDenseBlockStructureHandle m_Block;
         FDenseGridStructureHandle m_Grid;
-        FSpatialVectorHandle m_ParticleLocation;
-        TRWStructuredBufferHandle<int> m_ParticleOffset;
-        TRWStructuredBufferHandle<int> m_BlockPageData; // store the block id
+        //TRWStructuredBufferHandle<int> m_BlockPageData; // store the block id
         TRWStructuredBufferHandle<int> m_BlockPageNumParticles; 
     };
 
@@ -27,8 +25,6 @@ namespace MPM{
                                     uint3 GroupThreadId:SV_GroupThreadID)
     {
         FDenseBlockStructure Block = PushConst.m_Block.Load();
-        FDenseGridStructure Grid = PushConst.m_Grid.Load();
-        FSpatialIndex BlockCoord = Grid.DecodeSpatialIndex(ThreadId.x);
         int TotalBlockCount = Block.GetTotalBlockCount();
         int BlockId = ThreadId.x;
 
@@ -46,7 +42,7 @@ namespace MPM{
             NumParticlesInBlock -= ParticleUsed;
             
             PushConst.m_BlockPageNumParticles.Store(ParticleUsed, PageId);
-            PushConst.m_BlockPageData.Store(BlockId, PageId);
+            //PushConst.m_BlockPageData.Store(BlockId, PageId);
         }
     }
 

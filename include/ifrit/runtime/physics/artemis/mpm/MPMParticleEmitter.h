@@ -49,6 +49,7 @@ namespace Ifrit::Runtime::Artemis
 
         MPMParticleEmitArgs GetEmitArgs();
         Vec<Vector2f>       GetEmitParticlePosition2D();
+        Vec<Vector3f>       GetEmitParticlePosition3D();
         bool                ShouldEmitParticle(i32 frameIdx) const;
 
     public:

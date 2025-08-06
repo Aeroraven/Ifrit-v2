@@ -88,7 +88,7 @@ namespace MPM{
 #endif
             
             RigidDynamics.m_Displacement = Displacement + DvNew;
-            RigidDynamics.m_AngularVelocity = W1New;
+            //RigidDynamics.m_AngularVelocity = W1New;
             PushConst.m_RigidDynamics.m_RigidDynamics.Store(RigidDynamics, RigidCollider.m_RuntimeId);
         }
     }

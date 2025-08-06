@@ -64,6 +64,11 @@ namespace Ifrit
 
             auto artemisController = GetSubsystem<Artemis::ArtemisController>();
             artemisController->AddPresetSolver(Artemis::EPresetArtemisSimulator::MPM);
+            auto mpmSimulator = reinterpret_cast<Artemis::MPMSimulator*>(
+                artemisController->GetPresetSolver(Artemis::EPresetArtemisSimulator::MPM));
+            auto mpmInternalConfig        = mpmSimulator->GetActiveConfig();
+            mpmInternalConfig.m_Dimension = Artemis::MPMSimulatorProblemDimension::TwoDimensional;
+            mpmSimulator->SetConfig(mpmInternalConfig);
 
             // Scene
             auto scene = m_sceneAssetManager->CreateScene("TestScene2");
@@ -97,7 +102,7 @@ namespace Ifrit
 
             auto interactor   = node->AddGameObject("InteractiveControl");
             auto rigidEmitter = interactor->AddComponent<RigidEmitter>();
-            //rigidEmitter->SetEnable(false);
+            // rigidEmitter->SetEnable(false);
             interactor->AddComponent<MPMMouseInteractor>();
 
             m_sceneManager->SetActiveScene(scene);

@@ -21,5 +21,8 @@ namespace Ifrit::Runtime::Artemis
         RHI::RhiBufferRef m_ParticleStressContrib;
         RHI::RhiBufferRef m_ParticleMatProperty;
         RHI::RhiBufferRef m_ParticleLiquidDensity; // For PBMPM
+
+        RHI::RhiBufferRef m_ParticleIndexInPages; // For Grid Blocking
+        RHI::RhiBufferRef m_ParticleOffsetTemp;
     };
 } // namespace Ifrit::Runtime::Artemis

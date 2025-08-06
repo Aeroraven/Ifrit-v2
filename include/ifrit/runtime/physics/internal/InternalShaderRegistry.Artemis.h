@@ -82,6 +82,14 @@ namespace Ifrit::Runtime::Internal
         SDEF MPMParticleEmitCS       = DECLARE_CS("Artemis/MPM/MPM.ParticleEmit");
         SDEF MPMParticleDrainAllCS   = DECLARE_CS("Artemis/MPM/MPM.ParticleDrainAll");
 
+        // MPM Blocking
+        SDEF MPMBlockParticleScatterPrepareCS = DECLARE_CS("Artemis/MPM/Blocking/MPM.ParticleScatter.Prepare");
+        SDEF MPMBlockParticleScatterCountCS   = DECLARE_CS("Artemis/MPM/Blocking/MPM.ParticleScatter.Count");
+        SDEF MPMBlockParticleScatterReserveCS = DECLARE_CS("Artemis/MPM/Blocking/MPM.ParticleScatter.Reserve");
+        SDEF MPMBlockParticleScatterInsertCS  = DECLARE_CS("Artemis/MPM/Blocking/MPM.ParticleScatter.Insert");
+        SDEF MPMBlockP2GCS                    = DECLARE_CS("Artemis/MPM/Blocking/MPM.BlockP2G");
+        SDEF MPMBlockG2PCS                    = DECLARE_CS("Artemis/MPM/Blocking/MPM.BlockG2P");
+
         // MPM Rigid Coupling
         SDEF MPMRigidContactConstraintResolveCS =
             DECLARE_CS("Artemis/MPM/RigidCoupling/MPMRigid.ContactConstraintResolve");
