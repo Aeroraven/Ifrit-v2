@@ -46,7 +46,7 @@ This repository succeeds my previous rendering projects:
 - Support just-in-time compilation of HLSL SPIR-V shader code.
 - Covers culling (including contribution culling), MSAA (8x), mipmapping,  anisotropic filtering and shader derivatives (`ddx` & `ddy`)
 - Support texture sampling & cube mapping and texture lods.
-- For implementation details and performance, check [here](./projects/softgraphics/readme.md)
+- For implementation details and performance, check [here](./modules/softgraphics/readme.md)
 
 
 
