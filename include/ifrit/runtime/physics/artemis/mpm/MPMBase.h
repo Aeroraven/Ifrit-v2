@@ -72,7 +72,7 @@ namespace Ifrit::Runtime::Artemis
         f32                          m_DefaultYoungsModulus   = 200.0f;
         f32                          m_DefaultPoissonRatio    = 0.2f;
         f32                          m_DefaultViscoPlasticity = 0.7f;
-        u32                          m_DefaultNumParticles    = 11451;
+        u32                          m_DefaultNumParticles    = 114514;
         u32                          m_Substeps               = 5;
         MPMSimulatorParticleType     m_DefaultParticleType    = MPMSimulatorParticleType::Fluid;
 

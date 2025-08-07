@@ -46,10 +46,32 @@ namespace Ifrit::Runtime::FrameGraphUtils
         }
     }
 
+    IFRIT_RUNTIME_API FrameGraphStatScopeGuard::FrameGraphStatScopeGuard(FrameGraphBuilder& builder, const String& name)
+        : m_Builder(&builder)
+    {
+        m_Scope = &m_Builder->AddStatScopeBegin(name);
+    }
+
+    IFRIT_RUNTIME_API FrameGraphStatScopeGuard::~FrameGraphStatScopeGuard()
+    {
+        if (m_Builder && m_Scope)
+        {
+            m_Builder->AddStatScopeEnd(*m_Scope);
+            m_Scope = nullptr;
+        }
+    }
+
     IFRIT_RUNTIME_API Owner<FrameGraphScopeGuard> AddFrameGraphEventScope(
         FrameGraphBuilder& builder, const String& name)
     {
         auto scopeGuard = MakeOwner<FrameGraphScopeGuard>(builder, name);
+        return scopeGuard;
+    }
+
+    IFRIT_RUNTIME_API Owner<FrameGraphStatScopeGuard> AddFrameGraphStatScope(
+        FrameGraphBuilder& builder, const String& name)
+    {
+        auto scopeGuard = MakeOwner<FrameGraphStatScopeGuard>(builder, name);
         return scopeGuard;
     }
 

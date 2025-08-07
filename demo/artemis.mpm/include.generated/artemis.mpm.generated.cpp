@@ -310,6 +310,9 @@ namespace Ifrit::Reflection
         RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaterialType>("Emit Material Type");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaterialType>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitMaterialType>("UISelect", "");
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitSampleSource>("Emit Sample Source");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitSampleSource>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitSampleSource>("UISelect", "");
         RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitColor>("Emit Color");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitColor>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mEmitColor>("UIColor", "");
@@ -327,6 +330,13 @@ namespace Ifrit::Reflection
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("UISlider.min", (double)0.001);
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mParticleMass>("UISlider.max", (double)5);
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mSamplerPpc>("Sampler Ppc");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mSamplerPpc>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mSamplerPpc>("UISlider.min", (int)1);
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mSamplerPpc>("UISlider.max", (int)20);
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mVdbSampleSource>("Vdb Sample Source");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mVdbSampleSource>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMParticleEmitter::mVdbSampleSource>("AssetCategory", "VolumetricData");
         RegisterMethodField<&Ifrit::Runtime::Artemis::MPMParticleEmitter::ImmediateEmit>("Immediate Emit");
 
         // Ifrit::Runtime::Artemis::MPMSimulatorConfigurator

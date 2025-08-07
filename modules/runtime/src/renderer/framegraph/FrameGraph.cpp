@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
 #include "ifrit/rhi/common/RhiStructHelper.h"
+#include "ifrit/runtime/base/ApplicationInterface.h"
+#include "ifrit/runtime/renderer/profiling/ProfileDataManager.h"
 #include <stdexcept>
 
 using Ifrit::SizeCast;
@@ -409,6 +411,34 @@ namespace Ifrit::Runtime
         scopex.m_EndingPassId   = std::max(scopex.m_StartingPassId, (u32)std::max(0, (i32)m_passes.size()));
     }
 
+    IFRIT_APIDECL FrameGraphStatScope& FrameGraphBuilder::AddStatScopeBegin(const String& name)
+    {
+        Owner<FrameGraphStatScope> scope = MakeOwner<FrameGraphStatScope>();
+        scope->m_Name                    = name;
+        scope->m_StartingPassId          = SizeCast<u32>(m_passes.size());
+        auto scopeId                     = SizeCast<u32>(m_statScopes.size());
+        scope->m_ScopeId                 = scopeId;
+        auto ptr                         = scope.get();
+        m_statScopes.push_back(std::move(scope));
+        return *ptr;
+    }
+    IFRIT_APIDECL void FrameGraphBuilder::AddStatScopeEnd(const FrameGraphStatScope& scope)
+    {
+        FrameGraphStatScope& scopex = *m_statScopes[scope.m_ScopeId];
+        scopex.m_EndingPassId       = std::max(scopex.m_StartingPassId, (u32)std::max(0, (i32)m_passes.size()));
+        if (scopex.m_EndingPassId <= scopex.m_StartingPassId)
+        {
+            IF_LOG_CRITICAL("FrameGraph", "Stat scope {} has no ending pass.", scopex.m_Name);
+            throw std::runtime_error("Stat scope has no ending pass.");
+        }
+        if (scopex.m_EndingPassId > m_passes.size())
+        {
+            IF_LOG_CRITICAL(
+                "FrameGraph", "Stat scope {} has ending pass that exceeds the number of passes.", scopex.m_Name);
+            throw std::runtime_error("Stat scope has ending pass that exceeds the number of passes.");
+        }
+    }
+
     // Frame Graph compiler
 
     RHI::RhiResourceState GetInputResourceState(FrameGraphPassType passType, FrameGraphResourceType resType)
@@ -516,6 +546,11 @@ namespace Ifrit::Runtime
         compiledGraph.m_StartingScopes.resize(graph.m_passes.size() + 1);
         compiledGraph.m_EndingScopes.resize(graph.m_passes.size() + 1, 0);
 
+        compiledGraph.m_StatStartingScopes.clear();
+        compiledGraph.m_StatEndingScopes.clear();
+        compiledGraph.m_StatStartingScopes.resize(graph.m_passes.size() + 1);
+        compiledGraph.m_StatEndingScopes.resize(graph.m_passes.size() + 1);
+
         for (auto& scope : graph.m_scopes)
         {
 
@@ -526,6 +561,17 @@ namespace Ifrit::Runtime
             if (scope->m_EndingPassId < graph.m_passes.size())
             {
                 compiledGraph.m_EndingScopes[scope->m_EndingPassId]++;
+            }
+        }
+        for (auto& scope : graph.m_statScopes)
+        {
+            if (scope->m_StartingPassId < graph.m_passes.size())
+            {
+                compiledGraph.m_StatStartingScopes[scope->m_StartingPassId].push_back(scope->m_ScopeId);
+            }
+            if (scope->m_EndingPassId < graph.m_passes.size())
+            {
+                compiledGraph.m_StatEndingScopes[scope->m_EndingPassId].push_back(scope->m_ScopeId);
             }
         }
 
@@ -843,6 +889,8 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL void FrameGraphExecutor::ExecuteInSingleCmd(
         const RHI::RhiCommandList* cmd, const CompiledFrameGraph& compiledGraph)
     {
+        auto statManager = GetActiveApplication()->GetProfileDataManager();
+
         cmd->BeginScope("Ifrit.RDG: Execute Render Graph");
         using namespace Ifrit::RHI;
         // Begin event scopes, top level
@@ -852,10 +900,28 @@ namespace Ifrit::Runtime
             cmd->BeginScope(scopeName);
             scopesActive++;
         }
+        for (int i = 0; i < compiledGraph.m_EndingScopes[0]; i++)
+        {
+            cmd->EndScope();
+            scopesActive--;
+        }
+
+        // begin stat scopes
+        for (auto& scopeId : compiledGraph.m_StatStartingScopes[0])
+        {
+            auto& statScope = *compiledGraph.m_graph->m_statScopes[scopeId];
+            statManager->ReportBeginEvent(cmd, statScope.m_Name);
+        }
+
+        // end stat scopes
+        for (auto& scopeId : compiledGraph.m_StatEndingScopes[0])
+        {
+            auto& statScope = *compiledGraph.m_graph->m_statScopes[scopeId];
+            statManager->ReportEndEvent(cmd, statScope.m_Name);
+        }
 
         for (auto& pass : compiledGraph.m_graph->m_passes)
         {
-
             // PreExecute
             // iInfo("FrameGraphExecutor: Executing {}", pass->name);
             for (u32 i = 0; i < pass->m_ResourceCreateRequest.size(); i++)
@@ -931,6 +997,20 @@ namespace Ifrit::Runtime
             {
                 cmd->BeginScope(scopeName);
                 scopesActive++;
+            }
+
+            // End stat scopes
+            for (auto& scopeId : compiledGraph.m_StatEndingScopes[pass->id + 1])
+            {
+                auto& statScope = *compiledGraph.m_graph->m_statScopes[scopeId];
+                statManager->ReportEndEvent(cmd, statScope.m_Name);
+            }
+
+            // Begin stat scopes
+            for (auto& scopeId : compiledGraph.m_StatStartingScopes[pass->id + 1])
+            {
+                auto& statScope = *compiledGraph.m_graph->m_statScopes[scopeId];
+                statManager->ReportBeginEvent(cmd, statScope.m_Name);
             }
         }
         cmd->EndScope();

@@ -51,6 +51,7 @@ namespace Ifrit::Runtime
         virtual ApplicationState*                       GetApplicationState()        = 0;
         virtual AssetManager*                           GetAssetRegistry()           = 0;
         virtual SceneManager*                           GetSceneManager()            = 0;
+        virtual ProfileDataManager*                     GetProfileDataManager()      = 0;
 
         template <typename T>
             requires(std::is_base_of<ISubsystem, T>::value)

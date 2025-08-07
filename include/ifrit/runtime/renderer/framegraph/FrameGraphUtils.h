@@ -38,11 +38,24 @@ namespace Ifrit::Runtime::FrameGraphUtils
         ~FrameGraphScopeGuard();
     };
 
+    class IFRIT_RUNTIME_API FrameGraphStatScopeGuard
+    {
+        FrameGraphBuilder*   m_Builder = nullptr;
+        FrameGraphStatScope* m_Scope   = nullptr;
+
+    public:
+        FrameGraphStatScopeGuard(FrameGraphBuilder& builder, const String& name);
+        ~FrameGraphStatScopeGuard();
+    };
+
     template <typename T> u32 GetPushConstSize() { return sizeof(T) / sizeof(u32); }
 
     using FnPassFunction = Fn<void(const FrameGraphPassContext&)>;
 
     IFRIT_RUNTIME_API Owner<FrameGraphScopeGuard> AddFrameGraphEventScope(
+        FrameGraphBuilder& builder, const String& name);
+
+    IFRIT_RUNTIME_API Owner<FrameGraphStatScopeGuard> AddFrameGraphStatScope(
         FrameGraphBuilder& builder, const String& name);
 
     IFRIT_RUNTIME_API GraphicsPassNode& AddFullScreenQuadPass(FrameGraphBuilder& builder, const String& name,
@@ -152,5 +165,9 @@ namespace Ifrit::Runtime::FrameGraphUtils
 #define IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, name)                                        \
     Owner<Ifrit::Runtime::FrameGraphUtils::FrameGraphScopeGuard> _fgScopeGuard##__LINE__ = \
         Ifrit::Runtime::FrameGraphUtils::AddFrameGraphEventScope(builder, name);
+
+#define IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, name)                                             \
+    Owner<Ifrit::Runtime::FrameGraphUtils::FrameGraphStatScopeGuard> _fgStatScopeGuard##__LINE__ = \
+        Ifrit::Runtime::FrameGraphUtils::AddFrameGraphStatScope(builder, name);
 
 } // namespace Ifrit::Runtime::FrameGraphUtils

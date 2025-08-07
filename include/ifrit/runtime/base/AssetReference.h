@@ -29,6 +29,7 @@ namespace Ifrit::Runtime
     enum class EAssetReferencingType : u8
     {
         Unknown,
+        Empty,
         Internal,
         Imported
     };
@@ -47,7 +48,7 @@ namespace Ifrit::Runtime
     struct IF_CLASS() AssetReferenceId
     {
         IF_PROPERTY()
-        EAssetReferencingType mType;
+        EAssetReferencingType mType = EAssetReferencingType::Empty;
 
         IF_PROPERTY()
         GUID mGuid;

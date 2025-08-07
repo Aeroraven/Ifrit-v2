@@ -45,6 +45,9 @@ namespace Ifrit::Editor::ImGuiInternal
     struct MenuBar_Modals
     {
         Widget::FileDialog* mFileDialog;
+        bool                mAssetImporterPopupOpen = false;
+        String              mAssetImporterChosen;
+        String              mAssetPath;
     };
 
     IFRIT_EDITOR_API void Inspector_RegisterEditingHandles();
@@ -58,4 +61,8 @@ namespace Ifrit::Editor::ImGuiInternal
 
     IFRIT_EDITOR_API void MenuBar_ExportCurrentScene(MenuBar_Modals& config);
     IFRIT_EDITOR_API void MenuBar_LoadAndOverrideCurrentScene(MenuBar_Modals& config);
+    IFRIT_EDITOR_API void MenuBar_ImportAsset(MenuBar_Modals& config);
+    IFRIT_EDITOR_API void MenuBar_RenderImportAssetPopup(MenuBar_Modals& config);
+
+        IFRIT_EDITOR_API void Profiler_ShowGPUScopeStats();
 } // namespace Ifrit::Editor::ImGuiInternal

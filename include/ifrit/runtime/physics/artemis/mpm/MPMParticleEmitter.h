@@ -13,6 +13,12 @@ namespace Ifrit::Runtime::Artemis
         Periodic  = 1
     };
 
+    enum class EMPMSampleSource : u8
+    {
+        Random,
+        VolumeAsset
+    };
+
     struct MPMParticleEmitterPrivateData;
     class IFRIT_RUNTIME_API IF_CLASS() MPMParticleEmitter : public Component
     {
@@ -22,6 +28,9 @@ namespace Ifrit::Runtime::Artemis
 
         IF_PROPERTY(Editable, UISelect)
         MPMSimulatorParticleType mEmitMaterialType = MPMSimulatorParticleType::Fluid;
+
+        IF_PROPERTY(Editable, UISelect)
+        EMPMSampleSource mEmitSampleSource = EMPMSampleSource::Random;
 
         IF_PROPERTY(Editable, UIColor)
         Vector4f mEmitColor = Vector4f(0.0f, 1.0f, 1.0f, 1.0f);
@@ -37,6 +46,12 @@ namespace Ifrit::Runtime::Artemis
 
         IF_PROPERTY(Editable, UISlider = (min = 0.001, max = 5.0))
         f32 mParticleMass = 0.5f / 64.0f;
+
+        IF_PROPERTY(Editable, UISlider = (min = 1, max = 20))
+        i32 mSamplerPpc = 8;
+
+        IF_PROPERTY(Editable, AssetCategory = "VolumetricData")
+        AssetReferenceId mVdbSampleSource;
 
     private:
         u32                            m_PlaceHolder;

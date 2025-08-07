@@ -55,6 +55,12 @@ namespace Ifrit::Runtime
         virtual Owner<Asset> ImportAsset(const String& relativePath) = 0;
     };
 
+    struct AssetImporterPair
+    {
+        String          mImporterId;
+        IAssetImporter* mImporter;
+    };
+
     class IFRIT_APIDECL IF_CLASS() AssetManager : public NonCopyable
     {
     public:
@@ -86,6 +92,9 @@ namespace Ifrit::Runtime
         Vec<AssetMetadata>      GetAllAssetMetadata() const;
         void                    RegisterImporter(const String& importerId, Owner<IAssetImporter> importer);
         AssetRegistrationResult ImportAsset(const String& importerId, const String& relativePath, const String& name);
+        AssetRegistrationResult ImportAssetFromAbsPath(
+            const String& importerId, const String& relativePath, const String& name);
+        Vec<AssetImporterPair> GetAllImporters() const;
 
         template <typename T, typename... Args>
             requires(std::is_base_of<Asset, T>::value && IConceptIsConstructible<T, Args...>)

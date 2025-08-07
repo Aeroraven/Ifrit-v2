@@ -11,6 +11,7 @@
 #include "ifrit.internal/runtime/physics/artemis/InternalConst.h"
 #include "ifrit.shader.neo/Artemis/Rigid/Rigid.Common.hlsli"
 #include "ifrit.shader.neo/Shared/Artemis/MPMRigidCoupling.Shared.h"
+#include "ifrit/runtime/renderer/profiling/ProfileStatScope.h"
 
 using namespace Ifrit::Math;
 using namespace Ifrit::RHI;
@@ -253,6 +254,7 @@ namespace Ifrit::Runtime::Artemis
 
     void MPMSimulatorPrivateData::BlockGridToParticleTransfer(FrameGraphBuilder& builder, f32 deltaTime)
     {
+        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.G2P(Block)");
         struct PushConst
         {
             u32             m_ParticleCounterBuf;
@@ -314,6 +316,7 @@ namespace Ifrit::Runtime::Artemis
     void MPMSimulatorPrivateData::BlockParticleToGridTransfer(
         FrameGraphBuilder& builder, f32 deltaTime, u32 firstOrLastRun)
     {
+        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.P2G(Block)");
         struct PushConst
         {
             u32             m_ParticleCounterBuf;
@@ -343,6 +346,10 @@ namespace Ifrit::Runtime::Artemis
         if (isPbMpm)
         {
             extra.push_back("IFSHADER_MPM_PBMPM");
+        }
+        if (firstOrLastRun & 0x1)
+        {
+            extra.push_back("IFSHADER_MPM_FIRST_RUN");
         }
 
         AddIndirectComputePass<PushConst>(builder, "MPMSimulator.ParticleToGridTransfer(Block)",
@@ -1084,6 +1091,7 @@ namespace Ifrit::Runtime::Artemis
 
     void MPMSimulatorPrivateData::PbMpmParticleIntegrate(FrameGraphBuilder& builder, f32 dt)
     {
+        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.ParticleIntegrate");
         struct PushConst
         {
             Vector4f        m_Gravity;
@@ -1152,6 +1160,7 @@ namespace Ifrit::Runtime::Artemis
 
     void MPMSimulatorPrivateData::PbMpmResolveConstraints(FrameGraphBuilder& builder, f32 deltaTime)
     {
+        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.SolveMPMConstraint");
         struct PushConst
         {
             u32 m_ParticleCounterBuf;
@@ -1976,6 +1985,8 @@ namespace Ifrit::Runtime::Artemis
 
     void MPMSimulatorPrivateData::RunSolverStep(FrameGraphBuilder& builder, f32 deltaTime)
     {
+        IFRIT_STAT_HOST_SCOPE("MPMSimulator.RunSolverStep");
+
         auto rhi        = builder.GetRhi();
         bool isFirstRun = m_RebuildGPUResources;
         bool isPbMpm    = (m_Config->m_Variant == MPMSimulatorVariant::PBMPM);
@@ -2009,6 +2020,8 @@ namespace Ifrit::Runtime::Artemis
         f32 deltaTimePerSubstep = deltaTime / static_cast<f32>(m_Config->m_Substeps);
         if (isPbMpm)
         {
+            IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.PbMpm");
+
             if (m_ShouldIntegrateRigids)
             {
                 PbMpmRigidLoadTransform(builder);
@@ -2018,6 +2031,7 @@ namespace Ifrit::Runtime::Artemis
                 {
                     IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmSubstep");
                     {
+                        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.ParticleScatter");
                         // Scatter particles to blocks
                         BlockParticleScatterReset(builder);
                         BlockParticleScatterCount(builder);
@@ -2027,6 +2041,7 @@ namespace Ifrit::Runtime::Artemis
 
                     if (m_ShouldIntegrateRigids)
                     {
+                        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.XPBDCollisionCollect");
                         PbMpmRigidResetContactCounter(builder);
                         PbMpmRigidCollectCollisionPairs(builder);
                         PbMpmRigidCollectBoundaryContactPairs(builder);
@@ -2067,6 +2082,7 @@ namespace Ifrit::Runtime::Artemis
                     PbMpmParticleIntegrate(builder, deltaTimePerSubstep);
                     if (m_ShouldIntegrateRigids)
                     {
+                        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.RigidConstraintSolve");
                         PbMpmRigidIntegrate(builder, deltaTimePerSubstep);
                         // solve velocity here!!
                         PbMpmRigidSolveVelocityParticleRigidColl(builder, deltaTimePerSubstep);

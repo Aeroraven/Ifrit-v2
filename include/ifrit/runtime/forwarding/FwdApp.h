@@ -9,4 +9,5 @@ namespace Ifrit::Runtime
     struct ApplicationState;
     class AssetManager;
     class SceneManager;
+    class ProfileDataManager;
 } // namespace Ifrit::Runtime

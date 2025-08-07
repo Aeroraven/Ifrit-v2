@@ -30,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/util/RendererWrapper.h"
 #include "ifrit/runtime/application/ApplicationState.h"
 #include "ifrit/runtime/application/Subsystem.h"
+#include "ifrit/runtime/renderer/profiling/ProfileDataManager.h"
 
 namespace Ifrit::Runtime
 {
@@ -53,6 +54,8 @@ namespace Ifrit::Runtime
 
         Vec<Owner<ISubsystem>>    m_Subsystems;
         HashMap<u64, u32>         m_SubsystemTypeIdToIndex;
+
+        Owner<ProfileDataManager> mProfileDataManager;
 
         // for legacy compatibility
         bool                      m_EnableRendererWrapper = false;
@@ -86,6 +89,8 @@ namespace Ifrit::Runtime
         inline virtual SceneManager*         GetSceneManager() override { return m_sceneManager.get(); }
         inline virtual ApplicationState*     GetApplicationState() override { return &m_ApplicationState; }
         inline AssetManager*                 GetAssetRegistry() override { return m_assetManager.get(); }
+        inline virtual ProfileDataManager*   GetProfileDataManager() override { return mProfileDataManager.get(); }
+
         void                                 RegisterSubsystem(Owner<ISubsystem> subsystem);
         void                                 EnableRendererWrapper(bool enable);
         RHI::RhiTexture*                     GetDefaultColorImage() const override;

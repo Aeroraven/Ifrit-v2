@@ -827,10 +827,8 @@ namespace MPM{
     {
         FScalar AbsX = abs(Val);
         FScalar AbsX2 = AbsX * AbsX;
-        if(AbsX < 0.5f)
-            return 0.75f - AbsX2;
-        else if(AbsX < 1.5f)
-            return 0.5f * (AbsX2 - 3.0f * AbsX + 2.25f);
+        if(AbsX < 1.5f)
+            return (AbsX < 0.5f) ? (0.75f - AbsX2) : (0.5f * AbsX2 - 1.5f * AbsX + 1.125f);
         else
             return 0.0f;
     }

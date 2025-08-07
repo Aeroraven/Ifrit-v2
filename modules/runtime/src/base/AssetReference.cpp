@@ -36,6 +36,11 @@ namespace Ifrit::Runtime
             archive->EndObject();
             return;
         }
+        else if (mType == EAssetReferencingType::Empty)
+        {
+            archive->EndObject();
+            return;
+        }
 
         auto assetRegistry = GetActiveApplication()->GetAssetRegistry();
         auto asset         = assetRegistry->GetAsset<Asset>(mGuid);
@@ -86,6 +91,11 @@ namespace Ifrit::Runtime
         if (mType == EAssetReferencingType::Unknown)
         {
             IF_LOG_CRITICAL("AssetReferenceId", "AssetReferenceId is in unknown state, cannot deserialize");
+            archive->EndObject();
+            return;
+        }
+        else if (mType == EAssetReferencingType::Empty)
+        {
             archive->EndObject();
             return;
         }

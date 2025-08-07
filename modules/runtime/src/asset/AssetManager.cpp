@@ -33,6 +33,8 @@ namespace Ifrit::Runtime
         asset->mMetadata.mReferencingType = EAssetReferencingType::Imported;
         asset->mMetadata.mImporter        = importerId;
         mAssets.push_back(std::move(asset));
+        mGuidToIndex[newGuid] = SizeCast<u32>(mAssets.size() - 1);
+        mNameToIndex[newName] = SizeCast<u32>(mAssets.size() - 1);
     }
 
     IFRIT_APIDECL Vec<AssetMetadata> AssetManager::GetAllAssetMetadata() const
@@ -201,6 +203,20 @@ namespace Ifrit::Runtime
         IF_LOG_INFO("AssetManager", "Registered importer with ID: {}", importerId);
     }
 
+    IFRIT_APIDECL Vec<AssetImporterPair> AssetManager::GetAllImporters() const
+    {
+        Vec<AssetImporterPair> importers;
+        importers.reserve(mImporters.size());
+        for (const auto& [id, importer] : mImporters)
+        {
+            if (importer)
+            {
+                importers.push_back({ id, importer.get() });
+            }
+        }
+        return importers;
+    }
+
     IFRIT_APIDECL AssetRegistrationResult AssetManager::ImportAsset(
         const String& importerId, const String& relativePath, const String& name)
     {
@@ -241,4 +257,73 @@ namespace Ifrit::Runtime
         return ret;
     }
 
+    AssetRegistrationResult AssetManager::ImportAssetFromAbsPath(
+        const String& importerId, const String& absPath, const String& name)
+    {
+        AssetRegistrationResult ret{};
+
+        // Check if the absolute path exists
+        if (!std::filesystem::exists(absPath))
+        {
+            IF_LOG_CRITICAL("AssetManager", "Asset file does not exist: {}", absPath);
+            ret.mCode = EAssetRegistrationResultCode::InvalidArgument;
+            return ret;
+        }
+
+        // Normalize paths and check if absPath is within asset directory
+        std::filesystem::path normalizedAbsPath  = std::filesystem::weakly_canonical(absPath);
+        std::filesystem::path normalizedBasePath = std::filesystem::weakly_canonical(mBasePath);
+
+        // Check if the absolute path is a child of the asset directory
+        auto                  relativePath = std::filesystem::relative(normalizedAbsPath, normalizedBasePath);
+        if (relativePath.empty() || relativePath.string().starts_with(".."))
+        {
+            IF_LOG_CRITICAL(
+                "AssetManager", "Asset path {} is not within the asset directory {}", absPath, mBasePath.string());
+            ret.mCode = EAssetRegistrationResultCode::InvalidArgument;
+            return ret;
+        }
+
+        // Check if importer exists
+        auto importerIt = mImporters.find(importerId);
+        if (importerIt == mImporters.end())
+        {
+            IF_LOG_CRITICAL("AssetManager", "Importer with ID {} not found.", importerId);
+            ret.mCode = EAssetRegistrationResultCode::InvalidArgument;
+            return ret;
+        }
+
+        auto& importer = importerIt->second;
+        if (!importer)
+        {
+            IF_LOG_CRITICAL("AssetManager", "Importer with ID {} is null.", importerId);
+            ret.mCode = EAssetRegistrationResultCode::InvalidArgument;
+            return ret;
+        }
+
+        // Generate GUID and check for conflicts
+        auto guid = GUID::Generate();
+        if (mNameToIndex.contains(name) || mGuidToIndex.contains(guid))
+        {
+            IF_LOG_CRITICAL("AssetManager", "Asset with name {} or GUID {} already exists.", name, guid.ToString());
+            ret.mCode = EAssetRegistrationResultCode::Conflict;
+            return ret;
+        }
+
+        // Convert relative path to string and normalize separators
+        String relativePathString = relativePath.string();
+        std::replace(relativePathString.begin(), relativePathString.end(), '\\', '/');
+
+        // Import the asset using the relative path
+        ImportAssetImpl(relativePathString, importerId, name, guid);
+
+        ret.mCode = EAssetRegistrationResultCode::Success;
+        ret.mGuid = guid;
+        ret.mName = name;
+
+        IF_LOG_INFO(
+            "AssetManager", "Imported asset {} with GUID {} from absolute path {}.", name, guid.ToString(), absPath);
+
+        return ret;
+    }
 } // namespace Ifrit::Runtime

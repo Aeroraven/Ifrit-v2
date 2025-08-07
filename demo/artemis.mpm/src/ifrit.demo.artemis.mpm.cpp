@@ -102,7 +102,7 @@ namespace Ifrit
 
             auto interactor   = node->AddGameObject("InteractiveControl");
             auto rigidEmitter = interactor->AddComponent<RigidEmitter>();
-            // rigidEmitter->SetEnable(false);
+            rigidEmitter->SetEnable(false);
             interactor->AddComponent<MPMMouseInteractor>();
 
             m_sceneManager->SetActiveScene(scene);

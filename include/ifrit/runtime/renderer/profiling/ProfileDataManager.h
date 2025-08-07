@@ -22,6 +22,11 @@ namespace Ifrit::Runtime
 
         void                    FrameProceed();
         void                    ReportAccumulateEvent(const String& eventName, f32 durationMs);
+        void                    ReportBeginEvent(const RHI::RhiCommandList* cmdList, const String& eventName);
+        void                    ReportEndEvent(const RHI::RhiCommandList* cmdList, const String& eventName);
+        void                    ReportHostBeginEvent(const String& eventName);
+        void                    ReportHostEndEvent(const String& eventName);
+
         Vec<ProfileBriefReport> GetBriefReport() const;
 
         void                    SetMaxFramesToKeep(u32 maxFrames);

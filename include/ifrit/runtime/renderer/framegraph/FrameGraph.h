@@ -340,6 +340,13 @@ namespace Ifrit::Runtime
         u32    m_StartingPassId = ~0u;
         u32    m_EndingPassId   = ~0u;
     };
+    struct FrameGraphStatScope
+    {
+        String m_Name;
+        u32    m_ScopeId;
+        u32    m_StartingPassId = ~0u;
+        u32    m_EndingPassId   = ~0u;
+    };
 
     class IFRIT_APIDECL IFrameGraphDescRegistry
     {
@@ -352,15 +359,16 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL FrameGraphBuilder : public IFrameGraphDescRegistry, public NonCopyable
     {
     private:
-        Vec<Owner<ResourceNode>>    m_resources;
-        Vec<Owner<PassNode>>        m_passes;
-        Vec<Owner<FrameGraphScope>> m_scopes;
-        FrameGraphCompileMode       m_compileMode       = FrameGraphCompileMode::Sequential;
-        FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
-        ShaderRegistry*             m_ShaderRegistry    = nullptr;
-        RHI::RhiBackend*            m_Rhi               = nullptr;
+        Vec<Owner<ResourceNode>>        m_resources;
+        Vec<Owner<PassNode>>            m_passes;
+        Vec<Owner<FrameGraphScope>>     m_scopes;
+        Vec<Owner<FrameGraphStatScope>> m_statScopes;
+        FrameGraphCompileMode           m_compileMode       = FrameGraphCompileMode::Sequential;
+        FrameGraphResourceInitState     m_resourceInitState = FrameGraphResourceInitState::Manual;
+        ShaderRegistry*                 m_ShaderRegistry    = nullptr;
+        RHI::RhiBackend*                m_Rhi               = nullptr;
 
-        FrameGraphResourcePool*     m_ResourcePool = nullptr;
+        FrameGraphResourcePool*         m_ResourcePool = nullptr;
 
     public:
         FrameGraphBuilder(ShaderRegistry* shaderRegistry, RHI::RhiBackend* rhi, FrameGraphResourcePool* resourcePool)
@@ -396,6 +404,9 @@ namespace Ifrit::Runtime
         FrameGraphScope&        AddScopeBegin(const String& name);
         void                    AddScopeEnd(const FrameGraphScope& scope);
 
+        FrameGraphStatScope&    AddStatScopeBegin(const String& name);
+        void                    AddStatScopeEnd(const FrameGraphStatScope& scope);
+
         friend class FrameGraphCompiler;
         friend class FrameGraphExecutor;
     };
@@ -410,11 +421,13 @@ namespace Ifrit::Runtime
             RHI::RhiResourceState srcState;
             RHI::RhiResourceState dstState = RHI::RhiResourceState::Undefined;
         };
-        FrameGraphResourceInitState m_resourceInitState = FrameGraphResourceInitState::Manual;
-        const FrameGraphBuilder*    m_graph             = nullptr;
-        Vec<Vec<ResourceBarrier>>   m_inputBarriers     = {};
-        Vec<Vec<String>>            m_StartingScopes    = {};
-        Vec<u32>                    m_EndingScopes      = {};
+        FrameGraphResourceInitState m_resourceInitState  = FrameGraphResourceInitState::Manual;
+        const FrameGraphBuilder*    m_graph              = nullptr;
+        Vec<Vec<ResourceBarrier>>   m_inputBarriers      = {};
+        Vec<Vec<String>>            m_StartingScopes     = {};
+        Vec<u32>                    m_EndingScopes       = {};
+        Vec<Vec<u32>>               m_StatStartingScopes = {};
+        Vec<Vec<u32>>               m_StatEndingScopes   = {};
     };
 
     class IFRIT_APIDECL FrameGraphCompiler

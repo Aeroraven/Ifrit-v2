@@ -87,6 +87,8 @@ namespace Ifrit::Editor
                     return "Prefabs";
                 case Runtime::EAssetType::Shader:
                     return "Shaders";
+                case Runtime::EAssetType::VolumetricData:
+                    return "Volumes";
                 default:
                     return "Unknown";
             }
@@ -107,6 +109,8 @@ namespace Ifrit::Editor
                     return ICON_FA_OBJECT_GROUP;
                 case Runtime::EAssetType::Shader:
                     return ICON_FA_CODE;
+                case Runtime::EAssetType::VolumetricData:
+                    return ICON_FA_DATABASE;
                 default:
                     return ICON_FA_QUESTION;
             }
@@ -125,6 +129,8 @@ namespace Ifrit::Editor
                     return ICON_FA_SHAPES;
                 case Runtime::EAssetType::Shader:
                     return ICON_FA_FILE_CODE;
+                case Runtime::EAssetType::VolumetricData:
+                    return ICON_FA_DATABASE;
                 default:
                     return ICON_FA_FILE;
             }
@@ -322,6 +328,10 @@ namespace Ifrit::Editor
         {
             if (ImGui::BeginMenu("File"))
             {
+                if (ImGui::MenuItem("Import Asset"))
+                {
+                    ImGuiInternal::MenuBar_ImportAsset(data->m_MenuBarModals);
+                }
                 if (ImGui::MenuItem("Export Current Scene"))
                 {
                     ImGuiInternal::MenuBar_ExportCurrentScene(data->m_MenuBarModals);
@@ -615,6 +625,7 @@ namespace Ifrit::Editor
             ImGui::DockBuilderDockWindow("Inspector", dock_right);             // Inspector - right side
             ImGui::DockBuilderDockWindow("Viewport", dock_main);               // Viewport - center
             ImGui::DockBuilderDockWindow("Console", dock_bottom);              // Console - bottom
+            ImGui::DockBuilderDockWindow("Profiling", dock_bottom);
 
             // Finish setup
             ImGui::DockBuilderFinish(m_Data->m_DockspaceID);
@@ -681,10 +692,15 @@ namespace Ifrit::Editor
         PrintingLogs();
         ImGui::End();
 
+        ImGui::Begin("Profiling");
+        ImGuiInternal::Profiler_ShowGPUScopeStats();
+        ImGui::End();
+
         // Modals
         ImGuiInternal::Inspector_ShowAddSceneNodeModal(m_Data->m_InspectorModals);
         ImGuiInternal::Inspector_ShowAddGameObjectModal(m_Data->m_InspectorModals);
         ImGuiInternal::Inspector_ShowComponentCreationPopup(m_Data->m_InspectorModals);
+        ImGuiInternal::MenuBar_RenderImportAssetPopup(m_Data->m_MenuBarModals);
     }
 
     IFRIT_APIDECL Owner<RHI::RhiTaskSubmission> ImGuiProvider::OnPostRendering(RHI::RhiTaskSubmission* prevSubmission)

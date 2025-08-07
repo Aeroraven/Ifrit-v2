@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/hal/HalDisplay.h"
 #include "ifrit/core/hal/HalWindow.h"
 #include "ifrit/runtime/renderer/SharedRenderResource.h"
+#include "ifrit/runtime/asset/util/ImporterHelper.h"
 namespace Ifrit::Runtime
 {
     struct ApplicationPrivateData
@@ -113,8 +114,7 @@ namespace Ifrit::Runtime
         // Setup systems
         m_assetManager      = MakeRef<AssetManager>(m_info.m_assetPath, this);
         m_sceneAssetManager = MakeRef<SceneAssetManager>(m_info.m_scenePath, m_assetManager.get());
-        // m_assetManager->LoadAssetDirectory();
-        IF_LOG_INFO("Application", "Asset directory loaded from: {}", m_info.m_assetPath);
+        RegisterCommonImporters();
 
         m_sceneManager = MakeRef<SceneManager>(this);
 
@@ -123,6 +123,9 @@ namespace Ifrit::Runtime
 
         // Renderer Wrapper
         m_RendererWrapper = MakeRef<RendererWrapper>(m_rhiLayer.get(), m_shaderRegistry.get(), GetProjectProperty());
+
+        // Profiling system
+        mProfileDataManager = MakeOwner<ProfileDataManager>();
 
         OnStart();
     }
@@ -134,6 +137,8 @@ namespace Ifrit::Runtime
         if (m_EnableRendererWrapper)
         {
             m_RendererWrapper->BeginFrame();
+            mProfileDataManager->FrameProceed();
+
             for (auto& subsystem : m_Subsystems)
             {
                 subsystem->OnFrameBegin();
