@@ -287,7 +287,6 @@ namespace MPM{
         int PageOffset = PageId * kMpmBlockPageSize + GroupThreadId.x;
         int ParticleId = PushConst.m_ParticleIndexesInPages.Load(PageOffset);
         bool IsValidThread = !(GroupThreadId.x >= NumParticlesInPage);
-        bool IsFirstRun = (PushConst.m_IsFirstOrLastRun & 1) != 0;
 
         FDenseGridStructure Grid = PushConst.m_Grid.Load();
         FDenseBlockStructure Block = PushConst.m_Block.Load();
@@ -303,12 +302,13 @@ namespace MPM{
         }
         GroupMemoryBarrierWithGroupSync();
 
+        FSpatialIndex lMinBlockInGridAffRange = sMinBlockInGridAffRange;
         for(int i = 0; i < kAffNumCells; i+=kMpmTGSizeX)
         {
             int LocalCellId = i + GroupThreadId.x;
             if(LocalCellId < kAffNumCells){
                 FSpatialIndex LocalGridIndex = GetLocalGridFromIndex(LocalCellId);
-                FSpatialIndex GridLocIndex = sMinBlockInGridAffRange + LocalGridIndex;
+                FSpatialIndex GridLocIndex = lMinBlockInGridAffRange + LocalGridIndex;
 #ifdef IFSHADER_MPM_3D
                 sInBlockVelocities[LocalCellId * 4 + 0] = 0;
                 sInBlockVelocities[LocalCellId * 4 + 1] = 0;
@@ -384,7 +384,7 @@ namespace MPM{
 
 
             FSpatialIndex LocalGridIndex = GetLocalGridFromIndex(LocalCellId);
-            FSpatialIndex GridLocIndex = sMinBlockInGridAffRange + LocalGridIndex;
+            FSpatialIndex GridLocIndex = lMinBlockInGridAffRange + LocalGridIndex;
             if(!Grid.IsValidGrid(GridLocIndex)) continue;
 
             FSpatialVector ContribMomentum = GetVelocity(LocalCellId);

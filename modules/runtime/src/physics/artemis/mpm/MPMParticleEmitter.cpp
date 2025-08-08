@@ -55,7 +55,7 @@ namespace Ifrit::Runtime::Artemis
             auto                         asset         = assetRegistry->GetAsset<VolumeAsset>(mVdbSampleSource.mGuid);
 
             Geometry::VolumeSamplingArgs args;
-            args.mDeltaCellX             = 0.3f;
+            args.mDeltaCellX             = 0.1f;
             args.mPPC                    = mSamplerPpc;
             args.mTransform_DoNormalize  = true;
             args.mTransform_MoveToCenter = Vector3f(32.0f, 32.0f, 32.0f);

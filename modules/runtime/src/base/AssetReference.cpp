@@ -16,34 +16,49 @@ namespace Ifrit::Runtime
     }
     IFRIT_APIDECL void AssetReferenceId::DoSerialize(Reflection::Archive* archive) const
     {
+        auto   assetRegistry = GetActiveApplication()->GetAssetRegistry();
+        Asset* asset         = nullptr;
+
+        auto   actualMType = mType;
+        auto   actualMPath = mRelativePath;
+
+        if (mType != EAssetReferencingType::Empty && mType != EAssetReferencingType::Unknown)
+        {
+            asset = assetRegistry->GetAsset<Asset>(mGuid);
+            if (asset != nullptr)
+            {
+                auto& assetMetadata = asset->mMetadata;
+                actualMType         = assetMetadata.mReferencingType;
+                actualMPath         = assetMetadata.mExternalPath;
+            }
+        }
+
         archive->BeginObject("__ifrit_asset_reference");
         archive->BeginObject("__ifrit_guid");
         mGuid.DoSerialize(archive);
         archive->EndObject();
         archive->BeginObject("__ifrit_path");
-        archive->Serialize(mRelativePath);
+        archive->Serialize(actualMPath);
         archive->EndObject();
 
         using U     = std::underlying_type_t<EAssetReferencingType>;
-        U typeValue = static_cast<U>(mType);
+        U typeValue = static_cast<U>(actualMType);
         archive->BeginObject("__ifrit_asset_referencing_type");
         archive->Serialize(typeValue);
         archive->EndObject();
 
-        if (mType == EAssetReferencingType::Unknown)
+        if (actualMType == EAssetReferencingType::Unknown)
         {
             IF_LOG_CRITICAL("AssetReferenceId", "AssetReferenceId is in unknown state, cannot serialize");
             archive->EndObject();
             return;
         }
-        else if (mType == EAssetReferencingType::Empty)
+        else if (actualMType == EAssetReferencingType::Empty)
         {
             archive->EndObject();
             return;
         }
 
-        auto assetRegistry = GetActiveApplication()->GetAssetRegistry();
-        auto asset         = assetRegistry->GetAsset<Asset>(mGuid);
         archive->BeginObject("__ifrit_asset_is_valid");
         int valid = asset ? 1 : 0;
         archive->Serialize(valid);
@@ -51,7 +66,7 @@ namespace Ifrit::Runtime
 
         if (valid)
         {
-            if (mType == EAssetReferencingType::Internal)
+            if (actualMType == EAssetReferencingType::Internal)
             {
                 String              serializedAsset;
                 InternalAssetHolder holder;
@@ -62,7 +77,7 @@ namespace Ifrit::Runtime
                 holder.mAsset.release();
                 archive->EndObject();
             }
-            else if (mType == EAssetReferencingType::Imported)
+            else if (actualMType == EAssetReferencingType::Imported)
             {
                 // Saving importer
                 archive->BeginObject("__ifrit_asset_importer");

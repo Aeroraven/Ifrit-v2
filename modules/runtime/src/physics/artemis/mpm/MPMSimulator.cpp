@@ -2236,8 +2236,10 @@ namespace Ifrit::Runtime::Artemis
 
         struct PushConst
         {
-            Matrix4x4f m_MVP;
-            u32        m_PositionId;
+            Matrix4x4f      m_MVP;
+            u32             m_PositionId;
+            RHI::RhiSRVDesc mColorId;
+            f32             mPointSize;
         };
 
         auto& pass = builder.AddGraphicsPass("MPMSimulator.ParticleRender3D",
@@ -2254,7 +2256,9 @@ namespace Ifrit::Runtime::Artemis
 
             PushConst pc;
             pc.m_PositionId = ctx.m_FgDesc->GetUAV(*m_RDGParticlePosition);
+            pc.mColorId     = ctx.m_FgDesc->GetSRV(*m_RDGParticleColor);
             pc.m_MVP        = mvp;
+            pc.mPointSize   = this->m_ParticleRenderSize;
 
             cmd->AttachIndexBuffer(m_ParticleData->m_ParticleIndex.get());
             cmd->SetCullMode(RhiCullMode::None);

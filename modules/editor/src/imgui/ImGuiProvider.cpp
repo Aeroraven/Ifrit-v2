@@ -279,6 +279,16 @@ namespace Ifrit::Editor
     {
         VecView<Logging::InternalLogEntries> entries = Logging::GetLogEntries();
         ImVec4                               color   = ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+        // Check if we're at or very close to the bottom (with small tolerance)
+        bool                                 wasAtBottom = false;
+        float                                scrollY     = ImGui::GetScrollY();
+        float                                maxScrollY  = ImGui::GetScrollMaxY();
+        if (scrollY >= maxScrollY - 5.0f) // 5 pixel tolerance
+        {
+            wasAtBottom = true;
+        }
+
         for (auto& p : entries)
         {
             String tx = p.m_Message;
@@ -317,7 +327,12 @@ namespace Ifrit::Editor
             ImGui::Text(tx.c_str());
             ImGui::PopStyleColor();
         }
-        ImGui::SetScrollHereY(1.0f);
+
+        // Only auto-scroll if we were at the bottom before rendering
+        if (wasAtBottom)
+        {
+            ImGui::SetScrollHereY(1.0f);
+        }
     }
 
     void RenderMenuBar(ImGuiProviderData* data)
