@@ -45,6 +45,7 @@ namespace Rigid{
         
 #ifndef IFSHADER_RIGID_DYNAMICS_3D
         DynamicsData.m_AngularVelocity = (DynamicsData.m_Rotation - DynamicsData.m_RotationLast) / PushConst.m_DeltaTime;
+        DynamicsData.m_AngularVelocity = clamp(DynamicsData.m_AngularVelocity, -3.14f / 1.0f, 3.14f / 1.0f);
 #else
         //TODO: Add 3D rotation handling
 #endif

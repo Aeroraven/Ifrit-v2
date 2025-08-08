@@ -18,6 +18,8 @@ namespace Ifrit::Reflection
 
         std::stack<nlohmann::json::iterator> IteratorStack;
         std::stack<nlohmann::json::iterator> EndIteratorStack;
+
+        std::stack<i32>                      ObjectStackValue;
     };
 
     class JSONArchiveHelper
@@ -312,6 +314,23 @@ namespace Ifrit::Reflection
     String JSONArchive::GetResult() const
     {
         return PrivateData->JsonData->dump(4, ' ', false, nlohmann::json::error_handler_t::replace);
+    }
+
+    void JSONArchive::PushObjectVerificationReq()
+    {
+        PrivateData->ObjectStackValue.push(PrivateData->ObjectStack.size());
+    }
+    bool JSONArchive::PopObjectVerificationReq()
+    {
+        auto topValue = PrivateData->ObjectStackValue.top();
+        PrivateData->ObjectStackValue.pop();
+        if (PrivateData->ObjectStack.size() != topValue)
+        {
+            IF_LOG_ERROR("Reflector", "Object verification failed, expected stack size {}, but got {}", topValue,
+                PrivateData->ObjectStack.size());
+            return false;
+        }
+        return true;
     }
 
 } // namespace Ifrit::Reflection

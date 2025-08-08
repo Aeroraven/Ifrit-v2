@@ -52,11 +52,10 @@ namespace Ifrit::GeometryProc::Sampler
         u32   offset  = sizeof(u64) * 2;
         for (u32 i = 0; i < numSamples; ++i)
         {
-            f32 x = *reinterpret_cast<f32*>(rawData + offset);
-            f32 y = *reinterpret_cast<f32*>(rawData + offset + sizeof(f32));
-            f32 z = *reinterpret_cast<f32*>(rawData + offset + 2 * sizeof(f32));
+            f32 x = *reinterpret_cast<f32*>(rawData + offset) + 60.0f;
+            f32 y = *reinterpret_cast<f32*>(rawData + offset + sizeof(f32)) + 60.0f;
+            f32 z = *reinterpret_cast<f32*>(rawData + offset + 2 * sizeof(f32)) + 60.0f;
             refs.m_Samples.push_back(TGenericVector<f32, 3>(x, y, z));
-            // iDebug("Poisson sample {}: ({}, {}, {})", i, x, y, z);
             offset += 3 * sizeof(f32);
         }
         IF_LOG_DEBUG("GeometrySampler", "Loaded {} samples from Poisson sampler references.", refs.m_Samples.size());

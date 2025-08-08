@@ -46,4 +46,4 @@ namespace Ifrit::Runtime
     {
         return MakeOwner<HostProfileStatScope>(eventName);
     }
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

@@ -92,7 +92,7 @@ namespace MPM{
 
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
-    IFSHADER_BLOCKSIZE(kMpmTGSizeX, 1, 1)
+    IFSHADER_BLOCKSIZE(kMpmBlockPageSize, 1, 1)
     void MpmBlockGridToParticleCS(uint3 ThreadId:SV_DispatchThreadID,
                                 uint3 GroupId:SV_GroupID,
                                 uint3 GroupThreadId:SV_GroupThreadID)
@@ -117,7 +117,7 @@ namespace MPM{
         }
         GroupMemoryBarrierWithGroupSync();
 
-        for(int i = 0; i < kAffNumCells; i += kMpmTGSizeX)
+        for(int i = 0; i < kAffNumCells; i += kMpmBlockPageSize)
         {
             int LocalCellId = GroupThreadId.x + i;
             if(LocalCellId < kAffNumCells)
@@ -190,4 +190,4 @@ namespace MPM{
         }
     }
 
-}}}
+}}}

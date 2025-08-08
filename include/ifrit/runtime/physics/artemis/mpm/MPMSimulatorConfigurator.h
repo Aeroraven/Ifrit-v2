@@ -27,8 +27,7 @@ namespace Ifrit::Runtime::Artemis
         IF_PROPERTY(Editable, UIText)
         Vector3f mGravity = Vector3f(0.0f, -1.0f, 0.0f);
 
-        IF_PROPERTY(Editable, UISelect)
-        bool mClearParticles = false;
+        bool     mClearParticles = false;
 
         IF_PROPERTY(Editable, UISlider = (min = 0.1, max = 5.0))
         f32 mPointSize = 2.0f;

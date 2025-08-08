@@ -176,6 +176,7 @@ namespace Ifrit::Runtime::Artemis
         FGBufferNodeRef                            m_RDGRenderParticleIndDrawBuffer;
 
         FGTextureNodeRef                           m_RDGRenderTarget;
+        FGTextureNodeRef                           m_RDGDepthTarget;
 
         FGBufferNodeRef                            m_RDGRigidContactCounter;
         FGBufferNodeRef                            m_RDGRigidContactList;
@@ -1731,6 +1732,7 @@ namespace Ifrit::Runtime::Artemis
         else if (m_Config->m_Dimension == MPMSimulatorProblemDimension::ThreeDimensional)
             return DivRoundUp(m_Config->m_GridSize.x, kMpmBlockSize) * DivRoundUp(m_Config->m_GridSize.y, kMpmBlockSize)
                 * DivRoundUp(m_Config->m_GridSize.z, kMpmBlockSize);
+        return 0;
     }
     u32 MPMSimulatorPrivateData::GetNumGrids() const
     {
@@ -1960,6 +1962,11 @@ namespace Ifrit::Runtime::Artemis
         if (m_DebugRenderTarget)
         {
             m_RDGRenderTarget = &builder.ImportTexture("MPM_DebugRenderTarget", m_DebugRenderTarget);
+            auto rtw          = m_RDGRenderTarget->GetWidth();
+            auto rth          = m_RDGRenderTarget->GetHeight();
+            m_RDGDepthTarget  = &builder.DeclareTexture("MPM_DebugRenderDepthTarget",
+                 FrameGraphTextureDesc(
+                    rtw, rth, 1, RHI::RhiImageFormat::RhiImgFmt_D32_SFLOAT, RHI::RhiImageUsage::RhiImgUsage_Depth));
         }
 
         // PBMPM Rigid Coupling
@@ -2265,7 +2272,9 @@ namespace Ifrit::Runtime::Artemis
             cmd->SetPushConst(&pc, 0, sizeof(PushConst));
             cmd->DrawIndirect(m_RenderParticleIndDrawBuffer.get(), 0);
         });
-        pass.AddRenderTarget(*renderTarget, RHI::RhiRenderTargetLoadOp::Load).AddReadResource(*m_RDGParticlePosition);
+        pass.AddRenderTarget(*renderTarget, RHI::RhiRenderTargetLoadOp::Load)
+            .AddDepthTarget(*m_RDGDepthTarget, RHI::RhiRenderTargetLoadOp::Clear)
+            .AddReadResource(*m_RDGParticlePosition);
     }
 
     // MPMSimulator implementation

@@ -42,6 +42,9 @@ namespace Ifrit::Reflection
         void   Serialize(String& value) override;
         void   Serialize(bool& value) override;
 
+        void   PushObjectVerificationReq() override;
+        bool   PopObjectVerificationReq() override;
+
         void   LoadFromString(const String& data) override;
         String GetResult() const override;
 

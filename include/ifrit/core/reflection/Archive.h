@@ -49,6 +49,9 @@ namespace Ifrit::Reflection
         virtual void   Serialize(bool& value)             = 0;
         virtual void   LoadFromString(const String& data) = 0;
 
+        virtual void   PushObjectVerificationReq() = 0;
+        virtual bool   PopObjectVerificationReq()  = 0;
+
         template <typename T>
             requires std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<String, T>
         void Serialize(const T& value)

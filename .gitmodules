@@ -1,18 +1,18 @@
 [submodule "dependencies/stb"]
 	path = dependencies/stb
-	url = git@github.com:nothings/stb.git
+	url = https://github.com/nothings/stb.git
 [submodule "dependencies/spirv_headers"]
 	path = dependencies/spirv_headers
-	url = git@github.com:KhronosGroup/SPIRV-Headers.git
+	url = https://github.com/KhronosGroup/SPIRV-Headers.git
 [submodule "dependencies/gklib"]
 	path = dependencies/gklib
-	url = git@github.com:Aeroraven/GKlib.git
+	url = https://github.com/Aeroraven/GKlib.git
 [submodule "dependencies/metis"]
 	path = dependencies/metis
-	url = git@github.com:Aeroraven/METIS.git
+	url =https://github.com/Aeroraven/METIS.git
 [submodule "dependencies/meshoptimizer"]
 	path = dependencies/meshoptimizer
-	url = git@github.com:zeux/meshoptimizer.git
+	url = https://github.com/zeux/meshoptimizer.git
 [submodule "dependencies/glfw"]
 	path = dependencies/glfw
 	url = https://github.com/glfw/glfw.git
@@ -21,49 +21,49 @@
 	url = https://github.com/USCiLab/cereal.git
 [submodule "dependencies/sha1"]
 	path = dependencies/sha1
-	url = git@github.com:vog/sha1.git
+	url = https://github.com/vog/sha1.git
 [submodule "dependencies/gcem"]
 	path = dependencies/gcem
 	url = https://github.com/kthohr/gcem.git
 [submodule "dependencies/spdlog"]
 	path = dependencies/spdlog
-	url = git@github.com:gabime/spdlog.git
+	url = https://github.com/gabime/spdlog.git
 [submodule "dependencies/tinygltf2"]
 	path = dependencies/tinygltf2
-	url = git@github.com:syoyo/tinygltf.git
+	url = https://github.com/syoyo/tinygltf.git
 [submodule "dependencies/fsr2"]
 	path = dependencies/fsr2
-	url = git@github.com:Aeroraven/fsr2-fork.git
+	url = https://github.com/Aeroraven/fsr2-fork.git
 [submodule "dependencies/ktxsoftware"]
 	path = dependencies/ktxsoftware
-	url = git@github.com:KhronosGroup/KTX-Software.git
+	url = https://github.com/KhronosGroup/KTX-Software.git
 [submodule "dependencies/slang"]
 	path = dependencies/slang
-	url = git@github.com:shader-slang/slang.git
+	url = https://github.com/shader-slang/slang.git
 [submodule "dependencies/tetgen"]
 	path = dependencies/tetgen
 	url = https://github.com/ufz/tetgen.git
 [submodule "dependencies/imgui"]
 	path = dependencies/imgui
-	url = git@github.com:ocornut/imgui.git
+	url = https://github.com/ocornut/imgui.git
 [submodule "dependencies/openvdb"]
 	path = dependencies/openvdb
-	url = git@github.com:Aeroraven/openvdb.git
+	url = https://github.com/Aeroraven/openvdb.git
 [submodule "dependencies/tbb"]
 	path = dependencies/tbb
-	url = git@github.com:uxlfoundation/oneTBB.git
+	url = https://github.com/uxlfoundation/oneTBB.git
 [submodule "dependencies/blosc"]
 	path = dependencies/blosc
-	url = git@github.com:Blosc/c-blosc.git
+	url = https://github.com/Blosc/c-blosc.git
 [submodule "dependencies/zlib"]
 	path = dependencies/zlib
-	url = git@github.com:madler/zlib.git
+	url = https://github.com/madler/zlib.git
 [submodule "dependencies/mimalloc"]
 	path = dependencies/mimalloc
-	url = git@github.com:microsoft/mimalloc.git
+	url = https://github.com/microsoft/mimalloc.git
 [submodule "dependencies/magicenum"]
 	path = dependencies/magicenum
-	url = git@github.com:Neargye/magic_enum.git
+	url = https://github.com/Neargye/magic_enum.git
 [submodule "dependencies/nfd"]
 	path = dependencies/nfd
-	url = git@github.com:btzy/nativefiledialog-extended.git
+	url = https://github.com/btzy/nativefiledialog-extended.git

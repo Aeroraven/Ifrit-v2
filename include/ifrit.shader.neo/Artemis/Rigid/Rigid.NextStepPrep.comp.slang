@@ -45,6 +45,7 @@ namespace Rigid{
         FSpatialVector Displacement = DynamicsData.m_Displacement;
         DynamicsData.m_DisplacementOld = DynamicsData.m_Displacement;
         Displacement += Accel * PushConst.m_DeltaTime * PushConst.m_DeltaTime * 0.5f;   
+        Displacement = clamp(Displacement, -1.0f/64.0f, 1.0f/64.0f);
 
         // q_prev<-q
         DynamicsData.m_RotationLast = DynamicsData.m_Rotation;

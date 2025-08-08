@@ -50,6 +50,9 @@ namespace Ifrit::Runtime::Artemis
         IF_PROPERTY(Editable, UISlider = (min = 1, max = 20))
         i32 mSamplerPpc = 8;
 
+        IF_PROPERTY(Editable, UISlider = (min = 0.1, max = 2.0))
+        f32 mCellDx = 0.2f;
+
         IF_PROPERTY(Editable, AssetCategory = "VolumetricData")
         AssetReferenceId mVdbSampleSource;
 

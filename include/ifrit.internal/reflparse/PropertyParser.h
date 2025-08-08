@@ -170,21 +170,21 @@ namespace Ifrit::ReflParser::PropParse
 
         if (std::holds_alternative<std::string>(node.value))
         {
-            LogInfo(fullKey, ":", std::get<std::string>(node.value));
+            // LogInfo(fullKey, ":", std::get<std::string>(node.value));
             stream << "        ";
             stream << "RegisterPropertyHint<&" << memberName << ">(\"" << fullKey << "\", \""
                    << std::get<std::string>(node.value) << "\");\n";
         }
         else if (std::holds_alternative<double>(node.value))
         {
-            LogInfo(fullKey, ":", std::get<double>(node.value));
+            // LogInfo(fullKey, ":", std::get<double>(node.value));
             stream << "        ";
             stream << "RegisterPropertyHint<&" << memberName << ">(\"" << fullKey << "\", (double)"
                    << std::get<double>(node.value) << ");\n";
         }
         else if (std::holds_alternative<int>(node.value))
         {
-            LogInfo(fullKey, ":", std::get<int>(node.value));
+            // LogInfo(fullKey, ":", std::get<int>(node.value));
             stream << "        ";
             stream << "RegisterPropertyHint<&" << memberName << ">(\"" << fullKey << "\", (int)"
                    << std::get<int>(node.value) << ");\n";

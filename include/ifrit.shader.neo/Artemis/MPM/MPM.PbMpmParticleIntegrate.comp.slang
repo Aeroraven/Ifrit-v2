@@ -145,6 +145,7 @@ namespace MPM{
         }
 #endif
         FSpatialVector OverallDisplacement = ParticleDisplacement + GravityDisplacement + MouseDisplacement;
+        OverallDisplacement = clamp(OverallDisplacement, -GridSpacing, GridSpacing);
 
         PushConst.m_ParticleLocation.Store(ThreadId.x, NewParticleLocation);
         PushConst.m_ParticleVelocity.Store(ThreadId.x, OverallDisplacement);

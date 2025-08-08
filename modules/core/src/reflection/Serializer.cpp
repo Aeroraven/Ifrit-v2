@@ -27,10 +27,16 @@ namespace Ifrit::Reflection
         auto properties = GetPropertyList(reflObj);
         for (const auto& [k, v] : properties)
         {
-            if (archive->HasObject(k))
+            if (archive->HasObject(k)) // PopObjectVerificationReq
             {
                 archive->BeginObject(k);
+                archive->PushObjectVerificationReq();
                 v.Value().Deserialize(archive);
+                if (!archive->PopObjectVerificationReq())
+                {
+                    IF_LOG_CRITICAL(
+                        "Reflector", "Deserialization data corrupted for property '{}', type: {}", k, typeInfo.name());
+                }
                 archive->EndObject();
             }
             else

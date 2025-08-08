@@ -900,7 +900,7 @@ namespace Ifrit::Runtime
             cmd->BeginScope(scopeName);
             scopesActive++;
         }
-        for (int i = 0; i < compiledGraph.m_EndingScopes[0]; i++)
+        for (u32 i = 0; i < compiledGraph.m_EndingScopes[0]; i++)
         {
             cmd->EndScope();
             scopesActive--;

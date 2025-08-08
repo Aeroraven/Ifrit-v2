@@ -22,7 +22,7 @@ namespace Ifrit::Runtime
         auto   actualMType = mType;
         auto   actualMPath = mRelativePath;
 
-        if (mType != EAssetReferencingType::Empty && mType != EAssetReferencingType::Unknown)
+        if (mType != EAssetReferencingType::Unknown)
         {
             asset = assetRegistry->GetAsset<Asset>(mGuid);
             if (asset != nullptr)
@@ -119,7 +119,7 @@ namespace Ifrit::Runtime
         archive->BeginObject("__ifrit_asset_is_valid");
         archive->Serialize(valid);
         archive->EndObject();
-        if (valid && mType == EAssetReferencingType::Internal)
+        if (valid)
         {
             if (mType == EAssetReferencingType::Internal)
             {

@@ -40,7 +40,7 @@ namespace MPM{
 
 //#define IFSHADER_MPM_BLOCKING_FIXED_POINT_MATH 1
 //#define IFSHADER_MPM_MANUAL_FP32_ATOMICS 1
-    static const float kFixedPointScale = 1.5e10f;
+    static const float kFixedPointScale = 1e10f;
     static const float kFixedPointScaleInv = 1.0f / kFixedPointScale;
 
 #ifdef IFSHADER_MPM_BLOCKING_FIXED_POINT_MATH
@@ -48,27 +48,34 @@ namespace MPM{
 #endif
 
 #ifdef IFSHADER_MPM_MANUAL_FP32_ATOMICS
-    #define IFSHADER_MPM_BLOCKING_INT_SMEM
+    #define IFSHADER_MPM_BLOCKING_UINT_SMEM
 #endif
-
-
     
 #ifdef IFSHADER_MPM_3D
     static const int kAffNumCells = kAffRange * kAffRange * kAffRange;
-    #ifdef IFSHADER_MPM_BLOCKING_INT_SMEM
+    #ifdef IFSHADER_MPM_BLOCKING_UINT_SMEM
         groupshared uint sInBlockVelocities[kAffNumCells * 4];
     #else
-        groupshared float sInBlockVelocities[kAffNumCells * 4];
+        #ifdef IFSHADER_MPM_BLOCKING_INT_SMEM
+            groupshared int sInBlockVelocities[kAffNumCells * 4];
+        #else
+            groupshared float sInBlockVelocities[kAffNumCells * 4];
+        #endif
     #endif
     groupshared FSpatialIndex sMinBlockInGridAffRange;
 #else
     static const int kAffNumCells = kAffRange * kAffRange;
-    #ifdef IFSHADER_MPM_BLOCKING_INT_SMEM
+    #ifdef IFSHADER_MPM_BLOCKING_UINT_SMEM
         groupshared uint sInBlockVelocities[kAffNumCells * 2];
         groupshared uint sInBlockMasses[kAffNumCells];
     #else
-        groupshared float sInBlockVelocities[kAffNumCells * 2];
-        groupshared float sInBlockMasses[kAffNumCells];
+        #ifdef IFSHADER_MPM_BLOCKING_INT_SMEM
+            groupshared int sInBlockVelocities[kAffNumCells * 2];
+            groupshared int sInBlockMasses[kAffNumCells];
+        #else
+            groupshared float sInBlockVelocities[kAffNumCells * 2];
+            groupshared float sInBlockMasses[kAffNumCells];
+        #endif
     #endif
     groupshared FSpatialIndex sMinBlockInGridAffRange;
 #endif
@@ -143,7 +150,7 @@ namespace MPM{
 
     FScalar FixedPointToFloat(uint FixedPointValue)
     {
-        return FixedPointValue * kFixedPointScaleInv;
+        return FixedPointValue / kFixedPointScale;
     }
 
     uint FloatToFixedPoint(FScalar Value)
@@ -277,7 +284,7 @@ namespace MPM{
 
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
-    IFSHADER_BLOCKSIZE(kMpmTGSizeX, 1, 1)
+    IFSHADER_BLOCKSIZE(kMpmBlockPageSize, 1, 1)
     void MpmBlockParticleToGridCS(uint3 ThreadId:SV_DispatchThreadID,
                                 uint3 GroupId:SV_GroupID,
                                 uint3 GroupThreadId:SV_GroupThreadID)
@@ -303,7 +310,7 @@ namespace MPM{
         GroupMemoryBarrierWithGroupSync();
 
         FSpatialIndex lMinBlockInGridAffRange = sMinBlockInGridAffRange;
-        for(int i = 0; i < kAffNumCells; i+=kMpmTGSizeX)
+        for(int i = 0; i < kAffNumCells; i+=kMpmBlockPageSize)
         {
             int LocalCellId = i + GroupThreadId.x;
             if(LocalCellId < kAffNumCells){
@@ -377,7 +384,7 @@ namespace MPM{
 
         GroupMemoryBarrierWithGroupSync();
 
-        for(int i = 0; i < kAffNumCells; i+=kMpmTGSizeX)
+        for(int i = 0; i < kAffNumCells; i+=kMpmBlockPageSize)
         {
             int LocalCellId = i + GroupThreadId.x;
             if(LocalCellId >= kAffNumCells) continue;

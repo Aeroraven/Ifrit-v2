@@ -341,7 +341,7 @@ namespace Ifrit::Runtime
     IFRIT_APIDECL Scene::~Scene()
     {
         // Clear all game objects
-        for (int i = mGameObjectManager->mGameObjects.size() - 1; i >= 0; i--)
+        for (int i = SizeCast<i32>(mGameObjectManager->mGameObjects.size()) - 1; i >= 0; i--)
         {
             RemoveGameObject(i);
         }
@@ -356,7 +356,7 @@ namespace Ifrit::Runtime
         rhi->WaitDeviceIdle();
 
         // unload scene
-        for (int i = mGameObjectManager->mGameObjects.size() - 1; i >= 0; i--)
+        for (int i = SizeCast<i32>(mGameObjectManager->mGameObjects.size()) - 1; i >= 0; i--)
         {
             RemoveGameObject(i);
         }

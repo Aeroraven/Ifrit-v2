@@ -21,6 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit
 {
+    template <class... T> struct always_false : std::false_type
+    {
+    };
     template <typename T, typename... Types> using TypeIsAnyOf = std::disjunction<std::is_same<T, Types>...>;
     template <typename T, typename... Types> inline IF_CONSTEXPR bool TypeIsAnyOf_v = TypeIsAnyOf<T, Types...>::value;
 
@@ -70,7 +73,7 @@ namespace Ifrit
     template <typename... Args> struct TTypeSet;
     template <typename T, typename U> struct TTraitIsAnyOf : std::false_type
     {
-        static_assert(false, "TTraitIsAnyOf requires at least one type to compare against.");
+        static_assert(always_false<T>{}, "TTraitIsAnyOf requires at least one type to compare against.");
     };
     template <typename T, typename... Types>
     struct TTraitIsAnyOf<T, TTypeSet<Types...>> : std::disjunction<std::is_same<T, Types>...>
