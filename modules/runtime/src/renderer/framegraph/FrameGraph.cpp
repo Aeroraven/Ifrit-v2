@@ -419,6 +419,8 @@ namespace Ifrit::Runtime
         auto scopeId                     = SizeCast<u32>(m_statScopes.size());
         scope->m_ScopeId                 = scopeId;
         auto ptr                         = scope.get();
+        IF_LOG_INFO("FrameGraph", "Adding stat scope: {} at pass id: {}.", name, scope->m_StartingPassId);
+
         m_statScopes.push_back(std::move(scope));
         return *ptr;
     }
@@ -426,6 +428,8 @@ namespace Ifrit::Runtime
     {
         FrameGraphStatScope& scopex = *m_statScopes[scope.m_ScopeId];
         scopex.m_EndingPassId       = std::max(scopex.m_StartingPassId, (u32)std::max(0, (i32)m_passes.size()));
+
+        IF_LOG_INFO("FrameGraph", "Ending stat scope: {} at pass id: {}.", scopex.m_Name, scopex.m_EndingPassId);
         if (scopex.m_EndingPassId <= scopex.m_StartingPassId)
         {
             IF_LOG_CRITICAL("FrameGraph", "Stat scope {} has no ending pass.", scopex.m_Name);
@@ -554,22 +558,22 @@ namespace Ifrit::Runtime
         for (auto& scope : graph.m_scopes)
         {
 
-            if (scope->m_StartingPassId < graph.m_passes.size())
+            if (scope->m_StartingPassId <= graph.m_passes.size())
             {
                 compiledGraph.m_StartingScopes[scope->m_StartingPassId].push_back(scope->m_Name);
             }
-            if (scope->m_EndingPassId < graph.m_passes.size())
+            if (scope->m_EndingPassId <= graph.m_passes.size())
             {
                 compiledGraph.m_EndingScopes[scope->m_EndingPassId]++;
             }
         }
         for (auto& scope : graph.m_statScopes)
         {
-            if (scope->m_StartingPassId < graph.m_passes.size())
+            if (scope->m_StartingPassId <= graph.m_passes.size())
             {
                 compiledGraph.m_StatStartingScopes[scope->m_StartingPassId].push_back(scope->m_ScopeId);
             }
-            if (scope->m_EndingPassId < graph.m_passes.size())
+            if (scope->m_EndingPassId <= graph.m_passes.size())
             {
                 compiledGraph.m_StatEndingScopes[scope->m_EndingPassId].push_back(scope->m_ScopeId);
             }
@@ -1002,6 +1006,7 @@ namespace Ifrit::Runtime
             // End stat scopes
             for (auto& scopeId : compiledGraph.m_StatEndingScopes[pass->id + 1])
             {
+                auto  scopeName = compiledGraph.m_graph->m_statScopes[scopeId]->m_Name;
                 auto& statScope = *compiledGraph.m_graph->m_statScopes[scopeId];
                 statManager->ReportEndEvent(cmd, statScope.m_Name);
             }

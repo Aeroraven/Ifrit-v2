@@ -1,6 +1,7 @@
 #include "ifrit/core/reflection/archive/JSONArchive.h"
 #include "ifrit/core/logging/Logging.h"
 #include "json/json.h"
+#include "ifrit/core/typing/Util.h"
 #include <stack>
 namespace Ifrit::Reflection
 {
@@ -318,7 +319,7 @@ namespace Ifrit::Reflection
 
     void JSONArchive::PushObjectVerificationReq()
     {
-        PrivateData->ObjectStackValue.push(PrivateData->ObjectStack.size());
+        PrivateData->ObjectStackValue.push(SizeCast<i32>(PrivateData->ObjectStack.size()));
     }
     bool JSONArchive::PopObjectVerificationReq()
     {

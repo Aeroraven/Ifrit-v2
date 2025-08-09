@@ -25,6 +25,8 @@
 
 #include "ifrit/core/reflection/SerializeHelper.h"
 #include "ifrit/runtime/physics/artemis/ArtemisController.h"
+#include "ifrit/runtime/physics/artemis/mpm/visualization/ProceduralMPMMeshAsset.h"
+#include "ifrit/runtime/geometry/ProceduralMeshUpdater.h"
 #include "ifrit/profiler/ProfilerSystem.h"
 
 #define WINDOW_WIDTH 1500
@@ -55,9 +57,11 @@ namespace Ifrit
         {
             m_Renderer = MakeOwner<BaseForwardRenderer>(this);
             m_RendererWrapper->SetRenderer(m_Renderer.get());
+
             RegisterSubsystem(InputSystem::Create());
             RegisterSubsystem(Artemis::ArtemisController::Create());
             RegisterSubsystem(Profiler::ProfilerSystem::Create());
+            RegisterSubsystem(Geometry::ProceduralMeshUpdater::Create());
             RegisterSubsystem(Editor::CreateEditorProvider(Editor::EEditorProviderType::ImGui));
             EnableRendererWrapper(true);
             m_RendererWrapper->SetRendererConfig(m_RenderConfig);
@@ -66,9 +70,15 @@ namespace Ifrit
             artemisController->AddPresetSolver(Artemis::EPresetArtemisSimulator::MPM);
             auto mpmSimulator = reinterpret_cast<Artemis::MPMSimulator*>(
                 artemisController->GetPresetSolver(Artemis::EPresetArtemisSimulator::MPM));
-            auto mpmInternalConfig        = mpmSimulator->GetActiveConfig();
-            mpmInternalConfig.m_Dimension = Artemis::MPMSimulatorProblemDimension::TwoDimensional;
+            auto mpmInternalConfig              = mpmSimulator->GetActiveConfig();
+            mpmInternalConfig.m_Dimension       = Artemis::MPMSimulatorProblemDimension::ThreeDimensional;
+            mpmInternalConfig.m_EnableRendering = false;
             mpmSimulator->SetConfig(mpmInternalConfig);
+
+            // Asset
+            auto mpmMesh = m_assetManager->CreateAsset<Artemis::ProceduralMPMMeshAsset>(String("SurfaceMesh"), 2145141u,
+                2145141u, Vector4i(200, 200, 200, 0), Vector3f(-0.01f, -0.01f, -0.01f), Vector3f(1.01f, 1.01f, 1.01f));
+            auto material = m_assetManager->CreateAsset<DefaultMaterialAsset>(String("SurfaceMat"));
 
             // Scene
             auto scene = m_sceneAssetManager->CreateScene("TestScene2");
@@ -104,6 +114,12 @@ namespace Ifrit
             auto rigidEmitter = interactor->AddComponent<RigidEmitter>();
             rigidEmitter->SetEnable(false);
             interactor->AddComponent<MPMMouseInteractor>();
+
+            auto procMesh       = node->AddGameObject("MPMMesh");
+            auto procMeshFilter = procMesh->AddComponent<MeshFilter>();
+            procMeshFilter->SetMeshSource(mpmMesh);
+            auto procMeshRenderer = procMesh->AddComponent<MeshRenderer>();
+            procMeshRenderer->SetMaterialSource(material);
 
             m_sceneManager->SetActiveScene(scene);
         }

@@ -2310,7 +2310,7 @@ namespace Ifrit::Runtime::Artemis
             m_Data->RunSolverStep(builder, deltaTime);
         }
 
-        if (m_Data->m_DebugRenderTarget)
+        if (m_Data->m_DebugRenderTarget && m_Config.m_EnableRendering)
         {
             Render(builder, m_Data->m_RDGRenderTarget);
         }
@@ -2394,10 +2394,18 @@ namespace Ifrit::Runtime::Artemis
 
     IFRIT_APIDECL RHI::RhiBufferRef MPMSimulator::GetParticlePositionBuffer()
     {
+        if (!m_Data->m_ParticleData)
+        {
+            return nullptr;
+        }
         return m_Data->m_ParticleData->m_ParticlePosition;
     }
     IFRIT_APIDECL RHI::RhiBufferRef MPMSimulator::GetParticleCounterBuffer()
     {
+        if (!m_Data->m_ParticleData)
+        {
+            return nullptr;
+        }
         return m_Data->m_ParticleData->m_ParticleCount;
     }
 

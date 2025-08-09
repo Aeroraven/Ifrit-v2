@@ -89,6 +89,7 @@ namespace Ifrit::Runtime::Artemis
         // Interaction
         f32                          m_MouseActivation = 0.001f;
         f32                          m_MouseRadius     = 0.1f;
+        bool                         m_EnableRendering = true;
     };
 
     struct MPMParticleEmitArgs
