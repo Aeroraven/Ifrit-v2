@@ -12,7 +12,7 @@
 #### Normal Priority
 
 - Subproject Artemis: `ifrit.runtime/physics.artemis`
-  - Procedural Mesh Support
+  - <s>Procedural Mesh Support</s>
 
 - Subproject Ayanami: `ifrit.runtime/render.ayanami`
   - Indirect Lighting on Surface Atlas (Debugging Phase)
@@ -59,7 +59,8 @@ Following features implemented in Aria/Vulkan might be considered to move into t
     - SSGI-like tracing has been covered in `Ifrit.Runtime/Ayanami/ScreenProbeTracing`
 - Volumetric Lighting
 - Procedural Generator
-  - GPU Marching Cubes
+  - <s>GPU Marching Cubes</s>
+    - GPU Marching Cubes has been covered in `Ifrit.Runtime/Geometry/SurfaceOp` as a part of subproject `Artemis`
 
 ### Syaro Refactoring
 

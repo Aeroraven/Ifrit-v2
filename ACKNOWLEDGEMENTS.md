@@ -3,7 +3,7 @@
 ## 1. Special Thanks
 
 - https://www.unrealengine.com/
-- https://github.com/zenustech/zpc
+- https://github.com/zenustech/zpc (https://github.com/littlemine)
 
 
 
@@ -32,6 +32,7 @@ This project relies on following open-source projects. Corresponding licenses ar
 | [nfd-extended](https://github.com/btzy/nativefiledialog-extended) | Editor GUI                       | Zlib                 |
 | [openvdb](https://github.com/AcademySoftwareFoundation/openvdb) | Volume Data Structure            | Apache 2.0           |
 | [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
+| [renderdoc](https://renderdoc.org/)                          | Debug Integration                | MIT                  |
 | [sha1](https://github.com/vog/sha1)                          | Hash                             | Public domain        |
 | [shaderc](https://github.com/google/shaderc?tab=License-1-ov-file#readme) | Shader Compilation               | Apache 2.0           |
 | [slang](https://github.com/shader-slang/slang)               | Shader Compilation               | Apache 2.0           |
@@ -80,7 +81,7 @@ And some references that give inspirations. Thanks for their selfless dedication
 5. https://www.mesa3d.org/
 6. https://agner.org/optimize/
 
-**Modern Graphics Pipeline**
+**Project Syaro / Modern Graphics Pipeline**
 
 1. https://advances.realtimerendering.com/s2021/Karis_Nanite_SIGGRAPH_Advances_2021_final.pdf
 2. https://qiutang98.github.io/post/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E5%BC%80%E5%8F%91/mynanite01_mesh_processor/
@@ -98,14 +99,22 @@ And some references that give inspirations. Thanks for their selfless dedication
 12. https://developer.nvidia.com/orca/amazon-lumberyard-bistro
 13. https://games-cn.org/games104-slides/
 
-**Global Illumination**
+**Project Ayanami / Global Illumination**
+
 1. https://advances.realtimerendering.com/s2022/SIGGRAPH2022-Advances-Lumen-Wright%20et%20al.pdf
 2. https://zhuanlan.zhihu.com/p/696464007
 3. https://zhuanlan.zhihu.com/p/522165652
 
-**Physics**
+**Project Artemis**
 
 1. https://github.com/yuanming-hu/taichi_mpm
+1. https://github.com/zenustech/zpc
+1. https://github.com/dgerh/Breakpoint
+1. https://github.com/electronicarts/pbmpm
+1. https://github.com/MarkJoson/unity2d_rigidbody_xpbd
+1. https://github.com/felipeek/raw-physics
+1. https://github.com/InteractiveComputerGraphics/PositionBasedDynamics
+1. https://github.com/wlgys8/PBDClothLearn
 
 **Coding**
 

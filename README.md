@@ -25,7 +25,8 @@ A collection of real-time rendering and simulation experiments featuring:
 | <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag2.png" style="zoom:80%;" />       |
 
 **📸 See [`GALLERY.md`](./GALLERY.md) for more screenshots**  
-**🎥 View Syaro's LoD transitions: `docs/img/syaro_lod.mkv`**
+**🎥 View Syaro's LoD transitions: `docs/img/syaro_lod.mkv`**   
+**🎥 View Artemis's 3D MPM Demo: `docs/img/artemis_pbmpm4.mp4`**
 
 ---
 
@@ -37,7 +38,7 @@ This repository succeeds my previous rendering projects:
 - **Iris** ([C#](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/TinyRenderer) / [C++](https://github.com/Aeroraven/Stargazer/tree/main/ComputerGraphics/Iris)): Tiny Renderer implementation
 
 
-## Features Supported
+## ✨Features Supported
 
 ### Parallelized Soft Renderer
 
@@ -82,6 +83,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 
 - Position Based Dynamics (PBD) : SDF Collision Constraints / Volume Constraints / XPBD
 - Material Point Method (MPM):  MLS-MPM (2D/3D), PB-MPM (2D/3D), Two-way Rigid Coupling
+- Procedural Surface Reconstruction
 
 
 
@@ -90,7 +92,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 <small>**. This C++ reflection system supports both non-intrusive (manual, external registration) and intrusive (macro-based, codegen-assisted) reflection. The macro-based approach is technically intrusive, since the user has to modify the class definition, even though the macro is empty at compile time. It’s only used by tooling to generate registration code.</small>
 
 
-## Quick Start
+## ⚡️Quick Start
 
 ### 1. Clone Repository
 ```bash
@@ -153,7 +155,7 @@ cmake --build ./build --config RelWithDebInfo
 3. Place in `project/demo/Asset/Bistro/` with DDS textures in `textures/` subfolder
 4. Run
 
-## Architecture
+## 🧱Architecture
 
 The source files can be decomposed into following parts.
 
@@ -176,12 +178,12 @@ The source files can be decomposed into following parts.
 | ifrit.softgraphics  | Implementation of soft renderer, with both MT-CPU and CUDA version<br/>(Dependency: `cuda`) |
 | ifrit.vkgraphics    | Vulkan backend<br/>(Dependency: `vulkan`)                    |
 
-## Future Plans
+## 📌Future Plans
 
 See [TODO.md](./TODO.md) for more details.
 
 
-## References & Acknowledgements
+## 📌References & Acknowledgements
 
 See [ACKNOWLEDGEMENTS.md](./ACKNOWLEDGEMENTS.md) for more details.
 
@@ -189,7 +191,7 @@ This project draws inspiration from modern rendering techniques and research pap
 
 Special thanks to interviewers and mentors who provided valuable feedback during my internship applications—many suggestions have been incorporated into the roadmap.
 
-## License
+## 📌License
 
 **[AGPL-v3 License (or later)](https://www.gnu.org/licenses/agpl-3.0.en.html)**
 
