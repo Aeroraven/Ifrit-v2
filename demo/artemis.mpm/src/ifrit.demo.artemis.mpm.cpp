@@ -55,6 +55,8 @@ namespace Ifrit
     public:
         void OnStart() override
         {
+            bool use3D = true;
+            auto meshRes = 64;
             m_Renderer = MakeOwner<BaseForwardRenderer>(this);
             m_RendererWrapper->SetRenderer(m_Renderer.get());
 
@@ -71,13 +73,23 @@ namespace Ifrit
             auto mpmSimulator = reinterpret_cast<Artemis::MPMSimulator*>(
                 artemisController->GetPresetSolver(Artemis::EPresetArtemisSimulator::MPM));
             auto mpmInternalConfig              = mpmSimulator->GetActiveConfig();
-            mpmInternalConfig.m_Dimension       = Artemis::MPMSimulatorProblemDimension::ThreeDimensional;
-            mpmInternalConfig.m_EnableRendering = false;
+            if (use3D)
+            {
+                mpmInternalConfig.m_Dimension = Artemis::MPMSimulatorProblemDimension::ThreeDimensional;
+                mpmInternalConfig.m_DefaultParticleType = Artemis::MPMSimulatorParticleType::Jelly;
+                
+                mpmInternalConfig.m_EnableRendering = false;
+            }
+            else
+            {
+                mpmInternalConfig.m_Dimension = Artemis::MPMSimulatorProblemDimension::TwoDimensional;
+            }
+
             mpmSimulator->SetConfig(mpmInternalConfig);
 
             // Asset
-            auto mpmMesh = m_assetManager->CreateAsset<Artemis::ProceduralMPMMeshAsset>(String("SurfaceMesh"), 2145141u,
-                2145141u, Vector4i(64, 64, 64, 0), Vector3f(-0.01f, -0.01f, -0.01f), Vector3f(1.01f, 1.01f, 1.01f));
+            auto mpmMesh = m_assetManager->CreateAsset<Artemis::ProceduralMPMMeshAsset>(String("SurfaceMesh"), 2145141u, 2145141u, Vector4i(meshRes, meshRes, meshRes, 0), Vector3f(-0.01f, -0.01f, -0.01f),
+                Vector3f(1.01f, 1.01f, 1.01f));
             auto material = m_assetManager->CreateAsset<DefaultMaterialAsset>(String("SurfaceMat"));
 
             // Scene
@@ -102,6 +114,12 @@ namespace Ifrit
             auto cameraTransform = cameraGameObject->GetComponent<Transform>();
             cameraTransform->SetScale({ 1.0f, 1.0f, 1.0f });
             cameraTransform->SetPosition({ 0.5f, 0.5f, -1.0f });
+            if (use3D)
+            {
+                cameraTransform->SetPosition({ 0.5f, 0.5f, -0.5f });
+                camera->SetFov(60.0f);
+                camera->SetCameraType(CameraType::Perspective);
+            }
 
             auto defaultEmitter = node->AddGameObject("ParticleEmitter");
             auto emitter        = defaultEmitter->AddComponent<Artemis::MPMParticleEmitter>();

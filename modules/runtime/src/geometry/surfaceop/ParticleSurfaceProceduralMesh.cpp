@@ -42,6 +42,11 @@ namespace Ifrit::Runtime::Geometry
         RHI::RhiBufferRef              m_GridDataBuffer           = nullptr;
         RHI::RhiBufferRef              m_DebugDataBuffer          = nullptr;
 
+        RHI::RhiBufferRef              m_CellActiveVerticesCounter = nullptr;
+        RHI::RhiBufferRef              m_CellActiveVerticesList    = nullptr;
+        RHI::RhiBufferRef              m_CellVerticesNormalList    = nullptr;
+        RHI::RhiBufferRef              m_CellVerticesDensityList   = nullptr;
+
         // RDG
         FGBufferNodeRef                m_RDGParticleSrcDataBuffer;
         FGBufferNodeRef                m_RDGParticleSrcCountBuffer;
@@ -61,11 +66,16 @@ namespace Ifrit::Runtime::Geometry
         FGBufferNodeRef                m_RDGMeshIndirectDrawArgs;
 
         FGBufferNodeRef                m_RDGDebugDataBuffer;
+        FGBufferNodeRef                m_RDGCellActiveVerticesCounter;
+        FGBufferNodeRef                m_RDGCellActiveVerticesList;
+        FGBufferNodeRef                m_RDGCellVerticesNormalList;
+        FGBufferNodeRef                m_RDGCellVerticesDensityList;
 
         // RDG Managed
         FGBufferNodeRef                m_RDGActiveBlockList;
         FGBufferNodeRef                m_RDGActiveBlockCounter;
         FGBufferNodeRef                m_RDGTriangleCounter; // Actually num indices
+        FGTextureNodeRef               m_RDGDebugTexture;
 
         // Temp
         int                            m_NumBlocks = 0;
@@ -77,9 +87,184 @@ namespace Ifrit::Runtime::Geometry
         void                           GridBuild(FrameGraphBuilder& builder);
         void                           FilterBlocks(FrameGraphBuilder& builder);
         void                           FilterCells(FrameGraphBuilder& builder);
+        void                           CompactVertices(FrameGraphBuilder& builder);
+        void                           ComputeVertexDensity(FrameGraphBuilder& builder);
+        void                           ComputeVertexNormals(FrameGraphBuilder& builder);
         void                           VoxelMeshing(FrameGraphBuilder& builder);
         void                           PrepareDrawArgs(FrameGraphBuilder& builder);
+
+        void                           DebugVisualizeVertex(FrameGraphBuilder& builder);
     };
+
+    void ParticleSurfaceProceduralMeshPrivateData::ComputeVertexNormals(FrameGraphBuilder& builder)
+    {
+        struct PushConst
+        {
+            RHI::RhiSRVDesc m_Grid; // SRV
+            RHI::RhiUAVDesc m_ActiveVerticesCounter;
+            RHI::RhiUAVDesc m_ActiveVerticesList;
+            RHI::RhiUAVDesc m_CellParticleIndices;
+            RHI::RhiUAVDesc m_VertexDensity;
+            RHI::RhiUAVDesc m_CellVertexNormal;
+        } pc{};
+
+        AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.ComputeVertexNormals",
+            ShaderVariantDesc(Internal::InternalShaderTableGeometry::SurfReconVertexNormalBuildCS, {}),
+            *m_RDGCellActiveVerticesCounter, sizeof(u32), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_Grid                  = ctx.m_FgDesc->GetSRV(*m_RDGGridData);
+                pc.m_ActiveVerticesCounter = ctx.m_FgDesc->GetUAV(*m_RDGCellActiveVerticesCounter);
+                pc.m_ActiveVerticesList    = ctx.m_FgDesc->GetUAV(*m_RDGCellActiveVerticesList);
+                pc.m_CellParticleIndices   = ctx.m_FgDesc->GetUAV(*m_RDGCellParticleIndices);
+                pc.m_VertexDensity         = ctx.m_FgDesc->GetUAV(*m_RDGCellVerticesDensityList);
+                pc.m_CellVertexNormal      = ctx.m_FgDesc->GetUAV(*m_RDGCellVerticesNormalList);
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGGridData)
+            .AddReadResource(*m_RDGCellActiveVerticesCounter)
+            .AddReadResource(*m_RDGCellParticleIndices)
+            .AddReadResource(*m_RDGCellVerticesDensityList)
+            .AddWriteResource(*m_RDGCellActiveVerticesList)
+            .AddWriteResource(*m_RDGCellVerticesNormalList);
+    }
+
+    void ParticleSurfaceProceduralMeshPrivateData::DebugVisualizeVertex(FrameGraphBuilder& builder)
+    {
+
+        AddClearUAVTexturePass(builder, "ParticleSurfaceProceduralMesh.ClearDebugTexture", *m_RDGDebugTexture,
+            Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
+
+        struct PushConst
+        {
+            RHI::RhiSRVDesc m_Grid;
+            RHI::RhiUAVDesc m_ActiveVerticesCounter;
+            RHI::RhiUAVDesc m_ActiveVerticesList;
+            RHI::RhiUAVDesc m_VertexDensity;
+            RHI::RhiUAVDesc m_DebugTex;
+            int             m_RtW;
+            int             m_RtH;
+        } pc;
+
+        pc.m_RtW = 1500;
+        pc.m_RtH = 800;
+
+        AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.DebugVisualizeVertex",
+            ShaderVariantDesc(Internal::InternalShaderTableGeometry::SurfReconDebugVertexVisualizeCS, {}),
+            *m_RDGCellActiveVerticesCounter, sizeof(u32), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_Grid                  = ctx.m_FgDesc->GetSRV(*m_RDGGridData);
+                pc.m_ActiveVerticesCounter = ctx.m_FgDesc->GetUAV(*m_RDGCellActiveVerticesCounter);
+                pc.m_ActiveVerticesList    = ctx.m_FgDesc->GetUAV(*m_RDGCellActiveVerticesList);
+                pc.m_VertexDensity         = ctx.m_FgDesc->GetUAV(*m_RDGCellVerticesDensityList);
+                pc.m_DebugTex              = ctx.m_FgDesc->GetUAV(*m_RDGDebugTexture);
+                pc.m_RtW                   = 1500;
+                pc.m_RtH                   = 800;
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGGridData)
+            .AddReadResource(*m_RDGCellActiveVerticesCounter)
+            .AddWriteResource(*m_RDGCellActiveVerticesList)
+            .AddWriteResource(*m_RDGCellVerticesDensityList)
+            .AddWriteResource(*m_RDGDebugTexture);
+    }
+
+    void ParticleSurfaceProceduralMeshPrivateData::ComputeVertexDensity(FrameGraphBuilder& builder)
+    {
+        AddClearUAVPass(builder, "ParticleSurfaceProceduralMesh.ClearDensity", *m_RDGCellVerticesDensityList, 0);
+
+        struct PushConst
+        {
+            RHI::RhiSRVDesc m_Grid; // SRV
+            RHI::RhiUAVDesc m_ActiveVerticesCounter;
+            RHI::RhiUAVDesc m_ActiveVerticesList;
+            RHI::RhiUAVDesc m_CellParticleIndices;
+            RHI::RhiUAVDesc m_VertexDensity;
+            RHI::RhiSRVDesc m_ParticleLocation; // SRV
+            float           m_KernelRadius;     // H
+        } pc{};
+
+        auto rangeX    = m_GridData.m_NumCells.x + 1;
+        auto maxBoundX = m_GridData.m_MaxBound.x;
+        auto minBoundX = m_GridData.m_MinBound.x;
+        auto cellX     = 1.0f; // 1.0f * (maxBoundX - minBoundX) / (rangeX - 1);
+        auto radius    = cellX;
+
+        pc.m_KernelRadius = radius;
+
+        AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.ComputeVertexDensity",
+            ShaderVariantDesc(Internal::InternalShaderTableGeometry::SurfReconVertexDensityCS, {}),
+            *m_RDGCellActiveVerticesCounter, sizeof(u32), pc,
+            [this](PushConst pc, const FrameGraphPassContext& ctx) {
+                pc.m_Grid                  = ctx.m_FgDesc->GetSRV(*m_RDGGridData);
+                pc.m_ActiveVerticesCounter = ctx.m_FgDesc->GetUAV(*m_RDGCellActiveVerticesCounter);
+                pc.m_ActiveVerticesList    = ctx.m_FgDesc->GetUAV(*m_RDGCellActiveVerticesList);
+                pc.m_CellParticleIndices   = ctx.m_FgDesc->GetUAV(*m_RDGCellParticleIndices);
+                pc.m_VertexDensity         = ctx.m_FgDesc->GetUAV(*m_RDGCellVerticesDensityList);
+                pc.m_ParticleLocation      = ctx.m_FgDesc->GetSRV(*m_RDGParticleSrcDataBuffer);
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGGridData)
+            .AddReadResource(*m_RDGParticleSrcDataBuffer)
+            .AddWriteResource(*m_RDGCellActiveVerticesCounter)
+            .AddWriteResource(*m_RDGCellActiveVerticesList)
+            .AddWriteResource(*m_RDGCellParticleIndices)
+            .AddWriteResource(*m_RDGCellVerticesDensityList);
+    }
+
+    void ParticleSurfaceProceduralMeshPrivateData::CompactVertices(FrameGraphBuilder& builder)
+    {
+        AddClearUAVPass(builder, "ParticleSurfaceProceduralMesh.ClearCellActiveVerticesCounter",
+            *m_RDGCellActiveVerticesCounter, 0);
+
+        // Compact Vertex
+
+        struct PushConst_Compact
+        {
+            RHI::RhiSRVDesc m_Grid; // SRV
+            RHI::RhiUAVDesc m_ActiveVerticesCounter;
+            RHI::RhiUAVDesc m_ActiveVerticesList;
+        } pc{};
+
+        auto totalCellVertices =
+            (m_GridData.m_NumCells.x + 1) * (m_GridData.m_NumCells.y + 1) * (m_GridData.m_NumCells.z + 1);
+        auto tgX = DivRoundUp(totalCellVertices, IfritShader::Meshing::SurfRecon::kSurfReconVertexCompactTGSz);
+
+        AddComputePass<PushConst_Compact>(builder, "ParticleSurfaceProceduralMesh.CompactVertices",
+            ShaderVariantDesc(Internal::InternalShaderTableGeometry::SurfReconVertexCompactCS, {}), Vector3i(tgX, 1, 1),
+            pc,
+            [this](PushConst_Compact pc, const FrameGraphPassContext& ctx) {
+                pc.m_Grid                  = ctx.m_FgDesc->GetSRV(*m_RDGGridData);
+                pc.m_ActiveVerticesCounter = ctx.m_FgDesc->GetUAV(*m_RDGCellActiveVerticesCounter);
+                pc.m_ActiveVerticesList    = ctx.m_FgDesc->GetUAV(*m_RDGCellActiveVerticesList);
+
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGGridData)
+            .AddWriteResource(*m_RDGCellActiveVerticesCounter)
+            .AddWriteResource(*m_RDGCellActiveVerticesList);
+
+        // Update Disp Args
+        struct PushConst_UpdateDispArgs
+        {
+            RHI::RhiSRVDesc m_DispArgs;
+            int             m_ThreadBlockSizeX;
+        } pcUpdate{};
+
+        pcUpdate.m_ThreadBlockSizeX = IfritShader::Meshing::SurfRecon::kSurfReconVertexDensityTGSz;
+
+        AddComputePass<PushConst_UpdateDispArgs>(builder, "ParticleSurfaceProceduralMesh.UpdateDispArgs",
+            ShaderVariantDesc(Internal::InternalShaderTableGeometry::SurfReconComputeDispArgsCS, {}), Vector3i(1, 1, 1),
+            pcUpdate,
+            [this](PushConst_UpdateDispArgs pc, const FrameGraphPassContext& ctx) {
+                pc.m_DispArgs = ctx.m_FgDesc->GetUAV(*m_RDGCellActiveVerticesCounter);
+                SetRootConstant(pc, ctx);
+            })
+            .AddReadResource(*m_RDGCellActiveVerticesCounter)
+            .AddWriteResource(*m_RDGCellActiveVerticesCounter);
+    }
 
     void ParticleSurfaceProceduralMeshPrivateData::PrepareRDGResources(FrameGraphBuilder& builder)
     {
@@ -116,6 +301,16 @@ namespace Ifrit::Runtime::Geometry
         m_RDGDebugDataBuffer =
             &builder.ImportBuffer("RDG.ParticleSurfaceProceduralMesh.DebugData", m_DebugDataBuffer.get());
 
+        m_RDGCellActiveVerticesCounter = &builder.ImportBuffer(
+            "RDG.ParticleSurfaceProceduralMesh.CellActiveVerticesCounter", m_CellActiveVerticesCounter.get());
+        m_RDGCellActiveVerticesList = &builder.ImportBuffer(
+            "RDG.ParticleSurfaceProceduralMesh.CellActiveVerticesList", m_CellActiveVerticesList.get());
+        m_RDGCellVerticesNormalList = &builder.ImportBuffer(
+            "RDG.ParticleSurfaceProceduralMesh.CellVerticesNormalList", m_CellVerticesNormalList.get());
+        m_RDGCellVerticesDensityList = &builder.ImportBuffer(
+            "RDG.ParticleSurfaceProceduralMesh.CellVerticesDensityList", m_CellVerticesDensityList.get());
+
+        // Managed
         m_RDGActiveBlockList    = &builder.DeclareBuffer("RDG.ParticleSurfaceProceduralMesh.ActiveBlockList",
                FrameGraphBufferDesc(sizeof(u32) * m_NumBlocks, RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO));
         m_RDGActiveBlockCounter = &builder.DeclareBuffer("RDG.ParticleSurfaceProceduralMesh.ActiveBlockCounter",
@@ -123,6 +318,9 @@ namespace Ifrit::Runtime::Geometry
                 sizeof(u32) * 3, RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO | RhiBufferUsage_Indirect));
         m_RDGTriangleCounter    = &builder.DeclareBuffer("RDG.ParticleSurfaceProceduralMesh.TriangleCounter",
                FrameGraphBufferDesc(sizeof(u32), RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO));
+        m_RDGDebugTexture       = &builder.DeclareTexture("RDG.ParticleSurfaceProceduralMesh.DebugTexture",
+                  FrameGraphTextureDesc(1500, 800, 1, RHI::RhiImageFormat::RhiImgFmt_R32G32B32A32_SFLOAT,
+                      RHI::RhiImageUsage::RhiImgUsage_UnorderedAccess | RHI::RhiImageUsage::RhiImgUsage_CopyDst));
     }
     void ParticleSurfaceProceduralMeshPrivateData::ResetGrids(FrameGraphBuilder& builder)
     {
@@ -256,7 +454,13 @@ namespace Ifrit::Runtime::Geometry
             RHI::RhiUAVDesc m_UVBuffer;
 
             RHI::RhiUAVDesc m_TriangleCounter;
+
+            RHI::RhiSRVDesc m_VertexDensity;
+            RHI::RhiSRVDesc m_CellVertexNormal; // SRV
+            float           m_IsoValue;
         } pc{};
+
+        pc.m_IsoValue = 10.0f;
 
         AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.VoxelMeshing",
             ShaderVariantDesc(Internal::kIntShaderTableGeometry.SurfReconVoxelMeshingCS, {}), *m_RDGActiveBlockCounter,
@@ -270,6 +474,9 @@ namespace Ifrit::Runtime::Geometry
                 pc.m_TangentBuffer       = ctx.m_FgDesc->GetUAV(*m_RDGMeshTangentBuffer);
                 pc.m_UVBuffer            = ctx.m_FgDesc->GetUAV(*m_RDGMeshUVBuffer);
                 pc.m_TriangleCounter     = ctx.m_FgDesc->GetUAV(*m_RDGTriangleCounter);
+
+                pc.m_VertexDensity    = ctx.m_FgDesc->GetSRV(*m_RDGCellVerticesDensityList);
+                pc.m_CellVertexNormal = ctx.m_FgDesc->GetSRV(*m_RDGCellVerticesNormalList);
 
                 SetRootConstant(pc, ctx);
             })
@@ -319,6 +526,10 @@ namespace Ifrit::Runtime::Geometry
         m_Data->GridBuild(builder);
         m_Data->FilterBlocks(builder);
         m_Data->FilterCells(builder);
+        m_Data->CompactVertices(builder);
+        m_Data->ComputeVertexDensity(builder);
+        m_Data->DebugVisualizeVertex(builder);
+        m_Data->ComputeVertexNormals(builder);
         m_Data->VoxelMeshing(builder);
         m_Data->PrepareDrawArgs(builder);
     }
@@ -345,8 +556,9 @@ namespace Ifrit::Runtime::Geometry
         m_Data->m_GridData.m_NumCells              = gridSize;
         m_Data->m_GridData.m_BlockWidthInCellUnits = 4;
 
-        auto totalCells = gridSize.x * gridSize.y * gridSize.z;
-        auto totalGrids = DivRoundUp(gridSize.x, m_Data->m_GridData.m_BlockWidthInCellUnits)
+        auto totalCells     = gridSize.x * gridSize.y * gridSize.z;
+        auto totalCellVerts = (gridSize.x + 1) * (gridSize.y + 1) * (gridSize.z + 1);
+        auto totalGrids     = DivRoundUp(gridSize.x, m_Data->m_GridData.m_BlockWidthInCellUnits)
             * DivRoundUp(gridSize.y, m_Data->m_GridData.m_BlockWidthInCellUnits)
             * DivRoundUp(gridSize.z, m_Data->m_GridData.m_BlockWidthInCellUnits);
         auto totalVertexCells = (gridSize.x + 1) * (gridSize.y + 1) * (gridSize.z + 1);
@@ -362,7 +574,11 @@ namespace Ifrit::Runtime::Geometry
             SizeCast<u32>(totalCells * sizeof(u32) * ParticleSurfaceProceduralMeshPrivateData::kMaxParticlesPerCell);
         auto activeCellsInBlockSz = SizeCast<u32>(totalGrids * sizeof(u32));
         auto surfaceVertexSz      = SizeCast<u32>(totalVertexCells * sizeof(u32));
-        auto uavUsage             = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
+        auto cellVertexIndicesSz  = SizeCast<u32>(totalCellVerts * sizeof(u32));
+        auto cellVertexNormalSz   = SizeCast<u32>(totalCellVerts * sizeof(Vector4f));
+        auto cellVertexDensitySz  = SizeCast<u32>(totalCellVerts * sizeof(float));
+
+        auto uavUsage = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
 
         m_Data->m_ParticleDataCopyDispArgs =
             rhi->CreateBufferDevice("ParticleDataCopyDispArgs", indirectArgSz, indirectUsage, true);
@@ -378,6 +594,14 @@ namespace Ifrit::Runtime::Geometry
             rhi->CreateBufferDevice("ParticleSurfaceProceduralMesh.GridDataBuffer", gridDataSz, uavUsage, true);
         m_Data->m_DebugDataBuffer =
             rhi->CreateBufferDevice("ParticleSurfaceProceduralMesh.DebugDataBuffer", debugSz, uavUsage, true);
+        m_Data->m_CellActiveVerticesCounter = rhi->CreateBufferDevice(
+            "ParticleSurfaceProceduralMesh.CellActiveVerticesCounter", indirectArgSz, indirectUsage, true);
+        m_Data->m_CellActiveVerticesList = rhi->CreateBufferDevice(
+            "ParticleSurfaceProceduralMesh.CellActiveVerticesList", cellParticleIndicesSz, uavUsage, true);
+        m_Data->m_CellVerticesNormalList = rhi->CreateBufferDevice(
+            "ParticleSurfaceProceduralMesh.CellVerticesNormalList", cellVertexNormalSz, uavUsage, true);
+        m_Data->m_CellVerticesDensityList = rhi->CreateBufferDevice(
+            "ParticleSurfaceProceduralMesh.CellVerticesDensityList", cellVertexDensitySz, uavUsage, true);
 
         m_Data->m_GridData.m_CellParticleCount  = rhi->GetUAVDescriptor(m_Data->m_CellParticleCount.get());
         m_Data->m_GridData.m_ActiveCellsInBlock = rhi->GetUAVDescriptor(m_Data->m_ActiveCellsInBlock.get());

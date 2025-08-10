@@ -24,6 +24,13 @@ namespace Ifrit::Runtime::Internal
         SDEF SurfReconPrepareDispArgsCS = DECLARE_CS("Geometry/SurfRecon.PrepareDispArgs");
         SDEF SurfReconPrepareDrawArgsCS = DECLARE_CS("Geometry/SurfRecon.PrepareDrawArgs");
 
+        SDEF SurfReconVertexCompactCS     = DECLARE_CS("Geometry/SurfRecon.VertexCompact");
+        SDEF SurfReconVertexNormalBuildCS = DECLARE_CS("Geometry/SurfRecon.VertexNormalBuild");
+        SDEF SurfReconVertexDensityCS     = DECLARE_CS("Geometry/SurfRecon.VertexDensity");
+        SDEF SurfReconComputeDispArgsCS   = DECLARE_CS("Geometry/SurfRecon.ComputeDispArgs");
+
+        SDEF SurfReconDebugVertexVisualizeCS = DECLARE_CS("Geometry/SurfRecon.Debug.VertexVisualize");
+
     } kIntShaderTableGeometry;
 
 #undef SDEF
@@ -33,4 +40,4 @@ namespace Ifrit::Runtime::Internal
 #undef DECLARE_CS
 #undef DECLARE_MS
 
-} // namespace Ifrit::Runtime::Internal
+} // namespace Ifrit::Runtime::Internal

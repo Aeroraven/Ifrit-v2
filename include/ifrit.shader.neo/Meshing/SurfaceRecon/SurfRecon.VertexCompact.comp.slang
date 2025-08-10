@@ -7,7 +7,6 @@ namespace SurfRecon{
 
     struct PushConst_T
     {   
-        TStructuredBufferHandle<int> m_ActiveGridBlockList; 
         TStructuredBufferHandle<FSurfReconGrid> m_Grid; //SRV
         TAtomicRWStructuredBufferHandle<int> m_ActiveVerticesCounter;
         TRWStructuredBufferHandle<int> m_ActiveVerticesList;
@@ -44,8 +43,9 @@ namespace SurfRecon{
         int OverallOffset = WaveReadLaneFirst(sGlobalOffset) + sInWaveOffset;
         if(IsVertexActive)
         {
-            PushConst.m_ActiveVerticesList.Store(OverallOffset, ThreadId.x);
+            PushConst.m_ActiveVerticesList.Store(ThreadId.x, OverallOffset);
         }
+
     }
 
 }}}

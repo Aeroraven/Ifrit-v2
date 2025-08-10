@@ -19,5 +19,17 @@ namespace Ifrit::Runtime::Internal
             "SurfReconPrepareDispArgsCS");
         REG_COMPUTE_NEO(ISTGeo.SurfReconPrepareDrawArgsCS, "Meshing/SurfaceRecon/SurfRecon.PrepareDrawArgs",
             "SurfReconPrepareDrawArgsCS");
+
+        REG_COMPUTE_NEO(ISTGeo.SurfReconVertexCompactCS, "Meshing/SurfaceRecon/SurfRecon.VertexCompact",
+            "SurfReconVertexCompactCS");
+        REG_COMPUTE_NEO(ISTGeo.SurfReconVertexNormalBuildCS, "Meshing/SurfaceRecon/SurfRecon.VertexNormalBuild",
+            "SurfReconVertexNormalBuildCS");
+        REG_COMPUTE_NEO(ISTGeo.SurfReconVertexDensityCS, "Meshing/SurfaceRecon/SurfRecon.VertexDensity",
+            "SurfReconVertexDensityCS");
+        REG_COMPUTE_NEO(ISTGeo.SurfReconComputeDispArgsCS, "Meshing/SurfaceRecon/SurfRecon.ComputeDispArgs",
+            "SurfReconComputeDispArgsCS");
+
+        REG_COMPUTE_NEO(ISTGeo.SurfReconDebugVertexVisualizeCS, "Meshing/SurfaceRecon/SurfRecon.Debug.VertexVisualize",
+            "SurfReconDebugVertexVisualizeCS");
     }
-} // namespace Ifrit::Runtime::Internal
+} // namespace Ifrit::Runtime::Internal

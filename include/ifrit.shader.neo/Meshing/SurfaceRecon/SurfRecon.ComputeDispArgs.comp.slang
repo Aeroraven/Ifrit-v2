@@ -15,7 +15,7 @@ namespace SurfRecon{
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
     IFSHADER_BLOCKSIZE(1, 1, 1)
-    void SurfReconComputeispArgsCS(uint3 ThreadId:SV_DispatchThreadID,
+    void SurfReconComputeDispArgsCS(uint3 ThreadId:SV_DispatchThreadID,
                                 uint3 GroupId:SV_GroupID,
                                 uint3 GroupThreadId:SV_GroupThreadID)
     {

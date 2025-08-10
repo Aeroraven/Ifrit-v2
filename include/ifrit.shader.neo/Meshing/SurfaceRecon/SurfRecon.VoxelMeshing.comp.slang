@@ -18,9 +18,18 @@ namespace SurfRecon{
         TRWStructuredBufferHandle<float2> m_UVBuffer;
 
         TAtomicRWStructuredBufferHandle<int> m_TriangleCounter;
+
+        TStructuredBufferHandle<float> m_VertexDensity;
+        FSpatialVectorHandle m_CellVertexNormal; //SRV
+        float m_IsoValue;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
+
+    float InterpolateDensity(float DensityS, float DensityE)
+    {
+        return clamp((PushConst.m_IsoValue-DensityS)/(DensityE-DensityS), 0.0f, 1.0f);
+    }
 
     int LoadCellAsMCMask(FSpatialIndex CellCoord)
     {
@@ -29,7 +38,7 @@ namespace SurfRecon{
         for(int i = 0; i < 8; ++i)
         {
             FSpatialIndex VertCoord = CellCoord + kMarchingCubesVertLUT[i];
-            bool IsMarked = Grid.IsVertexBufferIndexMarked(Grid.GetCellVertexFlattenId(VertCoord));
+            bool IsMarked = PushConst.m_VertexDensity.Load(Grid.GetCellVertexFlattenId(VertCoord)) > PushConst.m_IsoValue;
             if(IsMarked)
             {
                 Mask |= (1 << i);
@@ -52,6 +61,25 @@ namespace SurfRecon{
         int Link1B = kMarchingCubesLinkLUT[Link1][1];
         int Link2A = kMarchingCubesLinkLUT[Link2][0];
         int Link2B = kMarchingCubesLinkLUT[Link2][1];
+
+        FSpatialIndex VertCellIdx0A = CellCoord + kMarchingCubesVertLUT[Link0A];
+        FSpatialIndex VertCellIdx0B = CellCoord + kMarchingCubesVertLUT[Link0B];
+        FSpatialIndex VertCellIdx1A = CellCoord + kMarchingCubesVertLUT[Link1A];
+        FSpatialIndex VertCellIdx1B = CellCoord + kMarchingCubesVertLUT[Link1B];
+        FSpatialIndex VertCellIdx2A = CellCoord + kMarchingCubesVertLUT[Link2A];
+        FSpatialIndex VertCellIdx2B = CellCoord + kMarchingCubesVertLUT[Link2B];
+
+        float Density0A = PushConst.m_VertexDensity.Load(Grid.GetCellVertexFlattenId(VertCellIdx0A));
+        float Density0B = PushConst.m_VertexDensity.Load(Grid.GetCellVertexFlattenId(VertCellIdx0B));
+        float Density1A = PushConst.m_VertexDensity.Load(Grid.GetCellVertexFlattenId(VertCellIdx1A));
+        float Density1B = PushConst.m_VertexDensity.Load(Grid.GetCellVertexFlattenId(VertCellIdx1B));
+        float Density2A = PushConst.m_VertexDensity.Load(Grid.GetCellVertexFlattenId(VertCellIdx2A));
+        float Density2B = PushConst.m_VertexDensity.Load(Grid.GetCellVertexFlattenId(VertCellIdx2B));
+        float Alpha0 = InterpolateDensity(Density0A, Density0B);
+        float Alpha1 = InterpolateDensity(Density1A, Density1B);
+        float Alpha2 = InterpolateDensity(Density2A, Density2B);
+
+
         FSpatialVector VertOff0A = kMarchingCubesVertLUT[Link0A];
         FSpatialVector VertOff0B = kMarchingCubesVertLUT[Link0B];
         FSpatialVector VertOff1A = kMarchingCubesVertLUT[Link1A];
@@ -59,9 +87,21 @@ namespace SurfRecon{
         FSpatialVector VertOff2A = kMarchingCubesVertLUT[Link2A];
         FSpatialVector VertOff2B = kMarchingCubesVertLUT[Link2B];   
 
-        FSpatialVector VertOff0 = (VertOff0A + VertOff0B) * 0.5f;
-        FSpatialVector VertOff1 = (VertOff1A + VertOff1B) * 0.5f;
-        FSpatialVector VertOff2 = (VertOff2A + VertOff2B) * 0.5f;
+        FSpatialVector VertOff0 = lerp(VertOff0A, VertOff0B, Alpha0);
+        FSpatialVector VertOff1 = lerp(VertOff1A, VertOff1B, Alpha1);
+        FSpatialVector VertOff2 = lerp(VertOff2A, VertOff2B, Alpha2);
+
+        FSpatialVector Norm0A = PushConst.m_CellVertexNormal.Load(Grid.GetCellVertexFlattenId(VertCellIdx0A));
+        FSpatialVector Norm0B = PushConst.m_CellVertexNormal.Load(Grid.GetCellVertexFlattenId(VertCellIdx0B));
+        FSpatialVector Norm1A = PushConst.m_CellVertexNormal.Load(Grid.GetCellVertexFlattenId(VertCellIdx1A));
+        FSpatialVector Norm1B = PushConst.m_CellVertexNormal.Load(Grid.GetCellVertexFlattenId(VertCellIdx1B));
+        FSpatialVector Norm2A = PushConst.m_CellVertexNormal.Load(Grid.GetCellVertexFlattenId(VertCellIdx2A));
+        FSpatialVector Norm2B = PushConst.m_CellVertexNormal.Load(Grid.GetCellVertexFlattenId(VertCellIdx2B));
+
+        FSpatialVector Norm0 = lerp(Norm0A, Norm0B, Alpha0);
+        FSpatialVector Norm1 = lerp(Norm1A, Norm1B, Alpha1);
+        FSpatialVector Norm2 = lerp(Norm2A, Norm2B, Alpha2);
+        
 
         FSpatialVector VertBase = FSpatialVector(CellCoord);
         FSpatialVector Vert0 = VertBase + VertOff0;
@@ -86,9 +126,9 @@ namespace SurfRecon{
         PushConst.m_VertexBuffer.Store(float4(Vert2, (float)1.0f),Slot+2);
 
         float4 Normal = normalize(float4(1.0f,0.0f,0.0f,0.0f));
-        PushConst.m_NormalBuffer.Store(Normal, Slot);
-        PushConst.m_NormalBuffer.Store(Normal, Slot + 1);
-        PushConst.m_NormalBuffer.Store(Normal, Slot + 2);
+        PushConst.m_NormalBuffer.Store(float4(Norm0,0.0f), Slot);
+        PushConst.m_NormalBuffer.Store(float4(Norm1,0.0f), Slot + 1);
+        PushConst.m_NormalBuffer.Store(float4(Norm2,0.0f), Slot + 2);
     }
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
@@ -117,4 +157,4 @@ namespace SurfRecon{
         }
     }
 
-}}}
+}}}

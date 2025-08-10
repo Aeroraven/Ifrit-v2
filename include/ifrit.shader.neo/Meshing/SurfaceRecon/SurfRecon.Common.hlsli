@@ -148,6 +148,18 @@ struct FSurfReconGrid
         return cellIndex;
     }
 
+    FSpatialVector GetCellCenter(FSpatialIndex cellIndex)
+    {
+        FSpatialVector cellCenter;
+        cellCenter.x = m_MinBound.x + (cellIndex.x + 0.5f) * (m_MaxBound.x - m_MinBound.x) / m_NumCells.x;
+        cellCenter.y = m_MinBound.y + (cellIndex.y + 0.5f) * (m_MaxBound.y - m_MinBound.y) / m_NumCells.y;
+#ifndef IFSHADER_SURFRECON_2D
+        cellCenter.z = m_MinBound.z + (cellIndex.z + 0.5f) * (m_MaxBound.z - m_MinBound.z) / m_NumCells.z;
+#endif
+        return cellCenter;
+    }
+
+
     int GetCellFlattenId(FSpatialIndex cellIndex)
     {
         // TODO: consider morton encoding
@@ -182,6 +194,17 @@ struct FSurfReconGrid
 #endif
         return cellIndex;
     }
+
+    FSpatialVector GetCellVertexPosition(FSpatialIndex cellIndex)
+    {
+        FSpatialVector cellVertex;
+        cellVertex.x = m_MinBound.x + cellIndex.x * (m_MaxBound.x - m_MinBound.x) / m_NumCells.x;
+        cellVertex.y = m_MinBound.y + cellIndex.y * (m_MaxBound.y - m_MinBound.y) / m_NumCells.y;
+#ifndef IFSHADER_SURFRECON_2D
+        cellVertex.z = m_MinBound.z + cellIndex.z * (m_MaxBound.z - m_MinBound.z) / m_NumCells.z;
+#endif
+        return cellVertex;
+    }   
 
 
     FSpatialIndex GetBlockIndex(FSpatialIndex cellIndex)
@@ -250,7 +273,7 @@ struct FSurfReconGrid
 
     int GetNumParticlesInCell(int CellId)
     {
-        return m_CellParticleCount.Load(cellId);
+        return m_CellParticleCount.Load(CellId);
     }
 
     bool IsInRange(FSpatialVector position)

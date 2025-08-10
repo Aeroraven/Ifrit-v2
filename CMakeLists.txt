@@ -130,7 +130,7 @@ set(KTX_FEATURE_TESTS OFF CACHE BOOL "Disable KTX feature tests" FORCE)
 set(KTX_FEATURE_TOOLS_CTS OFF CACHE BOOL "Disable KTX tests" FORCE)
 set(KTX_FEATURE_TOOLS OFF CACHE BOOL "Disable KTX tools" FORCE)
 set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1) # hack to prevent CTest added targets
-
+ 
 # spdlog
 set(SPDLOG_BUILD_SHARED ON CACHE BOOL "Disable KTX tools" FORCE)
 
