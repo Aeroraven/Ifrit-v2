@@ -77,7 +77,7 @@ namespace Ifrit
 
             // Asset
             auto mpmMesh = m_assetManager->CreateAsset<Artemis::ProceduralMPMMeshAsset>(String("SurfaceMesh"), 2145141u,
-                2145141u, Vector4i(200, 200, 200, 0), Vector3f(-0.01f, -0.01f, -0.01f), Vector3f(1.01f, 1.01f, 1.01f));
+                2145141u, Vector4i(64, 64, 64, 0), Vector3f(-0.01f, -0.01f, -0.01f), Vector3f(1.01f, 1.01f, 1.01f));
             auto material = m_assetManager->CreateAsset<DefaultMaterialAsset>(String("SurfaceMat"));
 
             // Scene

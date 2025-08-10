@@ -42,7 +42,7 @@ namespace SurfRecon{
         int BlockId = Grid.GetBlockFlattenId(CurBlockindex);
         if(IsValid)
         {
-            IsValid = Grid.IsBlockActive(BlockId);
+            IsValid = Grid.IsBlockActive(BlockId) && (!Grid.IsBlockInternal(BlockId));
         }
 
         int sWaveMarkedBlockListOffset = WavePrefixCountBits(IsValid);
@@ -60,4 +60,4 @@ namespace SurfRecon{
         }
     }
 
-}}}
+}}}

@@ -12,6 +12,7 @@ namespace SurfRecon{
         FSpatialVectorHandle m_ParticleLocation; //SRV
         TStructuredBufferHandle<FSurfReconGrid> m_Grid; //SRV
         TRWStructuredBufferHandle<int2> m_DebugData;
+        TRWStructuredBufferHandle<int> m_CellParticleIndices; //UAV
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -48,15 +49,19 @@ namespace SurfRecon{
         FSpatialIndex CellInBlockBoundaryState = Grid.GetCellInBlockBoundaryState(CellCoord);
         FSpatialIndex BlockCoord = Grid.GetBlockIndex(CellCoord);
 
-
         int CellId = Grid.GetCellFlattenId(CellCoord);
         int ParticleCountInCell = Grid.MarkCellActive(CellId);
+
+        if(ParticleCountInCell < kSurfReconMaxParticlesPerCell)
+        {
+            PushConst.m_CellParticleIndices.Store(ThreadId.x, CellId * kSurfReconMaxParticlesPerCell + ParticleCountInCell);
+        }
 
         int2 DebugData = int2(ParticleCountInCell, CellId);
         PushConst.m_DebugData.Store(DebugData, ThreadId.x);
 
-        FSpatialIndex MinBound = max(FSpatialIndex(0), BlockCoord-1);
-        FSpatialIndex MaxBound = min(Grid.GetMaxBlockIndex(), BlockCoord+1);
+        FSpatialIndex MinBound = max(FSpatialIndex(0), BlockCoord+min(CellInBlockBoundaryState,FSpatialIndex(0)));
+        FSpatialIndex MaxBound = min(Grid.GetMaxBlockIndex(), BlockCoord+max(CellInBlockBoundaryState,FSpatialIndex(0)));
 
         if(ParticleCountInCell == 1)
         {
@@ -79,4 +84,4 @@ namespace SurfRecon{
         
     }
 
-}}}
+}}}

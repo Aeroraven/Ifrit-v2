@@ -24,7 +24,8 @@ namespace Ifrit::Runtime::Geometry
 
     struct ParticleSurfaceProceduralMeshPrivateData
     {
-        ParticleSurfaceProceduralMesh* m_Parent = nullptr;
+        constexpr static i32           kMaxParticlesPerCell = 16;
+        ParticleSurfaceProceduralMesh* m_Parent             = nullptr;
         FSurfReconGridData             m_GridData;
 
         // External
@@ -35,6 +36,7 @@ namespace Ifrit::Runtime::Geometry
         bool                           m_ResourcePrepared         = false;
         RHI::RhiBufferRef              m_ParticleDataCopyDispArgs = nullptr;
         RHI::RhiBufferRef              m_CellParticleCount        = nullptr;
+        RHI::RhiBufferRef              m_CellParticleIndices      = nullptr;
         RHI::RhiBufferRef              m_ActiveCellsInBlock       = nullptr;
         RHI::RhiBufferRef              m_SurfaceVertices          = nullptr;
         RHI::RhiBufferRef              m_GridDataBuffer           = nullptr;
@@ -46,6 +48,7 @@ namespace Ifrit::Runtime::Geometry
         FGBufferNodeRef                m_RDGParticleDataCopyDispArgs;
 
         FGBufferNodeRef                m_RDGCellParticleCount;
+        FGBufferNodeRef                m_RDGCellParticleIndices;
         FGBufferNodeRef                m_RDGActiveCellsInBlock;
         FGBufferNodeRef                m_RDGSurfaceVertices;
         FGBufferNodeRef                m_RDGGridData;
@@ -101,6 +104,8 @@ namespace Ifrit::Runtime::Geometry
 
         m_RDGCellParticleCount =
             &builder.ImportBuffer("RDG.ParticleSurfaceProceduralMesh.CellParticleCount", m_CellParticleCount.get());
+        m_RDGCellParticleIndices =
+            &builder.ImportBuffer("RDG.ParticleSurfaceProceduralMesh.CellParticleIndices", m_CellParticleIndices.get());
         m_RDGActiveCellsInBlock =
             &builder.ImportBuffer("RDG.ParticleSurfaceProceduralMesh.ActiveCellsInBlock", m_ActiveCellsInBlock.get());
         m_RDGSurfaceVertices =
@@ -150,11 +155,12 @@ namespace Ifrit::Runtime::Geometry
     {
         struct PushConst
         {
-            u32 m_ParticleCounter;
-            u32 m_ParticleCounterIndirect; // SRV
-            u32 m_ParticleLocation;        // SRV
-            u32 m_Grid;                    // SRV
-            u32 m_DebugData;               // UAV
+            u32             m_ParticleCounter;
+            u32             m_ParticleCounterIndirect; // SRV
+            u32             m_ParticleLocation;        // SRV
+            u32             m_Grid;                    // SRV
+            u32             m_DebugData;               // UAV
+            RHI::RhiUAVDesc m_CellParticleIndices;     // UAV
         } pc;
 
         pc.m_ParticleCounter = ~0u;
@@ -167,6 +173,7 @@ namespace Ifrit::Runtime::Geometry
                 pc.m_ParticleLocation        = ctx.m_FgDesc->GetSRV(*m_RDGParticleSrcDataBuffer);
                 pc.m_Grid                    = ctx.m_FgDesc->GetSRV(*m_RDGGridData);
                 pc.m_DebugData               = ctx.m_FgDesc->GetUAV(*m_RDGDebugDataBuffer);
+                pc.m_CellParticleIndices     = ctx.m_FgDesc->GetUAV(*m_RDGCellParticleIndices);
 
                 SetRootConstant(pc, ctx);
             })
@@ -175,6 +182,7 @@ namespace Ifrit::Runtime::Geometry
             .AddReadResource(*m_RDGParticleSrcDataBuffer)
             .AddReadResource(*m_RDGParticleDataCopyDispArgs)
             .AddWriteResource(*m_RDGSurfaceVertices)
+            .AddWriteResource(*m_RDGGridData)
             .AddReadResource(*m_RDGGridData);
     }
 
@@ -349,7 +357,9 @@ namespace Ifrit::Runtime::Geometry
             DivRoundUp(gridSize.y, m_Data->m_GridData.m_BlockWidthInCellUnits),
             DivRoundUp(gridSize.z, m_Data->m_GridData.m_BlockWidthInCellUnits));
 
-        auto cellParticleCountSz  = SizeCast<u32>(totalCells * sizeof(u32));
+        auto cellParticleCountSz = SizeCast<u32>(totalCells * sizeof(u32));
+        auto cellParticleIndicesSz =
+            SizeCast<u32>(totalCells * sizeof(u32) * ParticleSurfaceProceduralMeshPrivateData::kMaxParticlesPerCell);
         auto activeCellsInBlockSz = SizeCast<u32>(totalGrids * sizeof(u32));
         auto surfaceVertexSz      = SizeCast<u32>(totalVertexCells * sizeof(u32));
         auto uavUsage             = RhiBufferUsage_CopyDst | RhiBufferUsage_SSBO;
@@ -358,6 +368,8 @@ namespace Ifrit::Runtime::Geometry
             rhi->CreateBufferDevice("ParticleDataCopyDispArgs", indirectArgSz, indirectUsage, true);
         m_Data->m_CellParticleCount = rhi->CreateBufferDevice(
             "ParticleSurfaceProceduralMesh.CellParticleCount", cellParticleCountSz, uavUsage, true);
+        m_Data->m_CellParticleIndices = rhi->CreateBufferDevice(
+            "ParticleSurfaceProceduralMesh.CellParticleIndices", cellParticleIndicesSz, uavUsage, true);
         m_Data->m_ActiveCellsInBlock = rhi->CreateBufferDevice(
             "ParticleSurfaceProceduralMesh.ActiveCellsInBlock", activeCellsInBlockSz, uavUsage, true);
         m_Data->m_SurfaceVertices =

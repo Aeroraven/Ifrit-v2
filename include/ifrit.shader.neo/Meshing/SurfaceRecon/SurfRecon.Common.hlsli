@@ -11,12 +11,16 @@ namespace Meshing{
 namespace SurfRecon{
 
     IFSHADER_DEFINE_CONST_UINT32(kSurfReconGridBuildTGSz, 128);
+    IFSHADER_DEFINE_CONST_UINT32(kSurfReconVertexCompactTGSz, 128);
+    IFSHADER_DEFINE_CONST_UINT32(kSurfReconVertexDensityTGSz, 128);
 
     IFSHADER_DEFINE_CONST_UINT32(kSurfReconFilterBlockTGSz3D, 4);
     IFSHADER_DEFINE_CONST_UINT32(kSurfReconFilterBlockTGSz2D, 8);
 
     IFSHADER_DEFINE_CONST_UINT32(kSurfReconFilterCellTGSz3D, 4);
     IFSHADER_DEFINE_CONST_UINT32(kSurfReconFilterCellTGSz2D, 8);
+
+    IFSHADER_DEFINE_CONST_INT32(kSurfReconMaxParticlesPerCell, 16);
 
 #ifndef __cplusplus
 #ifndef IFSHADER_SURFRECON_2D
@@ -163,6 +167,23 @@ struct FSurfReconGrid
         return vxId;
     }
 
+    FSpatialIndex GetCellVertexFromFlattenId(int vxId)
+    {
+#ifndef IFSHADER_SURFRECON_2D
+        FSpatialIndex cellIndex;
+        cellIndex.z = vxId / (m_NumCells.x + 1) / (m_NumCells.y + 1);
+        vxId -= cellIndex.z * (m_NumCells.x + 1) * (m_NumCells.y + 1);
+        cellIndex.y = vxId / (m_NumCells.x + 1);
+        cellIndex.x = vxId % (m_NumCells.x + 1);
+#else
+        FSpatialIndex cellIndex;
+        cellIndex.y = vxId / (m_NumCells.x + 1);
+        cellIndex.x = vxId % (m_NumCells.x + 1);
+#endif
+        return cellIndex;
+    }
+
+
     FSpatialIndex GetBlockIndex(FSpatialIndex cellIndex)
     {
         FSpatialIndex blockIndex;
@@ -214,10 +235,22 @@ struct FSurfReconGrid
     {
         return m_ActiveCellsInBlock.Load(blockId) > 0;
     }
+    bool IsBlockInternal(int blockId)
+    {
+        int NumActiveCells = m_ActiveCellsInBlock.Load(blockId);
+        if(NumActiveCells >= GetNumCellsInBlock())
+            return true;
+        return false;
+    }
 
     bool IsCellActive(int cellId)
     {
         return m_CellParticleCount.Load(cellId) > 0;
+    }
+
+    int GetNumParticlesInCell(int CellId)
+    {
+        return m_CellParticleCount.Load(cellId);
     }
 
     bool IsInRange(FSpatialVector position)
@@ -260,7 +293,34 @@ struct FSurfReconGrid
         return maxBlockIndex;
     }
 
+    int GetNumCellsInBlock()
+    {
+#ifndef IFSHADER_SURFRECON_2D
+        return (m_BlockWidthInCellUnits+2) * (m_BlockWidthInCellUnits+2) * (m_BlockWidthInCellUnits+2);
+#else
+        return (m_BlockWidthInCellUnits+2) * (m_BlockWidthInCellUnits+2);
+#endif
+    }
+
+    int GetNumCellVertices()
+    {
+#ifndef IFSHADER_SURFRECON_2D
+        return (m_NumCells.x + 1) * (m_NumCells.y + 1) * (m_NumCells.z + 1);
+#else
+        return (m_NumCells.x + 1) * (m_NumCells.y + 1);
+#endif
+    }
+
+    FSpatialIndex GetGridNumCellsInAxis()
+    {
+#ifndef IFSHADER_SURFRECON_2D
+        return FSpatialIndex(m_NumCells.x,m_NumCells.y,m_NumCells.z);
+#else
+        return FSpatialIndex(m_NumCells.x,m_NumCells.y);
+#endif
+    }
+
 };
 #endif
 
-}}}
+}}}
