@@ -15,4 +15,5 @@ namespace Ifrit::Runtime::Artemis
         Super::SetParticleData(particleBuffer, particleCount);
         Super::UpdateMesh(builder);
     }
+
 } // namespace Ifrit::Runtime::Artemis

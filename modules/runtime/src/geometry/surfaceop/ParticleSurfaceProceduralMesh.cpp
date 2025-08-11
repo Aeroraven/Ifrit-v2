@@ -27,6 +27,7 @@ namespace Ifrit::Runtime::Geometry
         constexpr static i32           kMaxParticlesPerCell = 16;
         ParticleSurfaceProceduralMesh* m_Parent             = nullptr;
         FSurfReconGridData             m_GridData;
+        f32                            m_IsoValue = 10.0f;
 
         // External
         RHI::RhiBufferRef              m_ParticleSrcDataBuffer  = nullptr;
@@ -460,7 +461,7 @@ namespace Ifrit::Runtime::Geometry
             float           m_IsoValue;
         } pc{};
 
-        pc.m_IsoValue = 10.0f;
+        pc.m_IsoValue = m_IsoValue;
 
         AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.VoxelMeshing",
             ShaderVariantDesc(Internal::kIntShaderTableGeometry.SurfReconVoxelMeshingCS, {}), *m_RDGActiveBlockCounter,
@@ -520,18 +521,30 @@ namespace Ifrit::Runtime::Geometry
         }
 
         IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "ParticleSurfaceProceduralMesh.UpdateMesh");
-        m_Data->PrepareRDGResources(builder);
-        m_Data->ResetGrids(builder);
-        m_Data->PrepareGridBuildDispArgs(builder);
-        m_Data->GridBuild(builder);
-        m_Data->FilterBlocks(builder);
-        m_Data->FilterCells(builder);
-        m_Data->CompactVertices(builder);
-        m_Data->ComputeVertexDensity(builder);
-        m_Data->DebugVisualizeVertex(builder);
-        m_Data->ComputeVertexNormals(builder);
-        m_Data->VoxelMeshing(builder);
-        m_Data->PrepareDrawArgs(builder);
+        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "ParticleSurfaceProceduralMesh");
+
+        {
+            IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "ParticleSurfaceProceduralMesh.GridFilter");
+            m_Data->PrepareRDGResources(builder);
+            m_Data->ResetGrids(builder);
+            m_Data->PrepareGridBuildDispArgs(builder);
+            m_Data->GridBuild(builder);
+            m_Data->FilterBlocks(builder);
+            m_Data->FilterCells(builder);
+        }
+
+        {
+            IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "ParticleSurfaceProceduralMesh.VertexProcess");
+            m_Data->CompactVertices(builder);
+            m_Data->ComputeVertexDensity(builder);
+            m_Data->DebugVisualizeVertex(builder);
+            m_Data->ComputeVertexNormals(builder);
+        }
+        {
+            IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "ParticleSurfaceProceduralMesh.VoxelMeshing");
+            m_Data->VoxelMeshing(builder);
+            m_Data->PrepareDrawArgs(builder);
+        }
     }
 
     IFRIT_APIDECL void ParticleSurfaceProceduralMesh::SetParticleData(
@@ -630,5 +643,7 @@ namespace Ifrit::Runtime::Geometry
             m_Data = nullptr;
         }
     }
+
+    IFRIT_APIDECL void ParticleSurfaceProceduralMesh::SetIsoValue(f32 isoValue) { m_Data->m_IsoValue = isoValue; }
 
 } // namespace Ifrit::Runtime::Geometry

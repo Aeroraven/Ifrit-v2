@@ -35,6 +35,9 @@ namespace Ifrit::Runtime::Artemis
         IF_PROPERTY(Editable, UISelect)
         bool mEnableRigidCoupling = true;
 
+        IF_PROPERTY(Editable, UISelect)
+        bool mEnableRendering = true;
+
     private:
         u32                                  m_PlaceHolder;
         MPMSimulatorConfiguratorPrivateData* m_Data = nullptr;

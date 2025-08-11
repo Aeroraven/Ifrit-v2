@@ -2,7 +2,6 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_MLS
 
 #include "ifrit.shader.neo/Artemis/MPM/MPM.Common.hlsli"
-#include "ifrit.shader.neo/Random/Random.Simplex2d.hlsli"
 namespace IfritShader{
 namespace Artemis{
 namespace MPM{
@@ -72,14 +71,12 @@ namespace MPM{
             FSpatialTransform Avol = mul(Q,Fs);
             FSpatialTransform Ashape = R;
             
-            FScalar beta = 1.0f;//PushConst.m_ElasticityInterpolationFactor;
+            FScalar beta = PushConst.m_ElasticityInterpolationFactor;
             FSpatialTransform Tgt = (beta * Ashape + (1.0f - beta) * Avol);
             FSpatialTransform InvF = Math::Inverse(ParticleDeformGrad);
             FSpatialTransform Dp = mul(Tgt, InvF) - I;
 
             FScalar DetR = Math::Determinant(Tgt);
-            PushConst.m_ParticleDebug.StoreMatrix(ThreadId.x,ParticleDeformDisplacement);
-
             FSpatialTransform Diff = Dp - ParticleDeformDisplacement;
             ParticleDeformDisplacement += PushConst.m_ElasticityRelaxationFactor * Diff;
         }

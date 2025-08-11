@@ -41,6 +41,8 @@ namespace Ifrit::Runtime::Artemis
         void              SetMousePushMode(bool enabled);
         void              SetMouseRadAct(f32 activation, f32 radius);
 
+        void              SetMouseDirection(const Vector3f& dir, const Vector3f& camPos);
+
     private:
         MPMSimulatorPrivateData* m_Data = nullptr;
         MPMSimulatorConfig       m_Config;

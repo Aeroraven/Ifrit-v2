@@ -210,16 +210,6 @@ namespace Artemis{
         int ReferenceFaceA = GetReferenceFace(QuadA, ContactResult.SeparatingAxis, PenetrationRegion, BestDotA);
         int ReferenceFaceB = GetReferenceFace(QuadB, ContactResult.SeparatingAxis, PenetrationRegion, BestDotB);
 
-        // SATQuadContactManifold2D ManifoldA = QuadToQuadContactManifoldSAT2DImpl(QuadA, QuadB,
-        //         ContactResult.SeparatingAxis, ReferenceFaceA);
-        // Manifold.ContactNormal = ContactResult.SeparatingAxis;
-        // Manifold.NumIncidentPoints = ManifoldA.NumIncidentPoints;
-        // for(int i=0;i<Manifold.NumIncidentPoints;i++)
-        // {
-        //     Manifold.ContactPointsOnA[i] = ManifoldA.ContactPointsOnA[i];
-        //     Manifold.ContactPointsOnB[i] = ManifoldA.ContactPointsOnB[i];
-        // }
-
         if(BestDotA < BestDotB)
         {
             SATQuadContactManifold2D ManifoldA = QuadToQuadContactManifoldSAT2DImpl(QuadA, QuadB,

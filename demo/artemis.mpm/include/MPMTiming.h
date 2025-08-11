@@ -7,7 +7,7 @@ using namespace Ifrit::Runtime;
 
 namespace Ifrit
 {
-    inline constexpr f32 kDefaultTimestep = 100.0f;
+    inline constexpr f32 kDefaultTimestep = 150.0f;
     static f32           sTimestep        = 1.0f / kDefaultTimestep;
 
     class IF_CLASS() MPMTiming : public ActorBehavior

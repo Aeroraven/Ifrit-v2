@@ -25,6 +25,12 @@ using namespace Ifrit::Math;
 
 namespace Ifrit::Runtime
 {
+    IFRIT_APIDECL Vector3f Camera::GetCameraPosition() const
+    {
+        auto p         = GetParent();
+        auto transform = p->GetComponent<Transform>();
+        return transform->GetPosition();
+    }
     IFRIT_APIDECL Matrix4x4f Camera::GetWorldToCameraMatrix() const
     {
         auto     p              = GetParent();

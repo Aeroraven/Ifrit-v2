@@ -68,7 +68,6 @@ namespace MPM{
         );
 #endif
 
-
 #ifdef IFSHADER_MPM_MLS
         PerformMlsParticleDeformUpdate(
             ThreadId.x,PushConst.m_DeltaTime,ParticleC,PushConst.m_ParticleDeformationGrad,
@@ -79,9 +78,6 @@ namespace MPM{
         bool IsFirstRun = (PushConst.m_IsFirstOrLastRun & 1) != 0;
         FScalar RcpGridSpacing = rcp(GridSpacing);
         FSpatialVector BaseMomentum = ParticleMass * ParticleVelocity;
-
-        
-        float fw = 0.0f;
         IFSHADER_MPM_RANGESEARCH_BEGIN(dx,dy,dz)
             FSpatialIndex GridOffset = ToSpatialIndex(dx,dy,dz);
             FSpatialIndex GridLocIndex = CenterGrid + GridOffset;
@@ -90,9 +86,7 @@ namespace MPM{
 
             FSpatialVector GridCenter = Grid.GetGridLocation(GridLocIndex);
             FSpatialVector G2PVector = GridCenter - ParticleLocation;
-            
             FScalar ContribWeight  = GetEulerianInterpWeight(G2PVector*RcpGridSpacing);
-
             FScalar ContribMass = ContribWeight * ParticleMass;
             FSpatialVector ContribMomentumBase = ContribWeight * BaseMomentum;
             FSpatialVector ContribMomentumAffine = ContribMass * mul(ParticleC, G2PVector);
@@ -115,7 +109,6 @@ namespace MPM{
             Grid.AddMass(GridLocIndex, ContribMass);
             Grid.AddVelocity(GridLocIndex, ContribMomentum);
 #endif
-
         IFSHADER_MPM_RANGESEARCH_END()
     }
 

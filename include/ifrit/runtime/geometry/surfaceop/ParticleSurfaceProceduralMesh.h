@@ -17,7 +17,9 @@ namespace Ifrit::Runtime::Geometry
         void Init(RHI::RhiBackend* rhi, u32 maxParticles, u32 maxIndices, Vector4i gridSize, Vector3f minBound,
             Vector3f maxBound);
 
+        void SetIsoValue(f32 isoValue);
+
     private:
         ParticleSurfaceProceduralMeshPrivateData* m_Data = nullptr;
     };
-} // namespace Ifrit::Runtime::Geometry
+} // namespace Ifrit::Runtime::Geometry

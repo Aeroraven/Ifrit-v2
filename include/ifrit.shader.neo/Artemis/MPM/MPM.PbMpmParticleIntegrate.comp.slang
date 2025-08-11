@@ -2,14 +2,17 @@
 #pragma ifrit.multi_compile IFSHADER_MPM_MLS
 
 #include "ifrit.shader.neo/Artemis/MPM/MPM.Common.hlsli"
-#include "ifrit.shader.neo/Random/Random.Simplex2d.hlsli"
+#include "ifrit.shader.neo/Math.Geometry.hlsli"
 namespace IfritShader{
 namespace Artemis{
 namespace MPM{
 
     struct PushConst_T
     {
+        
         float4 m_Gravity;
+        float4 m_MouseCamPos;
+        float4 m_MouseCamDir;
         FParticleCounterHandle m_ParticleCounter;
         float m_DeltaTime;
 
@@ -22,6 +25,7 @@ namespace MPM{
         FRWScalarHandle m_ParticleLiquidDensity;
         FPackedMatrixHandle m_ParticleDebug;
         FRWSpatialVectorHandle m_ParticleVelocityOld; // For PBMPM-RigidCoupling (Displacement)
+        TRWStructuredBufferHandle<float4> m_ParticleColor;
         float m_ViscoPlasticity;
 
         float m_MouseX;
@@ -35,8 +39,6 @@ namespace MPM{
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
-
-
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
     IFSHADER_BLOCKSIZE(kMpmTGSizeX, 1, 1)
@@ -64,7 +66,7 @@ namespace MPM{
         FSpatialVector ParticleLocation = PushConst.m_ParticleLocation.Load(ThreadId.x);
         FSpatialVector ParticleDisplacement = PushConst.m_ParticleVelocity.Load(ThreadId.x);
         FSpatialVector NewParticleLocation = ParticleLocation + ParticleDisplacement;
-        NewParticleLocation = clamp(NewParticleLocation, GridMinBound, GridMaxBound);
+        NewParticleLocation = clamp(NewParticleLocation, GridMinBound+1e-6f, GridMaxBound-1e-6f);
 
         bool IsElastic = IsElasticMaterial(ParticleMaterial);
         bool IsLiquid = IsLiquidMaterial(ParticleMaterial);
@@ -143,9 +145,31 @@ namespace MPM{
                 }
             }
         }
+#else
+        if(PushConst.m_MouseActivation > 0.0f)
+        {
+            float DistToRay = Math::ShortestUnsignedDistanceToLine3D(NewParticleLocation, 
+                                                                      PushConst.m_MouseCamPos.xyz, 
+                                                                      PushConst.m_MouseCamDir.xyz);
+            if(DistToRay < PushConst.m_MouseRadius)
+            {
+                //PushConst.m_ParticleColor.Store(float4(1.0f, 0.0f, 0.0f, 1.0f),ThreadId.x);
+                if(PushConst.m_IsPushMode != 1)
+                {
+                    ParticleDisplacement = FSpatialVector(0.0f);
+                    GravityDisplacement = FSpatialVector(0.0f);
+                    MouseDisplacement = FSpatialVector(PushConst.m_MouseVx, PushConst.m_MouseVy, 0.0) / float(PushConst.m_NumSubsteps);
+                }
+            }
+        }
 #endif
         FSpatialVector OverallDisplacement = ParticleDisplacement + GravityDisplacement + MouseDisplacement;
         OverallDisplacement = clamp(OverallDisplacement, -GridSpacing, GridSpacing);
+
+        // NewLocation + OverallDisplacement should be in the grid bounds
+        // OverallDisplacement = clamp(OverallDisplacement, 
+        //                                         GridMinBound + 1e-5f - NewParticleLocation, 
+        //                                         GridMaxBound - 1e-5f - NewParticleLocation);
 
         PushConst.m_ParticleLocation.Store(ThreadId.x, NewParticleLocation);
         PushConst.m_ParticleVelocity.Store(ThreadId.x, OverallDisplacement);

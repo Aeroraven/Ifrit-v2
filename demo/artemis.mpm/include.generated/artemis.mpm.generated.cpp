@@ -72,6 +72,7 @@
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\rigid\GpuRigidCollider.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshDF.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\renderer\ayanami\AyanamiMeshMarker.h"
+#include "C:/WR/Ifrit-v2/demo/artemis.mpm/include\MPMMeshingCfg.h"
 #include "C:/WR/Ifrit-v2/demo/artemis.mpm/include\MPMMouseInteractor.h"
 #include "C:/WR/Ifrit-v2/demo/artemis.mpm/include\MPMTiming.h"
 #include "C:/WR/Ifrit-v2/demo/artemis.mpm/include\RigidEmitter.h"
@@ -374,6 +375,9 @@ namespace Ifrit::Reflection
         RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("Enable Rigid Coupling");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("Editable", "");
         RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRigidCoupling>("UISelect", "");
+        RegisterPropertyField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRendering>("Enable Rendering");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRendering>("Editable", "");
+        RegisterPropertyHint<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::mEnableRendering>("UISelect", "");
         RegisterMethodField<&Ifrit::Runtime::Artemis::MPMSimulatorConfigurator::ClearScene>("Clear Scene");
 
         // Ifrit::Runtime::Artemis::ProceduralMPMMeshAsset
@@ -409,6 +413,14 @@ namespace Ifrit::Reflection
         // Ifrit::Runtime::Ayanami::AyanamiMeshMarker
         RegisterType<Ifrit::Runtime::Ayanami::AyanamiMeshMarker>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Ayanami::AyanamiMeshMarker, Ifrit::Runtime::Component>();
+
+        // Ifrit::MPMMeshingCfg
+        RegisterType<Ifrit::MPMMeshingCfg>();
+        RegisterPolymorphicRelation<Ifrit::MPMMeshingCfg, Ifrit::Runtime::ActorBehavior>();
+        RegisterPropertyField<&Ifrit::MPMMeshingCfg::mIsoValue>("Iso Value");
+        RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mIsoValue>("Editable", "");
+        RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mIsoValue>("UISlider.min", (double)0);
+        RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mIsoValue>("UISlider.max", (double)100);
 
         // Ifrit::MPMMouseInteractor
         RegisterType<Ifrit::MPMMouseInteractor>();

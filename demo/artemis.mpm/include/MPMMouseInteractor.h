@@ -27,6 +27,7 @@ namespace Ifrit
     class IF_CLASS() MPMMouseInteractor : public ActorBehavior
     {
         using ActorBehavior::ActorBehavior;
+        typedef ActorBehavior Super;
 
     public:
         IF_PROPERTY(Editable, UISelect)
@@ -37,13 +38,6 @@ namespace Ifrit
 
         IF_PROPERTY(Editable, UISlider = (min = 0.0001f, max = 0.005f))
         float mActivation = 0.001f;
-
-    private:
-        typedef ActorBehavior Super;
-
-        float                 mLastMouseX    = 0.0f;
-        float                 mLastMouseY    = 0.0f;
-        bool                  mLastMouseDown = false;
 
     public:
         void OnUpdate() override
@@ -66,6 +60,7 @@ namespace Ifrit
                     mouseX      = mouseX * aspect;
                     mouseX      = mouseX * 0.5f + 0.5f;
                     auto mouseY = inputSystem->GetMouseY();
+                    auto rawX   = inputSystem->GetMouseX();
                     if (mouseX < 0.0f || mouseX > 1.0f || mouseY < 0.0f || mouseY > 1.0f)
                     {
                         return;
@@ -79,6 +74,8 @@ namespace Ifrit
                         deltaX         = 0.0f;
                         deltaY         = 0.0f;
                         mLastMouseDown = true;
+
+                        mLastMouseDirWS = GetMouseDirWS(mainCamera, rawX, mouseY);
                     }
 
                     auto artemisController = GetActiveApplication()->GetSubsystem<Artemis::ArtemisController>();
@@ -92,6 +89,7 @@ namespace Ifrit
                             mpmSimulator->SetMouseVelocity(deltaX, -deltaY);
                             mpmSimulator->SetMousePushMode(mInteractionMode == EInteractionMode::Push);
                             mpmSimulator->SetMouseRadAct(mActivation, mRadius);
+                            mpmSimulator->SetMouseDirection(mLastMouseDirWS, mainCamera->GetCameraPosition());
                         }
                     }
                 }
@@ -109,10 +107,53 @@ namespace Ifrit
                             mpmSimulator->SetMouseVelocity(0.0f, 0.0f);
                             mpmSimulator->SetMousePushMode(false);
                             mpmSimulator->SetMouseRadAct(mActivation, mRadius);
+                            mpmSimulator->SetMouseDirection(mLastMouseDirWS, Vector3f(114.0f, 514.0f, 0.0f));
                         }
                     }
                 }
             }
+        }
+
+    private:
+        Vector3f mLastMouseDirWS = Vector3f(0.0f, 0.0f, 1.0f);
+        float    mLastMouseX     = 0.0f;
+        float    mLastMouseY     = 0.0f;
+        bool     mLastMouseDown  = false;
+
+    private:
+        Vector3f GetMouseDirWS(Camera* camera, float mouseX01, float mouseY01)
+        {
+            using namespace Ifrit::Math;
+            if (!camera)
+                return Vector3f(0.0f, 0.0f, 1.0f);
+            float    xNDC = mouseX01 * 2.0f - 1.0f;
+            float    yNDC = (mouseY01) * 2.0f - 1.0f;
+            auto     V    = camera->GetWorldToCameraMatrix();
+            auto     P    = camera->GetProjectionMatrix();
+            auto     Inv  = Math::Inverse(Math::MatMul(P, V));
+
+            // For left-handed z-front (DirectX style) near=0, far=1 in clip/NDC.
+            Vector4f nearH(xNDC, yNDC, 0.1f, 1.0f);
+            Vector4f farH(xNDC, yNDC, 0.9f, 1.0f);
+
+            nearH = Math::MatMul(Inv, nearH);
+            farH  = Math::MatMul(Inv, farH);
+
+            // Perspective divide
+            if (nearH.w != 0.0f)
+                nearH = nearH * (1.0f / nearH.w);
+            if (farH.w != 0.0f)
+                farH = farH * (1.0f / farH.w);
+
+            Vector3f nearWS(nearH.x, nearH.y, nearH.z);
+            Vector3f farWS(farH.x, farH.y, farH.z);
+
+            Vector3f dir = Math::Normalize(farWS - nearWS);
+
+            // Optional log:
+            IF_LOG_INFO("MPMMouseInteractor", "Ray dir: {}, {}, {}", dir.x, dir.y, dir.z);
+
+            return dir;
         }
     };
 } // namespace Ifrit

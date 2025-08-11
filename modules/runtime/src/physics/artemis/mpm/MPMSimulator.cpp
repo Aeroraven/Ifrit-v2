@@ -89,6 +89,8 @@ namespace Ifrit::Runtime::Artemis
 
     struct MPMSimulatorPrivateData
     {
+        Vector3f                                   m_MouseDir           = { 0.0f, 0.0f, 1.0f };
+        Vector3f                                   m_CamPos             = { 0.0f, 0.0f, 0.0f };
         u32                                        m_FrameId            = 0;
         u32                                        m_RigidFrameId       = 0;
         f32                                        m_ParticleRenderSize = 1.0f;
@@ -1096,6 +1098,8 @@ namespace Ifrit::Runtime::Artemis
         struct PushConst
         {
             Vector4f        m_Gravity;
+            Vector4f        m_MouseCamPos;
+            Vector4f        m_MouseCamDir;
             u32             m_ParticleCounterBuf;
             f32             m_DeltaTime;
 
@@ -1108,6 +1112,7 @@ namespace Ifrit::Runtime::Artemis
             u32             m_ParticleLiquidDensity;
             u32             m_ParticleDebug;
             RHI::RhiUAVDesc m_ParticleVelocityOld;
+            RHI::RhiUAVDesc m_ParticleColor;
             f32             m_ViscoPlasticity;
 
             f32             m_MouseX;
@@ -1120,6 +1125,8 @@ namespace Ifrit::Runtime::Artemis
             i32             m_IsPushMode;
         } pc;
         pc.m_Gravity         = Vector4f(m_Config->m_Gravity, 0.0f);
+        pc.m_MouseCamPos     = Vector4f(m_CamPos, 0.0f);
+        pc.m_MouseCamDir     = Vector4f(m_MouseDir, 0.0f);
         pc.m_DeltaTime       = dt;
         pc.m_ViscoPlasticity = m_Config->m_DefaultViscoPlasticity;
         pc.m_MouseX          = m_MouseX;
@@ -1145,6 +1152,7 @@ namespace Ifrit::Runtime::Artemis
                 pc.m_ParticleLiquidDensity   = ctx.m_FgDesc->GetUAV(*m_RDGParticleLiquidDensity);
                 pc.m_ParticleDebug           = ctx.m_FgDesc->GetUAV(*m_RDGParticleDebug);
                 pc.m_ParticleVelocityOld     = ctx.m_FgDesc->GetUAV(*m_RDGParticleVelocityOld);
+                pc.m_ParticleColor           = ctx.m_FgDesc->GetUAV(*m_RDGParticleColor);
 
                 SetRootConstant(pc, ctx);
             })
@@ -1156,6 +1164,7 @@ namespace Ifrit::Runtime::Artemis
             .AddReadWriteResource(*m_RDGParticleApicB)
             .AddReadWriteResource(*m_RDGParticleLiquidDensity)
             .AddReadWriteResource(*m_RDGParticleVelocityOld)
+            .AddReadWriteResource(*m_RDGParticleColor)
             .AddReadResource(*m_RDGParticleMatProperty);
     }
 
@@ -1339,6 +1348,8 @@ namespace Ifrit::Runtime::Artemis
 
     void MPMSimulatorPrivateData::ParticleToGridTransfer(FrameGraphBuilder& builder, f32 deltaTime, u32 firstOrLastRun)
     {
+
+        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.ParticleToGridTransfer");
         struct PushConst
         {
             u32 m_ParticleCounterBuf;
@@ -1675,6 +1686,7 @@ namespace Ifrit::Runtime::Artemis
 
     void MPMSimulatorPrivateData::GridToParticleTransfer(FrameGraphBuilder& builder, f32 deltaTime)
     {
+        IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.G2P");
         struct PushConst
         {
             u32 m_ParticleCounterBuf;
@@ -2039,7 +2051,6 @@ namespace Ifrit::Runtime::Artemis
                     IFRIT_FRAMEGRAPH_EVENT_SCOPE(builder, "MPMSimulator.PbMpmSubstep");
                     {
                         IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.ParticleScatter");
-                        // Scatter particles to blocks
                         BlockParticleScatterReset(builder);
                         BlockParticleScatterCount(builder);
                         BlockParticleScatterReserve(builder);
@@ -2072,16 +2083,12 @@ namespace Ifrit::Runtime::Artemis
                                 PbMpmRigidBoundaryConstraintResolve(builder);
                                 PbMpmRigidContactRigidConstraintResolve(builder);
                             }
-
-                            // ParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
                             BlockParticleToGridTransfer(builder, deltaTimePerSubstep, firstOrLastRun);
-
                             if (isFirstIteration)
                             {
                                 GridVelocityNormalize(builder);
                             }
                             GridVelocityUpdate(builder, deltaTimePerSubstep, isFirstIteration);
-                            // GridToParticleTransfer(builder, deltaTimePerSubstep);
                             BlockGridToParticleTransfer(builder, deltaTimePerSubstep);
                         }
                         isFirstRun = false;
@@ -2091,12 +2098,9 @@ namespace Ifrit::Runtime::Artemis
                     {
                         IFRIT_FRAMEGRAPH_GPU_STAT_SCOPE(builder, "MPMSimulator.RigidConstraintSolve");
                         PbMpmRigidIntegrate(builder, deltaTimePerSubstep);
-                        // solve velocity here!!
                         PbMpmRigidSolveVelocityParticleRigidColl(builder, deltaTimePerSubstep);
                         PbMpmRigidSolveVelocityRigidBoundaryColl(builder, deltaTimePerSubstep);
                         PbMpmRigidSolveVelocityRigidRigidColl(builder, deltaTimePerSubstep);
-
-                        // end velocity solve
                         PbMpmRigidIntegrateNextStep(builder, deltaTimePerSubstep);
                         PbMpmRigidSyncTransform(builder);
                     }
@@ -2530,5 +2534,10 @@ namespace Ifrit::Runtime::Artemis
         m_Data->m_MouseActivation = act;
         m_Data->m_MouseRadius     = rad;
     }
-
+    IFRIT_APIDECL void MPMSimulator::SetMouseDirection(const Vector3f& dir, const Vector3f& camPos)
+    {
+        m_Data->m_MouseDir = dir;
+        m_Data->m_CamPos   = camPos;
+        // IF_LOG_INFO("Artemis.MPM", "MPMSimulator: Mouse direction set to: {},{},{}", dir.x, dir.y, dir.z);
+    }
 } // namespace Ifrit::Runtime::Artemis

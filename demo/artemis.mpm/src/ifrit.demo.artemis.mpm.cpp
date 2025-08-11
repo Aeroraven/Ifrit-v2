@@ -21,6 +21,7 @@
 #include "MPMTiming.h"
 #include "MPMMouseInteractor.h"
 #include "RigidEmitter.h"
+#include "MPMMeshingCfg.h"
 #include "artemis.mpm.generated.h"
 
 #include "ifrit/core/reflection/SerializeHelper.h"
@@ -55,9 +56,9 @@ namespace Ifrit
     public:
         void OnStart() override
         {
-            bool use3D = true;
+            bool use3D   = true;
             auto meshRes = 64;
-            m_Renderer = MakeOwner<BaseForwardRenderer>(this);
+            m_Renderer   = MakeOwner<BaseForwardRenderer>(this);
             m_RendererWrapper->SetRenderer(m_Renderer.get());
 
             RegisterSubsystem(InputSystem::Create());
@@ -72,23 +73,28 @@ namespace Ifrit
             artemisController->AddPresetSolver(Artemis::EPresetArtemisSimulator::MPM);
             auto mpmSimulator = reinterpret_cast<Artemis::MPMSimulator*>(
                 artemisController->GetPresetSolver(Artemis::EPresetArtemisSimulator::MPM));
-            auto mpmInternalConfig              = mpmSimulator->GetActiveConfig();
+            auto mpmInternalConfig = mpmSimulator->GetActiveConfig();
             if (use3D)
             {
-                mpmInternalConfig.m_Dimension = Artemis::MPMSimulatorProblemDimension::ThreeDimensional;
-                mpmInternalConfig.m_DefaultParticleType = Artemis::MPMSimulatorParticleType::Jelly;
-                
-                mpmInternalConfig.m_EnableRendering = false;
+                mpmInternalConfig.m_Dimension           = Artemis::MPMSimulatorProblemDimension::ThreeDimensional;
+                mpmInternalConfig.m_DefaultParticleType = Artemis::MPMSimulatorParticleType::Fluid;
+                mpmInternalConfig.m_GridSize            = Vector3u(64, 64, 64);
+                mpmInternalConfig.m_GridSpacing         = 1.0f / 64.0f;
+                mpmInternalConfig.m_DefaultMass         = 0.5f / 64.0f;
             }
             else
             {
-                mpmInternalConfig.m_Dimension = Artemis::MPMSimulatorProblemDimension::TwoDimensional;
+                mpmInternalConfig.m_Dimension   = Artemis::MPMSimulatorProblemDimension::TwoDimensional;
+                mpmInternalConfig.m_GridSize    = Vector3u(128, 128, 128);
+                mpmInternalConfig.m_GridSpacing = 1.0f / 128;
+                mpmInternalConfig.m_DefaultMass = 0.5f / 128;
             }
 
             mpmSimulator->SetConfig(mpmInternalConfig);
 
             // Asset
-            auto mpmMesh = m_assetManager->CreateAsset<Artemis::ProceduralMPMMeshAsset>(String("SurfaceMesh"), 2145141u, 2145141u, Vector4i(meshRes, meshRes, meshRes, 0), Vector3f(-0.01f, -0.01f, -0.01f),
+            auto mpmMesh = m_assetManager->CreateAsset<Artemis::ProceduralMPMMeshAsset>(String("SurfaceMesh"), 2145141u,
+                2145141u, Vector4i(meshRes, meshRes, meshRes, 0), Vector3f(-0.01f, -0.01f, -0.01f),
                 Vector3f(1.01f, 1.01f, 1.01f));
             auto material = m_assetManager->CreateAsset<DefaultMaterialAsset>(String("SurfaceMat"));
 
@@ -101,6 +107,10 @@ namespace Ifrit
             auto mpmConfig             = mpmGlobalConfig->AddComponent<Artemis::MPMSimulatorConfigurator>();
             auto mpmContainerComponent = mpmGlobalConfig->AddComponent<Artemis::MPMParticleContainer>();
             mpmGlobalConfig->AddComponent<MPMTiming>();
+            if (use3D)
+            {
+                mpmConfig->mEnableRendering = true;
+            }
 
             auto cameraGameObject = node->AddGameObject("Camera");
             auto camera           = cameraGameObject->AddComponent<Camera>();
@@ -133,11 +143,16 @@ namespace Ifrit
             rigidEmitter->SetEnable(false);
             interactor->AddComponent<MPMMouseInteractor>();
 
-            auto procMesh       = node->AddGameObject("MPMMesh");
-            auto procMeshFilter = procMesh->AddComponent<MeshFilter>();
-            procMeshFilter->SetMeshSource(mpmMesh);
-            auto procMeshRenderer = procMesh->AddComponent<MeshRenderer>();
-            procMeshRenderer->SetMaterialSource(material);
+            if (use3D)
+            {
+
+                auto procMesh       = node->AddGameObject("MPMMesh");
+                auto procMeshFilter = procMesh->AddComponent<MeshFilter>();
+                procMeshFilter->SetMeshSource(mpmMesh);
+                auto procMeshRenderer = procMesh->AddComponent<MeshRenderer>();
+                procMeshRenderer->SetMaterialSource(material);
+                auto procCfg = procMesh->AddComponent<MPMMeshingCfg>();
+            }
 
             m_sceneManager->SetActiveScene(scene);
         }

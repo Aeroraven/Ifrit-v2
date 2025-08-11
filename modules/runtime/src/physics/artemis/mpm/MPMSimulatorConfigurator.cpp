@@ -45,6 +45,7 @@ namespace Ifrit::Runtime::Artemis
             activeCfg.m_PbMpmDefaultElasticityRelaxationFactor    = mPbmpmElasticityRelax;
             activeCfg.m_Gravity                                   = mGravity;
             activeCfg.m_EnableRigidCoupling                       = mEnableRigidCoupling;
+            activeCfg.m_EnableRendering                           = mEnableRendering;
             m_Data->m_ActiveSimulator->SetConfig(activeCfg);
             m_Data->m_ActiveSimulator->SetDefaultSize(mPointSize);
         }

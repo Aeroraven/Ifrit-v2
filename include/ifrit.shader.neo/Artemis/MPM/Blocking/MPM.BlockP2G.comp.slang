@@ -40,7 +40,7 @@ namespace MPM{
 
 //#define IFSHADER_MPM_BLOCKING_FIXED_POINT_MATH 1
 //#define IFSHADER_MPM_MANUAL_FP32_ATOMICS 1
-    static const float kFixedPointScale = 1e10f;
+    static const float kFixedPointScale = 5e10f;
     static const float kFixedPointScaleInv = 1.0f / kFixedPointScale;
 
 #ifdef IFSHADER_MPM_BLOCKING_FIXED_POINT_MATH
@@ -416,7 +416,6 @@ namespace MPM{
                     Grid.AddVelocity(GridLocIndex, ContribMomentum / CurrentMass);
                 }
     #endif
-
 #else
             Grid.AddMass(GridLocIndex, GetMass(LocalCellId));
             Grid.AddVelocity(GridLocIndex, ContribMomentum);

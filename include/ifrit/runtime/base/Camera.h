@@ -75,6 +75,8 @@ namespace Ifrit::Runtime
         inline f32        GetOrthoSpaceSize() const { return mOrthoSpaceSize; }
         inline CameraType GetCameraType() const { return mType; }
 
+        Vector3f          GetCameraPosition() const;
+
         // setters
 
         inline void       SetFov(f32 fov) { mFov = fov; }

@@ -91,4 +91,11 @@ namespace Math{
     {
         return dot(Point, LineDirNormalized);
     }
+
+    float ShortestUnsignedDistanceToLine3D(float3 Point, float3 LinePoint, float3 LineDirection)
+    {
+        float3 LineToPoint = Point - LinePoint;
+        float3 Perpendicular = cross(LineDirection, LineToPoint);
+        return length(Perpendicular) / length(LineDirection);
+    }
 }}
