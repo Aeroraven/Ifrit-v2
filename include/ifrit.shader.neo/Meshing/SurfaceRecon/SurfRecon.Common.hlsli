@@ -265,6 +265,13 @@ struct FSurfReconGrid
             return true;
         return false;
     }
+    bool IsBlockInternalExpanded(int blockId, int Expansion)
+    {
+        int NumActiveCells = m_ActiveCellsInBlock.Load(blockId);
+        if(NumActiveCells >= GetNumCellsInBlockExpanded(Expansion))
+            return true;
+        return false;
+    }
 
     bool IsCellActive(int cellId)
     {
@@ -305,6 +312,24 @@ struct FSurfReconGrid
         return Result;
     }
 
+    FSpatialIndex GetCellInBlockBoundaryStateExpanded(FSpatialIndex CellIndex, int Expansion)
+    {
+        FSpatialIndex BlockIndex = GetBlockIndex(CellIndex);
+        FSpatialIndex InBlockOffset = CellIndex - BlockIndex * m_BlockWidthInCellUnits;
+        FSpatialIndex Result = FSpatialIndex(0);
+        if(InBlockOffset.x <= Expansion-1) Result.x = -1;
+        else if(InBlockOffset.x >= m_BlockWidthInCellUnits - Expansion) Result.x = 1;
+
+        if(InBlockOffset.y <= Expansion-1) Result.y = -1;
+        else if(InBlockOffset.y >= m_BlockWidthInCellUnits -  Expansion) Result.y = 1;
+
+#ifndef IFSHADER_SURFRECON_2D
+        if(InBlockOffset.z <= Expansion-1) Result.z = -1;
+        else if(InBlockOffset.z >= m_BlockWidthInCellUnits - Expansion) Result.z = 1;   
+#endif
+        return Result;
+    }
+
     FSpatialIndex GetMaxBlockIndex()
     {
         FSpatialIndex maxBlockIndex;
@@ -322,6 +347,15 @@ struct FSurfReconGrid
         return (m_BlockWidthInCellUnits+2) * (m_BlockWidthInCellUnits+2) * (m_BlockWidthInCellUnits+2);
 #else
         return (m_BlockWidthInCellUnits+2) * (m_BlockWidthInCellUnits+2);
+#endif
+    }
+
+    int GetNumCellsInBlockExpanded(int Expansion)
+    {
+#ifndef IFSHADER_SURFRECON_2D
+        return (m_BlockWidthInCellUnits + 2 * Expansion) * (m_BlockWidthInCellUnits + 2 * Expansion) * (m_BlockWidthInCellUnits + 2 * Expansion);
+#else
+        return (m_BlockWidthInCellUnits + 2 * Expansion) * (m_BlockWidthInCellUnits + 2 * Expansion);
 #endif
     }
 

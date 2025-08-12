@@ -170,6 +170,14 @@ namespace Ifrit::Runtime::Internal
         REG_VERTEX_NEO(IST.BaseForward.ForwardVS, "BaseForward/Forward.Default", "BaseForwardVS");
         REG_FRAGMENT_NEO(IST.BaseForward.ForwardPS, "BaseForward/Forward.Default", "BaseForwardPS");
 
+        // Base Deferred
+        REG_VERTEX_NEO(IST.BaseDeferred.DeferredDefaultVS, "BaseDeferred/Deferred.Default", "BaseDeferredVS");
+        REG_FRAGMENT_NEO(IST.BaseDeferred.DeferredDefaultFS, "BaseDeferred/Deferred.Default", "BaseDeferredPS");
+        REG_FRAGMENT_NEO(IST.BaseDeferred.DeferredShadingFS, "BaseDeferred/Deferred.Shading", "BaseDeferredShadingPS");
+
+        // Experimental
+        REG_FRAGMENT_NEO(IST.Experimental.GelatinTestFS, "Experimental/GelatinTest", "GelatinTestPS");
+
         // Artemis
         RegisterRuntimeInternalShadersArtemis(shaderRegistry);
 

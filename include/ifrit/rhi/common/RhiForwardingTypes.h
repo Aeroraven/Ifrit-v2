@@ -459,6 +459,14 @@ namespace Ifrit::RHI
         Repeat,
     };
 
+    enum class RhiDepthFunc
+    {
+        Never,
+        Less,
+        Equal,
+        Greater
+    };
+
     using RhiDeviceAddr = u64;
 
 } // namespace Ifrit::RHI

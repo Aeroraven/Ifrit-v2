@@ -740,7 +740,7 @@ namespace Ifrit::RHI::VulkanAdapter
                     if (srcState != barrier.m_transition.m_texture->GetState()
                         && srcState != RHI::RhiResourceState::Undefined)
                     {
-                        IF_LOG_ERROR("CommandList","Texture state mismatch, expected:{} actual:{}", i32(srcState),
+                        IF_LOG_ERROR("CommandList", "Texture state mismatch, expected:{} actual:{}", i32(srcState),
                             i32(barrier.m_transition.m_texture->GetState()));
 
                         std::abort();
@@ -784,8 +784,8 @@ namespace Ifrit::RHI::VulkanAdapter
                         && barrier.m_uav.m_texture->GetState() != RHI::RhiResourceState::UnorderedAccess)
                     {
                         IF_LOG_ERROR("CommandList", "Texture state mismatch, expected:{}/{} actual:{}",
-                            i32(RHI::RhiResourceState::Common),
-                            i32(RHI::RhiResourceState::UnorderedAccess), i32(barrier.m_uav.m_texture->GetState()));
+                            i32(RHI::RhiResourceState::Common), i32(RHI::RhiResourceState::UnorderedAccess),
+                            i32(barrier.m_uav.m_texture->GetState()));
                         std::abort();
                     }
                     if (barrier.m_uav.m_texture->GetImageFormat() == RHI::RhiImageFormat::RhiImgFmt_D32_SFLOAT)
@@ -858,6 +858,30 @@ namespace Ifrit::RHI::VulkanAdapter
         }
         auto exfun = m_context->GetExtensionFunction();
         vkCmdSetCullMode(m_commandBuffer, cullMode);
+    }
+
+    IFRIT_APIDECL void CommandBuffer::SetDepthFunc(RhiDepthFunc func) const
+    {
+        auto        exfun = m_context->GetExtensionFunction();
+        VkCompareOp compareOp;
+        switch (func)
+        {
+            case RhiDepthFunc::Never:
+                compareOp = VK_COMPARE_OP_NEVER;
+                break;
+            case RhiDepthFunc::Less:
+                compareOp = VK_COMPARE_OP_LESS;
+                break;
+            case RhiDepthFunc::Equal:
+                compareOp = VK_COMPARE_OP_EQUAL;
+                break;
+            case RhiDepthFunc::Greater:
+                compareOp = VK_COMPARE_OP_GREATER;
+                break;
+            default:
+                vkrError("Invalid depth function");
+        }
+        exfun.p_vkCmdSetDepthCompareOp(m_commandBuffer, compareOp);
     }
 
     IFRIT_APIDECL RhiRawHandle CommandBuffer::GetRawHandle() const { return m_commandBuffer; }

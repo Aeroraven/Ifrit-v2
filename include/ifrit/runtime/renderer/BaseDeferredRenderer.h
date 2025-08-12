@@ -9,12 +9,9 @@
 namespace Ifrit::Runtime
 {
 
-    struct BaseForwardRendererResources;
+    struct BaseDeferredRendererResources;
 
-    // BaseForwardRenderer is a renderer that implements the forward rendering technique.
-    // It's designed to add the minimal set of features required for rendering a scene without
-    // advanced device support. For advanced devices, please use SyaroV1.
-    class IFRIT_APIDECL BaseForwardRenderer : public RendererBase
+    class IFRIT_APIDECL BaseDeferredRenderer : public RendererBase
     {
 
         using RenderTargets        = RHI::RhiRenderTargets;
@@ -22,7 +19,7 @@ namespace Ifrit::Runtime
         using GPUCmdBuffer         = RHI::RhiCommandList;
 
     private:
-        BaseForwardRendererResources* m_Resources = nullptr;
+        BaseDeferredRendererResources* m_Resources = nullptr;
 
     private:
         void InitRenderer();
@@ -30,8 +27,8 @@ namespace Ifrit::Runtime
             Scene* scene, PerFrameData& perframe, RenderTargets* renderTargets, const GPUCmdBuffer* cmd);
 
     public:
-        BaseForwardRenderer(IApplication* app);
-        virtual ~BaseForwardRenderer();
+        BaseDeferredRenderer(IApplication* app);
+        virtual ~BaseDeferredRenderer();
 
         virtual Owner<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
             const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait) override;

@@ -119,6 +119,8 @@ namespace Ifrit::Runtime
                 rhiBackend->CreateRenderTargetDepthStencil(m_DepthTarget->GetTexture(), clearValue, m_DepthLoadOp);
             m_RhiDepthRT = rt;
             m_RhiRTs->SetDepthStencilAttachment(rt.get());
+            m_RhiRTs->SetRenderArea(
+                { 0, 0, m_DepthTarget->GetTexture()->GetWidth(), m_DepthTarget->GetTexture()->GetHeight() });
         }
         m_pass->SetRenderTargetFormat(m_RhiRTs->GetFormat());
         if (m_Scissor.width == 0 && m_Scissor.height == 0)
@@ -240,7 +242,8 @@ namespace Ifrit::Runtime
     {
         auto gp = m_Rhi->CreateGraphicsPass2();
         gp->SetVertexShader(m_ShaderRegistry->GetShader(vs));
-        gp->SetPixelShader(m_ShaderRegistry->GetShader(fs));
+        if (fs.m_Name.size())
+            gp->SetPixelShader(m_ShaderRegistry->GetShader(fs));
         gp->SetPushConstSize(pushConsts * sizeof(u32));
         gp->SetRasterizerTopology(topology);
 
@@ -419,7 +422,7 @@ namespace Ifrit::Runtime
         auto scopeId                     = SizeCast<u32>(m_statScopes.size());
         scope->m_ScopeId                 = scopeId;
         auto ptr                         = scope.get();
-        //IF_LOG_INFO("FrameGraph", "Adding stat scope: {} at pass id: {}.", name, scope->m_StartingPassId);
+        // IF_LOG_INFO("FrameGraph", "Adding stat scope: {} at pass id: {}.", name, scope->m_StartingPassId);
 
         m_statScopes.push_back(std::move(scope));
         return *ptr;
@@ -429,7 +432,7 @@ namespace Ifrit::Runtime
         FrameGraphStatScope& scopex = *m_statScopes[scope.m_ScopeId];
         scopex.m_EndingPassId       = std::max(scopex.m_StartingPassId, (u32)std::max(0, (i32)m_passes.size()));
 
-        //IF_LOG_INFO("FrameGraph", "Ending stat scope: {} at pass id: {}.", scopex.m_Name, scopex.m_EndingPassId);
+        // IF_LOG_INFO("FrameGraph", "Ending stat scope: {} at pass id: {}.", scopex.m_Name, scopex.m_EndingPassId);
         if (scopex.m_EndingPassId <= scopex.m_StartingPassId)
         {
             IF_LOG_CRITICAL("FrameGraph", "Stat scope {} has no ending pass.", scopex.m_Name);

@@ -17,6 +17,7 @@
 
 #include "ifrit/runtime/geometry/preset/Circle2D.h"
 #include "ifrit/runtime/geometry/preset/Square2D.h"
+#include "ifrit/runtime/geometry/preset/Plane.h"
 #include "ifrit/runtime/base/MeshComponent.h"
 #include "MPMTiming.h"
 #include "MPMMouseInteractor.h"
@@ -46,7 +47,7 @@ namespace Ifrit
     class DemoApplicationMpm : public Runtime::Application
     {
     private:
-        Owner<BaseForwardRenderer> m_Renderer;
+        Owner<RendererBase>        m_Renderer;
         RendererConfig             m_RenderConfig;
 
         Artemis::GPURigidCollider* collider1;
@@ -57,8 +58,16 @@ namespace Ifrit
         void OnStart() override
         {
             bool use3D   = true;
-            auto meshRes = 64;
-            m_Renderer   = MakeOwner<BaseForwardRenderer>(this);
+            auto meshRes = 96;
+            if (use3D)
+            {
+                m_Renderer = MakeOwner<BaseDeferredRenderer>(this);
+            }
+            else
+            {
+                m_Renderer = MakeOwner<BaseForwardRenderer>(this);
+            }
+
             m_RendererWrapper->SetRenderer(m_Renderer.get());
 
             RegisterSubsystem(InputSystem::Create());
@@ -77,7 +86,7 @@ namespace Ifrit
             if (use3D)
             {
                 mpmInternalConfig.m_Dimension           = Artemis::MPMSimulatorProblemDimension::ThreeDimensional;
-                mpmInternalConfig.m_DefaultParticleType = Artemis::MPMSimulatorParticleType::Fluid;
+                mpmInternalConfig.m_DefaultParticleType = Artemis::MPMSimulatorParticleType::Jelly;
                 mpmInternalConfig.m_GridSize            = Vector3u(64, 64, 64);
                 mpmInternalConfig.m_GridSpacing         = 1.0f / 64.0f;
                 mpmInternalConfig.m_DefaultMass         = 0.5f / 64.0f;
@@ -97,6 +106,7 @@ namespace Ifrit
                 2145141u, Vector4i(meshRes, meshRes, meshRes, 0), Vector3f(-0.01f, -0.01f, -0.01f),
                 Vector3f(1.01f, 1.01f, 1.01f));
             auto material = m_assetManager->CreateAsset<DefaultMaterialAsset>(String("SurfaceMat"));
+            auto plane    = m_assetManager->CreateAsset<Geometry::PlaneAsset>(String("Plane"), 1.0f, 1.0f);
 
             // Scene
             auto scene = m_sceneAssetManager->CreateScene("TestScene2");
@@ -109,7 +119,9 @@ namespace Ifrit
             mpmGlobalConfig->AddComponent<MPMTiming>();
             if (use3D)
             {
-                mpmConfig->mEnableRendering = true;
+                mpmConfig->mPbmpmIterations = 5;
+                mpmConfig->mMpmSubsteps     = 3;
+                mpmConfig->mEnableRendering = false;
             }
 
             auto cameraGameObject = node->AddGameObject("Camera");
@@ -152,6 +164,15 @@ namespace Ifrit
                 auto procMeshRenderer = procMesh->AddComponent<MeshRenderer>();
                 procMeshRenderer->SetMaterialSource(material);
                 auto procCfg = procMesh->AddComponent<MPMMeshingCfg>();
+
+                auto planeGameObject = node->AddGameObject("Plane");
+                auto planeFilter     = planeGameObject->AddComponent<MeshFilter>();
+                planeFilter->SetMeshSource(plane);
+                auto planeRenderer = planeGameObject->AddComponent<MeshRenderer>();
+                planeRenderer->SetMaterialSource(material);
+                auto planeTransform = planeGameObject->GetComponent<Transform>();
+                planeTransform->SetScale({ 1.0f, 1.0f, 1.0f });
+                planeTransform->SetPosition({ 0.5f, 0.0f, 0.5f });
             }
 
             m_sceneManager->SetActiveScene(scene);

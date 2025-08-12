@@ -111,7 +111,7 @@ namespace Ifrit::Runtime
             if (eventData.mStatus == ProfileDataManagerInternal::ETimerStatus::Idle)
             {
                 eventData.mStatus = ProfileDataManagerInternal::ETimerStatus::Idle;
-                for (auto i = 0; i < mInternalData->mAvailableTimerId[eventName]; ++i)
+                for (auto i = 0u; i < mInternalData->mAvailableTimerId[eventName]; ++i)
                 {
                     ReportAccumulateEvent(eventName, mInternalData->mEventTimers[eventName][i]->GetElapsedMs());
                 }

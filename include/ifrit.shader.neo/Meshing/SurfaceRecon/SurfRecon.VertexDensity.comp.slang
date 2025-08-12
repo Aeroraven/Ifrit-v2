@@ -14,6 +14,7 @@ namespace SurfRecon{
         TRWStructuredBufferHandle<float> m_VertexDensity;
         FSpatialVectorHandle m_ParticleLocation; //SRV
         float m_KernelRadius; //H
+        float m_KernelScaler;
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -46,11 +47,15 @@ namespace SurfRecon{
     float IsotropicKernel3D(float3 R, float H)
     {
         float D = length(R);
+        H = H * PushConst.m_KernelScaler; 
+        D = D * PushConst.m_KernelScaler;
         return SPHSmoothKernel(D/H, H)/Cubic(H);
     }
     float IsotropicKernel2D(float2 R, float H)
     {
         float D = length(R);
+        H = H * PushConst.m_KernelScaler; 
+        D = D * PushConst.m_KernelScaler;
         return SPHSmoothKernel2D(D/H, H)/Cubic(H);
     }
     
@@ -69,8 +74,8 @@ namespace SurfRecon{
 
         FSpatialIndex VertexCoord = Grid.GetCellVertexFromFlattenId(VertexIdx);
         FSpatialVector VertexLocation = Grid.GetCellVertexPosition(VertexCoord);
-        FSpatialIndex MaxBound = min(CellsMaxBound,VertexCoord);
-        FSpatialIndex MinBound = max(FSpatialIndex(0),VertexCoord-1);
+        FSpatialIndex MaxBound = min(CellsMaxBound,VertexCoord+ FSpatialIndex(ceil(PushConst.m_KernelRadius))-1);
+        FSpatialIndex MinBound = max(FSpatialIndex(0),VertexCoord-FSpatialIndex(ceil(PushConst.m_KernelRadius)+1));
         
         float TotalDensity = 0.0f;
         for(int dx = MinBound.x; dx <= MaxBound.x; ++dx)

@@ -10,6 +10,7 @@ namespace SurfRecon{
         TAtomicRWStructuredBufferHandle<int> m_ActiveGridBlockCounter; 
         TRWStructuredBufferHandle<int> m_ActiveGridBlockList; 
         TStructuredBufferHandle<FSurfReconGrid> m_Grid; //SRV
+        float m_KernelRadius; //H
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -42,7 +43,7 @@ namespace SurfRecon{
         int BlockId = Grid.GetBlockFlattenId(CurBlockindex);
         if(IsValid)
         {
-            IsValid = Grid.IsBlockActive(BlockId) && (!Grid.IsBlockInternal(BlockId));
+            //IsValid = Grid.IsBlockActive(BlockId); //&& (!Grid.IsBlockInternalExpanded(BlockId, int(ceil(PushConst.m_KernelRadius))));
         }
 
         int sWaveMarkedBlockListOffset = WavePrefixCountBits(IsValid);

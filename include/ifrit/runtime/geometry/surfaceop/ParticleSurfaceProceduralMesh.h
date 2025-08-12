@@ -18,6 +18,8 @@ namespace Ifrit::Runtime::Geometry
             Vector3f maxBound);
 
         void SetIsoValue(f32 isoValue);
+        void SetKernelRange(f32 range);
+        void SetKernelScaler(f32 scaler);
 
     private:
         ParticleSurfaceProceduralMeshPrivateData* m_Data = nullptr;

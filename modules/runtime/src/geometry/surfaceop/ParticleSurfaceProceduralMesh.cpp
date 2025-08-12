@@ -27,8 +27,9 @@ namespace Ifrit::Runtime::Geometry
         constexpr static i32           kMaxParticlesPerCell = 16;
         ParticleSurfaceProceduralMesh* m_Parent             = nullptr;
         FSurfReconGridData             m_GridData;
-        f32                            m_IsoValue = 10.0f;
-
+        f32                            m_IsoValue     = 10.0f;
+        f32                            m_KernelRange  = 1.0f;
+        f32                            m_KernelScaler = 1.0f;
         // External
         RHI::RhiBufferRef              m_ParticleSrcDataBuffer  = nullptr;
         RHI::RhiBufferRef              m_ParticleSrcCountBuffer = nullptr;
@@ -184,6 +185,7 @@ namespace Ifrit::Runtime::Geometry
             RHI::RhiUAVDesc m_VertexDensity;
             RHI::RhiSRVDesc m_ParticleLocation; // SRV
             float           m_KernelRadius;     // H
+            float           m_KernelScaler;     // H
         } pc{};
 
         auto rangeX    = m_GridData.m_NumCells.x + 1;
@@ -192,7 +194,8 @@ namespace Ifrit::Runtime::Geometry
         auto cellX     = 1.0f; // 1.0f * (maxBoundX - minBoundX) / (rangeX - 1);
         auto radius    = cellX;
 
-        pc.m_KernelRadius = radius;
+        pc.m_KernelRadius = m_KernelRange;
+        pc.m_KernelScaler = m_KernelScaler;
 
         AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.ComputeVertexDensity",
             ShaderVariantDesc(Internal::InternalShaderTableGeometry::SurfReconVertexDensityCS, {}),
@@ -360,9 +363,11 @@ namespace Ifrit::Runtime::Geometry
             u32             m_Grid;                    // SRV
             u32             m_DebugData;               // UAV
             RHI::RhiUAVDesc m_CellParticleIndices;     // UAV
+            f32             m_KernelRange;             // H
         } pc;
 
         pc.m_ParticleCounter = ~0u;
+        pc.m_KernelRange     = m_KernelRange;
 
         AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.GridBuild",
             ShaderVariantDesc(Internal::kIntShaderTableGeometry.SurfReconGridBuildCS, {}),
@@ -393,8 +398,11 @@ namespace Ifrit::Runtime::Geometry
         {
             RHI::RhiUAVDesc m_ActiveGridBlockCounter;
             RHI::RhiUAVDesc m_ActiveGridBlockList;
-            RHI::RhiSRVDesc m_Grid; // SRV
+            RHI::RhiSRVDesc m_Grid;        // SRV
+            f32             m_KernelRange; // H
         } pc{};
+
+        pc.m_KernelRange = m_KernelRange;
 
         Vector3i dispatchArgs = m_NumBlocksPerAxis;
         dispatchArgs.x = DivRoundUp(dispatchArgs.x, IfritShader::Meshing::SurfRecon::kSurfReconFilterBlockTGSz3D);
@@ -421,8 +429,10 @@ namespace Ifrit::Runtime::Geometry
         struct PushConst
         {
             RHI::RhiSRVDesc m_ActiveGridBlockList;
-            RHI::RhiSRVDesc m_Grid; // SRV
+            RHI::RhiSRVDesc m_Grid;        // SRV
+            f32             m_KernelRange; // H
         } pc{};
+        pc.m_KernelRange = m_KernelRange;
 
         AddIndirectComputePass<PushConst>(builder, "ParticleSurfaceProceduralMesh.FilterCells",
             ShaderVariantDesc(Internal::kIntShaderTableGeometry.SurfReconFilterCellsCS, {}), *m_RDGActiveBlockCounter,
@@ -645,5 +655,7 @@ namespace Ifrit::Runtime::Geometry
     }
 
     IFRIT_APIDECL void ParticleSurfaceProceduralMesh::SetIsoValue(f32 isoValue) { m_Data->m_IsoValue = isoValue; }
+    IFRIT_APIDECL void ParticleSurfaceProceduralMesh::SetKernelRange(f32 range) { m_Data->m_KernelRange = range; }
+    IFRIT_APIDECL void ParticleSurfaceProceduralMesh::SetKernelScaler(f32 scaler) { m_Data->m_KernelScaler = scaler; }
 
 } // namespace Ifrit::Runtime::Geometry

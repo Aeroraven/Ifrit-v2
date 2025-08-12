@@ -62,7 +62,7 @@ namespace SurfRecon{
         Dx = (XR - XL) * 0.5f;
         Dy = (YR - YL) * 0.5f;
         Dz = (ZR - ZL) * 0.5f;
-        VertexNormal = normalize(FSpatialVector(Dx, Dy, Dz));
+        VertexNormal = -normalize(FSpatialVector(Dx, Dy, Dz));
 #endif
         PushConst.m_CellVertexNormal.Store(VertexIdx, VertexNormal);
     }

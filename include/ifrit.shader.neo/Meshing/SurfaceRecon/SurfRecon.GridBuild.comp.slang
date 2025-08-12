@@ -13,6 +13,7 @@ namespace SurfRecon{
         TStructuredBufferHandle<FSurfReconGrid> m_Grid; //SRV
         TRWStructuredBufferHandle<int2> m_DebugData;
         TRWStructuredBufferHandle<int> m_CellParticleIndices; //UAV
+        float m_KernelRadius; //H
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -46,7 +47,7 @@ namespace SurfRecon{
             return;
 
         FSpatialIndex CellCoord = Grid.GetCellIndex(ParticleLocation);
-        FSpatialIndex CellInBlockBoundaryState = Grid.GetCellInBlockBoundaryState(CellCoord);
+        FSpatialIndex CellInBlockBoundaryState = Grid.GetCellInBlockBoundaryStateExpanded(CellCoord, int(ceil(PushConst.m_KernelRadius)));
         FSpatialIndex BlockCoord = Grid.GetBlockIndex(CellCoord);
 
         int CellId = Grid.GetCellFlattenId(CellCoord);

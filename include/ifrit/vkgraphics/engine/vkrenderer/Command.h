@@ -195,6 +195,7 @@ namespace Ifrit::RHI::VulkanAdapter
         void CopyBufferToImage(
             const RHI::RhiBuffer* src, const RHI::RhiTexture* dst, RHI::RhiImageSubResource dstSub) const override;
         void         SetCullMode(RHI::RhiCullMode mode) const override;
+        void         SetDepthFunc(RhiDepthFunc func) const override;
 
         RhiRawHandle GetRawHandle() const override;
     };

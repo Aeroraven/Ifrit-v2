@@ -29,6 +29,7 @@
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Plane.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Square2D.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
@@ -62,6 +63,7 @@
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
+#include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Plane.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\geometry\preset\Square2D.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
 #include "C:/WR/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
@@ -289,6 +291,12 @@ namespace Ifrit::Reflection
         RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mRadius>("Radius");
         RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mDivisions>("Divisions");
 
+        // Ifrit::Runtime::Geometry::PlaneAsset
+        RegisterType<Ifrit::Runtime::Geometry::PlaneAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::Geometry::PlaneAsset, Ifrit::Runtime::MeshAsset>();
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::PlaneAsset::mWidth>("Width");
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::PlaneAsset::mHeight>("Height");
+
         // Ifrit::Runtime::Geometry::Square2DAsset
         RegisterType<Ifrit::Runtime::Geometry::Square2DAsset>();
         RegisterPolymorphicRelation<Ifrit::Runtime::Geometry::Square2DAsset, Ifrit::Runtime::MeshAsset>();
@@ -421,6 +429,14 @@ namespace Ifrit::Reflection
         RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mIsoValue>("Editable", "");
         RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mIsoValue>("UISlider.min", (double)0);
         RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mIsoValue>("UISlider.max", (double)100);
+        RegisterPropertyField<&Ifrit::MPMMeshingCfg::mKernelRange>("Kernel Range");
+        RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mKernelRange>("Editable", "");
+        RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mKernelRange>("UISlider.min", (double)0.1);
+        RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mKernelRange>("UISlider.max", (double)10);
+        RegisterPropertyField<&Ifrit::MPMMeshingCfg::mKernelScaler>("Kernel Scaler");
+        RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mKernelScaler>("Editable", "");
+        RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mKernelScaler>("UISlider.min", (double)0.1);
+        RegisterPropertyHint<&Ifrit::MPMMeshingCfg::mKernelScaler>("UISlider.max", (double)10);
 
         // Ifrit::MPMMouseInteractor
         RegisterType<Ifrit::MPMMouseInteractor>();

@@ -29,6 +29,7 @@
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Plane.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Square2D.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
@@ -62,6 +63,7 @@
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Scene.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\base\Transform.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Circle2D.h"
+#include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Plane.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\geometry\preset\Square2D.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\material\SyaroDefaultGBufEmitter.h"
 #include "E:/Projects/Ifrit-v2/include/ifrit/runtime\physics\artemis\mpm\MPMParticleContainer.h"
@@ -284,6 +286,12 @@ namespace Ifrit::Reflection
         RegisterPolymorphicRelation<Ifrit::Runtime::Geometry::Circle2DAsset, Ifrit::Runtime::MeshAsset>();
         RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mRadius>("Radius");
         RegisterPropertyField<&Ifrit::Runtime::Geometry::Circle2DAsset::mDivisions>("Divisions");
+
+        // Ifrit::Runtime::Geometry::PlaneAsset
+        RegisterType<Ifrit::Runtime::Geometry::PlaneAsset>();
+        RegisterPolymorphicRelation<Ifrit::Runtime::Geometry::PlaneAsset, Ifrit::Runtime::MeshAsset>();
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::PlaneAsset::mWidth>("Width");
+        RegisterPropertyField<&Ifrit::Runtime::Geometry::PlaneAsset::mHeight>("Height");
 
         // Ifrit::Runtime::Geometry::Square2DAsset
         RegisterType<Ifrit::Runtime::Geometry::Square2DAsset>();

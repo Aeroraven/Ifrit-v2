@@ -58,7 +58,7 @@ namespace Ifrit::GeometryProc::Sampler
             refs.m_Samples.push_back(TGenericVector<f32, 3>(x, y, z));
             offset += 3 * sizeof(f32);
         }
-        IF_LOG_DEBUG("GeometrySampler", "Loaded {} samples from Poisson sampler references.", refs.m_Samples.size());
+        // IF_LOG_DEBUG("GeometrySampler", "Loaded {} samples from Poisson sampler references.", refs.m_Samples.size());
         return refs;
     }
 

@@ -75,7 +75,9 @@ namespace Ifrit::RHI
             RhiImageSubResource dstSub) const                                                                       = 0;
         virtual void CopyBufferToImage(
             const RhiBuffer* src, const RhiTexture* dst, RhiImageSubResource dstSub) const = 0;
-        virtual void         SetCullMode(RhiCullMode mode) const                           = 0;
+
+        virtual void         SetCullMode(RhiCullMode mode) const   = 0;
+        virtual void         SetDepthFunc(RhiDepthFunc func) const = 0;
 
         virtual RhiRawHandle GetRawHandle() const = 0;
     };

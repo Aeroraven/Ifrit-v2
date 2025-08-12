@@ -9,6 +9,7 @@ namespace SurfRecon{
     {   
         TStructuredBufferHandle<int> m_ActiveGridBlockList; 
         TStructuredBufferHandle<FSurfReconGrid> m_Grid; //SRV
+        float m_KernelRadius; //H
     };
 
     IFSHADER_PUSHCONST PushConst_T PushConst;
@@ -48,8 +49,8 @@ namespace SurfRecon{
         FSpatialIndex MinCellBound = FSpatialIndex(0);
         FSpatialIndex MaxCellBound = ToSpatialIndex(Grid.m_NumCells);
     
-        FSpatialIndex SearchLBound = max(MinCellBound, CellCoord - 1);
-        FSpatialIndex SearchUBound = min(MaxCellBound, CellCoord + 1);
+        FSpatialIndex SearchLBound = max(MinCellBound, CellCoord - 1 - FSpatialIndex(ceil(PushConst.m_KernelRadius)));
+        FSpatialIndex SearchUBound = min(MaxCellBound, CellCoord + 1 + FSpatialIndex(ceil(PushConst.m_KernelRadius)));
 
         int NumActiveNeighbors = 0;
         for(int dx = SearchLBound.x; dx <= SearchUBound.x; ++dx)
@@ -80,4 +81,4 @@ namespace SurfRecon{
         }
     }
 
-}}}
+}}}

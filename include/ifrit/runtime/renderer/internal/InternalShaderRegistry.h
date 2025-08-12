@@ -108,6 +108,18 @@ namespace Ifrit::Runtime::Internal
             SDEF ForwardPS = DECLARE_FS("BaseForward/Default");
         } BaseForward;
 
+        IF_CONSTEXPR static struct InternalShaderTable_BaseDeferred
+        {
+            SDEF DeferredDefaultVS = DECLARE_VS("BaseDeferred/Default");
+            SDEF DeferredDefaultFS = DECLARE_FS("BaseDeferred/Default");
+            SDEF DeferredShadingFS = DECLARE_FS("BaseDeferred/Shading");
+        } BaseDeferred;
+
+        IF_CONSTEXPR static struct InternalShaderTable_Experimental
+        {
+            SDEF GelatinTestFS = DECLARE_FS("Experimental/GelatinTest");
+        } Experimental;
+
     } kIntShaderTable;
 
 #undef SDEF

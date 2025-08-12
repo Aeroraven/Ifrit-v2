@@ -24,7 +24,7 @@ function(ifrit_add_dependency dependency_name)
     message(STATUS "[Ifrit.Build.Dependencies] Adding dependency ${dependency_name}")
     add_subdirectory(dependencies/${dependency_name})
 endfunction()
-
+ 
 function(ifrit_add_core_component component_name)
     if(MSVC)
         add_compile_options(/MP)

@@ -4,7 +4,7 @@
 
 namespace Ifrit::Runtime
 {
-    class ProfileStatScopeData;
+    struct ProfileStatScopeData;
     class IFRIT_RUNTIME_API ProfileStatScope
     {
     public:
@@ -32,4 +32,4 @@ namespace Ifrit::Runtime
     Owner<Ifrit::Runtime::HostProfileStatScope> _profileStatScope##__LINE__ = \
         Ifrit::Runtime::CreateHostProfileStatScope(eventName);
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

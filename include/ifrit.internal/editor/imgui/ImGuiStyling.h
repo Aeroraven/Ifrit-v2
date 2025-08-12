@@ -75,7 +75,7 @@ namespace Ifrit::Editor::Internal
         style.WindowBorderSize = 1;
         style.ChildBorderSize  = 1;
         style.PopupBorderSize  = 1;
-        style.FrameBorderSize  = is3D;
+        style.FrameBorderSize  = float(is3D);
 
         style.WindowRounding    = 3;
         style.ChildRounding     = 3;
@@ -84,7 +84,7 @@ namespace Ifrit::Editor::Internal
         style.GrabRounding      = 3;
 
 #ifdef IMGUI_HAS_DOCK
-        style.TabBorderSize = is3D;
+        style.TabBorderSize = float(is3D);
         style.TabRounding   = 3;
 
         colors[ImGuiCol_DockingEmptyBg]     = LinearToSRGB(ImVec4(0.38f, 0.38f, 0.38f, 1.00f));

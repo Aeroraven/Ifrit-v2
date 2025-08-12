@@ -41,6 +41,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshMarker.h"
 
 #include "ifrit/runtime/renderer/BaseForwardRenderer.h"
+#include "ifrit/runtime/renderer/BaseDeferredRenderer.h"
 
 #include "ifrit/runtime/physics/artemis/pbd/PBDCloth.h"
 #include "ifrit/runtime/physics/artemis/geometry/TessellatedRectMesh.h"
