@@ -19,8 +19,8 @@ A collection of real-time rendering and simulation experiments featuring:
 | <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" /> | ![](docs/img/soft_dx1.png)                                   |
 | **Ayanami / GDF Object Grids + Surface Cache Lookup***      | **Ayanami / Global Distance Field (GDF)\***                  |
 | ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)                          |
-| **Artemis / Position Based Dynamics**                       | **Artemis / PBMPM + Editor**                                 |
-| ![](docs/img/artemis_pbd1.png)                              | <img src="docs/img/artemis_pbmpm3.png" style="zoom:50%;" />  |
+| **Artemis / Position Based Dynamics**                       | **Artemis / PBMPM3D + Marching Cubes + Editor**              |
+| ![](docs/img/artemis_pbd1.png)                              | <img src="docs/img/artemis_pbmpm5.png" style="zoom:50%;" />  |
 | **Soft Renderer / Profile** (Nsight Compute)                | **Ayanami / Debug (Hierarchical Tracing, Incomplete) \*** (RenderDoc) |
 | <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag2.png" style="zoom:80%;" />       |
 
@@ -91,69 +91,53 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 
 <small>**. This C++ reflection system supports both non-intrusive (manual, external registration) and intrusive (macro-based, codegen-assisted) reflection. The macro-based approach is technically intrusive, since the user has to modify the class definition, even though the macro is empty at compile time. It’s only used by tooling to generate registration code.</small>
 
-
 ## ⚡️Quick Start
-
-### 1. Clone Repository
-```bash
-git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive 
-git checkout checkpoint/v4 # for older demo projects
-```
 
 > Some breaking changes (like changes in serialization and asset management) were made in `dev` branch recently (Refer to  [TODO.md](./TODO.md) for more details). Former serialization library has been replaced by a new embedded reflection system, and the compatibility patches for older codes are not fully covered now.
 >
 > It's required to switch to branch `checkpoint/v4` to run `Syaro/Ayanami Demo`, and `checkpoint/v1` to run `Software Renderer`. 
 
+### 1. Clone Repository
+```bash
+git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive 
+```
+
+
+
 ### 2. Install Dependencies
 
-**Base Requirements:**
-
-- OpenGL 4.6+
 - CMake 3.25+
+
 - MSVC 19.29+
-  - Lower version might be acceptable, but make sure that it supports C++20
 
 - Python 3
 
-**Setup script:**
-
-```bash
-bash InstallPrerequisite.sh  # Use Git Bash on Windows
-```
-
-**For Experimental Renderers (Syaro/Ayanami/Artemis):**
-- libclang 19 (LLVM for Visual Studio)
-  - Custom libclang is also feasible, but you have to modify cmake config manually
+- libclang 19 
 
 - Vulkan SDK 1.3.296+
+
   - Core 1.2 features (required)
+
   - `EXT_mesh_shader` extension (optional¹)
+
   - `EXT_shader_atomic_float` extension (optional¹)
 
-**For Software Renderer:**
+  
+  > ¹ **Device Compatibility:**
+  >
+  > | Subproject | RTX 3070 Ti | GTX 1050           |
+  > | ---------- | ----------- | ------------------ |
+  > | Syaro      | ✅           | ❌ (No mesh shader) |
+  > | Ayanami    | ✅           | ❌ (No mesh shader) |
+  > | Artemis    | ✅           | ✅                  |
 
-- LLVM 11.0
-- CUDA 12.5+ (optional)
+**3. Build**
 
-> ¹ **Device Compatibility:**
-> 
-> | Subproject | RTX 3070 Ti | GTX 1050 |
-> |------------|-------------|----------|
-> | Syaro      | ✅          | ❌ (No mesh shader) |
-> | Ayanami    | ✅          | ❌ (No mesh shader) |
-> | Artemis    | ✅          | ✅       |
-
-### 3. Build and Run
 ```bash
-cmake -S . -B ./build 
-cmake --build ./build --config RelWithDebInfo
+bash Setup.sh --clang-root /path/to/clang
 ```
 
-**Demo setup:**
-1. Download Lumberyard Bistro scene
-2. Convert to GLTF format as `untitled.gltf`
-3. Place in `project/demo/Asset/Bistro/` with DDS textures in `textures/` subfolder
-4. Run
+
 
 ## 🧱Architecture
 

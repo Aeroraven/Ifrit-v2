@@ -114,9 +114,9 @@ namespace Experimental {
         float thickness = max(0.0, zBackView - zFrontView);
         
         // Transmission calculation
-        float3 sigmaA = float3(0.5, 0.8, 1.2);
+        float3 sigmaA = float3(0.3, 0.6, 1.5); // Absorb more blue, less red
         float3 transmittance = exp(-sigmaA * thickness * 15.0);
-        float3 baseColor = float3(0.2, 0.4, 0.6);
+        float3 baseColor = float3(1.0, 0.2, 0.05); // Red-orange base color
         float3 transmitted = dst.rgb * transmittance + (1.0 - transmittance) * baseColor;
 
         // Shiny surface calculation
@@ -155,10 +155,10 @@ namespace Experimental {
         float rimPower = 2.0;
         float rim = 1.0 - max(dot(N, V), 0.0);
         rim = pow(rim, rimPower);
-        float3 rimColor = float3(0.8, 0.9, 1.0) * 0.3;
+        float3 rimColor = float3(1.0, 0.3, 0.1) * 0.3; // Red-orange rim lighting
         finalColor += rim * rimColor;
 
         Out.FinalColor = float4(finalColor, 1.0);
         return Out;
     }
-}}
+}}
