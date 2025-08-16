@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/rhi/platform/RhiSelector.h"
-#include "ifrit/vkgraphics/engine/vkrenderer/Backend.h"
+#include "ifrit/vkrhi/engine/vkrenderer/Backend.h"
 #include "ifrit/core/logging/Logging.h"
 namespace Ifrit::RHI::VulkanAdapter
 {

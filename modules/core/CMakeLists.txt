@@ -31,3 +31,8 @@ target_compile_options(ifrit.core
 	PRIVATE 
 	$<$<CXX_COMPILER_ID:MSVC>:/bigobj> 
 	$<$<CXX_COMPILER_ID:GNU>:-Wa,-mbig-obj>)
+
+add_dependencies(ifrit.core 
+    ifrit.reflparser
+    spdlog
+    mimalloc)

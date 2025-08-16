@@ -29,3 +29,7 @@ target_link_libraries(ifrit.imaging PUBLIC
     ifrit.core
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})     
 
+
+add_dependencies(ifrit.imaging 
+    ktx
+    ifrit.core)

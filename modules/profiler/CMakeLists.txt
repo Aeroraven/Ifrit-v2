@@ -41,3 +41,6 @@ target_link_libraries(ifrit.profiler
 	ifrit.core 
 	ifrit.runtime
 	${IFRIT_COMMON_DEPENDENCIES_SHARED})
+add_dependencies(ifrit.profiler
+    ifrit.core
+)

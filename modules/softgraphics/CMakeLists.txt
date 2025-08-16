@@ -47,3 +47,7 @@ include(${IFRIT_PROJECT_DIR}/cmake/WindowsLibConv.cmake)
 WindowsPrebuild(ifrit.softgraphics ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.softgraphics")
 WindowsPostbuild(ifrit.softgraphics "libifrit.softgraphics.def" "libifrit.softgraphics.dll" "libifrit.softgraphics.lib" ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "x64")
 AddImpLib(ifrit.softgraphics ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY} "libifrit.softgraphics")
+
+add_dependencies(ifrit.softgraphics 
+    ifrit.ircompile
+    ifrit.core)

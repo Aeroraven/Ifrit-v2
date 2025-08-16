@@ -50,3 +50,10 @@ target_compile_options(ifrit.runtime
 	PRIVATE 
 	$<$<CXX_COMPILER_ID:MSVC>:/bigobj> 
 	$<$<CXX_COMPILER_ID:GNU>:-Wa,-mbig-obj>)
+
+add_dependencies(ifrit.runtime 
+    ifrit.rhi 
+    ifrit.display 
+    ifrit.geomproc 
+    ifrit.core 
+    ${FSR2_API_LIBRARIES})

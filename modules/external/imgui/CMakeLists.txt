@@ -48,3 +48,4 @@ target_link_libraries(ifrit.external.imgui PUBLIC
 )
 
 # Platform-specific settings
+add_dependencies(ifrit.external.imgui glfw)

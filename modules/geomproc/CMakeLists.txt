@@ -75,3 +75,8 @@ target_link_libraries(ifrit.geomproc PUBLIC
     tet
     openvdb_shared
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})     
+add_dependencies(ifrit.geomproc 
+    openvdb_shared
+    meshoptimizer 
+    metis
+    ifrit.core)

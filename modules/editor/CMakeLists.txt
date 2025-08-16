@@ -41,10 +41,17 @@ target_link_libraries(ifrit.editor
 	nfd
 	ifrit.rhi 
 	ifrit.display 
-	ifrit.vkgraphics 
+	ifrit.vkrhi 
 	ifrit.core 
 	ifrit.imaging
 	ifrit.external.imgui
 	ifrit.runtime
 	${FSR2_API_LIBRARIES}
 	${IFRIT_COMMON_DEPENDENCIES_SHARED})
+
+add_dependencies(ifrit.editor 
+    nfd
+    ifrit.external.imgui
+    ifrit.vkrhi 
+    ifrit.profiler
+    ifrit.runtime)

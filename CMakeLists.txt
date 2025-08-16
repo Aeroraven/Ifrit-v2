@@ -186,7 +186,8 @@ ifrit_add_core_component(display)
 ifrit_add_core_component(ircompile)
 ifrit_add_core_component(softgraphics)
 ifrit_add_core_component(geomproc)
-ifrit_add_core_component(vkgraphics)
+ifrit_add_core_component(vkrhi)
+ifrit_add_core_component(dx12rhi)
 ifrit_add_core_component(runtime)
 ifrit_add_core_component(rhi)
 ifrit_add_core_component(profiler)
@@ -197,7 +198,7 @@ ifrit_add_core_component(editor)
 set(IFRIT_DEMO_LINK_LIBRARIES 
     ifrit.geomproc 
     ifrit.display 
-    ifrit.vkgraphics 
+    ifrit.vkrhi 
     ifrit.runtime 
     ifrit.core
     ifrit.profiler
@@ -205,7 +206,7 @@ set(IFRIT_DEMO_LINK_LIBRARIES
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 
 set(IFRIT_DEMO_DEPENDENCIES 
-    ifrit.vkgraphics 
+    ifrit.vkrhi 
     ifrit.geomproc 
     ifrit.softgraphics 
     ifrit.display 
@@ -222,6 +223,7 @@ set(IFRIT_GROUP_ENGINE "Project Ifrit/Engine")
 set(IFRIT_GROUP_DEPENDENCIES "Project Ifrit/ThirdParty")
 set(IFRIT_GROUP_DEMO "Project Ifrit/Demo")
 set(IFRIT_GROUP_TOOL "Project Ifrit/Tool")
+set(IFRIT_GROUP_SOFTRENDERER "Project Ifrit/SoftRenderer")
 
 # openvdb targets
 include(cmake/OpenVDBBuildPostprocess.cmake)
@@ -271,59 +273,20 @@ set_target_properties(nfd PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/nfd)
  
 # ifrit targets
 set_target_properties(ifrit.core PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.shadercompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.imaging PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.display PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.ircompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.softgraphics PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.vkgraphics PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.editor PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.profiler PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+
+set_target_properties(ifrit.shadercompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+set_target_properties(ifrit.imaging PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+set_target_properties(ifrit.display PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+set_target_properties(ifrit.profiler PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+
+set_target_properties(ifrit.vkrhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
+set_target_properties(ifrit.dx12rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
 
 set_target_properties(ifrit.reflparser PROPERTIES FOLDER ${IFRIT_GROUP_TOOL})
 
-
-
-add_dependencies(ifrit.external.imgui glfw)
-add_dependencies(ifrit.core 
-    ifrit.reflparser
-    spdlog
-    mimalloc)
-add_dependencies(ifrit.profiler
-    ifrit.core
-)
-add_dependencies(ifrit.geomproc 
-    openvdb_shared
-    meshoptimizer 
-    metis
-    ifrit.core)
-
-add_dependencies(ifrit.softgraphics 
-    ifrit.ircompile
-    ifrit.core)
-
-add_dependencies(ifrit.imaging 
-    ktx
-    ifrit.core)
-
-add_dependencies(ifrit.runtime 
-    ifrit.rhi 
-    ifrit.display 
-    ifrit.geomproc 
-    ifrit.core 
-    ${FSR2_API_LIBRARIES})
-
-add_dependencies(ifrit.vkgraphics 
-    ifrit.core 
-    ifrit.shadercompile
-    ${FSR2_API_LIBRARIES})
-
-add_dependencies(ifrit.editor 
-    nfd
-    ifrit.external.imgui
-    ifrit.vkgraphics 
-    ifrit.profiler
-    ifrit.runtime)
+set_target_properties(ifrit.ircompile PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
+set_target_properties(ifrit.softgraphics PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
