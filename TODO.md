@@ -2,18 +2,27 @@
 
 ### Ongoing Schedule
 
-#### High Priority
+#### High Priority (Ongoing)
 
 - Subproject Artemis: `ifrit.runtime/physics.artemis`
+  - Wave-Intrinsic Based P2G
+  - General Collision Detection
+
 - Architectural:
   - Serialization/Reflection
     - Stability Improvements
+  - Multithreaded Rendering
+    - Async Compute
+    - Parallel Command Recording (RDG Support)
+    - Refined Resource Upload
+      - Resource Streaming
+  - Cleanup
+    - Drop Unused Submodules: `cereal`
 
 #### Normal Priority
 
 - Subproject Artemis: `ifrit.runtime/physics.artemis`
   - <s>Procedural Mesh Support</s>
-
 - Subproject Ayanami: `ifrit.runtime/render.ayanami`
   - Indirect Lighting on Surface Atlas (Debugging Phase)
 
@@ -23,18 +32,15 @@
 - Subproject Syaro: `ifrit.runtime/render.syaro.v2`
   - Refactoring with RDGs
 - RHI
+  - DX12 Support
   - HWRT Support
 
 - Architectural
   - Dropping Legacy Designs:
     - Render Graph in `ifrit.vkgraphics`
-
   - Shader System:
     - Shader Rewrite In `slang/hlsl`: `ifrit.shader.neo`
     - Better Shader Cache System
-  - Multithreaded Rendering
-    - Async Compute
-  - Streaming
 - Bug Fixing
   - (vkgraphics) Dangling view identifiers after resource destruction
   - <s>(runtime/asset) Potential crash when loading gltf models</s> 

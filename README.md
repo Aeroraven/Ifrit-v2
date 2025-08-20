@@ -1,13 +1,20 @@
 # Ifrit-v2
 
+A collection of personal real-time rendering and simulation experiments.
 
-A collection of real-time rendering and simulation experiments featuring:
+![](docs/img/artemis_pbmpm5b.png)
+
+Subprojects covered: 
 
 - **Software Renderer**: CUDA/Multithreaded CPU rasterizer & ray-tracer with JIT compilation
+
 - **Experimental Rendererer**: 
+  
   - **Syaro**: Deferred renderer with Nanite-inspired cluster-based level of detail
   - **Ayanami**: Global illumination using probes and software ray tracing
   - **Artemis**: GPU-accelerated physical simulation algorithms
+  
+  
 
 
 | Soft Renderer / Mesh Shading                                | Soft Renderer / CUDA Renderer                                |
@@ -19,8 +26,8 @@ A collection of real-time rendering and simulation experiments featuring:
 | <img src="docs/img/img_syaroperf.jpg" style="zoom: 67%;" /> | ![](docs/img/soft_dx1.png)                                   |
 | **Ayanami / GDF Object Grids + Surface Cache Lookup***      | **Ayanami / Global Distance Field (GDF)\***                  |
 | ![](docs/img/ayanami_objgrid_exp1.png)                      | ![](docs/img/ayanami_globaldf2.png)                          |
-| **Artemis / Position Based Dynamics**                       | **Artemis / PBMPM3D + Marching Cubes + Editor**              |
-| ![](docs/img/artemis_pbd1.png)                              | <img src="docs/img/artemis_pbmpm5.png" style="zoom:50%;" />  |
+| **Artemis / Position Based Dynamics**                       | **Artemis / PBMPM 2D**                                       |
+| ![](docs/img/artemis_pbd1.png)                              | <img src="docs/img/artemis_pbmpm3.png" style="zoom:50%;" />  |
 | **Soft Renderer / Profile** (Nsight Compute)                | **Ayanami / Debug (Hierarchical Tracing, Incomplete) \*** (RenderDoc) |
 | <img src="docs/img/soft_nscp.png" style="zoom:80%;" />      | <img src="docs/img/aya_diag2.png" style="zoom:80%;" />       |
 
@@ -95,7 +102,7 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 
 > Some breaking changes (like changes in serialization and asset management) were made in `dev` branch recently (Refer to  [TODO.md](./TODO.md) for more details). Former serialization library has been replaced by a new embedded reflection system, and the compatibility patches for older codes are not fully covered now.
 >
-> It's required to switch to branch `checkpoint/v4` to run `Syaro/Ayanami Demo`, and `checkpoint/v1` to run `Software Renderer`. 
+> **It's required to switch to branch `checkpoint/v4` to run `Syaro/Ayanami Demo`, and `checkpoint/v1` to run `Software Renderer`.** 
 
 ### 1. Clone Repository
 ```bash
