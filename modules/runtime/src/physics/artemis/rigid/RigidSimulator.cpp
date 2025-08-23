@@ -2,7 +2,7 @@
 #include "ifrit.internal/runtime/physics/artemis/InternalConst.h"
 #include "ifrit/runtime/base/Scene.h"
 #include "ifrit/runtime/physics/artemis/ArtemisSceneData.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 #include "ifrit.shader.neo/Artemis/Rigid/Rigid.Common.hlsli"
 #include "ifrit/runtime/physics/internal/InternalShaderRegistry.Artemis.h"
 
@@ -61,8 +61,8 @@ namespace Ifrit::Runtime::Artemis
         auto physicsData = CheckedPointerCast<ArtemisSceneData>(
             m_ActiveScene->GetPerFrameData()->m_ExtraData[Internal::kArtemisSceneDataKey]);
 
-        m_RDGColliderDataBuffer =
-            &builder.ImportBuffer("ArtemisColliderDataBuffer", physicsData->m_GpuColliderDataBuffer[physicsData->m_FrameId%2].get());
+        m_RDGColliderDataBuffer = &builder.ImportBuffer(
+            "ArtemisColliderDataBuffer", physicsData->m_GpuColliderDataBuffer[physicsData->m_FrameId % 2].get());
         m_RDGColliderDataRuntimeBuffer = &builder.ImportBuffer(
             "ArtemisColliderDataBufferRuntime", physicsData->m_GpuColliderDataBufferRuntime.get());
 

@@ -93,8 +93,8 @@ namespace Ifrit::RHI::VulkanAdapter
         inline void                 SetRenderArea(RHI::RhiScissor area) override { m_renderArea = area; }
         void                        SetColorAttachments(const Vec<RHI::RhiColorAttachment*>& attachments) override;
         void                        SetDepthStencilAttachment(RHI::RhiDepthStencilAttachment* attachment) override;
-        void                        BeginRendering(const RHI::RhiCommandList* commandBuffer) const override;
-        void                        EndRendering(const RHI::RhiCommandList* commandBuffer) const override;
+        void                        BeginRendering(const RHI::RhiCommandListContext* commandBuffer) const override;
+        void                        EndRendering(const RHI::RhiCommandListContext* commandBuffer) const override;
         RHI::RhiRenderTargetsFormat GetFormat() const override;
         virtual RHI::RhiScissor     GetRenderArea() const override;
         inline RHI::RhiDepthStencilAttachment* GetDepthStencilAttachment() const override

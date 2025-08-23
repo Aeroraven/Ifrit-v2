@@ -1,5 +1,5 @@
 #include "ifrit/runtime/geometry/internal/InternalShaderRegistry.Geometry.h"
-#include "ifrit/runtime/material/internal/ShaderRegistryMacros.h"
+#include "ifrit/runtime/rendercore/shadercore/internal/ShaderRegistryMacros.h"
 
 namespace Ifrit::Runtime::Internal
 {

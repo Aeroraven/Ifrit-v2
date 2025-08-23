@@ -1,4 +1,3 @@
-
 /*
 Ifrit-v2
 Copyright (C) 2024 funkybirds(Aeroraven)
@@ -19,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/vkrhi/common/Pch.h"
 #include "ifrit/vkrhi/engine/vkrenderer/EngineContext.h"
+#include "ifrit/core/hal/HalHostConcurrency.h"
 #include <stack>
 
 namespace Ifrit::RHI::VulkanAdapter
@@ -121,7 +121,7 @@ namespace Ifrit::RHI::VulkanAdapter
 
     struct CommandListContextPrivate;
 
-    class IFRIT_APIDECL CommandBuffer : public RHI::RhiCommandList
+    class IFRIT_APIDECL CommandBuffer : public RHI::RhiCommandListContext
     {
     private:
         EngineContext*             m_context;
@@ -228,21 +228,28 @@ namespace Ifrit::RHI::VulkanAdapter
 
     // Note that command buffers should be recycled in order to avoid memory leaks.
     // https://developer.download.nvidia.com/gameworks/events/GDC2016/Vulkan_Essentials_GDC16_tlorach.pdf#page=15.00
-    class IFRIT_APIDECL DeviceQueue : public RHI::RhiQueue, NonCopyable
+
+    struct ThreadLocalQueueProps
     {
-    private:
-        EngineContext*                   m_context;
-        VkQueue                          m_queue;
-        u32                              m_queueFamily;
-        u32                              m_capability;
         Vec<Owner<CommandPool>>          m_commandPools;
         Owner<TimelineSemaphore>         m_timelineSemaphore;
         std::stack<Owner<CommandBuffer>> m_cmdBufInUse;
         u64                              m_recordedCounter      = 0;
         CommandBuffer*                   m_currentCommandBuffer = nullptr;
+    };
 
-        u32                              m_InFlightFrames = 0;
-        u32                              m_ActiveFrame    = 0; // The current frame that is being processed by the GPU.
+    class IFRIT_APIDECL DeviceQueue : public RHI::RhiQueue, NonCopyable
+    {
+    private:
+        EngineContext* m_context;
+        VkQueue        m_queue;
+        u32            m_queueFamily;
+        u32            m_capability;
+
+        u32            m_InFlightFrames = 0;
+        u32            m_ActiveFrame    = 0; // The current frame that is being processed by the GPU.
+
+        HashMap<HAL::ThreadId, ThreadLocalQueueProps> mThreadLocalProps;
 
     public:
         DeviceQueue() { printf("Runtime Error:queue\n"); }
@@ -261,9 +268,9 @@ namespace Ifrit::RHI::VulkanAdapter
         void                          FrameAdvance();
 
         // for rhi layers override
-        void                          RunSyncCommand(std::function<void(const RHI::RhiCommandList*)> func) override;
+        void                          RunSyncCommand(std::function<void(const RHI::RhiCommandListContext*)> func) override;
 
-        Owner<RHI::RhiTaskSubmission> RunAsyncCommand(std::function<void(const RHI::RhiCommandList*)> func,
+        Owner<RHI::RhiTaskSubmission> RunAsyncCommand(std::function<void(const RHI::RhiCommandListContext*)> func,
             const Vec<RHI::RhiTaskSubmission*>& waitOn, const Vec<RHI::RhiTaskSubmission*>& toIssue) override;
 
         void                          HostWaitEvent(RHI::RhiTaskSubmission* event) override;

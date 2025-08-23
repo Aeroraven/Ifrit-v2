@@ -35,7 +35,7 @@ namespace Ifrit::RHI::VulkanAdapter::FSR2
         FSR2Processor(EngineContext* ctx);
         ~FSR2Processor();
         void Init(const RHI::FSR2::RhiFSR2InitialzeArgs& args) override;
-        void Dispatch(const RHI::RhiCommandList* cmd, const RHI::FSR2::RhiFSR2DispatchArgs& args) override;
+        void Dispatch(const RHI::RhiCommandListContext* cmd, const RHI::FSR2::RhiFSR2DispatchArgs& args) override;
         void GetJitters(float* jitterX, float* jitterY, u32 frameIdx, u32 rtWidth, u32 dispWidth) override;
     };
 } // namespace Ifrit::RHI::VulkanAdapter::FSR2

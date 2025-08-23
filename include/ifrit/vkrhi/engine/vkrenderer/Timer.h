@@ -39,8 +39,8 @@ namespace Ifrit::RHI::VulkanAdapter
     public:
         DeviceTimer(EngineContext* ctx, u32 numFrameInFlight);
         virtual ~DeviceTimer();
-        virtual void  Start(const RHI::RhiCommandList* cmd) override;
-        virtual void  Stop(const RHI::RhiCommandList* cmd) override;
+        virtual void  Start(const RHI::RhiCommandListContext* cmd) override;
+        virtual void  Stop(const RHI::RhiCommandListContext* cmd) override;
         virtual float GetElapsedMs() override;
         virtual void  FrameProceed();
     };

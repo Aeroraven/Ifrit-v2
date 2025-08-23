@@ -39,7 +39,7 @@ namespace Ifrit::RHI::VulkanAdapter
         StagedSingleBuffer& operator=(const StagedSingleBuffer& p) = delete;
 
         virtual ~StagedSingleBuffer() {}
-        void CmdCopyToDevice(const RHI::RhiCommandList* cmd, const void* data, u32 size, u32 localOffset) override;
+        void CmdCopyToDevice(const RHI::RhiCommandListContext* cmd, const void* data, u32 size, u32 localOffset) override;
     };
 
     class IFRIT_APIDECL StagedSingleImage

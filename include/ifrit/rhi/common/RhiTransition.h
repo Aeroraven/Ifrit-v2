@@ -25,7 +25,7 @@ namespace Ifrit::RHI
 {
     struct RhiUAVBarrier
     {
-        RhiResourceType m_type;
+        ERhiResourceType m_type;
         union
         {
             RhiBuffer*  m_buffer;
@@ -35,22 +35,22 @@ namespace Ifrit::RHI
 
     struct RhiTransitionBarrier
     {
-        RhiResourceType m_type;
+        ERhiResourceType m_type;
         union
         {
             RhiBuffer*  m_buffer = nullptr;
             RhiTexture* m_texture;
         };
         RhiImageSubResource m_subResource = { 0, 0, 1, 1 };
-        RhiResourceState    m_srcState    = RhiResourceState::AutoTraced;
-        RhiResourceState    m_dstState    = RhiResourceState::AutoTraced;
+        ERhiResourceState   m_srcState    = ERhiResourceState::Undefined;
+        ERhiResourceState   m_dstState    = ERhiResourceState::Undefined;
 
         RhiTransitionBarrier() { m_texture = nullptr; }
     };
 
     struct RhiResourceBarrier
     {
-        RhiBarrierType m_type = RhiBarrierType::UAVAccess;
+        ERhiBarrierType m_type = ERhiBarrierType::UAVAccess;
         union
         {
             RhiUAVBarrier        m_uav;

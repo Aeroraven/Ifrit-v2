@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit
 {
+    // Traits
     template <class... T> struct always_false : std::false_type
     {
     };
@@ -69,7 +70,7 @@ namespace Ifrit
         using ClassType  = C;
         using ArgsTuple  = std::tuple<Args...>;
     };
-    // Traits
+
     template <typename... Args> struct TTypeSet;
     template <typename T, typename U> struct TTraitIsAnyOf : std::false_type
     {
@@ -78,6 +79,16 @@ namespace Ifrit
     template <typename T, typename... Types>
     struct TTraitIsAnyOf<T, TTypeSet<Types...>> : std::disjunction<std::is_same<T, Types>...>
     {
+    };
+
+    template <typename T> struct TFunctionPointerType
+    {
+        using Type = T;
+    };
+    template <typename R, typename... Args> struct TFunctionPointerType<R (*)(Args...)>
+    {
+        using ReturnType = R;
+        using ArgsTuple  = std::tuple<Args...>;
     };
 
     // Concepts
@@ -105,6 +116,12 @@ namespace Ifrit
     template <typename T, typename... CtorArgs>
     concept IConceptIsConstructible = requires(CtorArgs&&... args) {
         { T(std::forward<CtorArgs>(args)...) } -> std::same_as<T>;
+    };
+
+    template <typename T>
+    concept IConceptIsFunctionPointer = requires(T t) {
+        typename TFunctionPointerType<T>::ReturnType;
+        typename TFunctionPointerType<T>::ArgsTuple;
     };
 
     // Streaming concepts

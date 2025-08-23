@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
 #include "ifrit/runtime/base/Base.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 
 namespace Ifrit::Runtime::Artemis
 {

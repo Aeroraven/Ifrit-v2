@@ -101,17 +101,12 @@ Refactored version for [my original renderer](https://github.com/Aeroraven/Aria)
 ## ⚡️Quick Start
 
 > Some breaking architectural changes are scheduled in `dev` branch (covering RHI, Vulkan adapter and RDG), all downstream modules will be temporarily (and some will be permanently) removed.
-> Please checkout `checkpoint/v6` branch before going on 
-
-> Some breaking changes (like changes in serialization and asset management) were made in `dev` branch recently (Refer to  [TODO.md](./TODO.md) for more details). Former serialization library has been replaced by a new embedded reflection system, and the compatibility patches for older codes are not fully covered now.
->
-> **It's required to switch to branch `checkpoint/v4` to run `Syaro/Ayanami Demo`, and `checkpoint/v1` to run `Software Renderer`.** 
+> Please checkout `checkpoint/v6` branch before going on. **Current `dev` branch cannot be built.**
 
 ### 1. Clone Repository
 ```bash
 git clone https://github.com/Aeroraven/Ifrit-v2.git --recursive 
 ```
-
 
 
 ### 2. Install Dependencies

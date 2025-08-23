@@ -24,65 +24,52 @@ namespace Ifrit::RHI
 {
     struct IFRIT_APIDECL RhiRenderPassContext
     {
-        const RhiCommandList* m_cmd;
-        u32                   m_frame;
+        const RhiCommandListContext* mCmd;
+        u32                          mFrame;
     };
 
-    class IFRIT_APIDECL RhiGeneralPassBase
-    {
-    };
+    class IFRIT_APIDECL RhiGeneralPassBase{};
 
     class IFRIT_APIDECL RhiComputePass : public RhiGeneralPassBase
     {
 
     public:
-        virtual ~RhiComputePass()                                                                          = default;
-        virtual void SetComputeShader(RhiShader* shader)                                                   = 0;
-        virtual void SetShaderBindingLayout(const Vec<RhiDescriptorType>& layout)                          = 0;
-        virtual void AddShaderStorageBuffer(RhiBuffer* buffer, u32 position, RhiResourceAccessType access) = 0;
-        virtual void AddUniformBuffer(RhiMultiBuffer* buffer, u32 position)                                = 0;
-        virtual void SetExecutionFunction(Fn<void(RhiRenderPassContext*)> func)                            = 0;
-        virtual void SetRecordFunction(Fn<void(RhiRenderPassContext*)> func)                               = 0;
-
-        virtual void Run(const RhiCommandList* cmd, u32 frameId) = 0;
-        virtual void SetNumBindlessDescriptorSets(u32 num)       = 0;
-        virtual void SetPushConstSize(u32 size)                  = 0;
+        virtual ~RhiComputePass()                                                 = default;
+        virtual void SetComputeShader(RhiShader* shader)                          = 0;
+        virtual void SetShaderBindingLayout(const Vec<RhiDescriptorType>& layout) = 0;
+        virtual void BeginPass(const RhiCommandListContext* cmd)                  = 0;
+        virtual void EndPass(const RhiCommandListContext* cmd)                    = 0;
+        virtual void SetNumBindlessDescriptorSets(u32 num)                        = 0;
+        virtual void SetPushConstSize(u32 size)                                   = 0;
     };
 
     class IFRIT_APIDECL RhiGraphicsPass : public RhiGeneralPassBase
     {
 
     public:
-        virtual ~RhiGraphicsPass()                                         = default;
-        virtual void SetTaskShader(RhiShader* shader)                      = 0;
-        virtual void SetMeshShader(RhiShader* shader)                      = 0;
-        virtual void SetVertexShader(RhiShader* shader)                    = 0;
-        virtual void SetPixelShader(RhiShader* shader)                     = 0;
-        virtual void SetRasterizerTopology(RhiRasterizerTopology topology) = 0;
-        virtual void SetRenderArea(u32 x, u32 y, u32 width, u32 height)    = 0;
-        virtual void SetDepthWrite(bool write)                             = 0;
-        virtual void SetDepthTestEnable(bool enable)                       = 0;
-        virtual void SetDepthCompareOp(RhiCompareOp compareOp)             = 0;
-        virtual void SetMsaaSamples(u32 samples)                           = 0;
+        virtual ~RhiGraphicsPass()                                                          = default;
+        virtual void                  SetTaskShader(RhiShader* shader)                      = 0;
+        virtual void                  SetMeshShader(RhiShader* shader)                      = 0;
+        virtual void                  SetVertexShader(RhiShader* shader)                    = 0;
+        virtual void                  SetPixelShader(RhiShader* shader)                     = 0;
+        virtual void                  SetRasterizerTopology(RhiRasterizerTopology topology) = 0;
+        virtual void                  SetRenderArea(u32 x, u32 y, u32 width, u32 height)    = 0;
+        virtual void                  SetDepthWrite(bool write)                             = 0;
+        virtual void                  SetDepthTestEnable(bool enable)                       = 0;
+        virtual void                  SetDepthCompareOp(RhiCompareOp compareOp)             = 0;
+        virtual void                  SetMsaaSamples(u32 samples)                           = 0;
 
-        virtual void SetRenderTargetFormat(const RhiRenderTargetsFormat& format)                           = 0;
-        virtual void SetShaderBindingLayout(const Vec<RhiDescriptorType>& layout)                          = 0;
-        virtual void AddShaderStorageBuffer(RhiBuffer* buffer, u32 position, RhiResourceAccessType access) = 0;
-        virtual void AddUniformBuffer(RhiMultiBuffer* buffer, u32 position)                                = 0;
-        virtual void SetExecutionFunction(Fn<void(RhiRenderPassContext*)> func)                            = 0;
-        virtual void SetRecordFunction(Fn<void(RhiRenderPassContext*)> func)                               = 0;
-        virtual void SetRecordFunctionPostRenderPass(Fn<void(RhiRenderPassContext*)> func)                 = 0;
+        virtual void                  SetRenderTargetFormat(const RhiRenderTargetsFormat& format)                  = 0;
+        virtual void                  SetShaderBindingLayout(const Vec<RhiDescriptorType>& layout)                 = 0;
+        virtual void                  BeginPass(const RhiCommandListContext* cmd, RhiRenderTargets* renderTargets) = 0;
+        virtual void                  EndPass(const RhiCommandListContext* cmd)                                    = 0;
+        virtual void                  SetNumBindlessDescriptorSets(u32 num)                                        = 0;
+        virtual void                  SetPushConstSize(u32 size)                                                   = 0;
 
-        virtual void Run(const RhiCommandList* cmd, RhiRenderTargets* renderTargets, u32 frameId) = 0;
-        virtual void SetNumBindlessDescriptorSets(u32 num)                                        = 0;
-        virtual void SetPushConstSize(u32 size)                                                   = 0;
+        virtual RhiRasterizerTopology GetRasterizerTopology() const = 0;
     };
 
-    class IFRIT_APIDECL RhiRTPipeline
-    {
-    public:
-        virtual void _polymorphismPlaceHolder() {}
-    };
+    class IFRIT_APIDECL RhiRTPipeline{ public : virtual void _polymorphismPlaceHolder(){} };
 
     class IFRIT_APIDECL RhiRTPass : public RhiGeneralPassBase
     {

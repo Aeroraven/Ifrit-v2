@@ -5,6 +5,8 @@
 
 namespace Ifrit::HAL
 {
+    using ThreadId = u32;
+
     IFRIT_CORE_API u32              GetCurrentThreadId() IF_NOEXCEPT;
     IFRIT_CORE_API u32              GetMaxHardwareConcurrency() IF_NOEXCEPT;
 

@@ -13,6 +13,8 @@ file(GLOB_RECURSE IFRIT_RHI_HEADER_FILES "include/*.h")
 
 # add api export
 add_definitions(-DIFRIT_DLL)
+add_definitions(-DIFRIT_MODULE_RHI)
+add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.Rhi")
 add_definitions(-DIFRIT_API_EXPORT)
 
 add_library(ifrit.rhi SHARED ${IFRIT_RHI_SOURCE_FILES_CXX} ${IFRIT_RHI_SOURCE_FILES_C} ${IFRIT_RHI_HEADER_FILES})

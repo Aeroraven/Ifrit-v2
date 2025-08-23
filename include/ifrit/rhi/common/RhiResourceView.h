@@ -24,8 +24,8 @@ namespace Ifrit::RHI
 {
     struct IFRIT_APIDECL RhiRenderTargetsFormat
     {
-        RhiImageFormat      m_depthFormat;
-        Vec<RhiImageFormat> m_colorFormats;
+        ERhiImageFormat      mDepthFormat;
+        Vec<ERhiImageFormat> mColorFormats;
     };
 
     class IFRIT_APIDECL RhiRenderTargets
@@ -33,8 +33,8 @@ namespace Ifrit::RHI
     public:
         virtual void                       SetColorAttachments(const Vec<RhiColorAttachment*>& attachments) = 0;
         virtual void                       SetDepthStencilAttachment(RhiDepthStencilAttachment* attachment) = 0;
-        virtual void                       BeginRendering(const RhiCommandList* commandBuffer) const        = 0;
-        virtual void                       EndRendering(const RhiCommandList* commandBuffer) const          = 0;
+        virtual void                       BeginRendering(const RhiCommandListContext* commandBuffer) const = 0;
+        virtual void                       EndRendering(const RhiCommandListContext* commandBuffer) const   = 0;
         virtual void                       SetRenderArea(RhiScissor area)                                   = 0;
         virtual RhiRenderTargetsFormat     GetFormat() const                                                = 0;
         virtual RhiScissor                 GetRenderArea() const                                            = 0;
@@ -55,10 +55,12 @@ namespace Ifrit::RHI
         virtual RhiTexture* GetTexture() const = 0;
     };
 
+    // @REMOVING
     class IFRIT_APIDECL RhiVertexBufferView
     {
     public:
-        virtual void AddBinding(Vec<u32> location, Vec<RhiImageFormat> format, Vec<u32> offset, u32 stride,
-            RhiVertexInputRate inputRate = RhiVertexInputRate::Vertex) = 0;
+        virtual void AddBinding(Vec<u32> location, Vec<ERhiImageFormat> format, Vec<u32> offset, u32 stride,
+            ERhiVertexInputRate inputRate = ERhiVertexInputRate::Vertex) = 0;
     };
+
 } // namespace Ifrit::RHI

@@ -1,6 +1,6 @@
 
 #pragma once
-#include "ifrit/runtime/material/ShaderRegistry.h"
+#include "ifrit/runtime/rendercore/shadercore/ShaderRegistry.h"
 #include "ifrit/runtime/base/Base.h"
 
 namespace Ifrit::Runtime::Internal

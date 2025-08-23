@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/util/RendererWrapper.h"
 #include "ifrit/runtime/application/ApplicationState.h"
 #include "ifrit/runtime/application/Subsystem.h"
-#include "ifrit/runtime/renderer/profiling/ProfileDataManager.h"
+#include "ifrit/runtime/rendercore/profiling/ProfileDataManager.h"
 
 namespace Ifrit::Runtime
 {

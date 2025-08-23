@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/ayanami/AyanamiDeferredShading.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"

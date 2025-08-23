@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/ayanami/AyanamiDFShadowing.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
 #include "ifrit/core/math/linalg/GeometryFunctions.h"

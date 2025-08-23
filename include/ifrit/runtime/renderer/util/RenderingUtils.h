@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <bit>
 
 #include "ifrit/runtime/base/ApplicationInterface.h"
-#include "ifrit/runtime/material/ShaderVariantDescriptor.h"
+#include "ifrit/runtime/rendercore/shadercore/ShaderVariantDescriptor.h"
 
 namespace Ifrit::Runtime::RenderingUtil
 {

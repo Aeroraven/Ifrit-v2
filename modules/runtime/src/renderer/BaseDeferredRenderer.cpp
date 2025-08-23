@@ -1,6 +1,6 @@
 #include "ifrit/runtime/renderer/BaseDeferredRenderer.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 using namespace Ifrit::RHI;
 
 namespace Ifrit::Runtime
@@ -290,4 +290,4 @@ namespace Ifrit::Runtime
         return task;
     }
 
-} // namespace Ifrit::Runtime
+} // namespace Ifrit::Runtime

@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 
 #include "ifrit/core/math/sampling/LowDiscrepancy.h"
 
@@ -189,8 +189,8 @@ namespace Ifrit::Runtime::Ayanami
         using namespace Ifrit::Math;
 
         m_Resources->m_MeshCardTasks.clear();
-        auto objects = scene->FilterObjects(
-            [](GameObject* obj) { return obj->GetComponent<AyanamiMeshMarker>() != nullptr; });
+        auto objects =
+            scene->FilterObjects([](GameObject* obj) { return obj->GetComponent<AyanamiMeshMarker>() != nullptr; });
 
         for (auto obj : objects)
         {
@@ -901,8 +901,8 @@ namespace Ifrit::Runtime::Ayanami
         Vector3i numTGs{ (i32)tileGroups, (i32)tileGroups, (i32)cardGroups };
 
         auto&    pass = AddComputePass<PushConst>(builder, "Ayanami.SurfaceCache.CombineLighting",
-            ShaderVariantDesc(Internal::kIntShaderTableAyanami.SurfaceCacheCombineLightCS, {}), numTGs, pc,
-            [this](PushConst data, const FrameGraphPassContext& ctx) {
+               ShaderVariantDesc(Internal::kIntShaderTableAyanami.SurfaceCacheCombineLightCS, {}), numTGs, pc,
+               [this](PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_DirectLightingAtlasSRV = ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheDirectLightingAtlas);
                 data.m_IndirectLightingAtlasSRV =
                     ctx.m_FgDesc->GetSRV(*m_Resources->m_RDGSceneCacheIndirectRadianceAtlas);

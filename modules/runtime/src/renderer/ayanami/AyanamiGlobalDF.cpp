@@ -23,8 +23,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
-#include "ifrit/runtime/renderer/SharedRenderResource.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/SharedRenderResource.h"
 
 using namespace Ifrit::Math;
 using namespace Ifrit::Runtime::FrameGraphUtils;

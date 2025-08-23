@@ -24,7 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::RHI
 {
-    enum class RhiTypeFlags : u8
+    enum class ERhiTypeFlags : u8
     {
         Float32 = 0x01,
         Float64 = 0x02,
@@ -40,26 +40,19 @@ namespace Ifrit::RHI
 
     struct RhiAttachmentBlendInfo
     {
-        bool           m_blendEnable         = false;
-        RhiBlendFactor m_srcColorBlendFactor = RhiBlendFactor::RhiBlendFactor_ONE;
-        RhiBlendFactor m_dstColorBlendFactor = RhiBlendFactor::RhiBlendFactor_ZERO;
-        RhiBlendOp     m_colorBlendOp        = RhiBlendOp::RhiBlendOp_ADD;
-        RhiBlendFactor m_srcAlphaBlendFactor = RhiBlendFactor::RhiBlendFactor_ONE;
-        RhiBlendFactor m_dstAlphaBlendFactor = RhiBlendFactor::RhiBlendFactor_ZERO;
-        RhiBlendOp     m_alphaBlendOp        = RhiBlendOp::RhiBlendOp_ADD;
+        bool            mBlendEnable         = false;
+        ERhiBlendFactor mSrcColorBlendFactor = ERhiBlendFactor::One;
+        ERhiBlendFactor mDstColorBlendFactor = ERhiBlendFactor::Zero;
+        ERhiBlendOp     mColorBlendOp        = ERhiBlendOp::Add;
+        ERhiBlendFactor mSrcAlphaBlendFactor = ERhiBlendFactor::One;
+        ERhiBlendFactor mDstAlphaBlendFactor = ERhiBlendFactor::Zero;
+        ERhiBlendOp     mAlphaBlendOp        = ERhiBlendOp::Add;
     };
-
-    // struct RhiClearValue
-    // {
-    //     f32 m_color[4];
-    //     f32 m_depth;
-    //     u32 m_stencil;
-    // };
 
     struct RhiClearColorValue
     {
         RhiClearColorValue() = default;
-        RhiTypeFlags m_Type;
+        ERhiTypeFlags m_Type;
         union
         {
             f32 m_ValueF32[4];
@@ -69,14 +62,14 @@ namespace Ifrit::RHI
 
         RhiClearColorValue(const RhiClearColorValue& other) : m_Type(other.m_Type)
         {
-            if (m_Type == RhiTypeFlags::Float32)
+            if (m_Type == ERhiTypeFlags::Float32)
             {
                 m_ValueF32[0] = other.m_ValueF32[0];
                 m_ValueF32[1] = other.m_ValueF32[1];
                 m_ValueF32[2] = other.m_ValueF32[2];
                 m_ValueF32[3] = other.m_ValueF32[3];
             }
-            else if (m_Type == RhiTypeFlags::UInt32)
+            else if (m_Type == ERhiTypeFlags::UInt32)
             {
                 m_ValueU32[0] = other.m_ValueU32[0];
                 m_ValueU32[1] = other.m_ValueU32[1];
@@ -97,14 +90,14 @@ namespace Ifrit::RHI
             if (this != &other)
             {
                 m_Type = other.m_Type;
-                if (m_Type == RhiTypeFlags::Float32)
+                if (m_Type == ERhiTypeFlags::Float32)
                 {
                     m_ValueF32[0] = other.m_ValueF32[0];
                     m_ValueF32[1] = other.m_ValueF32[1];
                     m_ValueF32[2] = other.m_ValueF32[2];
                     m_ValueF32[3] = other.m_ValueF32[3];
                 }
-                else if (m_Type == RhiTypeFlags::UInt32)
+                else if (m_Type == ERhiTypeFlags::UInt32)
                 {
                     m_ValueU32[0] = other.m_ValueU32[0];
                     m_ValueU32[1] = other.m_ValueU32[1];
@@ -129,7 +122,7 @@ namespace Ifrit::RHI
         u32 m_Stencil;
     };
 
-    enum class RhiClearValueType : u8
+    enum class ERhiClearValueType : u8
     {
         Color        = 0x01,
         DepthStencil = 0x02,
@@ -137,7 +130,7 @@ namespace Ifrit::RHI
 
     struct RhiClearValue2
     {
-        RhiClearValueType m_Type;
+        ERhiClearValueType m_Type;
         union
         {
             RhiClearColorValue        m_Color;
@@ -145,18 +138,18 @@ namespace Ifrit::RHI
         };
 
         RhiClearValue2() = default;
-        RhiClearValue2(const RhiClearColorValue& color) : m_Type(RhiClearValueType::Color), m_Color(color) {}
+        RhiClearValue2(const RhiClearColorValue& color) : m_Type(ERhiClearValueType::Color), m_Color(color) {}
         RhiClearValue2(const RhiClearDepthStencilValue& depthStencil)
-            : m_Type(RhiClearValueType::DepthStencil), m_DepthStencil(depthStencil)
+            : m_Type(ERhiClearValueType::DepthStencil), m_DepthStencil(depthStencil)
         {
         }
         RhiClearValue2(const RhiClearValue2& other) : m_Type(other.m_Type)
         {
-            if (m_Type == RhiClearValueType::Color)
+            if (m_Type == ERhiClearValueType::Color)
             {
                 m_Color = other.m_Color;
             }
-            else // if (m_Type == RhiClearValueType::DepthStencil)
+            else // if (m_Type == ERhiClearValueType::DepthStencil)
             {
                 m_DepthStencil = other.m_DepthStencil;
             }
@@ -167,11 +160,11 @@ namespace Ifrit::RHI
             if (this != &other)
             {
                 m_Type = other.m_Type;
-                if (m_Type == RhiClearValueType::Color)
+                if (m_Type == ERhiClearValueType::Color)
                 {
                     m_Color = other.m_Color;
                 }
-                else // if (m_Type == RhiClearValueType::DepthStencil)
+                else // if (m_Type == ERhiClearValueType::DepthStencil)
                 {
                     m_DepthStencil = other.m_DepthStencil;
                 }
@@ -209,15 +202,17 @@ namespace Ifrit::RHI
     // Update 250326: This is a deprecated struct, the bindless descriptor index is disentangled with
     // the resource itself, causing the "Dangling Descriptor" issue (after the resource is destroyed)
     // Now for each resource, we maintain a descriptor handle with type and index
-    struct RhiDescHandleLegacy
-    {
-        u32         activeFrame;
-        Vec<u32>    ids;
-        inline u32  GetActiveId() const { return ids[activeFrame]; }
-        inline void SetFromId(u32 frame) { activeFrame = frame; }
-    };
 
-    enum class RhiDescriptorHeapType : u32
+    // Update 250822: Removed
+    // struct RhiDescHandleLegacy
+    // {
+    //     u32         activeFrame;
+    //     Vec<u32>    ids;
+    //     inline u32  GetActiveId() const { return ids[activeFrame]; }
+    //     inline void SetFromId(u32 frame) { activeFrame = frame; }
+    // };
+
+    enum class ERhiDescriptorHeapType : u32
     {
         UniformBuffer,
         StorageBuffer,
@@ -229,14 +224,22 @@ namespace Ifrit::RHI
         Invalid
     };
 
+    enum class ERhiDescriptorHandleType : u32
+    {
+        Trivial,
+        Bindless,
+    };
+
     struct RhiDescriptorHandle
     {
-        RhiDescriptorHeapType m_type;
-        u32                   m_index;
+        ERhiDescriptorHeapType   mType = ERhiDescriptorHeapType::Invalid;
+        u32                      mIndex;
+        ERhiDescriptorHandleType mHandleType = ERhiDescriptorHandleType::Bindless;
 
-        RhiDescriptorHandle(RhiDescriptorHeapType type, u32 index) : m_type(type), m_index(index) {}
-        inline RhiDescriptorHeapType GetType() const { return m_type; }
-        inline u32                   GetId() const { return m_index; }
+        RhiDescriptorHandle() = default;
+        RhiDescriptorHandle(ERhiDescriptorHeapType type, u32 index) : mType(type), mIndex(index) {}
+        inline ERhiDescriptorHeapType GetType() const { return mType; }
+        inline u32                    GetId() const { return mIndex; }
     };
 
 } // namespace Ifrit::RHI

@@ -1,6 +1,6 @@
 #pragma once
 #include "ifrit/runtime/base/Base.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 
 namespace Ifrit::Runtime::Artemis
 {

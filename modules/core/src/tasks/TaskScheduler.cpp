@@ -19,11 +19,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/tasks/TaskScheduler.h"
 #include "ifrit/core/algo/ConcurrentQueue.h"
 #include "ifrit/core/hal/HalHostConcurrency.h"
+#include "ifrit/core/typing/EnumReflection.h"
 
-namespace Ifrit
+namespace Ifrit::Task
 {
+
+    static HashMap<ENamedTaskThread, std::thread::id> sNamedWorkerToThreadIdMap;
+
     // Task
-    IFRIT_APIDECL void Task::Execute()
+    IFRIT_APIDECL void                                Task::Execute()
     {
         m_State = ETaskState::Running;
         m_Execute(this, m_Payload);
@@ -67,30 +71,30 @@ namespace Ifrit
     }
 
     // Workers
-    struct FTaskWorkerAttributes
+    struct TaskWorkerAttributes
     {
         using TaskRef                               = TObjectPool<Task>::TObjectRef;
-        FTaskScheduler*                 m_Scheduler = nullptr;
+        TaskScheduler*                  m_Scheduler = nullptr;
         u32                             m_ThreadId  = 0;
-        Atomic<EFTaskWorkerState>       m_State     = EFTaskWorkerState::Alive;
+        Atomic<ETaskWorkerState>        m_State     = ETaskWorkerState::Alive;
         TPooledConcurrentQueue<TaskRef> m_JobQueue;
     };
 
-    IFRIT_APIDECL FTaskWorker::FTaskWorker(FTaskScheduler* scheduler, u32 threadId)
+    IFRIT_APIDECL TaskWorker::TaskWorker(TaskScheduler* scheduler, u32 threadId)
     {
-        m_Attributes              = new FTaskWorkerAttributes();
+        m_Attributes              = new TaskWorkerAttributes();
         m_Attributes->m_Scheduler = scheduler;
         m_Attributes->m_ThreadId  = threadId;
-        m_Attributes->m_State     = EFTaskWorkerState::Alive;
+        m_Attributes->m_State     = ETaskWorkerState::Alive;
     }
-    IFRIT_APIDECL      FTaskWorker::~FTaskWorker() { delete m_Attributes; }
+    IFRIT_APIDECL      TaskWorker::~TaskWorker() { delete m_Attributes; }
 
-    IFRIT_APIDECL void FTaskWorker::Run()
+    IFRIT_APIDECL void TaskWorker::Run()
     {
         while (true)
         {
             auto state = m_Attributes->m_State.load();
-            if (state == EFTaskWorkerState::Terminating)
+            if (state == ETaskWorkerState::Terminating)
             {
                 break;
             }
@@ -104,25 +108,31 @@ namespace Ifrit
             }
             std::this_thread::yield();
         }
-        m_Attributes->m_State = EFTaskWorkerState::Terminated;
+        m_Attributes->m_State = ETaskWorkerState::Terminated;
     }
 
-    IFRIT_APIDECL void FTaskWorker::Launch()
+    IFRIT_APIDECL void TaskWorker::Launch()
     {
         m_Thread = std::thread([this]() {
             HAL::SetCurrentThreadId(m_Attributes->m_ThreadId + 1);
+            if (mThreadType != ENamedTaskThread::AnyThread)
+            {
+                sNamedWorkerToThreadIdMap[mThreadType] = std::this_thread::get_id();
+                IF_LOG_INFO("TaskScheduler", "Worker thread {} launched with thread type: {}", m_Attributes->m_ThreadId,
+                    GetEnumName(mThreadType));
+            }
             Run();
         });
         m_Thread.detach();
     }
 
-    IFRIT_APIDECL void FTaskWorker::EnqueueTask(TaskRef task)
+    IFRIT_APIDECL void TaskWorker::EnqueueTask(TaskRef task)
     {
         // Enqueue!
         m_Attributes->m_JobQueue.Enqueue(task);
     }
 
-    IFRIT_APIDECL FTaskWorker::TaskRef FTaskWorker::FetchTask()
+    IFRIT_APIDECL TaskWorker::TaskRef TaskWorker::FetchTask()
     {
         auto thisQueueTask = m_Attributes->m_JobQueue.Dequeue();
         if (thisQueueTask.Get() == nullptr)
@@ -145,29 +155,30 @@ namespace Ifrit
     }
     // Scheduler
 
-    struct FTaskSchedulerAttributes
+    struct TaskSchedulerAttributes
     {
         using TaskRef = TObjectPool<Task>::TObjectRef;
         // Hold this to ensure the object's reference count is not 0
-        HashMap<FIndexedPtr::Underlying, TaskRef> m_JobAlive;
-        Vec<Ref<FTaskWorker>>                     m_Workers;
-        TObjectPool<Task>                         m_TaskPool;
+        HashMap<FIndexedPtr::Underlying, TaskRef>    m_JobAlive;
+        Vec<Owner<TaskWorker>>                       m_Workers;
+        HashMap<ENamedTaskThread, Owner<TaskWorker>> m_NamedWorkers;
+        TObjectPool<Task>                            m_TaskPool;
     };
 
-    IFRIT_APIDECL FTaskScheduler::FTaskScheduler(u32 numThreads, bool isSingleton)
-        : m_Attributes(new FTaskSchedulerAttributes()), m_IsSingleton(isSingleton)
+    IFRIT_APIDECL TaskScheduler::TaskScheduler(u32 numThreads, bool isSingleton)
+        : m_Attributes(new TaskSchedulerAttributes()), m_IsSingleton(isSingleton)
     {
         m_Attributes->m_Workers.reserve(numThreads);
         for (u32 i = 0; i < numThreads; ++i)
         {
-            auto workerRef = MakeRef<FTaskWorker>(this, i);
-            m_Attributes->m_Workers.emplace_back(workerRef);
+            auto workerRef = MakeOwner<TaskWorker>(this, i);
+            m_Attributes->m_Workers.push_back(std::move(workerRef));
             m_Attributes->m_Workers[i]->Launch();
         }
         IF_LOG_INFO("TaskScheduler", "Created {} worker threads.", numThreads);
     }
 
-    IFRIT_APIDECL void FTaskScheduler::DereferenceTask(FIndexedPtr taskId)
+    IFRIT_APIDECL void TaskScheduler::DereferenceTask(FIndexedPtr taskId)
     {
         auto task = m_Attributes->m_JobAlive[taskId.Ptr()];
         if (task.Get() == nullptr)
@@ -177,14 +188,14 @@ namespace Ifrit
         m_Attributes->m_JobAlive.erase(taskId.Ptr());
     }
 
-    IFRIT_APIDECL void FTaskScheduler::RegisterDependency(Task* parent, Task* child)
+    IFRIT_APIDECL bool TaskScheduler::RegisterDependency(Task* parent, Task* child)
     {
         // We do not need lock itself. The dependency is created upon creating.
         // No need to fear the deadlock
         FSpinLockGuard lockParent(parent->m_ContinuationLock);
         if (parent->m_State.load() == ETaskState::Idle)
         {
-            IF_LOG_CRITICAL("TaskScheduler", "To prevent circular dependency, the task is not allowed to be idle.");
+            // IF_LOG_CRITICAL("TaskScheduler", "To prevent circular dependency, the task is not allowed to be idle.");
         }
         if (parent->m_State.load() != ETaskState::Completed || parent->m_State.load() != ETaskState::Failed)
         {
@@ -195,16 +206,28 @@ namespace Ifrit
             // For child
             auto childParPos                    = child->m_ParentJobs.fetch_add(1);
             child->m_Continuations[childParPos] = parent;
+            return true;
         }
+        return false;
     }
 
-    IFRIT_APIDECL void FTaskScheduler::ScheduleTask(TaskRef task)
+    IFRIT_APIDECL void TaskScheduler::ScheduleTask(TaskRef task)
     {
-        auto taskId       = task.GetIndex();
-        auto randomWorker = rand() % m_Attributes->m_Workers.size();
-        auto worker       = m_Attributes->m_Workers[randomWorker];
+        auto        taskId       = task.GetIndex();
+        auto        randomWorker = rand() % m_Attributes->m_Workers.size();
 
-        if (worker->m_Attributes->m_State.load() == EFTaskWorkerState::Alive)
+        TaskWorker* worker;
+        auto        desiredThread = task->m_ThreadType;
+        if (desiredThread == ENamedTaskThread::AnyThread)
+        {
+            worker = m_Attributes->m_Workers[randomWorker].get();
+        }
+        else
+        {
+            worker = GetNamedWorker(desiredThread);
+        }
+
+        if (worker->m_Attributes->m_State.load() == ETaskWorkerState::Alive)
         {
             worker->EnqueueTask(task);
         }
@@ -214,7 +237,7 @@ namespace Ifrit
         }
     }
 
-    IFRIT_APIDECL void FTaskScheduler::ScheduleTaskFromId(FIndexedPtr taskId)
+    IFRIT_APIDECL void TaskScheduler::ScheduleTaskFromId(FIndexedPtr taskId)
     {
         auto task = m_Attributes->m_JobAlive[taskId.Ptr()];
         if (task.Get() == nullptr)
@@ -224,33 +247,57 @@ namespace Ifrit
         ScheduleTask(task);
     }
 
-    IFRIT_APIDECL FTaskWorker* FTaskScheduler::FetchRandomWorker()
+    IFRIT_APIDECL TaskWorker* TaskScheduler::FetchRandomWorker()
     {
         auto randomWorker = rand() % m_Attributes->m_Workers.size();
         return m_Attributes->m_Workers[randomWorker].get();
     }
-
-    IFRIT_APIDECL FTaskScheduler::TaskRef FTaskScheduler::EnqueueTask(
-        Fn<void(Task*, void*)> fn, Vec<TaskRef> dependencies, void* payload)
+    IFRIT_APIDECL TaskWorker* TaskScheduler::GetNamedWorker(ENamedTaskThread threadType)
     {
-        auto task         = m_Attributes->m_TaskPool.Create();
-        auto taskId       = task.GetIndex();
-        task->m_Scheduler = this;
-        task->m_PooledIdx = taskId;
-        for (auto& dep : dependencies)
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::Invalid,
+            "Task thread type is invalid. Thread type: {}", static_cast<u32>(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::AnyThread,
+            "Task thread type cannot be AnyThread. Thread type: {}", static_cast<u32>(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", m_Attributes->m_NamedWorkers.contains(threadType),
+            "Task thread type is not registered. Thread type: {}", static_cast<u32>(threadType));
+        auto worker = m_Attributes->m_NamedWorkers[threadType].get();
+        if (worker->m_Attributes->m_State.load() == ETaskWorkerState::Alive)
         {
-            RegisterDependency(task.Get(), dep.Get());
+            return worker;
         }
+        else
+        {
+            IF_LOG_CRITICAL("TaskScheduler", "Worker is not alive. Thread type: {}", static_cast<u32>(threadType));
+            return nullptr;
+        }
+    }
+
+    IFRIT_APIDECL TaskScheduler::TaskRef TaskScheduler::EnqueueTask(
+        Fn<void(Task*, void*)> fn, ENamedTaskThread threadType, Vec<TaskRef> dependencies, void* payload)
+    {
+        auto task                              = m_Attributes->m_TaskPool.Create();
+        auto taskId                            = task.GetIndex();
+        task->m_Scheduler                      = this;
+        task->m_PooledIdx                      = taskId;
         m_Attributes->m_JobAlive[taskId.Ptr()] = task;
         task->m_Execute                        = fn;
         task->m_Payload                        = payload;
+        task->m_ThreadType                     = threadType;
 
-        // enqueue the task to a random worker
-        ScheduleTask(task);
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::Invalid,
+            "Task thread type is invalid. Task ID: {}", taskId.Ptr());
+
+        bool hasDependency = false;
+        for (auto& dep : dependencies)
+        {
+            hasDependency = RegisterDependency(dep.Get(), task.Get());
+        }
+        if (!hasDependency)
+            ScheduleTask(task);
         return task;
     }
 
-    IFRIT_APIDECL void FTaskScheduler::WaitForTask(TaskRef task)
+    IFRIT_APIDECL void TaskScheduler::WaitForTask(TaskRef task)
     {
         while (task->m_State.load() != ETaskState::Completed && task->m_State.load() != ETaskState::Failed)
         {
@@ -258,7 +305,24 @@ namespace Ifrit
         }
     }
 
-    IFRIT_APIDECL FTaskScheduler::~FTaskScheduler()
+    IFRIT_APIDECL void TaskScheduler::RegisterNamedWorker(Owner<TaskWorker> worker, ENamedTaskThread threadType)
+    {
+
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::Invalid,
+            "Task thread type is invalid. Thread type: {}", static_cast<u32>(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::AnyThread,
+            "Task thread type cannot be AnyThread. Thread type: {}", static_cast<u32>(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", !m_Attributes->m_NamedWorkers.contains(threadType),
+            "Task thread type is already registered. Thread type: {}", GetEnumName(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", worker->mThreadType == threadType,
+            "Worker thread type does not match the registered thread type. Worker thread type: {}, "
+            "Registered thread type: {}",
+            GetEnumName(worker->mThreadType), GetEnumName(threadType));
+        m_Attributes->m_NamedWorkers[threadType] = std::move(worker);
+        m_Attributes->m_NamedWorkers[threadType]->Launch();
+    }
+
+    IFRIT_APIDECL TaskScheduler::~TaskScheduler()
     {
         if (m_IsSingleton)
         {
@@ -266,12 +330,12 @@ namespace Ifrit
         }
         for (auto& worker : m_Attributes->m_Workers)
         {
-            worker->m_Attributes->m_State = EFTaskWorkerState::Terminating;
+            worker->m_Attributes->m_State = ETaskWorkerState::Terminating;
         }
         IF_LOG_INFO("TaskScheduler", "Waiting for all workers to finish...");
         for (auto& worker : m_Attributes->m_Workers)
         {
-            while (worker->m_Attributes->m_State.load() != EFTaskWorkerState::Terminated)
+            while (worker->m_Attributes->m_State.load() != ETaskWorkerState::Terminated)
             {
                 std::this_thread::yield();
             }
@@ -279,10 +343,29 @@ namespace Ifrit
         IF_LOG_INFO("TaskScheduler", "All workers finished.");
     }
 
-    IFRIT_APIDECL FTaskScheduler* GetFTaskScheduler()
+    IFRIT_APIDECL TaskScheduler* GetTaskScheduler()
     {
-        static FTaskScheduler scheduler(8, true);
+        static TaskScheduler scheduler(8, true);
         return &scheduler;
     }
 
-} // namespace Ifrit
+    IFRIT_APIDECL bool IsInNamedThread(ENamedTaskThread threadType)
+    {
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::Invalid,
+            "Task thread type is invalid. Thread type: {}", static_cast<u32>(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::AnyThread,
+            "Task thread type cannot be AnyThread. Thread type: {}", static_cast<u32>(threadType));
+        auto threadId = std::this_thread::get_id();
+        if (sNamedWorkerToThreadIdMap.contains(threadType))
+        {
+            return sNamedWorkerToThreadIdMap[threadType] == threadId;
+        }
+        else
+        {
+            IF_LOG_CRITICAL(
+                "TaskScheduler", "Thread type is not registered. Thread type: {}", static_cast<u32>(threadType));
+            return false;
+        }
+    }
+
+} // namespace Ifrit::Task

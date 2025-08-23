@@ -1,6 +1,6 @@
 #include "ifrit/runtime/util/RendererWrapper.h"
 #include "ifrit/rhi/common/RhiStructHelper.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 
 namespace Ifrit::Runtime

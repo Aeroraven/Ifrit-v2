@@ -1,7 +1,7 @@
 
 #pragma once
 #include "ifrit/runtime/base/Mesh.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraph.h"
 
 namespace Ifrit::Runtime::Geometry
 {

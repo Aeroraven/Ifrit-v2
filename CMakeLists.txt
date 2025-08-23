@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(Ifrit-v2)
+project(Project-Ifrit-v2)
 
 # set(ENV{http_proxy} "http://127.0.0.1:10809")
 # set(ENV{https_proxy} "http://127.0.0.1:10809")
@@ -35,6 +35,16 @@ function(ifrit_add_core_component component_name)
     message(STATUS "[Ifrit.Build.Core] Adding core component ${component_name}")
     add_subdirectory(modules/${component_name})
 endfunction()
+
+function(ifrit_add_misc_component component_name)
+    if(MSVC)
+        add_compile_options(/MP)
+        add_compile_options(/Od)
+    endif()
+    message(STATUS "[Ifrit.Build.Misc] Adding misc component ${component_name}")
+    add_subdirectory(experimentals/${component_name})
+endfunction()
+
  
 function(ifrit_add_all_demos demo_root_dir)
     message(STATUS "[Ifrit.Build.Demo] Searching for demo projects in ${demo_root_dir}")
@@ -187,12 +197,14 @@ ifrit_add_core_component(ircompile)
 ifrit_add_core_component(softgraphics)
 ifrit_add_core_component(geomproc)
 ifrit_add_core_component(vkrhi)
+ifrit_add_core_component(vkrhi2)
 ifrit_add_core_component(dx12rhi)
 ifrit_add_core_component(runtime)
 ifrit_add_core_component(rhi)
 ifrit_add_core_component(profiler)
 ifrit_add_core_component(editor)
 
+# ifrit_add_misc_component(spgrid)
 
 # Demo
 set(IFRIT_DEMO_LINK_LIBRARIES 
@@ -220,6 +232,7 @@ set(IFRIT_DEMO_DEPENDENCIES
 ifrit_add_all_demos(${CMAKE_CURRENT_SOURCE_DIR}/demo)
 
 set(IFRIT_GROUP_ENGINE "Project Ifrit/Engine")
+set(IFRIT_GROUP_EXPERIMENTAL "Project Ifrit/Experimental")
 set(IFRIT_GROUP_DEPENDENCIES "Project Ifrit/ThirdParty")
 set(IFRIT_GROUP_DEMO "Project Ifrit/Demo")
 set(IFRIT_GROUP_TOOL "Project Ifrit/Tool")
@@ -290,3 +303,5 @@ set_target_properties(ifrit.reflparser PROPERTIES FOLDER ${IFRIT_GROUP_TOOL})
 
 set_target_properties(ifrit.ircompile PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
 set_target_properties(ifrit.softgraphics PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
+
+# set_target_properties(ifrit.exps.spgrid PROPERTIES FOLDER ${IFRIT_GROUP_EXPERIMENTAL})

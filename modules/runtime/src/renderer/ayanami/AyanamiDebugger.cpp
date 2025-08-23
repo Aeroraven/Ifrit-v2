@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/ayanami/AyanamiDebugger.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.Ayanami.h"
 #include "ifrit.shader/Ayanami/Ayanami.SharedConst.h"
 
@@ -90,9 +90,9 @@ namespace Ifrit::Runtime::Ayanami
         auto  tgX       = DivRoundUp(cardResolution, Config::kAyanamiReconFromSCTileSize);
         auto  atomicPtr = &resAtomicDepth;
         auto& pass1     = AddComputePass<PushConst>(builder, "Ayanami.Debug.DepthReconFromSurfaceCache",
-            ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgReconFromSurfaceCacheCS, {}),
-            Vector3i((i32)tgX, (i32)tgX, (i32)totalCards), pc,
-            [outputTexture, cardAlbedoAtlas, cardNormalAtlas, cardRadianceAtlas, cardDepthAtlas, atomicPtr](
+                ShaderVariantDesc(Internal::kIntShaderTableAyanami.DbgReconFromSurfaceCacheCS, {}),
+                Vector3i((i32)tgX, (i32)tgX, (i32)totalCards), pc,
+                [outputTexture, cardAlbedoAtlas, cardNormalAtlas, cardRadianceAtlas, cardDepthAtlas, atomicPtr](
                 PushConst data, const FrameGraphPassContext& ctx) {
                 data.m_OutputUAV            = ctx.m_FgDesc->GetUAV(*outputTexture);
                 data.m_CardAlbedoAtlasSRV   = ctx.m_FgDesc->GetSRV(*cardAlbedoAtlas);

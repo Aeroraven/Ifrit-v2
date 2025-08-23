@@ -1,6 +1,6 @@
 #include "ifrit/runtime/geometry/surfaceop/ParticleSurfaceProceduralMesh.h"
 #include "ifrit/runtime/geometry/MeshUtility.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/geometry/internal/InternalShaderRegistry.Geometry.h"
 
 #include "ifrit.shader.neo/Meshing/SurfaceRecon/SurfRecon.Common.hlsli"

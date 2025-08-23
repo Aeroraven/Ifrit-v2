@@ -56,11 +56,6 @@ namespace Ifrit::RHI::VulkanAdapter
 
     IFRIT_APIDECL void CommandPool::ResetCommandPool()
     {
-        // Free all command buffers in the pool
-        // vkrVulkanAssert(
-        //     vkResetCommandPool(m_context->GetDevice(), m_commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT),
-        //     "Failed to reset command pool");
-
         // Make all in-flight command buffers available again
         for (auto& cmdBuf : m_InFlightCommandBuffers)
         {
@@ -1066,7 +1061,7 @@ namespace Ifrit::RHI::VulkanAdapter
         }
     }
 
-    void DeviceQueue::RunSyncCommand(std::function<void(const RHI::RhiCommandList*)> func)
+    void DeviceQueue::RunSyncCommand(std::function<void(const RHI::RhiCommandListContext*)> func)
     {
         auto cmd = BeginRecording();
         func(cmd);
@@ -1074,7 +1069,8 @@ namespace Ifrit::RHI::VulkanAdapter
         WaitIdle();
     }
 
-    Owner<RHI::RhiTaskSubmission> DeviceQueue::RunAsyncCommand(std::function<void(const RHI::RhiCommandList*)> func,
+    Owner<RHI::RhiTaskSubmission> DeviceQueue::RunAsyncCommand(
+        std::function<void(const RHI::RhiCommandListContext*)> func,
         const Vec<RHI::RhiTaskSubmission*>& waitOn, const Vec<RHI::RhiTaskSubmission*>& toIssue)
     {
         auto cmd = BeginRecording();

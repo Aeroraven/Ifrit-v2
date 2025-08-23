@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/runtime/renderer/util/RenderingUtils.h"
-#include "ifrit/runtime/material/ShaderRegistry.h"
+#include "ifrit/runtime/rendercore/shadercore/ShaderRegistry.h"
 #include "ifrit/rhi/common/RhiStructHelper.h"
 
 namespace Ifrit::Runtime::RenderingUtil

@@ -25,8 +25,8 @@ namespace Ifrit::RHI
     class IFRIT_APIDECL RhiShader
     {
     public:
-        virtual RhiShaderStage GetStage() const             = 0;
-        virtual u32            GetNumDescriptorSets() const = 0;
+        virtual ERhiShaderStage GetStage() const             = 0;
+        virtual u32             GetNumDescriptorSets() const = 0;
     };
 
     class IFRIT_APIDECL RhiShaderCollection
@@ -36,11 +36,7 @@ namespace Ifrit::RHI
         virtual bool       MultiCompileReady()                    = 0;
     };
 
-    class IFRIT_APIDECL RhiRTShaderBindingTable
-    {
-    public:
-        virtual void _polymorphismPlaceHolder() {}
-    };
+    class IFRIT_APIDECL RhiRTShaderBindingTable{ public : virtual void _polymorphismPlaceHolder(){} };
 
     struct IFRIT_APIDECL RhiRTShaderGroup
     {

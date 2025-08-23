@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/renderer/internal/InternalShaderRegistry.h"
 #include "ifrit/core/hal/HalDisplay.h"
 #include "ifrit/core/hal/HalWindow.h"
-#include "ifrit/runtime/renderer/SharedRenderResource.h"
+#include "ifrit/runtime/rendercore/SharedRenderResource.h"
 #include "ifrit/runtime/asset/util/ImporterHelper.h"
 namespace Ifrit::Runtime
 {

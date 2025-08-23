@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <mutex>
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/runtime/scene/FrameComponentUpdate.h"
-#include "ifrit/runtime/renderer/SharedRenderResource.h"
+#include "ifrit/runtime/rendercore/SharedRenderResource.h"
 
 namespace Ifrit::Runtime
 {

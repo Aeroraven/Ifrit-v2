@@ -25,8 +25,8 @@ namespace Ifrit::RHI
     class IFRIT_APIDECL RhiDeviceTimer
     {
     public:
-        virtual void Start(const RhiCommandList* cmd) = 0;
-        virtual void Stop(const RhiCommandList* cmd)  = 0;
+        virtual void Start(const RhiCommandListContext* cmd) = 0;
+        virtual void Stop(const RhiCommandListContext* cmd) = 0;
         virtual f32  GetElapsedMs()                   = 0;
     };
 } // namespace Ifrit::RHI

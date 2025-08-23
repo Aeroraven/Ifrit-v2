@@ -4,6 +4,9 @@
 #include "ifrit/core/reflection/SerializeHelper.h"
 #include <map>
 #include "misc.reflection.generated.h"
+#include "ifrit/core/tasks/TaskScheduler.h"
+#include "ifrit/runtime/rendercore/threading/RenderingThread.h"
+#include <Windows.h>
 
 using namespace Ifrit::Reflection;
 
@@ -57,7 +60,7 @@ public:
     Vector4f                     a2  = Vector4f(1.0f, 2.0f, 3.0f, 4.0f);
 };
 
-int main()
+int reflTest()
 {
     // Ifrit::Reflection::RegisterReflectionTypes();
 
@@ -128,4 +131,59 @@ int main()
 
     constexpr bool poly = std::is_polymorphic_v<Cat>;
     return 0;
+}
+
+int taskTest()
+{
+    using namespace Ifrit;
+    auto taskScheduler = Task::GetTaskScheduler();
+
+    Runtime::RegisterRenderCoreThreading();
+
+    auto task1 = taskScheduler->EnqueueTask(
+        [](Task::Task* t, void* p) {
+            Sleep(1000);
+            std::cout << "<1 " << Runtime::IsInRenderingThread() << " >" << std::endl;
+        },
+        Task::ENamedTaskThread::AnyThread, {}, nullptr);
+
+    auto task3 = taskScheduler->EnqueueTask(
+        [](Task::Task* t, void* p) {
+            Sleep(2000);
+            std::cout << "<3 " << Runtime::IsInRenderingThread() << ">" << std::endl;
+        },
+        Task::ENamedTaskThread::AnyThread, {}, nullptr);
+
+
+    auto task2 = taskScheduler->EnqueueTask(
+        [](Task::Task* t, void* p) {
+            Sleep(5000);
+            std::cout << "<2 " << Runtime::IsInRenderingThread() << ">" << std::endl;
+        },
+        Task::ENamedTaskThread::RenderThread, { task1, task3 }, nullptr);
+
+    auto task4 = taskScheduler->EnqueueTask(
+        [](Task::Task* t, void* p) {
+            Sleep(5000);
+            std::cout << "<4 "<< Runtime::IsInRenderingThread() <<">" << std::endl;
+        },
+        Task::ENamedTaskThread::AnyThread, { task2, task3 }, nullptr);
+    auto task5 = taskScheduler->EnqueueTask(
+        [](Task::Task* t, void* p) {
+            Sleep(5000);
+            std::cout << "<5 "<< Runtime::IsInRenderingThread() <<">" << std::endl;
+        },
+        Task::ENamedTaskThread::RenderThread, {}, nullptr);
+
+    taskScheduler->WaitForTask(task1);
+    taskScheduler->WaitForTask(task2);
+    taskScheduler->WaitForTask(task3);
+    taskScheduler->WaitForTask(task4);
+    taskScheduler->WaitForTask(task5);
+    return 0;
+}
+
+int main()
+{ 
+    return taskTest(); 
 }

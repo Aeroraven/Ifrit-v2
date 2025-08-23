@@ -4,6 +4,7 @@
 #include <execution>
 #include <functional>
 #include <ranges>
+#include <mutex>
 namespace Ifrit
 {
     template <class T> void UnorderedFor(T start, T end, std::function<void(T)> func)
@@ -40,5 +41,9 @@ namespace Ifrit
         FSpinLockGuard(FSpinLock& lock) : m_Lock(lock) { SpinLockAcquire(m_Lock); }
         ~FSpinLockGuard() { SpinLockRelease(m_Lock); }
     };
+
+    // MUTEX
+    using Mutex      = std::mutex;
+    using ScopedLock = std::lock_guard<Mutex>;
 
 } // namespace Ifrit

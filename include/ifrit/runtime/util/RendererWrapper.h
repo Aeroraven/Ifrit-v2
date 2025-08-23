@@ -2,7 +2,7 @@
 #include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/renderer/RendererBase.h"
 #include "ifrit/runtime/forwarding/FwdShaderRegistry.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraph.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraph.h"
 #include "ifrit/runtime/application/ProjectProperty.h"
 
 namespace Ifrit::Runtime

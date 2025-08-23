@@ -1,6 +1,6 @@
 #pragma once
 #include "ifrit/runtime/base/Base.h"
-#include "ifrit/runtime/renderer/framegraph/FrameGraphUtils.h"
+#include "ifrit/runtime/rendercore/framegraph/FrameGraphUtils.h"
 #include "ifrit/runtime/physics/artemis/mpm/MPMBase.h"
 #include "ifrit/runtime/physics/artemis/ArtemisIntegrator.h"
 #include "ifrit/core/math/VectorGenerics.h"

@@ -467,7 +467,7 @@ namespace Ifrit::RHI::VulkanAdapter
     }
 
     IFRIT_APIDECL void GraphicsPass::Run(
-        const RHI::RhiCommandList* cmd, RHI::RhiRenderTargets* renderTargets, uint32_t frameId)
+        const RHI::RhiCommandListContext* cmd, RHI::RhiRenderTargets* renderTargets, uint32_t frameId)
     {
         if (m_passBuilt == false)
         {

@@ -80,7 +80,7 @@ namespace Ifrit::RHI::VulkanAdapter::FSR2
     }
 
     IFRIT_APIDECL void FSR2Processor::Dispatch(
-        const RHI::RhiCommandList* cmd, const RHI::FSR2::RhiFSR2DispatchArgs& args)
+        const RHI::RhiCommandListContext* cmd, const RHI::FSR2::RhiFSR2DispatchArgs& args)
     {
         FfxFsr2DispatchDescription dispatchParams = {};
         auto                       cmdVk          = CheckedCast<CommandBuffer>(cmd)->GetCommandBuffer();

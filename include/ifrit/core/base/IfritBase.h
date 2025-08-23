@@ -1,4 +1,3 @@
-
 /*
 Ifrit-v2
 Copyright (C) 2024 funkybirds(Aeroraven)
@@ -32,6 +31,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #include <vector>
     #include <queue>
     #include <span>
+    #include <concepts>
+    #include <type_traits>
 #endif
 
 #include "ifrit/core/base/IfritBasicAlias.h"
@@ -57,12 +58,16 @@ namespace Ifrit
     template <typename T> using Queue                                 = std::queue<T>;
     using IntPtr                                                      = std::intptr_t;
 
-    template <typename T, typename... Args> IF_FORCEINLINE Ref<T> MakeRef(Args&&... args)
+    template <typename T, typename... Args>
+        requires std::is_constructible_v<T, Args...>
+    IF_FORCEINLINE Ref<T> MakeRef(Args&&... args)
     {
         return std::make_shared<T>(std::forward<Args>(args)...);
     }
 
-    template <typename T, typename... Args> IF_FORCEINLINE Owner<T> MakeOwner(Args&&... args)
+    template <typename T, typename... Args>
+        requires std::is_constructible_v<T, Args...>
+    IF_FORCEINLINE Owner<T> MakeOwner(Args&&... args)
     {
         return std::make_unique<T>(std::forward<Args>(args)...);
     }

@@ -1,6 +1,6 @@
 #include "ifrit/editor/imgui/ImGuiProvider.h"
 #include "ifrit.internal/editor/imgui/ImGuiUtilities.h"
-#include "ifrit/runtime/renderer/profiling/ProfileDataManager.h"
+#include "ifrit/runtime/rendercore/profiling/ProfileDataManager.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
 #include <imgui.h>
 
@@ -42,4 +42,4 @@ namespace Ifrit::Editor::ImGuiInternal
             ImGui::EndTable();
         }
     }
-} // namespace Ifrit::Editor::ImGuiInternal
+} // namespace Ifrit::Editor::ImGuiInternal

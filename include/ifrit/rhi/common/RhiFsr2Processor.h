@@ -57,7 +57,7 @@ namespace Ifrit::RHI::FSR2
         virtual ~RhiFsr2Processor()                                                                       = default;
         virtual void Init(const RHI::FSR2::RhiFSR2InitialzeArgs& args)                                    = 0;
         virtual void GetJitters(float* jitterX, float* jitterY, u32 frameIdx, u32 rtWidth, u32 rtHeight)  = 0;
-        virtual void Dispatch(const RHI::RhiCommandList* cmd, const RHI::FSR2::RhiFSR2DispatchArgs& args) = 0;
+        virtual void Dispatch(const RHI::RhiCommandListContext* cmd, const RHI::FSR2::RhiFSR2DispatchArgs& args) = 0;
     };
 
 } // namespace Ifrit::RHI::FSR2

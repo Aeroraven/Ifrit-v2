@@ -31,6 +31,8 @@
 #include "ifrit/runtime/geometry/ProceduralMeshUpdater.h"
 #include "ifrit/profiler/ProfilerSystem.h"
 
+#include "ifrit/runtime/rendercore/rendergraph/RenderGraph.h"
+
 #define WINDOW_WIDTH 1500
 #define WINDOW_HEIGHT 800
 

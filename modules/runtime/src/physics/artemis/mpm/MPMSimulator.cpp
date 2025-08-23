@@ -11,7 +11,7 @@
 #include "ifrit.internal/runtime/physics/artemis/InternalConst.h"
 #include "ifrit.shader.neo/Artemis/Rigid/Rigid.Common.hlsli"
 #include "ifrit.shader.neo/Shared/Artemis/MPMRigidCoupling.Shared.h"
-#include "ifrit/runtime/renderer/profiling/ProfileStatScope.h"
+#include "ifrit/runtime/rendercore/profiling/ProfileStatScope.h"
 
 using namespace Ifrit::Math;
 using namespace Ifrit::RHI;
