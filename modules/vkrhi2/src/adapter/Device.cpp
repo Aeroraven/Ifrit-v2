@@ -65,22 +65,26 @@ namespace Ifrit::RHI::VulkanRHI2
     // ===== Device Implementation =====
     struct VA_DevicePrivate
     {
-        RHI::RhiInitializeArguments mArgs;
-        ResourceDeleteQueue         mDeleteQueue;
+        RHI::RhiInitializeArguments           mArgs;
+        ResourceDeleteQueue                   mDeleteQueue;
 
-        VkInstance                  mInstance       = VK_NULL_HANDLE;
-        VkDebugUtilsMessengerEXT    mDebugMessenger = VK_NULL_HANDLE;
-        VkDevice                    mDevice         = VK_NULL_HANDLE;
+        VkInstance                            mInstance       = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT              mDebugMessenger = VK_NULL_HANDLE;
+        VkDevice                              mDevice         = VK_NULL_HANDLE;
 
-        VA_PhysicalDeviceDesc       mPhysicalDevice = {};
-        VA_ChosenQueueFamily        mQueueInfo      = {};
-        VA_DeviceProcs              mProcs          = {};
+        VA_PhysicalDeviceDesc                 mPhysicalDevice = {};
+        VA_ChosenQueueFamily                  mQueueInfo      = {};
+        VA_DeviceProcs                        mProcs          = {};
 
-        RhiCapabilityList           mCapabilities = {};
-        RhiPropertyList             mProperties   = {};
+        RhiCapabilityList                     mCapabilities = {};
+        RhiPropertyList                       mProperties   = {};
 
-        VmaAllocator                mAllocator;
-        VA_Allocator                mAllocatorWrapper = {};
+        VmaAllocator                          mAllocator;
+        VA_Allocator                          mAllocatorWrapper = {};
+
+        HashMap<VkFormat, VkFormatProperties> mFormatPropertiesCache;
+
+        u64                                   mFrameId = 0;
     };
 
     IFRIT_APIDECL VA_Device::VA_Device(const RHI::RhiInitializeArguments& args)
@@ -213,4 +217,25 @@ namespace Ifrit::RHI::VulkanRHI2
     IFRIT_APIDECL VA_Allocator*                  VA_Device::GetAllocator() { return &mData->mAllocatorWrapper; }
     IFRIT_APIDECL VA_DeviceProcs&                VA_Device::GetDeviceProcs() const { return mData->mProcs; }
     IFRIT_APIDECL VkDevice                       VA_Device::GetVulkanDevice() const { return mData->mDevice; }
+    IFRIT_APIDECL VkFormatProperties             VA_Device::GetFormatProperties(VkFormat format) const
+    {
+        auto it = mData->mFormatPropertiesCache.find(format);
+        if (it != mData->mFormatPropertiesCache.end()) IF_LIKELY
+        {
+            return it->second;
+        }
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(mData->mPhysicalDevice.mPhysicalDevice, format, &props);
+        mData->mFormatPropertiesCache[format] = props;
+        return props;
+    }
+    IFRIT_APIDECL VA_ActiveQueueFamilyInfo VA_Device::GetActiveQueueFamilies() const
+    {
+        VA_ActiveQueueFamilyInfo info;
+        info.mGraphics     = mData->mQueueInfo.mGraphics.mFamilyIndex;
+        info.mAsyncCompute = mData->mQueueInfo.mCompute.mFamilyIndex;
+        info.mTransfer     = mData->mQueueInfo.mTransfer.mFamilyIndex;
+        return info;
+    }
+    IFRIT_APIDECL u64 VA_Device::GetFrameId() const { return mData->mFrameId; }
 } // namespace Ifrit::RHI::VulkanRHI2

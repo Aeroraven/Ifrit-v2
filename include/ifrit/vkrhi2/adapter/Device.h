@@ -4,6 +4,7 @@
 #include "ifrit/vkrhi2/common/VkAdapterApi.h"
 #include "ifrit/vkrhi2/adapter/DeviceProcs.h"
 #include "ifrit/core/algo/Parallel.h"
+#include "ifrit/vkrhi2/adapter/Queue.h"
 
 #include <vulkan/vulkan.h>
 #ifdef _WIN32
@@ -35,8 +36,15 @@ namespace Ifrit::RHI::VulkanRHI2
         Mutex                          mLock;
     };
 
+    struct VA_ActiveQueueFamilyInfo
+    {
+        u32 mGraphics     = ~0u;
+        u32 mAsyncCompute = ~0u;
+        u32 mTransfer     = ~0u;
+    };
+
     struct VA_DevicePrivate;
-    class IFRIT_APIDECL VA_Device final : public RHI::RhiDevice, public NonCopyable
+    class IFRIT_VKRHI2_API VA_Device final : public RHI::RhiDevice, public NonCopyable
     {
     public:
         VA_Device(const RHI::RhiInitializeArguments& args);
@@ -46,8 +54,12 @@ namespace Ifrit::RHI::VulkanRHI2
 
         VA_Allocator*                  GetAllocator();
         VA_DeviceProcs&                GetDeviceProcs() const;
+        VA_ActiveQueueFamilyInfo       GetActiveQueueFamilies() const;
 
+        // Vulkan specific
         VkDevice                       GetVulkanDevice() const;
+        VkFormatProperties             GetFormatProperties(VkFormat format) const;
+        u64                            GetFrameId() const;
 
     private:
         void Init();

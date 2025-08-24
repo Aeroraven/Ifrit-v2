@@ -88,23 +88,22 @@ namespace Ifrit::RHI
 
     struct RhiTextureDesc
     {
-        ERhiImageUsage     mUsage     = ERhiImageUsageFlag::None;
-        ERhiImageDimension mDimension = ERhiImageDimension::Unknonw;
-        u32                mWidth     = 0;
-        u32                mHeight    = 0;
-        u32                mDepth     = 0;
-        u32                mMips      = 1;
-        u32                mSamples   = 1;
-        u32                mArraySize = 1;
+        ERhiImageUsage     mUsage        = ERhiImageUsageFlag::None;
+        ERhiImageDimension mDimension    = ERhiImageDimension::Unknown;
+        ERhiImageFormat    mFormat       = ERhiImageFormat::Undefined;
+        ERhiResourceState  mInitialState = ERhiResourceState::Undefined;
+        u32                mWidth        = 0;
+        u32                mHeight       = 0;
+        u32                mDepth        = 0;
+        u32                mMips         = 1;
+        u32                mSamples      = 1;
+        u32                mArraySize    = 1;
     };
 
-    class IFRIT_RHI_API RhiTexture : public RhiDeviceResource, public RhiDeviceChild
+    class IFRIT_RHI_API RhiTexture : public RhiDeviceResource
     {
     public:
-        RhiTexture(const RhiTextureDesc& inDesc)
-            : RhiDeviceResource(ERhiResourceType::Texture), RhiDeviceChild(), mDesc(inDesc)
-        {
-        }
+        RhiTexture(const RhiTextureDesc& inDesc) : RhiDeviceResource(ERhiResourceType::Texture), mDesc(inDesc) {}
         virtual ~RhiTexture() = default;
 
         inline u32                GetHeight() const { return mDesc.mHeight; }

@@ -33,71 +33,47 @@ namespace Ifrit::RHI
         virtual int _PolymorphismPlaceHolder() { return 0; }
     };
 
-    class IFRIT_RHI_API RhiCommandListContext : public RhiDeviceChild
+    struct RhiCommandListContextDesc
     {
-    protected:
-        // Update 250822: Removed
-        // inline void _setTextureState(RhiTexture* texture, ERhiResourceState state) const { texture->SetState(state);
-        // inline void _setBufferState(RhiBuffer* buffer, ERhiResourceState state) const { buffer->SetState(state); }
-
-    public:
-        virtual void CopyBuffer(
-            const RhiBuffer* srcBuffer, const RhiBuffer* dstBuffer, u32 size, u32 srcOffset, u32 dstOffset) const = 0;
-        virtual void Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                            = 0;
-        virtual void SetViewports(const Vec<RhiViewport>& viewport) const                                         = 0;
-        virtual void SetScissors(const Vec<RhiScissor>& scissor) const                                            = 0;
-        virtual void DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                       = 0;
-        virtual void DrawMeshTasksIndirect(const RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const  = 0;
-        virtual void Draw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const           = 0;
-        virtual void DrawIndirect(const RhiBuffer* buffer, u32 offset) const                                      = 0;
-        virtual void DrawIndexed(
-            u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) const        = 0;
-        virtual void DrawIndexedIndirect(const RhiBuffer* buffer, u32 offset) const                              = 0;
-        virtual void BufferClear(const RhiBuffer* buffer, u32 val) const                                         = 0;
-        virtual void AttachUniformRef(u32 setId, RhiBindlessDescriptorRef* ref) const                            = 0;
-        virtual void AttachVertexBufferView(const RhiVertexBufferView& view) const                               = 0;
-        virtual void AttachVertexBuffers(u32 firstSlot, const Vec<RhiBuffer*>& buffers) const                    = 0;
-        virtual void AttachIndexBuffer(const RhiBuffer* buffer) const                                            = 0;
-        virtual void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const = 0;
-        virtual void DispatchIndirect(const RhiBuffer* buffer, u32 offset) const                                 = 0;
-        virtual void SetPushConst(const void* data, u32 offset, u32 size) const                                  = 0;
-        virtual void ClearUAVTexture(
-            const RhiTexture* texture, RhiImageSubResource subResource, const RhiClearColorValue& clearValue) const = 0;
-        virtual void AddResourceBarrier(const Vec<RhiResourceBarrier>& barriers) const                              = 0;
-        virtual void GlobalMemoryBarrier() const                                                                    = 0;
-        virtual void BeginScope(const String& name) const                                                           = 0;
-        virtual void EndScope() const                                                                               = 0;
-        virtual void CopyImage(const RhiTexture* src, RhiImageSubResource srcSub, const RhiTexture* dst,
-            RhiImageSubResource dstSub) const                                                                       = 0;
-        virtual void CopyBufferToImage(
-            const RhiBuffer* src, const RhiTexture* dst, RhiImageSubResource dstSub) const = 0;
-
-        virtual void SetCullMode(ERhiCullMode mode) const   = 0;
-        virtual void SetDepthFunc(ERhiDepthFunc func) const = 0;
-
-    public:
-        virtual RhiRawHandle     GetRawHandle() const = 0;
-        virtual RhiGraphicsPass* GetBoundGraphicsPipeline() const;
-        virtual RhiComputePass*  GetBoundComputePipeline() const;
+        ERhiPipelineType mPipelineType = ERhiPipelineType::Graphics;
     };
 
-    class IFRIT_RHI_API RhiQueue : public RhiDeviceChild
+    class IFRIT_RHI_API RhiCommandListContext : public RhiDeviceChild
     {
     public:
-        virtual ~RhiQueue() = default;
+        virtual void CmdCopyBuffer(
+            const RhiBuffer* srcBuffer, const RhiBuffer* dstBuffer, u32 size, u32 srcOffset, u32 dstOffset) const   = 0;
+        virtual void CmdDispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                           = 0;
+        virtual void CmdSetViewports(const Vec<RhiViewport>& viewport) const                                        = 0;
+        virtual void CmdSetScissors(const Vec<RhiScissor>& scissor) const                                           = 0;
+        virtual void CmdDrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                      = 0;
+        virtual void CmdDrawMeshTasksIndirect(const RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const = 0;
+        virtual void CmdDraw(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const          = 0;
+        virtual void CmdDrawIndirect(const RhiBuffer* buffer, u32 offset) const                                     = 0;
+        virtual void CmdDrawIndexed(
+            u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) const           = 0;
+        virtual void CmdDrawIndexedIndirect(const RhiBuffer* buffer, u32 offset) const                              = 0;
+        virtual void CmdBufferClear(const RhiBuffer* buffer, u32 val) const                                         = 0;
+        virtual void CmdAttachUniformRef(u32 setId, RhiBindlessDescriptorRef* ref) const                            = 0;
+        virtual void CmdAttachVertexBufferView(const RhiVertexBufferView& view) const                               = 0;
+        virtual void CmdAttachVertexBuffers(u32 firstSlot, const Vec<RhiBuffer*>& buffers) const                    = 0;
+        virtual void CmdAttachIndexBuffer(const RhiBuffer* buffer) const                                            = 0;
+        virtual void CmdDrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const = 0;
+        virtual void CmdDispatchIndirect(const RhiBuffer* buffer, u32 offset) const                                 = 0;
+        virtual void CmdSetPushConst(const void* data, u32 offset, u32 size) const                                  = 0;
+        virtual void CmdClearUAVTexture(
+            const RhiTexture* texture, RhiImageSubResource subResource, const RhiClearColorValue& clearValue) const = 0;
+        virtual void CmdAddResourceBarrier(const Vec<RhiResourceBarrier>& barriers) const                           = 0;
+        virtual void CmdGlobalMemoryBarrier() const                                                                 = 0;
+        virtual void CmdCopyImage(const RhiTexture* src, RhiImageSubResource srcSub, const RhiTexture* dst,
+            RhiImageSubResource dstSub) const                                                                       = 0;
+        virtual void CmdCopyBufferToImage(
+            const RhiBuffer* src, const RhiTexture* dst, RhiImageSubResource dstSub) const = 0;
 
-        // Runs a command buffer, with CPU waiting the GPU to finish
-        virtual void                     RunSyncCommand(Fn<void(const RhiCommandListContext*)> func) = 0;
+        virtual void CmdSetCullMode(ERhiCullMode mode) const   = 0;
+        virtual void CmdSetDepthFunc(ERhiDepthFunc func) const = 0;
 
-        // Runs a command buffer, with CPU not waiting the GPU to finish
-        virtual Owner<RhiTaskSubmission> RunAsyncCommand(Fn<void(const RhiCommandListContext*)> func,
-            const Vec<RhiTaskSubmission*>& waitOn, const Vec<RhiTaskSubmission*>& toIssue) = 0;
-
-        // Host sync
-        virtual void                     HostWaitEvent(RhiTaskSubmission* event) = 0;
-
-        // Raw Handle
-        virtual RhiRawHandle             GetRawHandle() const        = 0;
-        virtual u32                      GetRawHandle_Family() const = 0;
+        virtual void CmdBeginScope(const String& name) const = 0;
+        virtual void CmdEndScope() const                     = 0;
     };
 } // namespace Ifrit::RHI

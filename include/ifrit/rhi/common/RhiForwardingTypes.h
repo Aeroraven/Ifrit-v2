@@ -118,7 +118,7 @@ namespace Ifrit::RHI
 
     enum class ERhiImageDimension
     {
-        Unknonw          = 0,
+        Unknown          = 0,
         Texture2D        = 1,
         Texture2DArray   = 2,
         Texture3D        = 3,
@@ -130,15 +130,19 @@ namespace Ifrit::RHI
     {
         enum Enum : u64
         {
-            None            = 0,
-            CopySrc         = 1 << 1,
-            CopyDst         = 1 << 2,
-            ShaderRead      = 1 << 3,
+            None = 0,
+
+            // Update 250824: these three are always on
+            // CopySrc         = 1 << 1,
+            // CopyDst         = 1 << 2,
+            // ShaderRead      = 1 << 3,
+
             UnorderedAccess = 1 << 4,
             RenderTarget    = 1 << 5,
             Depth           = 1 << 6,
             Transient       = 1 << 7,
             InputAttachment = 1 << 8,
+            Presentable     = 1 << 9,
 
             CPUWritable = 1 << 16
         };
@@ -156,6 +160,13 @@ namespace Ifrit::RHI
         };
     } // namespace ERhiQueueCapabilityFlags
     using ERhiQueueCapability = ERhiQueueCapabilityFlags::Enum;
+
+    enum class ERhiPipelineType
+    {
+        Graphics = 0,
+        Compute  = 1,
+        Transfer = 2,
+    };
 
     enum class ERhiVendor
     {
