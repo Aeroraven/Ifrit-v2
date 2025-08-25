@@ -8,11 +8,21 @@ namespace Ifrit::RHI
     struct IFRIT_RHI_API RhiCommand
     {
     public:
-        virtual ~RhiCommand() noexcept                            = default;
-        virtual void Execute(const RhiCommandListContext* cmdCtx) = 0;
+        virtual ~RhiCommand() noexcept                      = default;
+        virtual void Execute(const RhiCommandListBase* cmd) = 0;
     };
 
 #define DECLARE_RHI_COMMAND(name) struct IFRIT_RHI_API name final : public RhiCommand
+
+    // Lambda Command
+    DECLARE_RHI_COMMAND(RhiCmd_Lambda)
+    {
+        using LambdaType = Fn<void(const RhiCommandListBase* cmd)>;
+        LambdaType mLambda;
+
+        RhiCmd_Lambda(LambdaType lambda) : mLambda(std::move(lambda)) {}
+        void Execute(const RhiCommandListBase* cmd) override { mLambda(cmd); }
+    };
 
     // Memory Transfer Commands
     DECLARE_RHI_COMMAND(RhiCmd_CopyBuffer)
@@ -27,7 +37,7 @@ namespace Ifrit::RHI
             : mSrcBuffer(srcBuffer), mDstBuffer(dstBuffer), mSize(size), mSrcOffset(srcOffset), mDstOffset(dstOffset)
         {
         }
-        void Execute(const RhiCommandListContext* cmdCtx) override;
+        void Execute(const RhiCommandListBase* cmd) override;
     };
 
     // Execution Commands
@@ -41,7 +51,7 @@ namespace Ifrit::RHI
             : mGroupCountX(groupCountX), mGroupCountY(groupCountY), mGroupCountZ(groupCountZ)
         {
         }
-        void Execute(const RhiCommandListContext* cmdCtx) override;
+        void Execute(const RhiCommandListBase* cmd) override;
     };
 
     DECLARE_RHI_COMMAND(RhiCmd_DispatchIndirect)
@@ -50,7 +60,7 @@ namespace Ifrit::RHI
         u32              mOffset;
 
         RhiCmd_DispatchIndirect(const RhiBuffer* buffer, u32 offset) : mBuffer(buffer), mOffset(offset) {}
-        void Execute(const RhiCommandListContext* cmdCtx) override;
+        void Execute(const RhiCommandListBase* cmd) override;
     };
 
     DECLARE_RHI_COMMAND(RhiCmd_DrawMeshTasks)
@@ -63,7 +73,7 @@ namespace Ifrit::RHI
             : mGroupCountX(groupCountX), mGroupCountY(groupCountY), mGroupCountZ(groupCountZ)
         {
         }
-        void Execute(const RhiCommandListContext* cmdCtx) override;
+        void Execute(const RhiCommandListBase* cmd) override;
     };
     DECLARE_RHI_COMMAND(RhiCmd_DrawMeshTasksIndirect)
     {
@@ -76,7 +86,7 @@ namespace Ifrit::RHI
             : mBuffer(buffer), mOffset(offset), mDrawCount(drawCount), mStride(stride)
         {
         }
-        void Execute(const RhiCommandListContext* cmdCtx) override;
+        void Execute(const RhiCommandListBase* cmd) override;
     };
     DECLARE_RHI_COMMAND(RhiCmd_DrawPrimitives)
     {
@@ -88,7 +98,7 @@ namespace Ifrit::RHI
             : mPrimCount(primitiveCounts), mInstanceCount(instanceCount), mFirstVertex(firstVertex)
         {
         }
-        void Execute(const RhiCommandListContext* cmdCtx) override;
+        void Execute(const RhiCommandListBase* cmd) override;
     };
 
     DECLARE_RHI_COMMAND(RhiCmd_DrawPrimitivesIndexed)
@@ -111,7 +121,7 @@ namespace Ifrit::RHI
         {
         }
 
-        void Execute(const RhiCommandListContext* cmdCtx) override;
+        void Execute(const RhiCommandListBase* cmd) override;
     };
 
     // Graphics Pass Specific Commands
@@ -120,7 +130,7 @@ namespace Ifrit::RHI
         Vec<RhiViewport> mViewports;
 
         RhiCmd_SetViewport(const Vec<RhiViewport>& viewports) : mViewports(viewports) {}
-        void Execute(const RhiCommandListContext* cmdCtx) override;
+        void Execute(const RhiCommandListBase* cmd) override;
     };
 
     DECLARE_RHI_COMMAND(RhiCmd_SetScissor)
@@ -128,7 +138,7 @@ namespace Ifrit::RHI
         Vec<RhiScissor> mScissors;
 
         RhiCmd_SetScissor(const Vec<RhiScissor>& scissors) : mScissors(scissors) {}
-        void Execute(const RhiCommandListContext* cmdCtx) override;
+        void Execute(const RhiCommandListBase* cmd) override;
     };
 
 } // namespace Ifrit::RHI

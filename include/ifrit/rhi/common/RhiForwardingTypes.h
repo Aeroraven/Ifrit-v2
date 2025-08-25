@@ -540,6 +540,30 @@ namespace Ifrit::RHI
 
     using RhiDeviceAddr = u64;
 
+    enum class ERhiCommandListPipelineType
+    {
+        Invalid,
+        Graphics,
+        Compute,
+        Transfer,
+    };
+
+    enum class ERhiCommandListState
+    {
+        Invalid,
+        ReadyToRecord,
+        Recording,
+        ReadyToSubmit,
+        Submitted,
+    };
+
+    enum class ERhiCommandListType
+    {
+        Invalid,
+        Active,
+        Upload,
+    };
+
 } // namespace Ifrit::RHI
 
 namespace Ifrit::RHI

@@ -3,6 +3,7 @@
 #include "ifrit/vkrhi2/common/Pch.h"
 #include "ifrit/vkrhi2/common/VkAdapterApi.h"
 #include "ifrit/vkrhi2/adapter/Device.h"
+#include "ifrit/core/algo/Parallel.h"
 
 namespace Ifrit::RHI::VulkanRHI2
 {
@@ -47,6 +48,7 @@ namespace Ifrit::RHI::VulkanRHI2
         VkQueue                     mQueue;
         Owner<VA_TimelineSemaphore> mSemaphore;
         u32                         mFamilyIndex;
+        Mutex                       mSubmitMutex;
     };
 
 } // namespace Ifrit::RHI::VulkanRHI2

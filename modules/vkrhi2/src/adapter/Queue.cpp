@@ -37,6 +37,8 @@ namespace Ifrit::RHI::VulkanRHI2
     IFRIT_VKRHI2_API Ref<VA_CommandSubmission> VA_Queue::SubmitCommandNative(VA_CommandListNative* cmd,
         Vec<Ref<VA_CommandSubmission>> toWait, VkFence fenceToSignal, VkSemaphore swapchainSemaToSignal)
     {
+        ScopedLock lock(mSubmitMutex);
+
         IF_LOG_ASSERTION("VA_Queue", cmd->GetState() == EVA_CommandListNativeState::ReadyToSubmit,
             "command buffer recording is not finished");
 

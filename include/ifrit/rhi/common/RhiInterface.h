@@ -21,7 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "RhiBaseTypes.h"
 #include "RhiFsr2Processor.h"
 #include "RhiDevice.h"
-#include "RhiCommandListWrapper.h"
+#include "RhiCommandList.h"
+#include "RhiCommandListContext.h"
 
 #ifdef _WIN32
     #ifndef NOMINMAX

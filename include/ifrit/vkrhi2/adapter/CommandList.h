@@ -14,10 +14,9 @@ namespace Ifrit::RHI::VulkanRHI2
     // - Owned by each thread. When RhiCommandList activates, it acquires the available context
     // with respect to the pipeline type (graphics/compute). This is managed by device.
     // - abstraction of command list context, which handles child command buffers
-    // submission, with orders (upload->execution->upload->execution...), w/ref to unreal
+    // submission, with orders w/ref to unreal
     // - stateless, all states are explicitly managed by upper-level Render Graph (not like NVRHI)
     // - sync problems.
-    //   - upload->execution->upload: semaphore between upload and execution
     //   - family ownership transfer: semaphore between two cmds
 
     // VA_CommandListBufferManager:
@@ -27,6 +26,8 @@ namespace Ifrit::RHI::VulkanRHI2
     // RhiCommandList:
     // - states: idle -(acquire ctx)-> active -(submit ctx)-> idle
     // - submit with RhiTaskSubmission (explicit controlled by task system)
+
+    // upload context (for transfer and initial) -> active context
 
     enum class EVA_CommandListNativeState
     {
@@ -54,6 +55,8 @@ namespace Ifrit::RHI::VulkanRHI2
         VA_CommandListNativeInternal* mInternal;
     };
 
+    class VA_CommandPool;
+
     struct VA_CommandBufferManagerInternal;
     class IFRIT_VKRHI2_API VA_CommandBufferManager
     {
@@ -62,12 +65,13 @@ namespace Ifrit::RHI::VulkanRHI2
         ~VA_CommandBufferManager();
 
         VA_CommandListNative* GetActiveCommandList();
-        VA_CommandListNative* GetUploadCommandList();
 
         void                  SubmitActiveCommandList();
-        void                  SubmitUploadCommandList();
+        void                  OnFrameAdvance();
 
     protected:
+        VA_CommandPool* GetCurrentCommandPool();
+
     private:
         VA_CommandBufferManagerInternal* mInternal;
     };

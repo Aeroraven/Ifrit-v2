@@ -4,6 +4,7 @@
 
 namespace Ifrit::RHI
 {
+    struct RhiCommandListExecutor;
 
     struct RhiCapabilityList
     {
@@ -27,6 +28,8 @@ namespace Ifrit::RHI
         u32 mWaveSize = ~0u;
     };
 
+    struct RhiDeviceProcs;
+
     // ===== RhiDevice Interface =====
 
     // UPD 250325: Resource removal algo before destroys the resource that still in use on device side
@@ -42,9 +45,11 @@ namespace Ifrit::RHI
     class IFRIT_APIDECL RhiDevice
     {
     public:
-        virtual RhiCapabilityList              GetCapabilities() const  = 0;
-        virtual RhiPropertyList                GetProperties() const    = 0;
-        virtual IRhiDeviceResourceDeleteQueue* GetResourceDeleteQueue() = 0;
+        virtual RhiCapabilityList              GetCapabilities() const        = 0;
+        virtual RhiPropertyList                GetProperties() const          = 0;
+        virtual IRhiDeviceResourceDeleteQueue* GetResourceDeleteQueue()       = 0;
+        virtual RhiDeviceProcs*                GetDeviceProcs() const         = 0;
+        virtual RhiCommandListExecutor*        GetCommandListExecutor() const = 0;
     };
 
     class IFRIT_APIDECL RhiDeviceChild

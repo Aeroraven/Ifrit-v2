@@ -13,6 +13,7 @@ namespace Ifrit::RHI::VulkanRHI2
 
     IFRIT_APIDECL VA_CommandListNative::VA_CommandListNative(VkCommandBuffer cmd)
     {
+
         mInternal         = new VA_CommandListNativeInternal();
         mInternal->mCmd   = cmd;
         mInternal->mState = EVA_CommandListNativeState::ReadyToBegin;
@@ -106,18 +107,17 @@ namespace Ifrit::RHI::VulkanRHI2
 
     struct VA_CommandBufferManagerInternal
     {
-        ERhiPipelineType            mType;
-        VA_Queue*                   mQueue;
-        Vec<Owner<VA_CommandPool>>  mCommandPools;
+        ERhiPipelineType               mType;
+        VA_Queue*                      mQueue;
+        Vec<Owner<VA_CommandPool>>     mCommandPools;
 
-        Owner<VA_CommandListNative> mActiveCmdBuffer;
-        Owner<VA_CommandListNative> mUploadCmdBuffer;
+        Owner<VA_CommandListNative>    mActiveCmdBuffer;
+        Owner<VA_CommandListNative>    mUploadCmdBuffer;
 
-        Owner<RhiTaskSubmission>    mRenderingCompleteSemaphore;
-        Owner<RhiTaskSubmission>    mUploadingCompleteSemaphore;
+        Ref<VA_CommandSubmission>      mRenderingCompleteSemaphore;
 
-        Vec<RhiTaskSubmission*>     mRenderingCmdToWaitOn;
-        Vec<RhiTaskSubmission*>     mUploadingCmdToWaitOn;
+        Vec<Ref<VA_CommandSubmission>> mRenderingCmdToWaitOn;
+        VA_Device*                     mDevice;
     };
 
     struct VA_CommandListContextInternal
@@ -132,36 +132,61 @@ namespace Ifrit::RHI::VulkanRHI2
     IFRIT_VKRHI2_API VA_CommandBufferManager::VA_CommandBufferManager(
         VA_Device* device, ERhiPipelineType type, VA_Queue* queue)
     {
-        mInternal         = new VA_CommandBufferManagerInternal();
-        mInternal->mType  = type;
-        mInternal->mQueue = queue;
+        mInternal          = new VA_CommandBufferManagerInternal();
+        mInternal->mType   = type;
+        mInternal->mQueue  = queue;
+        mInternal->mDevice = device;
         for (int i = 0; i < 3; i++)
         {
             mInternal->mCommandPools.push_back(MakeOwner<VA_CommandPool>(device, queue));
         }
     }
+    IFRIT_VKRHI2_API                 VA_CommandBufferManager::~VA_CommandBufferManager() { delete mInternal; }
+
+    IFRIT_VKRHI2_API VA_CommandPool* VA_CommandBufferManager::GetCurrentCommandPool()
+    {
+        auto frameIdx = mInternal->mDevice->GetFrameId() % mInternal->mCommandPools.size();
+        return mInternal->mCommandPools[frameIdx].get();
+    }
+
+    IFRIT_VKRHI2_API void VA_CommandBufferManager::OnFrameAdvance()
+    {
+        IF_LOG_ASSERTION(
+            "VA_CommandBufferManager", mInternal->mActiveCmdBuffer == nullptr, "Active cmd buffer is busy");
+        IF_LOG_ASSERTION(
+            "VA_CommandBufferManager", mInternal->mUploadCmdBuffer == nullptr, "Upload cmd buffer is busy");
+
+        auto pool = GetCurrentCommandPool();
+        pool->ResetCommandPool();
+    }
+
     IFRIT_VKRHI2_API VA_CommandListNative* VA_CommandBufferManager::GetActiveCommandList()
     {
         return mInternal->mActiveCmdBuffer.get();
     }
-    IFRIT_VKRHI2_API VA_CommandListNative* VA_CommandBufferManager::GetUploadCommandList()
-    {
-        return mInternal->mUploadCmdBuffer.get();
-    }
 
     IFRIT_VKRHI2_API void VA_CommandBufferManager::SubmitActiveCommandList()
     {
-        IF_LOG_ASSERTION(
-            "VA_CommandBufferManager", mInternal->mUploadCmdBuffer == nullptr, "Upload cmd buffer is busy");
         IF_LOG_ASSERTION("VA_CommandBufferManager", mInternal->mActiveCmdBuffer != nullptr, "No active cmd buffer");
         IF_LOG_ASSERTION("VA_CommandBufferManager",
             mInternal->mActiveCmdBuffer->GetState() == EVA_CommandListNativeState::Recording,
             "Active cmd buffer not ready to submit");
+
+        auto semaphoresToWait = mInternal->mRenderingCmdToWaitOn;
+        auto queue            = mInternal->mQueue;
+
+        mInternal->mActiveCmdBuffer->End();
+        auto submission = queue->SubmitCommandNative(
+            mInternal->mActiveCmdBuffer.release(), semaphoresToWait, VK_NULL_HANDLE, VK_NULL_HANDLE);
+        mInternal->mRenderingCompleteSemaphore = submission;
+
+        // Recycle command buffer
+        auto pool = GetCurrentCommandPool();
+        pool->EnqueueInFlightCommandBuffer(std::move(mInternal->mActiveCmdBuffer));
     }
-    IFRIT_VKRHI2_API void VA_CommandBufferManager::SubmitUploadCommandList() {}
 
     // ===== Command List Context =====
-    IFRIT_VKRHI2_API      VA_CommandListContext::VA_CommandListContext(
+    IFRIT_VKRHI2_API VA_CommandListContext::VA_CommandListContext(
         VA_Device* device, ERhiPipelineType type, VA_Queue* queue, VA_CommandListContext* primaryCmd)
         : RhiCommandListContext()
     {
