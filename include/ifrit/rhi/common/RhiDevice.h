@@ -4,7 +4,7 @@
 
 namespace Ifrit::RHI
 {
-    struct RhiCommandListExecutor;
+    class RhiCommandListExecutor;
 
     struct RhiCapabilityList
     {
@@ -28,7 +28,7 @@ namespace Ifrit::RHI
         u32 mWaveSize = ~0u;
     };
 
-    struct RhiDeviceProcs;
+    class RhiDeviceProcs;
 
     // ===== RhiDevice Interface =====
 
@@ -48,7 +48,7 @@ namespace Ifrit::RHI
         virtual RhiCapabilityList              GetCapabilities() const        = 0;
         virtual RhiPropertyList                GetProperties() const          = 0;
         virtual IRhiDeviceResourceDeleteQueue* GetResourceDeleteQueue()       = 0;
-        virtual RhiDeviceProcs*                GetDeviceProcs() const         = 0;
+        virtual RhiDeviceProcs*                GetDeviceRHIFunctions() const  = 0;
         virtual RhiCommandListExecutor*        GetCommandListExecutor() const = 0;
     };
 

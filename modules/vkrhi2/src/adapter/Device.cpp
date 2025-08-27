@@ -1,9 +1,13 @@
 #include "ifrit/vkrhi2/adapter/Device.h"
 #include "ifrit/vkrhi2/util/Log.h"
+#include "ifrit/vkrhi2/adapter/Queue.h"
+#include "ifrit/vkrhi2/adapter/CommandContext.h"
 #include "ifrit/core/typing/Traits.h"
 #include "ifrit.internal/vkrhi2/adapter/DeviceUtils.h"
 #include "ifrit.internal/vkrhi2/adapter/DeviceExtensions.h"
 #include "ifrit.internal/vkrhi2/adapter/AllocatorWrapper.h"
+
+#define VMA_IMPLEMENTATION
 #include <vma/vk_mem_alloc.h>
 
 namespace Ifrit::RHI::VulkanRHI2
@@ -37,7 +41,7 @@ namespace Ifrit::RHI::VulkanRHI2
     }
 
     // ===== Validation Layer =====
-    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallbackFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData)
     {
@@ -63,6 +67,14 @@ namespace Ifrit::RHI::VulkanRHI2
     }
 
     // ===== Device Implementation =====
+
+    struct VA_DeviceQueueInfo
+    {
+        Owner<VA_Queue> mGraphics;
+        Owner<VA_Queue> mAsyncCompute;
+        Owner<VA_Queue> mTransfer;
+    };
+
     struct VA_DevicePrivate
     {
         RHI::RhiInitializeArguments           mArgs;
@@ -75,6 +87,7 @@ namespace Ifrit::RHI::VulkanRHI2
         VA_PhysicalDeviceDesc                 mPhysicalDevice = {};
         VA_ChosenQueueFamily                  mQueueInfo      = {};
         VA_DeviceProcs                        mProcs          = {};
+        VA_DeviceQueueInfo                    mActiveQueues   = {};
 
         RhiCapabilityList                     mCapabilities = {};
         RhiPropertyList                       mProperties   = {};
@@ -85,16 +98,21 @@ namespace Ifrit::RHI::VulkanRHI2
         HashMap<VkFormat, VkFormatProperties> mFormatPropertiesCache;
 
         u64                                   mFrameId = 0;
+
+        // Commands
+        Owner<VA_CommandListContext>          mImmediateContext;
     };
 
     IFRIT_APIDECL VA_Device::VA_Device(const RHI::RhiInitializeArguments& args)
     {
         mData        = new VA_DevicePrivate();
         mData->mArgs = args;
+        Init();
     }
 
     IFRIT_APIDECL VA_Device::~VA_Device()
     {
+        Shutdown();
         delete mData;
         mData = nullptr;
     }
@@ -159,7 +177,7 @@ namespace Ifrit::RHI::VulkanRHI2
         // Setup Validation Messenger
         if (mData->mArgs.mDesiredCapabilities.bValidationLayerEnabled)
         {
-            SetupValidationMessenger(DebugCallback, mData->mInstance, mData->mDebugMessenger);
+            SetupValidationMessenger(DebugCallbackFunc, mData->mInstance, mData->mDebugMessenger);
         }
 
         // Physical Device
@@ -170,6 +188,8 @@ namespace Ifrit::RHI::VulkanRHI2
                   .mPreferredVendor    = mData->mArgs.mPreferredVendor,
             };
             mData->mPhysicalDevice = SelectPhysicalDevice(availablePhysicalDevices, physicalDeviceCriteria);
+            IF_LOG_INFO("VA_Device", "Selected physical device: {}",
+                String(mData->mPhysicalDevice.mProperties.properties.deviceName));
         }
 
         // Queue Family
@@ -190,12 +210,13 @@ namespace Ifrit::RHI::VulkanRHI2
         deviceCI.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         deviceCI.queueCreateInfoCount    = SizeCast<u32>(queueCreateInfos.size());
         deviceCI.pQueueCreateInfos       = queueCreateInfos.data();
-        deviceCI.enabledExtensionCount   = extensionData.mEnabledExtensions.size();
+        deviceCI.enabledExtensionCount   = SizeCast<u32>(extensionData.mEnabledExtensions.size());
         deviceCI.ppEnabledExtensionNames = extensionData.mEnabledExtensions.data();
         deviceCI.pEnabledFeatures        = extensionData.mBaseFeatures;
         deviceCI.pNext                   = extensionData.mExtensionChain;
         VA_AssertResult(vkCreateDevice(mData->mPhysicalDevice.mPhysicalDevice, &deviceCI, nullptr, &mData->mDevice),
             "Failed to create Vulkan device");
+        IF_LOG_INFO("VA_Device", "Vulkan device created");
 
         // Device Procs
         LoadDeviceProcs(mData->mDevice);
@@ -211,13 +232,63 @@ namespace Ifrit::RHI::VulkanRHI2
             vmaCreateAllocator(&allocatorCI, &mData->mAllocator), "Failed to create Vulkan memory allocator");
 
         mData->mAllocatorWrapper.mAllocator = mData->mAllocator;
+
+        // Create Queues
+        mData->mActiveQueues.mGraphics =
+            MakeOwner<VA_Queue>(this, ERhiCommandListPipelineType::Graphics, mData->mQueueInfo.mGraphics.mFamilyIndex);
+        mData->mActiveQueues.mAsyncCompute =
+            MakeOwner<VA_Queue>(this, ERhiCommandListPipelineType::Compute, mData->mQueueInfo.mCompute.mFamilyIndex);
+        mData->mActiveQueues.mTransfer =
+            MakeOwner<VA_Queue>(this, ERhiCommandListPipelineType::Transfer, mData->mQueueInfo.mTransfer.mFamilyIndex);
+
+        // Create Immediate Context
+        mData->mImmediateContext =
+            MakeOwner<VA_CommandListContext>(this, mData->mActiveQueues.mGraphics.get(), nullptr);
+
+        IF_LOG_INFO("VA_Device", "Initialized VulkanRHI2 device");
     }
 
-    IFRIT_APIDECL IRhiDeviceResourceDeleteQueue* VA_Device::GetDeleteQueue() { return &mData->mDeleteQueue; }
+    IFRIT_APIDECL void VA_Device::Shutdown()
+    {
+        // Destroy Immediate Context
+        vmaDestroyAllocator(mData->mAllocator);
+        vkDestroyDevice(mData->mDevice, nullptr);
+        if (mData->mArgs.mDesiredCapabilities.bValidationLayerEnabled)
+        {
+            ShutdownValidationMessenger(mData->mInstance, mData->mDebugMessenger);
+        }
+        vkDestroyInstance(mData->mInstance, nullptr);
+        IF_LOG_INFO("VA_Device", "Shutdown VulkanRHI2 device");
+    }
+
+    IFRIT_APIDECL IRhiDeviceResourceDeleteQueue* VA_Device::GetResourceDeleteQueue() { return &mData->mDeleteQueue; }
     IFRIT_APIDECL VA_Allocator*                  VA_Device::GetAllocator() { return &mData->mAllocatorWrapper; }
     IFRIT_APIDECL VA_DeviceProcs&                VA_Device::GetDeviceProcs() const { return mData->mProcs; }
     IFRIT_APIDECL VkDevice                       VA_Device::GetVulkanDevice() const { return mData->mDevice; }
-    IFRIT_APIDECL VkFormatProperties             VA_Device::GetFormatProperties(VkFormat format) const
+    IFRIT_APIDECL VA_CommandListContext*         VA_Device::GetImmediateContext() const
+    {
+        return mData->mImmediateContext.get();
+    }
+    IFRIT_APIDECL Owner<VA_CommandListContext> VA_Device::GetUploadContext()
+    {
+        return MakeOwner<VA_CommandListContext>(this, mData->mActiveQueues.mGraphics.get(), nullptr);
+    }
+    IFRIT_APIDECL Owner<VA_CommandListContext> VA_Device::GetCommandContext(ERhiCommandListPipelineType type)
+    {
+        switch (type)
+        {
+            case ERhiCommandListPipelineType::Graphics:
+                return MakeOwner<VA_CommandListContext>(this, mData->mActiveQueues.mGraphics.get(), nullptr);
+            case ERhiCommandListPipelineType::Compute:
+                return MakeOwner<VA_CommandListContext>(this, mData->mActiveQueues.mAsyncCompute.get(), nullptr);
+            case ERhiCommandListPipelineType::Transfer:
+                return MakeOwner<VA_CommandListContext>(this, mData->mActiveQueues.mTransfer.get(), nullptr);
+            default:
+                IF_LOG_ASSERTION(false, "VA_Device", "Unsupported command list type");
+                return nullptr;
+        }
+    }
+    IFRIT_APIDECL VkFormatProperties VA_Device::GetFormatProperties(VkFormat format) const
     {
         auto it = mData->mFormatPropertiesCache.find(format);
         if (it != mData->mFormatPropertiesCache.end()) IF_LIKELY
@@ -237,5 +308,22 @@ namespace Ifrit::RHI::VulkanRHI2
         info.mTransfer     = mData->mQueueInfo.mTransfer.mFamilyIndex;
         return info;
     }
-    IFRIT_APIDECL u64 VA_Device::GetFrameId() const { return mData->mFrameId; }
+
+    IFRIT_APIDECL VA_ActiveQueueInfo VA_Device::GetActiveQueues() const
+    {
+        VA_ActiveQueueInfo info;
+        info.mGraphics     = mData->mActiveQueues.mGraphics.get();
+        info.mAsyncCompute = mData->mActiveQueues.mAsyncCompute.get();
+        info.mTransfer     = mData->mActiveQueues.mTransfer.get();
+        return info;
+    }
+
+    IFRIT_APIDECL u64                     VA_Device::GetFrameId() const { return mData->mFrameId; }
+
+    IFRIT_APIDECL RhiCapabilityList       VA_Device::GetCapabilities() const { return mData->mCapabilities; }
+    IFRIT_APIDECL RhiPropertyList         VA_Device::GetProperties() const { return mData->mProperties; }
+
+    IFRIT_APIDECL RhiCommandListExecutor* VA_Device::GetCommandListExecutor() const { return nullptr; }
+    IFRIT_APIDECL RhiDeviceProcs*         VA_Device::GetDeviceRHIFunctions() const { return nullptr; }
+
 } // namespace Ifrit::RHI::VulkanRHI2

@@ -9,7 +9,7 @@
   - General Collision Detection
 
 - Architectural:
-  - RHI Refactoring (Ongoing, from interview feedback)
+  - **RHI Refactoring (Ongoing, from interview feedback)**
     - Command Translation Layer
     - Drop Queue Exposure
     - Better Shader Parameter Setup
@@ -17,7 +17,7 @@
     - Multithreading Support
   - Serialization/Reflection
     - Stability Improvements
-  - Multithreaded Rendering (Ongoing)
+  - **Multithreaded Rendering (Ongoing)**
     - Async Compute
     - Refactored RDG
     - Parallel Command Recording (RDG Support)

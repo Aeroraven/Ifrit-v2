@@ -28,11 +28,10 @@ namespace Ifrit
     {
         CVF_Default          = 0x00,
         CVF_RenderThreadSafe = 0x01, // not used now
+        CVF_ReadOnly         = 0x02,
     };
 
-    class IFRIT_CORE_API IFConsoleVariableRegistryEntry
-    {
-    };
+    class IFRIT_CORE_API IFConsoleVariableRegistryEntry{};
 
     template <typename T IF_REQUIRES(TypeIsAnyOf_v<T, i32, u32, f32, String>)>
     class IFRIT_CORE_API FConsoleVariableRegistryEntry : public IFConsoleVariableRegistryEntry

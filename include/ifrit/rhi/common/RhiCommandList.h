@@ -13,6 +13,13 @@ namespace Ifrit::RHI
     class RhiCommandListExecutor;
 
     // ===== Command List Context =====
+
+    class IFRIT_RHI_API IRhiCommandContext
+    {
+    public:
+        virtual ~IRhiCommandContext() = default;
+    };
+
     class IFRIT_RHI_API RhiCommandListContext : public RhiDeviceChild
     {
     public:
@@ -44,7 +51,9 @@ namespace Ifrit::RHI
         void ExecuteLambda(Fn<void(const RhiCommandListBase* cmd)>&& lambda);
 
         // Utility
-        void FinishRecording();
+        void Init();
+        void Submit();
+        void Finalize();
         RhiCommandListContext* GetActiveContext();
         RhiCommandListContext* GetUploadContext();
         void                   SwitchPipeline(ERhiCommandListPipelineType type);
@@ -66,14 +75,20 @@ namespace Ifrit::RHI
 
         void                          AddPrerequisiteSubmission(Ref<RhiTaskSubmission> submission);
 
+        inline bool                   IsImmediate() const { return mImmediateCmdList == nullptr; }
+
     protected:
         Owner<RhiCommandListContext> mActiveContext;
         Owner<RhiCommandListContext> mUploadContext;
+        Ref<RhiTaskSubmission>       mLastActiveContextSubmission;
+        Ref<RhiTaskSubmission>       mLastUploadContextSubmission;
+
         ERhiCommandListPipelineType  mRhiPipeline = ERhiCommandListPipelineType::Invalid;
         Vec<Owner<RhiCommand>>       mCommands;
         Vec<Ref<RhiTaskSubmission>>  mWaitSubmissions;
-        bool                         mImmediateCmdList = false;
-        bool                         mValid            = false;
+
+        RhiCommandListBase*          mImmediateCmdList = nullptr;
+        bool                         mValid            = true;
 
         friend class RhiCommandListExecutor;
     };

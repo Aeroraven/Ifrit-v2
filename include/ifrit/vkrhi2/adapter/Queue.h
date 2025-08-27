@@ -1,24 +1,16 @@
 #pragma once
-
-#include "ifrit/vkrhi2/common/Pch.h"
 #include "ifrit/vkrhi2/common/VkAdapterApi.h"
-#include "ifrit/vkrhi2/adapter/Device.h"
+#include "ifrit/vkrhi2/common/Pch.h"
 #include "ifrit/core/algo/Parallel.h"
+#include "ifrit/vkrhi2/adapter/CommandSubmission.h"
+#include <vulkan/vulkan.h>
 
 namespace Ifrit::RHI::VulkanRHI2
 {
 
     class VA_CommandListNative;
-
-    class VA_CommandSubmission : public RHI::RhiTaskSubmission
-    {
-    public:
-        VkSemaphore mSemaphore;
-        VkFence     mFence;
-        u64         mValue;
-        VkFlags     mWaitStage            = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-        bool        mIsSwapchainSemaphore = false;
-    };
+    class VA_Device;
+    class VA_CommandListPool;
 
     class IFRIT_VKRHI2_API VA_TimelineSemaphore
     {
@@ -34,21 +26,27 @@ namespace Ifrit::RHI::VulkanRHI2
         Atomic<u64> mRecordedCounter = 0;
     };
 
+    struct VA_QueueInternal;
     class IFRIT_VKRHI2_API VA_Queue
     {
     public:
-        VA_Queue(VA_Device* device, u32 familyIndex);
+        VA_Queue(VA_Device* device, ERhiCommandListPipelineType pipeType, u32 familyIndex);
         ~VA_Queue();
 
-        u32                       GetFamilyIndex();
-        Ref<VA_CommandSubmission> SubmitCommandNative(VA_CommandListNative* cmd, Vec<Ref<VA_CommandSubmission>> toWait,
-            VkFence fenceToSignal, VkSemaphore swapchainSemaToSignal);
+        u32                 GetFamilyIndex();
+
+        void                EnqueueCommandTask(Ref<VA_CommandTask> task);
+        VA_CommandListPool* AcquireCommandPool();
+        void                ReleaseCommandPool(VA_CommandListPool* pool);
+        void                ProcessQueuedTasks();
 
     private:
-        VkQueue                     mQueue;
-        Owner<VA_TimelineSemaphore> mSemaphore;
-        u32                         mFamilyIndex;
-        Mutex                       mSubmitMutex;
+        void                      SubmitCommandNative(VA_CommandListNative* cmd, Vec<Ref<VA_CommandSubmission>> toWait,
+                                 VkFence fenceToSignal, VkSemaphore swapchainSemaToSignal, Ref<VA_CommandSubmission> desiredToSignalInfo);
+        Ref<VA_CommandSubmission> PrepareSubmissionInfo();
+
+    private:
+        VA_QueueInternal* mInternal;
     };
 
 } // namespace Ifrit::RHI::VulkanRHI2

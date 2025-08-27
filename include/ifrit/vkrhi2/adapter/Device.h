@@ -1,7 +1,7 @@
 
 #pragma once
-#include "ifrit/vkrhi2/common/Pch.h"
 #include "ifrit/vkrhi2/common/VkAdapterApi.h"
+#include "ifrit/vkrhi2/common/Pch.h"
 #include "ifrit/vkrhi2/adapter/DeviceProcs.h"
 #include "ifrit/core/algo/Parallel.h"
 #include "ifrit/vkrhi2/adapter/Queue.h"
@@ -14,6 +14,8 @@
 namespace Ifrit::RHI::VulkanRHI2
 {
     struct VA_Allocator;
+    class VA_Queue;
+    class VA_CommandListContext;
 
     enum class EVA_QueueType : u32
     {
@@ -43,26 +45,46 @@ namespace Ifrit::RHI::VulkanRHI2
         u32 mTransfer     = ~0u;
     };
 
+    struct VA_ActiveQueueInfo
+    {
+        VA_Queue* mGraphics     = nullptr;
+        VA_Queue* mAsyncCompute = nullptr;
+        VA_Queue* mTransfer     = nullptr;
+    };
+
     struct VA_DevicePrivate;
-    class IFRIT_VKRHI2_API VA_Device final : public RHI::RhiDevice, public NonCopyable
+    class IFRIT_VKRHI2_API VA_Device : public RHI::RhiDevice, public NonCopyable
     {
     public:
         VA_Device(const RHI::RhiInitializeArguments& args);
         ~VA_Device();
 
-        IRhiDeviceResourceDeleteQueue* GetDeleteQueue();
+    public: // RHI Overrides
+        virtual RhiCapabilityList              GetCapabilities() const override;
+        virtual RhiPropertyList                GetProperties() const override;
+        virtual IRhiDeviceResourceDeleteQueue* GetResourceDeleteQueue() override;
 
-        VA_Allocator*                  GetAllocator();
-        VA_DeviceProcs&                GetDeviceProcs() const;
-        VA_ActiveQueueFamilyInfo       GetActiveQueueFamilies() const;
+        virtual RhiDeviceProcs*                GetDeviceRHIFunctions() const override;
+        virtual RhiCommandListExecutor*        GetCommandListExecutor() const override;
+
+    public:
+        VA_Allocator*                GetAllocator();
+        VA_DeviceProcs&              GetDeviceProcs() const;
+        VA_ActiveQueueFamilyInfo     GetActiveQueueFamilies() const;
+        VA_ActiveQueueInfo           GetActiveQueues() const;
+
+        VA_CommandListContext*       GetImmediateContext() const;
+        Owner<VA_CommandListContext> GetUploadContext();
+        Owner<VA_CommandListContext> GetCommandContext(ERhiCommandListPipelineType type);
 
         // Vulkan specific
-        VkDevice                       GetVulkanDevice() const;
-        VkFormatProperties             GetFormatProperties(VkFormat format) const;
-        u64                            GetFrameId() const;
+        VkDevice                     GetVulkanDevice() const;
+        VkFormatProperties           GetFormatProperties(VkFormat format) const;
+        u64                          GetFrameId() const;
 
     private:
         void Init();
+        void Shutdown();
 
     private:
         VA_DevicePrivate* mData;

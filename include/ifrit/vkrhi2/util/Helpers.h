@@ -4,5 +4,5 @@
 
 namespace Ifrit::RHI::VulkanRHI2
 {
-    IF_FORCEINLINE bool HasFlagBit(u32 value, u32 bit) { return (value & bit) != 0; }
+    template <typename T,typename U> IF_FORCEINLINE bool HasFlagBit(T value, U bit) { return (value & bit) != 0; }
 } // namespace Ifrit::RHI::VulkanRHI2

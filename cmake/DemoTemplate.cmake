@@ -78,27 +78,27 @@ function(ifrit_add_demo_project DEMO_NAME)
     endif()
 
     # Prebuild step to generate reflection data
-    set(IFRIT_REFLECTION_PARSER_BIN "${CMAKE_SOURCE_DIR}/bin/ifrit.reflparser.exe")
-    message(STATUS "[Ifrit.Demo] Using reflection parser binary: ${IFRIT_REFLECTION_PARSER_BIN}")
-    if(EXISTS ${IFRIT_REFLECTION_PARSER_BIN})
-        # add_custom_command(TARGET ${DEMO_TARGET_NAME}  PRE_BUILD
-        #     COMMAND ${IFRIT_REFLECTION_PARSER_BIN} --input "${CMAKE_CURRENT_SOURCE_DIR}/include" --output "${CMAKE_CURRENT_SOURCE_DIR}/include.generated/${DEMO_NAME}.generated.h"
-        #     COMMENT "Generating reflection data for ${DEMO_NAME}"
-        # )
-        set(GENERATE_TARGET_NAME "${DEMO_TARGET_NAME}.reflparse")
-        add_custom_target(${GENERATE_TARGET_NAME} ALL
-            COMMAND ${IFRIT_REFLECTION_PARSER_BIN}
-                --input "${CMAKE_CURRENT_SOURCE_DIR}/include" 
-                --output "${CMAKE_CURRENT_SOURCE_DIR}/include.generated/${DEMO_NAME}.generated"
-            COMMENT "Generating core reflection code"
-            VERBATIM
-        )
-        set_target_properties(${GENERATE_TARGET_NAME} PROPERTIES FOLDER ${IFRIT_GROUP_DEMO_GEN})
-        add_dependencies(${GENERATE_TARGET_NAME} ifrit.reflparser)
-        add_dependencies(${DEMO_TARGET_NAME} ${GENERATE_TARGET_NAME})
-    else()
-        message(WARNING "Reflection parser binary not found, skipping reflection data generation for ${DEMO_NAME}")
-    endif()
+    # set(IFRIT_REFLECTION_PARSER_BIN "${CMAKE_SOURCE_DIR}/bin/ifrit.reflparser.exe")
+    # message(STATUS "[Ifrit.Demo] Using reflection parser binary: ${IFRIT_REFLECTION_PARSER_BIN}")
+    # if(EXISTS ${IFRIT_REFLECTION_PARSER_BIN})
+    #     # add_custom_command(TARGET ${DEMO_TARGET_NAME}  PRE_BUILD
+    #     #     COMMAND ${IFRIT_REFLECTION_PARSER_BIN} --input "${CMAKE_CURRENT_SOURCE_DIR}/include" --output "${CMAKE_CURRENT_SOURCE_DIR}/include.generated/${DEMO_NAME}.generated.h"
+    #     #     COMMENT "Generating reflection data for ${DEMO_NAME}"
+    #     # )
+    #     set(GENERATE_TARGET_NAME "${DEMO_TARGET_NAME}.reflparse")
+    #     add_custom_target(${GENERATE_TARGET_NAME} ALL
+    #         COMMAND ${IFRIT_REFLECTION_PARSER_BIN}
+    #             --input "${CMAKE_CURRENT_SOURCE_DIR}/include" 
+    #             --output "${CMAKE_CURRENT_SOURCE_DIR}/include.generated/${DEMO_NAME}.generated"
+    #         COMMENT "Generating core reflection code"
+    #         VERBATIM
+    #     )
+    #     set_target_properties(${GENERATE_TARGET_NAME} PROPERTIES FOLDER ${IFRIT_GROUP_DEMO_GEN})
+    #     add_dependencies(${GENERATE_TARGET_NAME} ifrit.reflparser)
+    #     add_dependencies(${DEMO_TARGET_NAME} ${GENERATE_TARGET_NAME})
+    # else()
+    #     message(WARNING "Reflection parser binary not found, skipping reflection data generation for ${DEMO_NAME}")
+    # endif()
 
     
     message(STATUS "[Ifrit.Demo] Created demo target: ${DEMO_TARGET_NAME}")

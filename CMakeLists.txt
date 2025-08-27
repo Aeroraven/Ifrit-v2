@@ -188,45 +188,49 @@ ifrit_add_core_component(external/imgui)
 ifrit_add_core_component(external/glfw)
 ifrit_add_core_component(external/nfd)
 
-ifrit_add_core_component(reflparser)
+# ifrit_add_core_component(reflparser)
 ifrit_add_core_component(core)
-ifrit_add_core_component(shadercompile)
-ifrit_add_core_component(imaging)
+# ifrit_add_core_component(shadercompile)
+# ifrit_add_core_component(imaging)
 ifrit_add_core_component(display)
-ifrit_add_core_component(ircompile)
-ifrit_add_core_component(softgraphics)
-ifrit_add_core_component(geomproc)
-ifrit_add_core_component(vkrhi)
+# ifrit_add_core_component(ircompile)
+# ifrit_add_core_component(softgraphics)
+# ifrit_add_core_component(geomproc)
+# ifrit_add_core_component(vkrhi)
 ifrit_add_core_component(vkrhi2)
-ifrit_add_core_component(dx12rhi)
-ifrit_add_core_component(runtime)
+# ifrit_add_core_component(dx12rhi)
+# ifrit_add_core_component(runtime)
 ifrit_add_core_component(rhi)
-ifrit_add_core_component(profiler)
-ifrit_add_core_component(editor)
+# ifrit_add_core_component(profiler)
+# ifrit_add_core_component(editor)
 
 # ifrit_add_misc_component(spgrid)
 
 # Demo
 set(IFRIT_DEMO_LINK_LIBRARIES 
-    ifrit.geomproc 
+    # ifrit.geomproc 
     ifrit.display 
-    ifrit.vkrhi 
-    ifrit.runtime 
+    # ifrit.vkrhi 
+    # ifrit.runtime 
+    # ifrit.core
+    # ifrit.profiler
+    # ifrit.editor
+    ifrit.vkrhi2
     ifrit.core
-    ifrit.profiler
-    ifrit.editor
     ${IFRIT_COMMON_DEPENDENCIES_SHARED})
 
 set(IFRIT_DEMO_DEPENDENCIES 
-    ifrit.vkrhi 
-    ifrit.geomproc 
-    ifrit.softgraphics 
+    # ifrit.vkrhi 
+    # ifrit.geomproc 
+    # ifrit.softgraphics 
     ifrit.display 
-    ifrit.runtime 
-    ifrit.rhi
-    ifrit.imaging
-    ifrit.profiler
-    ifrit.reflparser
+    # ifrit.runtime 
+    # ifrit.rhi
+    # ifrit.imaging
+    # ifrit.profiler
+    # ifrit.reflparser
+    ifrit.core
+    ifrit.vkrhi2
 )
 
 ifrit_add_all_demos(${CMAKE_CURRENT_SOURCE_DIR}/demo)
@@ -286,22 +290,23 @@ set_target_properties(nfd PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/nfd)
  
 # ifrit targets
 set_target_properties(ifrit.core PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+# set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-set_target_properties(ifrit.editor PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+# set_target_properties(ifrit.editor PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 
-set_target_properties(ifrit.shadercompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
-set_target_properties(ifrit.imaging PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+# set_target_properties(ifrit.shadercompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+# set_target_properties(ifrit.imaging PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
 set_target_properties(ifrit.display PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
-set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
-set_target_properties(ifrit.profiler PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+# set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+# set_target_properties(ifrit.profiler PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
 
-set_target_properties(ifrit.vkrhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
-set_target_properties(ifrit.dx12rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
+# set_target_properties(ifrit.vkrhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
+# set_target_properties(ifrit.dx12rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
+set_target_properties(ifrit.vkrhi2 PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
 
-set_target_properties(ifrit.reflparser PROPERTIES FOLDER ${IFRIT_GROUP_TOOL})
+# set_target_properties(ifrit.reflparser PROPERTIES FOLDER ${IFRIT_GROUP_TOOL})
 
-set_target_properties(ifrit.ircompile PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
-set_target_properties(ifrit.softgraphics PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
+# set_target_properties(ifrit.ircompile PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
+# set_target_properties(ifrit.softgraphics PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
 
 # set_target_properties(ifrit.exps.spgrid PROPERTIES FOLDER ${IFRIT_GROUP_EXPERIMENTAL})

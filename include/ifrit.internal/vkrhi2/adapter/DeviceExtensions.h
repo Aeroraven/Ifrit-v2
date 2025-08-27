@@ -19,6 +19,7 @@ namespace Ifrit::RHI::VulkanRHI2
     {
         if (condition)
         {
+            IF_LOG_DEBUG("VA_Device", "Loading device function pointer: {}", functionName);
             funcPtr = reinterpret_cast<T>(vkGetDeviceProcAddr(device, functionName));
             if (!funcPtr)
             {
@@ -28,6 +29,7 @@ namespace Ifrit::RHI::VulkanRHI2
         }
         else
         {
+            IF_LOG_DEBUG("VA_Device", "Skipping loading device function pointer: {}", functionName);
             funcPtr = nullptr;
         }
     }
@@ -36,6 +38,7 @@ namespace Ifrit::RHI::VulkanRHI2
     {
         if (condition)
         {
+            IF_LOG_INFO("VA_Device", "Feature '{}' is enabled", featureName);
             return true;
         }
         else
@@ -188,38 +191,40 @@ namespace Ifrit::RHI::VulkanRHI2
     void OnSetupExtensionCapabilities_VA_EXT_##structType(structType& mRequired, const structType& mCaps,        \
         RhiCapabilityList& rhiCaps, RhiPropertyList& rhiProps, VA_DeviceExtension* devExt)
 
-#define DECLARE_EXTENSION_BASE()                                                                              \
-    void OnSetupExtensionCapabilities_VA_EXT_VkPhysicalDeviceFeatures(                                        \
-        VkPhysicalDeviceFeatures& mRequired, const VkPhysicalDeviceFeatures& mCaps);                          \
-    class VA_EXT_VkPhysicalDeviceFeatures : public VA_AutoDeviceExtension                                     \
-    {                                                                                                         \
-    public:                                                                                                   \
-        VkPhysicalDeviceFeatures mData{};                                                                     \
-        VkPhysicalDeviceFeatures mFinal{};                                                                    \
-                                                                                                              \
-    protected:                                                                                                \
-        bool                mSupported = true;                                                                \
-        virtual const char* GetExtensionName() const override { return nullptr; }                             \
-        void                AddExtensionToChain(void*& pNextChain) override {}                                \
-        void                OnQueryExtensionCapabilities(VkPhysicalDevice device) override                    \
-        {                                                                                                     \
-            mData = GetDeviceFeatureSupport(device);                                                          \
-        }                                                                                                     \
-        void OnSetupExtensionCapabilities(RhiCapabilityList& rhiCaps, RhiPropertyList& rhiProps) override     \
-        {                                                                                                     \
-            OnSetupExtensionCapabilities_VA_EXT_VkPhysicalDeviceFeatures(mFinal, mData, rhiCaps, rhiProps);   \
-        }                                                                                                     \
-        void OnQueryExtensionSupport(VkPhysicalDevice device, Vec<const char*>& availableExtensions) override \
-        {                                                                                                     \
-            mSupported = true;                                                                                \
-        }                                                                                                     \
-                                                                                                              \
-    public:                                                                                                   \
-        VA_EXT_VkPhysicalDeviceFeatures() {}                                                                  \
-    };                                                                                                        \
-    static VA_EXT_VkPhysicalDeviceFeatures sExtensionRequirement_VA_EXT_VkPhysicalDeviceFeatures;             \
-    void OnSetupExtensionCapabilities_VA_EXT_VkPhysicalDeviceFeatures(VkPhysicalDeviceFeatures& mRequired,    \
-        const VkPhysicalDeviceFeatures& mCaps, RhiCapabilityList& rhiCaps, RhiPropertyList& rhiProps)
+#define DECLARE_EXTENSION_BASE()                                                                                  \
+    void OnSetupExtensionCapabilities_VA_EXT_VkPhysicalDeviceFeatures(VkPhysicalDeviceFeatures& mRequired,        \
+        const VkPhysicalDeviceFeatures& mCaps, RhiCapabilityList& rhiCaps, RhiPropertyList& rhiProps,             \
+        VA_DeviceExtension* devExt);                                                                              \
+    class VA_EXT_VkPhysicalDeviceFeatures : public VA_AutoDeviceExtension                                         \
+    {                                                                                                             \
+    public:                                                                                                       \
+        VkPhysicalDeviceFeatures mData{};                                                                         \
+        VkPhysicalDeviceFeatures mFinal{};                                                                        \
+                                                                                                                  \
+    protected:                                                                                                    \
+        bool                mSupported = true;                                                                    \
+        virtual const char* GetExtensionName() const override { return nullptr; }                                 \
+        void                AddExtensionToChain(void*& pNextChain) override {}                                    \
+        void                OnQueryExtensionCapabilities(VkPhysicalDevice device) override                        \
+        {                                                                                                         \
+            mData = GetDeviceFeatureSupport(device);                                                              \
+        }                                                                                                         \
+        void OnSetupExtensionCapabilities(RhiCapabilityList& rhiCaps, RhiPropertyList& rhiProps) override         \
+        {                                                                                                         \
+            OnSetupExtensionCapabilities_VA_EXT_VkPhysicalDeviceFeatures(mFinal, mData, rhiCaps, rhiProps, this); \
+        }                                                                                                         \
+        void OnQueryExtensionSupport(VkPhysicalDevice device, Vec<const char*>& availableExtensions) override     \
+        {                                                                                                         \
+            mSupported = true;                                                                                    \
+        }                                                                                                         \
+                                                                                                                  \
+    public:                                                                                                       \
+        VA_EXT_VkPhysicalDeviceFeatures() {}                                                                      \
+    };                                                                                                            \
+    static VA_EXT_VkPhysicalDeviceFeatures sExtensionRequirement_VA_EXT_VkPhysicalDeviceFeatures;                 \
+    void OnSetupExtensionCapabilities_VA_EXT_VkPhysicalDeviceFeatures(VkPhysicalDeviceFeatures& mRequired,        \
+        const VkPhysicalDeviceFeatures& mCaps, RhiCapabilityList& rhiCaps, RhiPropertyList& rhiProps,             \
+        VA_DeviceExtension* devExt)
 
 #define DECLARE_EXTENSION_NOFEATS(extensionName, extMandatoryReq)                                                  \
     void OnSetupExtensionCapabilities_VA_EXT_NOFEATS_##extensionName(                                              \
@@ -228,7 +233,7 @@ namespace Ifrit::RHI::VulkanRHI2
     {                                                                                                              \
     protected:                                                                                                     \
         bool                mSupported = false;                                                                    \
-        virtual const char* GetExtensionName() const override { return (mSupported ? #extensionName : nullptr); }  \
+        virtual const char* GetExtensionName() const override { return (mSupported ? extensionName : nullptr); }   \
         void                AddExtensionToChain(void*& pNextChain) override {}                                     \
         void                OnQueryExtensionCapabilities(VkPhysicalDevice device) override {}                      \
         void                OnSetupExtensionCapabilities(RhiCapabilityList& caps, RhiPropertyList& props) override \
@@ -275,6 +280,11 @@ namespace Ifrit::RHI::VulkanRHI2
         ENABLE_FEATURE(shaderInt16, VA_Mandatory);
         ENABLE_FEATURE(fragmentStoresAndAtomics, VA_Mandatory);
         ENABLE_FEATURE(vertexPipelineStoresAndAtomics, VA_Mandatory);
+
+        ENABLE_PROC_LOADER_ALWAYS(vkCmdBeginDebugUtilsLabelEXT);
+        ENABLE_PROC_LOADER_ALWAYS(vkCmdEndDebugUtilsLabelEXT);
+        ENABLE_PROC_LOADER_ALWAYS(vkSetDebugUtilsObjectNameEXT);
+        ENABLE_PROC_LOADER_ALWAYS(vkSetDebugUtilsObjectTagEXT);
     }
 
     DECLARE_EXTENSION_NOFEATS(VK_KHR_SWAPCHAIN_EXTENSION_NAME, VA_Mandatory) {}
@@ -282,13 +292,6 @@ namespace Ifrit::RHI::VulkanRHI2
     DECLARE_EXTENSION_NOFEATS(VK_EXT_CONSERVATIVE_RASTERIZATION_EXTENSION_NAME, VA_Optional)
     {
         rhiCaps.bConservativeRasterizationEnabled = true;
-    }
-    DECLARE_EXTENSION_NOFEATS(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, VA_Optional)
-    {
-        ENABLE_PROC_LOADER_ALWAYS(vkCmdBeginDebugUtilsLabelEXT);
-        ENABLE_PROC_LOADER_ALWAYS(vkCmdEndDebugUtilsLabelEXT);
-        ENABLE_PROC_LOADER_ALWAYS(vkSetDebugUtilsObjectNameEXT);
-        ENABLE_PROC_LOADER_ALWAYS(vkSetDebugUtilsObjectTagEXT);
     }
 
     DECLARE_EXTENSION(VkPhysicalDeviceVulkan11Features, VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES,

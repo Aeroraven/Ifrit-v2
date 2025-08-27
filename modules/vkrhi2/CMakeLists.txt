@@ -21,7 +21,7 @@ add_definitions(-DIFRIT_VKRHI2_SHARED_SHADER_NEXT_PATH="${IFRIT_PROJECT_DIR}/inc
 add_definitions(-DIFRIT_VKRHI2_SHARED_SHADER_NEXT_INCLUDE_BASE="${IFRIT_PROJECT_DIR}/include/")
 add_definitions(-DIFRIT_LOG_MODULE_NAME="Ifrit.VulkanRHI2")
 add_definitions(-DIFRIT_MODULE_VKRHI2)
-
+add_definitions(-DIFRIT_MODULE_RHI)
 #pch
 set(IFRIT_VKRHI2_PCH_HEADER ${IFRIT_PROJECT_DIR}/include/ifrit/vkrhi2/common/Pch.h)
 
@@ -34,12 +34,12 @@ target_precompile_headers(ifrit.vkrhi2
 
 target_link_libraries(ifrit.vkrhi2 
     Vulkan::Vulkan 
-    ifrit.shadercompile
+    # ifrit.shadercompile
     ${FSR2_API_LIBRARIES} 
     ${IFRIT_COMMON_DEPENDENCIES_SHARED}
     ifrit.core)
 
 add_dependencies(ifrit.vkrhi2 
     ifrit.core 
-    ifrit.shadercompile
+    # ifrit.shadercompile
     ${FSR2_API_LIBRARIES})

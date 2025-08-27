@@ -36,7 +36,7 @@ namespace Ifrit::RHI
     public:
         virtual ~RhiComputePass()                                                 = default;
         virtual void SetComputeShader(RhiShader* shader)                          = 0;
-        virtual void SetShaderBindingLayout(const Vec<RhiDescriptorType>& layout) = 0;
+        virtual void SetShaderBindingLayout(const Vec<ERhiDescriptorType>& layout) = 0;
         virtual void BeginPass(const RhiCommandListContext* cmd)                  = 0;
         virtual void EndPass(const RhiCommandListContext* cmd)                    = 0;
         virtual void SetNumBindlessDescriptorSets(u32 num)                        = 0;
@@ -52,21 +52,21 @@ namespace Ifrit::RHI
         virtual void                  SetMeshShader(RhiShader* shader)                      = 0;
         virtual void                  SetVertexShader(RhiShader* shader)                    = 0;
         virtual void                  SetPixelShader(RhiShader* shader)                     = 0;
-        virtual void                  SetRasterizerTopology(RhiRasterizerTopology topology) = 0;
+        virtual void                  SetRasterizerTopology(ERhiRasterizerTopology topology) = 0;
         virtual void                  SetRenderArea(u32 x, u32 y, u32 width, u32 height)    = 0;
         virtual void                  SetDepthWrite(bool write)                             = 0;
         virtual void                  SetDepthTestEnable(bool enable)                       = 0;
-        virtual void                  SetDepthCompareOp(RhiCompareOp compareOp)             = 0;
+        virtual void                  SetDepthCompareOp(ERhiCompareOp compareOp)             = 0;
         virtual void                  SetMsaaSamples(u32 samples)                           = 0;
 
         virtual void                  SetRenderTargetFormat(const RhiRenderTargetsFormat& format)                  = 0;
-        virtual void                  SetShaderBindingLayout(const Vec<RhiDescriptorType>& layout)                 = 0;
+        virtual void                  SetShaderBindingLayout(const Vec<ERhiDescriptorType>& layout)                 = 0;
         virtual void                  BeginPass(const RhiCommandListContext* cmd, RhiRenderTargets* renderTargets) = 0;
         virtual void                  EndPass(const RhiCommandListContext* cmd)                                    = 0;
         virtual void                  SetNumBindlessDescriptorSets(u32 num)                                        = 0;
         virtual void                  SetPushConstSize(u32 size)                                                   = 0;
 
-        virtual RhiRasterizerTopology GetRasterizerTopology() const = 0;
+        virtual ERhiRasterizerTopology GetRasterizerTopology() const = 0;
     };
 
     class IFRIT_APIDECL RhiRTPipeline{ public : virtual void _polymorphismPlaceHolder(){} };

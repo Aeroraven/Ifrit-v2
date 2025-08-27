@@ -2,6 +2,7 @@
 #include <vulkan/vulkan.h>
 #include "ifrit/vkrhi2/util/Log.h"
 #include "ifrit/core/typing/Traits.h"
+#include "ifrit/core/typing/EnumReflection.h"
 
 namespace Ifrit::RHI::VulkanRHI2
 {
@@ -125,13 +126,26 @@ namespace Ifrit::RHI::VulkanRHI2
             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
         debugCI.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
             | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        debugCI.pfnUserCallback = DebugCallback;
+        debugCI.pfnUserCallback = cb;
         debugCI.pUserData       = nullptr;
 
         auto func = GET_INSTANCE_FUNC(instance, vkCreateDebugUtilsMessengerEXT);
         IF_LOG_ASSERTION(
             "VA_Device", func != nullptr, "Failed to get function pointer: vkCreateDebugUtilsMessengerEXT");
         VA_AssertResult(func(instance, &debugCI, nullptr, &messenger), "Failed to create debug messenger");
+    }
+
+    void ShutdownValidationMessenger(VkInstance instance, VkDebugUtilsMessengerEXT& messenger)
+    {
+        if (messenger != VK_NULL_HANDLE)
+        {
+            auto func = GET_INSTANCE_FUNC(instance, vkDestroyDebugUtilsMessengerEXT);
+            if (func)
+            {
+                func(instance, messenger, nullptr);
+            }
+            messenger = VK_NULL_HANDLE;
+        }
     }
 
     IF_NODISCARD Vec<VkPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance)
@@ -154,6 +168,16 @@ namespace Ifrit::RHI::VulkanRHI2
     IF_NODISCARD VA_PhysicalDeviceDesc SelectPhysicalDevice(
         const Vec<VkPhysicalDevice>& devices, const VA_PhysicalDeviceCriteria& criteria)
     {
+        // debug log all devices
+        IF_LOG_DEBUG("VA_Device", "Available physical devices:");
+        for (auto device : devices)
+        {
+            VkPhysicalDeviceProperties properties;
+            vkGetPhysicalDeviceProperties(device, &properties);
+            IF_LOG_DEBUG("VA_Device", "  - {} (type: {}, vendor: {}, id: {:#06x})", String(properties.deviceName),
+                GetEnumName(properties.deviceType), properties.vendorID, properties.deviceID);
+        }
+
         Vec<VA_PhysicalDeviceDesc> deviceWithDataList;
         for (auto device : devices)
         {
@@ -161,7 +185,7 @@ namespace Ifrit::RHI::VulkanRHI2
             data.mPhysicalDevice = device;
 
             data.mProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
-            data.mProperties.pNext = &data.mProperties;
+            data.mProperties.pNext = &data.mIdProperties;
 
             data.mIdProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
             data.mIdProperties.pNext = nullptr;
@@ -223,6 +247,7 @@ namespace Ifrit::RHI::VulkanRHI2
                 chosen.mGraphics.mFamilyIndex = i;
                 chosen.mGraphics.mQueueCount  = family.queueCount;
                 chosen.mGraphics.mValid       = true;
+                IF_LOG_DEBUG("VA_Device", "Selected graphics queue family: {}, count: {}", i, family.queueCount);
             }
             // Async Compute
             if (enableAsyncCompute)
@@ -233,6 +258,8 @@ namespace Ifrit::RHI::VulkanRHI2
                     chosen.mCompute.mFamilyIndex = i;
                     chosen.mCompute.mQueueCount  = family.queueCount;
                     chosen.mCompute.mValid       = true;
+                    IF_LOG_DEBUG(
+                        "VA_Device", "Selected async compute queue family: {}, count: {}", i, family.queueCount);
                 }
             }
             // Transfer
@@ -242,6 +269,7 @@ namespace Ifrit::RHI::VulkanRHI2
                 chosen.mTransfer.mFamilyIndex = i;
                 chosen.mTransfer.mQueueCount  = family.queueCount;
                 chosen.mTransfer.mValid       = true;
+                IF_LOG_DEBUG("VA_Device", "Selected transfer queue family: {}, count: {}", i, family.queueCount);
             }
         }
         return chosen;
@@ -250,15 +278,19 @@ namespace Ifrit::RHI::VulkanRHI2
     IF_NODISCARD Vec<VkDeviceQueueCreateInfo> CreateQueueCreateInfos(const VA_ChosenQueueFamily& chosenFamilies)
     {
         Vec<VkDeviceQueueCreateInfo> queueCreateInfos;
+
+        // give a static vector with all 1.0f priorities
+        static float                 priorities[200];
+        for (int i = 0; i < 200; ++i)
+            priorities[i] = 1.0f;
+
         if (chosenFamilies.mGraphics.mValid)
         {
             VkDeviceQueueCreateInfo queueCreateInfo = {};
             queueCreateInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex        = chosenFamilies.mGraphics.mFamilyIndex;
             queueCreateInfo.queueCount              = chosenFamilies.mGraphics.mQueueCount;
-            queueCreateInfo.pQueuePriorities        = new float[chosenFamilies.mGraphics.mQueueCount];
-            std::fill(queueCreateInfo.pQueuePriorities,
-                queueCreateInfo.pQueuePriorities + chosenFamilies.mGraphics.mQueueCount, 1.0f);
+            queueCreateInfo.pQueuePriorities        = priorities;
             queueCreateInfos.push_back(queueCreateInfo);
         }
         if (chosenFamilies.mCompute.mValid)
@@ -267,9 +299,7 @@ namespace Ifrit::RHI::VulkanRHI2
             queueCreateInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex        = chosenFamilies.mCompute.mFamilyIndex;
             queueCreateInfo.queueCount              = chosenFamilies.mCompute.mQueueCount;
-            queueCreateInfo.pQueuePriorities        = new float[chosenFamilies.mCompute.mQueueCount];
-            std::fill(queueCreateInfo.pQueuePriorities,
-                queueCreateInfo.pQueuePriorities + chosenFamilies.mCompute.mQueueCount, 1.0f);
+            queueCreateInfo.pQueuePriorities        = priorities;
             queueCreateInfos.push_back(queueCreateInfo);
         }
         if (chosenFamilies.mTransfer.mValid)
@@ -278,9 +308,7 @@ namespace Ifrit::RHI::VulkanRHI2
             queueCreateInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
             queueCreateInfo.queueFamilyIndex        = chosenFamilies.mTransfer.mFamilyIndex;
             queueCreateInfo.queueCount              = chosenFamilies.mTransfer.mQueueCount;
-            queueCreateInfo.pQueuePriorities        = new float[chosenFamilies.mTransfer.mQueueCount];
-            std::fill(queueCreateInfo.pQueuePriorities,
-                queueCreateInfo.pQueuePriorities + chosenFamilies.mTransfer.mQueueCount, 1.0f);
+            queueCreateInfo.pQueuePriorities        = priorities;
             queueCreateInfos.push_back(queueCreateInfo);
         }
         return queueCreateInfos;

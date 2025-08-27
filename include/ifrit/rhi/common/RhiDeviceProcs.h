@@ -14,6 +14,6 @@ namespace Ifrit::RHI
             ERhiCommandListPipelineType type, RhiCommandListBase* immed)                                        = 0;
         virtual void ReleaseCommandListContext(Owner<RhiCommandListContext> context, RhiCommandListBase* immed) = 0;
         virtual Ref<RhiTaskSubmission> SubmitCommandListContext(
-            RhiCommandListContext* context, RhiCommandListBase* immed) = 0;
+            RhiCommandListContext* context, RhiCommandListBase* immed, Vec<Ref<RhiTaskSubmission>> toWait) = 0;
     };
 } // namespace Ifrit::RHI

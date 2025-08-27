@@ -33,6 +33,6 @@ target_compile_options(ifrit.core
 	$<$<CXX_COMPILER_ID:GNU>:-Wa,-mbig-obj>)
 
 add_dependencies(ifrit.core 
-    ifrit.reflparser
+    # ifrit.reflparser
     spdlog
     mimalloc)
