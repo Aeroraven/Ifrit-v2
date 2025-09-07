@@ -17,8 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
 
@@ -32,7 +34,7 @@ void main(){
     float c = 2.43;
     float d = 0.59;
     float e = 0.14;
-    vec3 color = texture(GetSampler2D(pc.inputTexture), texCoord).rgb;
+    vec3 color = SampleTexture2D(pc.inputTexture,sLinearClamp, texCoord).rgb;
     color = (color * (a * color + b)) / (color * (c * color + d) + e);
     outColor = vec4(color, 1.0);
 }

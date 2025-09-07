@@ -17,11 +17,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/serialization/SerialInterface.h"
-#include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/base/AssetReference.h"
-#include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Runtime
 {
@@ -45,10 +42,10 @@ namespace Ifrit::Runtime
 
     struct PipelineAttachmentConfigs
     {
-        Graphics::Rhi::RhiImageFormat      m_depthFormat;
-        Vec<Graphics::Rhi::RhiImageFormat> m_colorFormats;
+        RHI::RhiImageFormat      m_depthFormat;
+        Vec<RHI::RhiImageFormat> m_colorFormats;
 
-        inline bool                        operator==(const PipelineAttachmentConfigs& other) const
+        inline bool              operator==(const PipelineAttachmentConfigs& other) const
         {
             auto res = m_depthFormat == other.m_depthFormat;
             res &= (m_colorFormats == other.m_colorFormats);
@@ -75,14 +72,14 @@ namespace Ifrit::Runtime
 
     class ShaderEffect
     {
-        using DrawPass    = Ifrit::Graphics::Rhi::RhiGraphicsPass;
-        using ComputePass = Ifrit::Graphics::Rhi::RhiComputePass;
-        using Shader      = Ifrit::Graphics::Rhi::RhiShader;
+        using DrawPass    = Ifrit::RHI::RhiGraphicsPass;
+        using ComputePass = Ifrit::RHI::RhiComputePass;
+        using Shader      = Ifrit::RHI::RhiShader;
 
     public:
         ShaderEffectType                                     m_type = ShaderEffectType::Graphics;
         Vec<Shader*>                                         m_shaders;
-        Vec<AssetReference>                                  m_shaderReferences;
+        Vec<AssetReferenceId>                                m_shaderReferences;
         CustomHashMap<PipeConfig, DrawPass*, PipeConfigHash> m_drawPasses;
         ComputePass*                                         m_computePass = nullptr;
 
@@ -108,22 +105,23 @@ namespace Ifrit::Runtime
             size_t hash = 0;
             for (const auto& ref : effect.m_shaderReferences)
             {
-                hash ^= std::hash<String>()(ref.m_uuid);
+                hash ^= std::hash<String>()(ref.mGuid.ToString());
             }
             return hash;
         }
     };
 
-    class IFRIT_APIDECL Material : public IAssetCompatible
+    class IFRIT_APIDECL Material
     {
-
     public:
         String                                                m_name;
         String                                                m_uuid;
         Vec<Vec<char>>                                        m_data;
         HashMap<GraphicsShaderPassType, ShaderEffect>         m_effectTemplates;
         HashMap<GraphicsShaderPassType, HashMap<String, u32>> m_shaderParameters;
-        IFRIT_STRUCT_SERIALIZE(m_effectTemplates, m_data, m_shaderParameters);
+
+    public:
+        inline virtual void _PolyHolder() {}
     };
 
 } // namespace Ifrit::Runtime

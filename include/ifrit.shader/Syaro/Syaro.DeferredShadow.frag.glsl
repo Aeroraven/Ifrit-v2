@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 // Deferred Shading
@@ -30,11 +30,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "DeferredPBR.glsl"
 #include "Random/Random.WNoise2D.glsl"
 #include "Syaro/Syaro.SharedConst.h"
+#include "SamplerUtils.SharedConst.h"
 
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
 
-RegisterUniform(bPerframeView,{
+RegisterStorage(bPerframeView,{
     PerFramePerViewData data;
 });
 
@@ -139,7 +140,7 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
         vec2 rot = rotate2d(rand * kPI + float(k/16) * 2.0) * offset * kSearchRadiusPx / 2048.0;
         vec2 sampPos = uv + rot;
         sampPos = clamp(sampPos,vec2(0.0),vec2(1.0));
-        float depth = texture(GetSampler2D(shadowRef),sampPos).r;
+        float depth = SampleTexture2D(shadowRef,sLinearClamp,sampPos).r;
         if(depth - lightPos.z < -1e-3 ){
             avgShadow += 0.0;
         }else{
@@ -154,7 +155,7 @@ float shadowMappingSingle(uint lightId, vec3 worldPos, float pcfRadius,uint csmI
             vec2 offset = vec2(kx,ky) / 2048.0 * kSearchRadiusPx/3.0;
             vec2 sampPos = uv + offset;
             sampPos = clamp(sampPos,vec2(0.0),vec2(1.0));
-            float depth = texture(GetSampler2D(shadowRef),sampPos).r;
+            float depth = SampleTexture2D(shadowRef,sLinearClamp,sampPos).r;
             if(depth - lightPos.z < -1e-4 ){
                 avgShadow += 0.0;
             }else{
@@ -174,7 +175,7 @@ float pcssBlockerAvgDepth(vec2 uv, float lightDepth,uint shadowTexRef){
         for(int l = -2; l <= 2; l++){
             vec2 offset = vec2(k,l) / 2048.0 * 1.0;
             vec2 sampPos = uv + offset;
-            float depth = texture(GetSampler2D(shadowTexRef),sampPos).r;
+            float depth = SampleTexture2D(shadowTexRef,sLinearClamp,sampPos).r;
             if(depth - lightDepth < -1e-6 ){
                 avgDepth += depth;
                 numSamples += 1.0;
@@ -277,11 +278,11 @@ float globalShadowMapping(vec3 worldPos, vec3 viewPos){
 }
 
 void main(){
-    vec4 motion_depth = texture(GetSampler2D(uMotionDepthRefs.ref),texCoord).rgba;
+    vec4 motion_depth = SampleTexture2D(uMotionDepthRefs.ref,sLinearClamp,texCoord).rgba;
     mat4 worldToView = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
     float camNear = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraNear;
     float camFar = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFar;
-    float depth = texture(GetSampler2D(pc.depthTexRef),texCoord).r;
+    float depth = SampleTexture2D(pc.depthTexRef,sLinearClamp,texCoord).r;
     float vsDepth = ifrit_recoverViewSpaceDepth(depth,camNear,camFar);
     mat4 clipToWorld = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_clipToWorld;
     

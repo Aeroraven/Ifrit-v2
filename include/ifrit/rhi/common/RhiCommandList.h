@@ -1,98 +1,108 @@
-
-/*
-Ifrit-v2
-Copyright (C) 2024-2025 funkybirds(Aeroraven)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
 
 #include "RhiBaseTypes.h"
-#include "RhiResource.h"
-#include "RhiTransition.h"
+#include "RhiApi.h"
+#include "ifrit/rhi/common/RhiCommand.h"
+#include "ifrit/core/algo/Parallel.h"
+#include "ifrit/core/typing/Util.h"
+#include "ifrit/rhi/common/RhiDevice.h"
+#include "ifrit/rhi/common/RhiPipeline.h"
+#include "ifrit/rhi/common/RhiTransition.h"
 
-#include <functional>
-
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
+    class RhiCommandListBase;
+    class RhiCommandListExecutor;
 
-    class RhiTaskSubmission
+    // ===== Command List Context =====
+
+
+    enum class ERhiCommandSubmissionAction
     {
-    protected:
-        virtual int _polymorphismPlaceHolder() { return 0; }
+        None,
+        CPUWaitForSubmission,
     };
 
-    class IFRIT_APIDECL RhiCommandList
+    class IFRIT_RHI_API IRhiCommandContext
+     {
+     public:
+        virtual ~IRhiCommandContext() = default;
+ 
+        virtual void                   AddCompletionCallback(Fn<void()> callback)              = 0;
+        virtual Ref<RhiTaskSubmission> FlushCommands(ERhiCommandSubmissionAction action)       = 0;
+        virtual void                   SetLastUploadingTask(Ref<RhiTaskSubmission> uploadTask) = 0;
+
+        virtual void                   CmdSetComputePipelineState(const RhiComputePipelineStateDesc& desc)   = 0;
+        virtual void                   CmdSetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc) = 0;
+
+        virtual void                   CmdBeginTransition(RhiTransition& transition)                      = 0;
+        virtual void                   CmdEndTransition(RhiTransition& transition)                        = 0;
+        virtual void                   CmdBeginTransitionList(const Vec<Ref<RhiTransition>>& transitions) = 0;
+        virtual void                   CmdEndTransitionList(const Vec<Ref<RhiTransition>>& transitions)   = 0;
+     };
+ 
+     // ===== Command List Base (Recording) =====
+    class IFRIT_RHI_API RhiCommandListBase
+     {
+     public:
+        virtual ~RhiCommandListBase() = default;
+ 
+        void                EnqueueLambda(Fn<void(RhiCommandListBase*)> func);
+ 
+        void                SetComputePipelineState(const RhiComputePipelineStateDesc& desc);
+        void                SetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc);
+        void                BeginTransitions(const Vec<Ref<RhiTransition>>& transitions);
+        void                EndTransitions(const Vec<Ref<RhiTransition>>& transitions);
+ 
+        IRhiCommandContext* GetActiveContext();
+        IRhiCommandContext* GetUploadContext();
+        inline bool         IsImmediate() const { return mImmediateCmdList == nullptr; }
+ 
+    protected:
+        void EnqueueRHICommand(Owner<RhiCommand> cmd);
+ 
+    protected:
+        IRhiCommandContext*         mActiveContextImm = nullptr;
+        Owner<IRhiCommandContext>   mActiveContext;
+        Owner<IRhiCommandContext>   mUploadContext;
+        Ref<RhiTaskSubmission>      mLastUploadTask;
+ 
+        ERhiCommandListPipelineType mRhiPipeline = ERhiCommandListPipelineType::Invalid;
+        Vec<Owner<RhiCommand>>      mCommands;
+        Vec<Ref<RhiTaskSubmission>> mWaitSubmissions;
+ 
+        RhiCommandListBase*         mImmediateCmdList = nullptr;
+        bool                        mValid            = true;
+ 
+         friend class RhiCommandListExecutor;
+     };
+ 
+    class IFRIT_RHI_API RhiCommandListImmediate : public RhiCommandListBase
     {
-    protected:
-        RhiDevice* m_context;
-
-    protected:
-        inline void _setTextureState(RhiTexture* texture, RhiResourceState state) const { texture->SetState(state); }
-        inline void _setBufferState(RhiBuffer* buffer, RhiResourceState state) const { buffer->SetState(state); }
-
     public:
-        virtual void CopyBuffer(
-            const RhiBuffer* srcBuffer, const RhiBuffer* dstBuffer, u32 size, u32 srcOffset, u32 dstOffset) const = 0;
-        virtual void Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                            = 0;
-        virtual void SetViewports(const Vec<RhiViewport>& viewport) const                                         = 0;
-        virtual void SetScissors(const Vec<RhiScissor>& scissor) const                                            = 0;
-        virtual void DrawMeshTasks(u32 groupCountX, u32 groupCountY, u32 groupCountZ) const                       = 0;
-        virtual void DrawMeshTasksIndirect(const RhiBuffer* buffer, u32 offset, u32 drawCount, u32 stride) const  = 0;
-        virtual void DrawIndexed(
-            u32 indexCount, u32 instanceCount, u32 firstIndex, i32 vertexOffset, u32 firstInstance) const = 0;
+        RhiCommandListImmediate();
+        virtual ~RhiCommandListImmediate() = default;
 
-        // Clear UAV storage buffer, considered as a transfer operation, typically
-        // need a barrier for sync.
-        virtual void BufferClear(const RhiBuffer* buffer, u32 val) const                                         = 0;
-        virtual void AttachUniformRef(u32 setId, RhiBindlessDescriptorRef* ref) const                            = 0;
-        virtual void AttachVertexBufferView(const RhiVertexBufferView& view) const                               = 0;
-        virtual void AttachVertexBuffers(u32 firstSlot, const Vec<RhiBuffer*>& buffers) const                    = 0;
-        virtual void AttachIndexBuffer(const RhiBuffer* buffer) const                                            = 0;
-        virtual void DrawInstanced(u32 vertexCount, u32 instanceCount, u32 firstVertex, u32 firstInstance) const = 0;
-        virtual void DispatchIndirect(const RhiBuffer* buffer, u32 offset) const                                 = 0;
-        virtual void SetPushConst(const void* data, u32 offset, u32 size) const                                  = 0;
-        virtual void ClearUAVTexFloat(
-            const RhiTexture* texture, RhiImageSubResource subResource, const Array<f32, 4>& val) const         = 0;
-        virtual void ClearUAVTexLong(const RhiTexture* texture, RhiImageSubResource subResource, u64 val) const = 0;
-        virtual void AddResourceBarrier(const Vec<RhiResourceBarrier>& barriers) const                          = 0;
-        virtual void GlobalMemoryBarrier() const                                                                = 0;
-        virtual void BeginScope(const String& name) const                                                       = 0;
-        virtual void EndScope() const                                                                           = 0;
-        virtual void CopyImage(const RhiTexture* src, RhiImageSubResource srcSub, const RhiTexture* dst,
-            RhiImageSubResource dstSub) const                                                                   = 0;
-        virtual void CopyBufferToImage(
-            const RhiBuffer* src, const RhiTexture* dst, RhiImageSubResource dstSub) const = 0;
-        virtual void SetCullMode(RhiCullMode mode) const                                   = 0;
+        void Initialize();
     };
 
-    class IFRIT_APIDECL RhiQueue
-    {
-    protected:
-        RhiDevice* m_context;
+     // ===== Command List Executor =====
+    struct RhiCommandListExecutorInternal;
+    class IFRIT_RHI_API RhiCommandListExecutor : public NonCopyable
+     {
+     public:
+        RhiCommandListExecutor();
+        ~RhiCommandListExecutor();
 
-    public:
-        virtual ~RhiQueue() = default;
+        RhiCommandListImmediate* GetImmediateCmdList();
 
-        // Runs a command buffer, with CPU waiting the GPU to finish
-        virtual void                    RunSyncCommand(Fn<void(const RhiCommandList*)> func) = 0;
+        void                     Init();
+        void                     PreFinalize();
+ 
+     private:
+        RhiCommandListExecutorInternal* mInternal;
+     };
 
-        // Runs a command buffer, with CPU not waiting the GPU to finish
-        virtual Uref<RhiTaskSubmission> RunAsyncCommand(Fn<void(const RhiCommandList*)> func,
-            const Vec<RhiTaskSubmission*>& waitOn, const Vec<RhiTaskSubmission*>& toIssue) = 0;
-
-        // Host sync
-        virtual void                    HostWaitEvent(RhiTaskSubmission* event) = 0;
-    };
-} // namespace Ifrit::Graphics::Rhi
+    IFRIT_RHI_API RhiCommandListExecutor* GetCommandListExecutor();
+    IFRIT_RHI_API void                    UnloadCommandListExecutor();
+ } // namespace Ifrit::RHI

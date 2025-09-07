@@ -17,15 +17,17 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
 #include "Atmosphere/PAS.SharedConst.h"
 #include "Atmosphere/PAS.Definition.glsl"
 #include "Atmosphere/PAS.Function.glsl"
 #include "Atmosphere/PAS.Shared.glsl"
+
 
 layout(local_size_x = cPasIrradianceTGX, local_size_y = cPasIrradianceTGY, local_size_z = 1) in;
 
@@ -47,9 +49,9 @@ void main(){
     AtmosphereParameters atmo = GetResource(bAtmo, pConst.atmoData).data;
 
     vec3 deltaIrradiance = ComputeIndirectIrradianceTexture(atmo,
-        GetSampler3D(pConst.singleRayleighScattering),
-        GetSampler3D(pConst.singleMieScattering),
-        GetSampler3D(pConst.multipleScattering),
+        pConst.singleRayleighScattering,
+        pConst.singleMieScattering,
+        pConst.multipleScattering,
         px,pConst.scatteringOrder);
     vec4 irradiance = pConst.luminanceFromRadiance * vec4(deltaIrradiance,0.0);
 

@@ -1,204 +1,282 @@
-
-/*
-Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
 
-#include "RhiBaseTypes.h"
-#include "ifrit/core/logging/Logging.h"
+#include "ifrit/rhi/common/RhiBaseTypes.h"
+#include "ifrit/rhi/common/RhiDevice.h"
+#include "ifrit/rhi/common/RhiApi.h"
 #include <queue>
 #include <cstddef>
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
 
-    // UPD 250325: Resource removal algo before destroys the resource that still in use on device side
-    // referencing Unreal's resource state management, a delete queue should be maintained
-
-    class IFRIT_APIDECL IRhiDeviceResourceDeleteQueue
+    // =====  Resources =====
+    class IFRIT_RHI_API RhiDeviceResource : public RhiDeviceChild
     {
     public:
-        virtual void AddResourceToDeleteQueue(RhiDeviceResource* resource) = 0;
-        virtual i32  ProcessDeleteQueue()                                  = 0;
-    };
+        RhiDeviceResource(ERhiResourceType resType) : mType(resType) {}
 
-    class IFRIT_APIDECL RhiDeviceResource
-    {
-    private:
-        Atomic<u32>                    m_refCount = 0;
-        IRhiDeviceResourceDeleteQueue* m_deleteQueue;
-        RhiDescriptorHandle            m_descHandle;
-        bool                           m_isUnmanaged = false; // unmanaged resources are EXTERNAL resources
-        String                         m_debugName;
-
-    public:
-        explicit RhiDeviceResource(nullptr_t v)
-            : m_deleteQueue(nullptr), m_descHandle(RhiDescriptorHeapType::Invalid, ~0u), m_isUnmanaged(true)
-        {
-        }
-        RhiDeviceResource(IRhiDeviceResourceDeleteQueue* deleteQueue)
-            : m_deleteQueue(deleteQueue), m_descHandle(RhiDescriptorHeapType::Invalid, ~0u)
-        {
-        }
         virtual ~RhiDeviceResource() {}
 
-        inline virtual void AddRef() { m_refCount.fetch_add(1); }
+        inline virtual void AddRef() { mRefCount.fetch_add(1); }
         inline virtual void Release()
         {
-            if (m_refCount.fetch_sub(1) == 1)
+            if (mRefCount.fetch_sub(1) == 1)
             {
-                if (!m_isUnmanaged)
+                if (!mIsUnmanaged)
                 {
                     MarkForDelete();
                 }
             }
         }
-        IF_FORCEINLINE virtual void MarkForDelete() { m_deleteQueue->AddResourceToDeleteQueue(this); }
-        IF_FORCEINLINE virtual void SetDescriptorHandle(const RhiDescriptorHandle& handle) { m_descHandle = handle; }
-        IF_FORCEINLINE virtual u32  GetDescId() const
+        IF_FORCEINLINE virtual void MarkForDelete()
         {
-            if (m_descHandle.GetType() == RhiDescriptorHeapType::Invalid)
-            {
-                iError("Invalid descriptor handle");
-                std::abort();
-                return ~0u;
-            }
-            return m_descHandle.GetId();
+            GetDevice()->GetResourceDeleteQueue()->AddResourceToDeleteQueue(this);
         }
-        IF_FORCEINLINE virtual void          SetDebugName(const String& name) { m_debugName = name; }
-        IF_FORCEINLINE virtual const String& GetDebugName() const { return m_debugName; }
-    };
+        virtual void          SetDebugName(const String& name) { mDebugName = name; }
+        virtual const String& GetDebugName() const { return mDebugName; }
 
-    class IFRIT_APIDECL RhiBuffer : public RhiDeviceResource
-    {
     protected:
-        RhiDevice*       m_context;
-        RhiResourceState m_state = RhiResourceState::Undefined;
+        inline void              SetState(ERhiResourceState state) { mState = state; }
+        inline ERhiResourceState GetState() const { return mState; }
 
     private:
-        inline void SetState(RhiResourceState state) { m_state = state; }
+        Atomic<u32>       mRefCount = 0;
+        String            mDebugName;
+        ERhiResourceState mState       = ERhiResourceState::Undefined;
+        ERhiResourceType  mType        = ERhiResourceType::Unknown;
+        bool              mIsUnmanaged = false; // unmanaged resources are EXTERNAL resources
+    };
 
+    // ===== Buffers =====
+
+    enum class ERhiBufferMapType
+    {
+        CPUReadOnly,
+        CPUWriteOnly,
+    };
+
+    struct RhiBufferDesc
+    {
+        String          mName   = "";
+        u64             mSize   = 0;
+        u32             mStride = 0;
+        ERhiBufferUsage mFlags  = ERhiBufferUsageFlag::None;
+    };
+
+    class IFRIT_RHI_API RhiBuffer : public RhiDeviceResource
+    {
     public:
-        RhiBuffer(IRhiDeviceResourceDeleteQueue* deleteQueue) : RhiDeviceResource(deleteQueue) {}
-        virtual ~RhiBuffer()                                                                = default;
-        virtual void                    MapMemory()                                         = 0;
-        virtual void                    UnmapMemory()                                       = 0;
-        virtual void                    FlushBuffer()                                       = 0;
-        virtual void                    ReadBuffer(void* data, u32 size, u32 offset)        = 0;
-        virtual void                    WriteBuffer(const void* data, u32 size, u32 offset) = 0;
-        virtual inline RhiResourceState GetState() const { return m_state; }
+        RhiBuffer(const RhiBufferDesc& inDesc) : RhiDeviceResource(ERhiResourceType::Buffer), mDesc(inDesc) {}
+        virtual ~RhiBuffer() = default;
 
-        virtual RhiDeviceAddr           GetDeviceAddress() const = 0;
+        virtual RhiDeviceAddr GetDeviceAddress() const = 0;
+        virtual RhiRawHandle  GetRawHandle() const     = 0;
 
-        friend class RhiCommandList;
+        friend class RhiCommandListContext;
+
+    protected:
+        RhiBufferDesc mDesc;
     };
 
-    class IFRIT_APIDECL RhiMultiBuffer
+    class IFRIT_RHI_API RhiStagedSingleBuffer : public RhiDeviceChild
     {
-    protected:
-        RhiDevice*                     m_context;
-        IRhiDeviceResourceDeleteQueue* m_deleteQueue;
-
     public:
-        RhiMultiBuffer(IRhiDeviceResourceDeleteQueue* deleteQueue) : m_deleteQueue(deleteQueue) {}
-        virtual RhiBuffer* GetActiveBuffer()                       = 0;
-        virtual RhiBuffer* GetActiveBufferRelative(u32 deltaFrame) = 0;
-        virtual ~RhiMultiBuffer()                                  = default;
+        virtual ~RhiStagedSingleBuffer() = default;
+        virtual void CmdCopyToDevice(const RhiCommandListContext* cmd, const void* data, u32 size, u32 localOffset) = 0;
     };
 
-    class IFRIT_APIDECL RhiStagedSingleBuffer
-    {
-    protected:
-        RhiDevice* m_context;
+    // ===== Textures =====
 
+    struct RhiTextureDesc
+    {
+        ERhiImageUsage        mUsage        = ERhiImageUsageFlag::None;
+        ERhiImageDimension    mDimension    = ERhiImageDimension::Unknown;
+        ERhiImageFormat       mFormat       = ERhiImageFormat::Undefined;
+        ERhiResourceState     mInitialState = ERhiResourceState::Undefined;
+        RhiClearColorValue    mClearValue;
+        u32                   mWidth     = 0;
+        u32                   mHeight    = 0;
+        u32                   mDepth     = 0;
+        u32                   mMips      = 1;
+        u32                   mSamples   = 1;
+        u32                   mArraySize = 1;
+
+        static RhiTextureDesc CreateTexture2D(
+            u32 width, u32 height, ERhiImageFormat format, ERhiImageUsage usage = 0, u32 mipLevels = 1)
+        {
+            RhiTextureDesc desc;
+            desc.mDimension = ERhiImageDimension::Texture2D;
+            desc.mWidth     = width;
+            desc.mHeight    = height;
+            desc.mDepth     = 1;
+            desc.mMips      = mipLevels;
+            desc.mFormat    = format;
+            desc.mUsage     = usage;
+            return desc;
+        }
+    };
+
+    class IFRIT_RHI_API RhiTexture : public RhiDeviceResource
+    {
     public:
-        virtual ~RhiStagedSingleBuffer()                                                                     = default;
-        virtual void CmdCopyToDevice(const RhiCommandList* cmd, const void* data, u32 size, u32 localOffset) = 0;
-    };
+        RhiTexture(const RhiTextureDesc& inDesc) : RhiDeviceResource(ERhiResourceType::Texture), mDesc(inDesc) {}
+        virtual ~RhiTexture() = default;
 
-    class RhiStagedMultiBuffer
-    {
-    };
+        inline u32                GetHeight() const { return mDesc.mHeight; }
+        inline u32                GetWidth() const { return mDesc.mWidth; }
+        inline u32                GetDepth() const { return mDesc.mDepth; }
 
-    class IFRIT_APIDECL RhiTexture : public RhiDeviceResource
-    {
+        inline u32                GetMipLevels() const { return mDesc.mMips; }
+        inline u32                GetArraySize() const { return mDesc.mArraySize; }
+        inline ERhiImageDimension GetDimension() const { return mDesc.mDimension; }
+        inline bool               IsSwapchainImage() const { return mRhiSwapchainImage; }
+        inline bool               IsDepthTexture() const { return (mDesc.mUsage & ERhiImageUsageFlag::Depth) != 0; }
+        inline u32                GetSamples() const { return mDesc.mSamples; }
+        inline ERhiImageUsage     GetUsage() const { return mDesc.mUsage; }
+
+        virtual RhiRawHandle      GetRawHandle() const = 0;
+
+        friend class RhiCommandListContext;
+
     protected:
-        RhiDevice*       m_context;
-        RhiResourceState m_state             = RhiResourceState::Undefined;
-        bool             m_rhiSwapchainImage = false;
+        RhiTextureDesc mDesc;
+        bool           mRhiSwapchainImage = false;
+    };
+
+    // ===== Samplers =====
+
+    struct RhiSamplerDesc
+    {
+        ERhiSamplerFilter   mFilterMode    = ERhiSamplerFilter::Linear;
+        ERhiSamplerWrapMode mWrapModeU     = ERhiSamplerWrapMode::Repeat;
+        ERhiSamplerWrapMode mWrapModeV     = ERhiSamplerWrapMode::Repeat;
+        ERhiSamplerWrapMode mWrapModeW     = ERhiSamplerWrapMode::Repeat;
+        f32                 mLodBias       = 0.0f;
+        f32                 mMinLod        = 0.0f;
+        f32                 mMaxLod        = FLT_MAX;
+        u32                 mMaxAnisotropy = 1;
+    };
+
+    class IFRIT_RHI_API RhiSampler : public RhiDeviceResource
+    {
+    public:
+        RhiSampler(const RhiSamplerDesc& inDesc) : RhiDeviceResource(ERhiResourceType::SamplerState), mDesc(inDesc) {}
+        virtual ~RhiSampler()                     = default;
+        virtual RhiRawHandle GetRawHandle() const = 0;
+
+    protected:
+        RhiSamplerDesc mDesc;
+    };
+
+    // ===== Raytracing =====
+
+    struct IFRIT_RHI_API RhiRTGeometryReference
+    {
+        RhiDeviceAddr mVertex;
+        RhiDeviceAddr mIndex;
+        RhiDeviceAddr mTransform;
+        u32           mNumVertices;
+        u32           mNumIndices;
+        u32           mVertexComponents = 3;
+        u32           mVertexStride     = 12;
+    };
+
+    // ===== Resource View =====
+    enum class ERhiResourceViewedType
+    {
+        Buffer,
+        Texture,
+    };
+
+    struct IFRIT_RHI_API RhiResourceViewDesc
+    {
+        RhiResourceViewDesc() {};
+
+        struct BufferViewDesc
+        {
+            u32 mOffset = 0;
+            u32 mSize   = ~0u;
+        };
+
+        struct TextureViewDesc
+        {
+            RhiImageSubResource mSubResource;
+        };
+
+        ERhiResourceViewedType mType;
+
+        BufferViewDesc         mBufferView;
+        TextureViewDesc        mTextureView;
+    };
+
+    class IFRIT_RHI_API RhiResourceView : public RhiDeviceResource
+    {
+    public:
+        RhiResourceView(RhiTexture* texture, const RhiResourceViewDesc& desc)
+            : RhiDeviceResource(ERhiResourceType::View), mTexture(texture), mDesc(desc)
+
+        {
+            InternalCheck();
+        }
+
+        RhiResourceView(RhiBuffer* buffer, const RhiResourceViewDesc& desc)
+            : RhiDeviceResource(ERhiResourceType::View), mBuffer(buffer), mDesc(desc)
+        {
+            InternalCheck();
+        }
+
+        RhiTexture*                       GetUnderlyingTexture() const;
+        RhiBuffer*                        GetUnderlyingBuffer() const;
+
+        virtual void                      AcquireHandle() = 0;
+        virtual void                      ReleaseHandle() = 0;
+
+        bool                              IsTextureView() const { return mTexture != nullptr; }
+        bool                              IsBufferView() const { return mBuffer != nullptr; }
+
+        inline RhiDescriptorHandle        GetHandle() const { return mHandle; }
+        inline const RhiResourceViewDesc& GetDesc() const { return mDesc; }
+
+        virtual ~RhiResourceView()                = default;
+        virtual RhiRawHandle GetRawHandle() const = 0;
+
+    protected:
+        RhiTexture*         mTexture = nullptr;
+        RhiBuffer*          mBuffer  = nullptr;
+        RhiResourceViewDesc mDesc;
+        RhiDescriptorHandle mHandle;
 
     private:
-        inline void SetState(RhiResourceState state) { m_state = state; }
+        void InternalCheck();
+    };
 
+    class IFRIT_RHI_API RhiShaderReadView : public RhiResourceView
+    {
     public:
-        explicit RhiTexture(nullptr_t v) : RhiDeviceResource(nullptr) {}
-        RhiTexture(IRhiDeviceResourceDeleteQueue* deleteQueue) : RhiDeviceResource(deleteQueue) {}
-        virtual ~RhiTexture()                                  = default;
-        virtual u32                     GetHeight() const      = 0;
-        virtual u32                     GetWidth() const       = 0;
-        virtual u32                     GetDepth() const       = 0;
-        virtual bool                    IsDepthTexture() const = 0;
-        virtual inline RhiResourceState GetState() const { return m_state; }
-        virtual void*                   GetNativeHandle() const = 0;
-        virtual u32                     GetSamples() const      = 0;
-        virtual RhiImageFormat          GetImageFormat() const  = 0;
-        virtual u32                     GetUsage() const        = 0;
-
-        friend class RhiCommandList;
+        using RhiResourceView::RhiResourceView;
+        virtual void AcquireHandle() = 0;
+        virtual void ReleaseHandle() = 0;
     };
 
-    class IFRIT_APIDECL RhiSampler : public RhiDeviceResource
+    class IFRIT_RHI_API RhiUnorderedAccessView : public RhiResourceView
     {
-    protected:
-        RhiSampler(IRhiDeviceResourceDeleteQueue* deleteQueue) : RhiDeviceResource(deleteQueue) {}
-        virtual int _polymorphismPlaceHolder() { return 0; }
+    public:
+        using RhiResourceView::RhiResourceView;
+        virtual void AcquireHandle() = 0;
+        virtual void ReleaseHandle() = 0;
     };
 
-    struct IFRIT_APIDECL RhiRTGeometryReference
-    {
-        RhiDeviceAddr m_vertex;
-        RhiDeviceAddr m_index;
-        RhiDeviceAddr m_transform;
-        u32           m_numVertices;
-        u32           m_numIndices;
-        u32           m_vertexComponents = 3;
-        u32           m_vertexStride     = 12;
-    };
-
-    class IFRIT_APIDECL RhiRTInstance
+    // ===== Raytracing =====
+    class IFRIT_RHI_API RhiRTInstance
     {
     public:
         virtual RhiDeviceAddr GetDeviceAddress() const = 0;
     };
 
-    class IFRIT_APIDECL RhiRTScene
+    class IFRIT_RHI_API RhiRTScene
     {
     public:
         virtual RhiDeviceAddr GetDeviceAddress() const = 0;
     };
 
-    class IFRIT_APIDECL RhiBindlessDescriptorRef
-    {
-    public:
-        virtual void AddUniformBuffer(RhiMultiBuffer* buffer, u32 loc)                          = 0;
-        virtual void AddStorageBuffer(RhiMultiBuffer* buffer, u32 loc)                          = 0;
-        virtual void AddStorageBuffer(RhiBuffer* buffer, u32 loc)                               = 0;
-        virtual void AddCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler, u32 loc) = 0;
-        virtual void AddUAVImage(RhiTexture* texture, RhiImageSubResource subResource, u32 loc) = 0;
-    };
-
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

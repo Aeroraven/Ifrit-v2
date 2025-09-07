@@ -48,9 +48,9 @@ namespace Ifrit::Graphics::SoftGraphics
     public:
         IFRIT_DUAL virtual void execute(const void* const* input, Vector4f* outPos, Vector4f* const* outVaryings) = 0;
         IFRIT_DUAL virtual ~VertexShader() = default;
-        IFRIT_HOST virtual VertexShader*                 GetCudaClone() { return nullptr; };
-        IFRIT_HOST virtual std::unique_ptr<VertexShader> getThreadLocalCopy() { return nullptr; };
-        IFRIT_HOST virtual void                          updateUniformData(int binding, int set, const void* pData) {}
+        IFRIT_HOST virtual VertexShader*       GetCudaClone() { return nullptr; };
+        IFRIT_HOST virtual Owner<VertexShader> getThreadLocalCopy() { return nullptr; };
+        IFRIT_HOST virtual void                updateUniformData(int binding, int set, const void* pData) {}
         IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return {}; }
         IFRIT_HOST virtual VaryingDescriptor                getVaryingDescriptor() { return {}; }
     };
@@ -71,9 +71,9 @@ namespace Ifrit::Graphics::SoftGraphics
         };
 
         IFRIT_DUAL virtual ~FragmentShader() = default;
-        IFRIT_HOST virtual FragmentShader*                 GetCudaClone() { return nullptr; };
-        IFRIT_HOST virtual std::unique_ptr<FragmentShader> getThreadLocalCopy() { return nullptr; };
-        IFRIT_HOST virtual void                            updateUniformData(int binding, int set, const void* pData) {}
+        IFRIT_HOST virtual FragmentShader*       GetCudaClone() { return nullptr; };
+        IFRIT_HOST virtual Owner<FragmentShader> getThreadLocalCopy() { return nullptr; };
+        IFRIT_HOST virtual void                  updateUniformData(int binding, int set, const void* pData) {}
         IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return {}; }
     };
 

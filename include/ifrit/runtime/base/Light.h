@@ -18,11 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "Component.h"
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/math/VectorDefs.h"
-#include "ifrit/core/serialization/MathTypeSerialization.h"
-#include "ifrit/core/serialization/SerialInterface.h"
-#include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/common/Pch.h"
+#include "ifrit/core/serialization/SerialEnumDefine.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
@@ -31,37 +29,38 @@ namespace Ifrit::Runtime
     {
         Directional
     };
-    struct LightData
-    {
-        LightType m_type                = LightType::Directional;
-        bool      m_affectPbrSky        = false;
-        bool      m_shadowMap           = false;
-        u32       m_shadowMapResolution = 512;
-        IFRIT_STRUCT_SERIALIZE(m_type, m_affectPbrSky, m_shadowMap);
-    };
 
-    class IFRIT_APIDECL Light : public Component, public AttributeOwner<LightData>
+    class IFRIT_APIDECL IF_CLASS() Light : public Component
     {
     public:
-        Light(){};
-        Light(Ref<GameObject> owner) : Component(owner), AttributeOwner() {}
+        IF_PROPERTY()
+        LightType mType = LightType::Directional;
+
+        IF_PROPERTY()
+        bool AffectPbrSky = false;
+
+        IF_PROPERTY()
+        bool ShadowMap = false;
+
+        IF_PROPERTY()
+        u32 ShadowMapResolution = 512;
+
+    public:
+        using Component::Component;
         virtual ~Light() = default;
-        inline String    Serialize() override { return SerializeAttribute(); }
-        inline void      Deserialize() override { DeserializeAttribute(); }
 
         // getters
-        inline LightType GetType() const { return m_attributes.m_type; }
-        inline bool      GetAffectPbrSky() const { return m_attributes.m_affectPbrSky; }
-        inline bool      GetShadowMap() const { return m_attributes.m_shadowMap; }
-        inline u32       GetShadowMapResolution() const { return m_attributes.m_shadowMapResolution; }
+
+        inline LightType GetType() const { return mType; }
+        inline bool      GetAffectPbrSky() const { return AffectPbrSky; }
+        inline bool      GetShadowMap() const { return ShadowMap; }
+        inline u32       GetShadowMapResolution() const { return ShadowMapResolution; }
 
         // setters
-        inline void      SetType(const LightType& type) { m_attributes.m_type = type; }
-        inline void      SetAffectPbrSky(bool affectPbrSky) { m_attributes.m_affectPbrSky = affectPbrSky; }
-        inline void      SetShadowMap(bool shadowMap) { m_attributes.m_shadowMap = shadowMap; }
-        inline void      SetShadowMapResolution(u32 resolution) { m_attributes.m_shadowMapResolution = resolution; }
+
+        inline void      SetType(const LightType& type) { mType = type; }
+        inline void      SetAffectPbrSky(bool affectPbrSky) { AffectPbrSky = affectPbrSky; }
+        inline void      SetShadowMap(bool shadowMap) { ShadowMap = shadowMap; }
+        inline void      SetShadowMapResolution(u32 resolution) { ShadowMapResolution = resolution; }
     };
 } // namespace Ifrit::Runtime
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::Light)
-IFRIT_ENUMCLASS_SERIALIZE(Ifrit::Runtime::LightType)

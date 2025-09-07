@@ -1,33 +1,63 @@
+# Ifrit-v2 / Acknowledgements
 
-### 3.1 Dependencies
+## 1. Special Thanks
+
+- https://www.unrealengine.com/
+- https://github.com/zenustech/zpc (https://github.com/littlemine)
+
+
+
+## 2. Dependencies
 
 This project relies on following open-source projects. Corresponding licenses are in `licenses` folder.
 
+### 2.1 Active Dependenices
+
 | Repository                                                   | Usage                            | License              |
 | ------------------------------------------------------------ | -------------------------------- | -------------------- |
-| [stb](https://github.com/nothings/stb)                       | Image Parsing                    | MIT / Unlicensed     |
-| [glfw3](https://github.com/glfw/glfw)                        | Window and Display support       | Zlib                 |
-| [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/) | SPIR-V Standard Reference        | MIT                  |
-| [glad](https://github.com/Dav1dde/glad/)                     | OpenGL Header Generation.        | Generated files used |
-| [llvm-project](https://github.com/llvm/llvm-project)         | JIT Runtime                      | Apache 2.0           |
-| [meshoptimizer](https://github.com/zeux/meshoptimizer)       | Mesh Algorithm                   | MIT                  |
-| [METIS](https://github.com/KarypisLab/METIS/)                | Mesh Algorithm / Graph Partition | Apache 2.0           |
-| [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | Memory Allocation                | MIT                  |
-| [cereal](https://github.com/USCiLab/cereal)                  | Serialization                    | BSD-3                |
-| [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT                  |
-| [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT                  |
-| [spirv-reflect](https://github.com/KhronosGroup/SPIRV-Reflect) | Shader Reflection                | Apache 2.0           |
-| [shaderc](https://github.com/google/shaderc?tab=License-1-ov-file#readme) | Shader Compilation               | Apache 2.0           |
-| [sha1](https://github.com/vog/sha1)                          | Hash                             | Public domain        |
-| [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
-| [gcem](https://github.com/kthohr/gcem)                       | Compile-time Math                | Apache 2.0           |
-| [spdlog](https://github.com/gabime/spdlog.git)               | Logging                          | MIT                  |
+| [blosc](https://github.com/Blosc/c-blosc)                    | (Required by `openvdb`)          | BSD License          |
 | [fsr2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2)   | Super Resolution                 | MIT                  |
-| [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) * | Texture Compression              | Apache 2.0           |
+| [gcem](https://github.com/kthohr/gcem)                       | Compile-time Math                | Apache 2.0           |
+| [glad](https://github.com/Dav1dde/glad/)                     | OpenGL Header Generation.        | Generated files used |
+| [glfw3](https://github.com/glfw/glfw)                        | Window and Display support       | Zlib                 |
+| [IconFontCppHeaders](https://github.com/juliettef/IconFontCppHeaders) | Editor GUI                       | Zlib                 |
+| [imgui](https://github.com/ocornut/imgui)                    | Editor GUI                       | MIT                  |
+| [json](https://github.com/nlohmann/json)                     | Serialization Output Format      | MIT                  |
+| [libktx](https://github.com/KhronosGroup/KTX-Software/blob/main/) | Texture Compression              | Apache 2.0           |
+| [llvm-project](https://github.com/llvm/llvm-project)         | JIT Runtime / Reflection Parsing | Apache 2.0           |
+| [magic_enum](https://github.com/Neargye/magic_enum)          | Reflection                       | MIT                  |
+| [meshoptimizer](https://github.com/zeux/meshoptimizer)       | Mesh Algorithm                   | MIT                  |
+| [mimalloc](https://github.com/microsoft/mimalloc)            | Memory Allocation                | MIT                  |
+| [METIS](https://github.com/KarypisLab/METIS/)                | Mesh Algorithm / Graph Partition | Apache 2.0           |
+| [nfd-extended](https://github.com/btzy/nativefiledialog-extended) | Editor GUI                       | Zlib                 |
+| [openvdb](https://github.com/AcademySoftwareFoundation/openvdb) | Volume Data Structure            | Apache 2.0           |
+| [precomputed_atmospheric_scattering](https://github.com/ebruneton/precomputed_atmospheric_scattering) | Atmospheric Scattering           | BSD-3-Clause         |
+| [renderdoc](https://renderdoc.org/)                          | Debug Integration                | MIT                  |
+| [sha1](https://github.com/vog/sha1)                          | Hash                             | Public domain        |
+| [shaderc](https://github.com/google/shaderc?tab=License-1-ov-file#readme) | Shader Compilation               | Apache 2.0           |
+| [slang](https://github.com/shader-slang/slang)               | Shader Compilation               | Apache 2.0           |
+| [spdlog](https://github.com/gabime/spdlog.git)               | Logging                          | MIT                  |
+| [spirv-headers](https://github.com/KhronosGroup/SPIRV-Headers/) | SPIR-V Standard Reference        | MIT                  |
+| [spirv-reflect](https://github.com/KhronosGroup/SPIRV-Reflect) | Shader Reflection                | Apache 2.0           |
+| [stb](https://github.com/nothings/stb)                       | Image Parsing                    | MIT / Unlicensed     |
+| [stduuid](https://github.com/mariusbancila/stduuid)          | UUID                             | MIT                  |
+| [tbb](https://github.com/uxlfoundation/oneTBB?tab=Apache-2.0-1-ov-file#readme) | (Required by `openvdb`)          | Apache 2.0           |
+| [tetgen](https://github.com/ufz/tetgen)                      | Mesh Tetrahedralization          | AGPL 3.0             |
+| [tinygltf](https://github.com/syoyo/tinygltf/tree/release)   | Model Loading                    | MIT                  |
+| [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | Memory Allocation                | MIT                  |
+| [zlib](https://github.com/madler/zlib)                       | (Required by `openvdb`)          | Zlib                 |
 
-*. License files can be obtained in submodule after you git clone this repository.
+### 2.2 Legacy/Removed/Unused Dependencies
+
+These dependencies are no longer used in `dev` branch.
+
+| Repository                                  | Former Usage  | License |
+| ------------------------------------------- | ------------- | ------- |
+| [cereal](https://github.com/USCiLab/cereal) | Serialization | BSD-3   |
 
 
+
+### 2.3 Extra Tools
 
 Some tools are used during the development.
 
@@ -37,10 +67,9 @@ Some tools are used during the development.
 
 
 
-And some references that give inspirations. Thanks for their selfless dedications.
+## 3. References
 
-**Overall**:
-1. https://www.unrealengine.com/
+And some references that give inspirations. Thanks for their selfless dedications.
 
 **Software Rasterization**：
 
@@ -52,7 +81,7 @@ And some references that give inspirations. Thanks for their selfless dedication
 5. https://www.mesa3d.org/
 6. https://agner.org/optimize/
 
-**Modern Graphics Pipeline**
+**Project Syaro / Modern Graphics Pipeline**
 
 1. https://advances.realtimerendering.com/s2021/Karis_Nanite_SIGGRAPH_Advances_2021_final.pdf
 2. https://qiutang98.github.io/post/%E5%AE%9E%E6%97%B6%E6%B8%B2%E6%9F%93%E5%BC%80%E5%8F%91/mynanite01_mesh_processor/
@@ -70,19 +99,25 @@ And some references that give inspirations. Thanks for their selfless dedication
 12. https://developer.nvidia.com/orca/amazon-lumberyard-bistro
 13. https://games-cn.org/games104-slides/
 
-**Global Illumination**
+**Project Ayanami / Global Illumination**
+
 1. https://advances.realtimerendering.com/s2022/SIGGRAPH2022-Advances-Lumen-Wright%20et%20al.pdf
 2. https://zhuanlan.zhihu.com/p/696464007
 3. https://zhuanlan.zhihu.com/p/522165652
 
+**Project Artemis**
+
+1. https://github.com/yuanming-hu/taichi_mpm
+1. https://github.com/zenustech/zpc
+1. https://github.com/dgerh/Breakpoint
+1. https://github.com/electronicarts/pbmpm
+1. https://github.com/MarkJoson/unity2d_rigidbody_xpbd
+1. https://github.com/felipeek/raw-physics
+1. https://github.com/InteractiveComputerGraphics/PositionBasedDynamics
+1. https://github.com/wlgys8/PBDClothLearn
+
 **Coding**
+
 1. https://github.com/TensorWorks/UE-Clang-Format
 2. https://zhuanlan.zhihu.com/p/352723264
 
-
-### 3.2 About naming
-All names are chosen randomly from some characters.
-
-- Ifrit: https://arknights.wiki.gg/wiki/Ifrit
-- Syaro: https://gochiusa.fandom.com/wiki/Syaro_Kirima
-  - Directly: https://osu.ppy.sh/beatmapsets/451250#osu/974142

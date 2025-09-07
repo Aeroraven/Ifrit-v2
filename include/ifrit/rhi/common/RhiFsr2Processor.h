@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/platform/ApiConv.h"
 #include <cstdint>
 
-namespace Ifrit::Graphics::Rhi::FSR2
+namespace Ifrit::RHI::FSR2
 {
 
     struct RhiFSR2InitialzeArgs
@@ -35,13 +35,13 @@ namespace Ifrit::Graphics::Rhi::FSR2
 
     struct RhiFSR2DispatchArgs
     {
-        Rhi::RhiTexture* color;
-        Rhi::RhiTexture* depth;
-        Rhi::RhiTexture* motion;
-        Rhi::RhiTexture* exposure;
-        Rhi::RhiTexture* reactiveMask;
-        Rhi::RhiTexture* transparencyMask;
-        Rhi::RhiTexture* output;
+        RHI::RhiTexture* color;
+        RHI::RhiTexture* depth;
+        RHI::RhiTexture* motion;
+        RHI::RhiTexture* exposure;
+        RHI::RhiTexture* reactiveMask;
+        RHI::RhiTexture* transparencyMask;
+        RHI::RhiTexture* output;
         float            deltaTime;
         float            jitterX;
         float            jitterY;
@@ -55,9 +55,9 @@ namespace Ifrit::Graphics::Rhi::FSR2
     {
     public:
         virtual ~RhiFsr2Processor()                                                                       = default;
-        virtual void Init(const Rhi::FSR2::RhiFSR2InitialzeArgs& args)                                    = 0;
+        virtual void Init(const RHI::FSR2::RhiFSR2InitialzeArgs& args)                                    = 0;
         virtual void GetJitters(float* jitterX, float* jitterY, u32 frameIdx, u32 rtWidth, u32 rtHeight)  = 0;
-        virtual void Dispatch(const Rhi::RhiCommandList* cmd, const Rhi::FSR2::RhiFSR2DispatchArgs& args) = 0;
+        virtual void Dispatch(const RHI::RhiCommandListContext* cmd, const RHI::FSR2::RhiFSR2DispatchArgs& args) = 0;
     };
 
-} // namespace Ifrit::Graphics::Rhi::FSR2
+} // namespace Ifrit::RHI::FSR2

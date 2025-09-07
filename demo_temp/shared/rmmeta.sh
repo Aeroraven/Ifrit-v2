@@ -1,0 +1,1 @@
+rm Asset/*.meta

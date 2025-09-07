@@ -20,12 +20,37 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "RhiBaseTypes.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
     struct IFRIT_APIDECL RhiRenderTargetsFormat
     {
-        RhiImageFormat      m_depthFormat;
-        Vec<RhiImageFormat> m_colorFormats;
+        ERhiImageFormat      mDepthFormat;
+        Vec<ERhiImageFormat> mColorFormats;
+
+        bool                 operator==(const RhiRenderTargetsFormat& other) const
+        {
+            if (mDepthFormat == other.mDepthFormat)
+            {
+                if (mColorFormats.size() != other.mColorFormats.size())
+                    return false;
+                for (u32 i = 0; i < mColorFormats.size(); i++)
+                {
+                    if (mColorFormats[i] != other.mColorFormats[i])
+                        return false;
+                }
+                return true;
+            }
+            return false;
+        }
+        u64 Hash() const
+        {
+            u64 seed = static_cast<u32>(mDepthFormat);
+            for (const auto& format : mColorFormats)
+            {
+                seed ^= static_cast<u32>(format) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+            }
+            return seed;
+        }
     };
 
     class IFRIT_APIDECL RhiRenderTargets
@@ -33,8 +58,8 @@ namespace Ifrit::Graphics::Rhi
     public:
         virtual void                       SetColorAttachments(const Vec<RhiColorAttachment*>& attachments) = 0;
         virtual void                       SetDepthStencilAttachment(RhiDepthStencilAttachment* attachment) = 0;
-        virtual void                       BeginRendering(const RhiCommandList* commandBuffer) const        = 0;
-        virtual void                       EndRendering(const RhiCommandList* commandBuffer) const          = 0;
+        virtual void                       BeginRendering(const RhiCommandListContext* commandBuffer) const = 0;
+        virtual void                       EndRendering(const RhiCommandListContext* commandBuffer) const   = 0;
         virtual void                       SetRenderArea(RhiScissor area)                                   = 0;
         virtual RhiRenderTargetsFormat     GetFormat() const                                                = 0;
         virtual RhiScissor                 GetRenderArea() const                                            = 0;
@@ -55,10 +80,12 @@ namespace Ifrit::Graphics::Rhi
         virtual RhiTexture* GetTexture() const = 0;
     };
 
-    class IFRIT_APIDECL RhiVertexBufferView
-    {
-    public:
-        virtual void AddBinding(Vec<u32> location, Vec<RhiImageFormat> format, Vec<u32> offset, u32 stride,
-            RhiVertexInputRate inputRate = RhiVertexInputRate::Vertex) = 0;
-    };
-} // namespace Ifrit::Graphics::Rhi
+    // @REMOVING
+    // class IFRIT_APIDECL RhiVertexBufferView
+    // {
+    // public:
+    //     virtual void AddBinding(Vec<u32> location, Vec<ERhiImageFormat> format, Vec<u32> offset, u32 stride,
+    //         ERhiVertexInputRate inputRate = ERhiVertexInputRate::Vertex) = 0;
+    // };
+
+} // namespace Ifrit::RHI

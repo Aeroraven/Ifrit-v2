@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 // Instance culling typically sends the instance's root BVH node
@@ -314,7 +314,7 @@ void main(){
     mat4 worldToView = GetResource(bPerframeView,perframeRef).data.m_worldToView;
     mat4 worldToViewOccl = GetResource(bPerframeView,getPerFrameRef()).data.m_worldToView;
 
-    mat4 localToWorld = GetResource(bLocalTransform,transRef).m_localToWorld;
+    mat4 localToWorld = GetResource(bModelTransform,transRef).m_Data.m_LocalToWorld;
     vec4 boundBall = GetResource(bMeshDataRef,objRef).boundingSphere;
     vec4 worldBoundBall = localToWorld * vec4(boundBall.xyz,1.0);
     vec4 viewBoundBall = worldToView * worldBoundBall;
@@ -322,10 +322,10 @@ void main(){
     mat4 localToWorldOccl;
     if(!isFirstPass){
         localToWorldOccl = localToWorld;
-        maxScale = GetResource(bLocalTransform,transRef).m_maxScale;
+        maxScale = GetResource(bModelTransform,transRef).m_Data.m_MaxScale.x;
     }else{
-        localToWorldOccl = GetResource(bLocalTransform,transRefLast).m_localToWorld;
-        maxScale = GetResource(bLocalTransform,transRefLast).m_maxScale;
+        localToWorldOccl = GetResource(bModelTransform,transRefLast).m_Data.m_LocalToWorld;
+        maxScale = GetResource(bModelTransform,transRefLast).m_Data.m_MaxScale.x;
     }
     vec4 worldBoundBallOccl = localToWorldOccl * vec4(boundBall.xyz,1.0);
     vec4 viewBoundBallOccl = worldToViewOccl * worldBoundBallOccl;

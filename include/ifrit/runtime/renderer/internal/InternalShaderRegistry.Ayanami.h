@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/runtime/material/ShaderRegistry.h"
+#include "ifrit/runtime/rendercore/shadercore/ShaderRegistry.h"
 #include "ifrit/runtime/base/Base.h"
 
 namespace Ifrit::Runtime::Internal
@@ -31,28 +31,49 @@ namespace Ifrit::Runtime::Internal
 #define SDEF IF_CONSTEXPR static const char*
     static struct InternalShaderTableAyanami
     {
-        SDEF CopyFS                    = DECLARE_FS("Ayanami/Copy");
-        SDEF CopyVS                    = DECLARE_VS("Ayanami/Copy");
-        SDEF DirectShadowVisibilityCS  = DECLARE_CS("Ayanami/DirectShadowVisibility");
-        SDEF GlobalDFRayMarchCS        = DECLARE_CS("Ayanami/GlobalDFRayMarch");
-        SDEF RayMarchCS                = DECLARE_CS("Ayanami/RayMarch");
-        SDEF SurfaceCacheGenFS         = DECLARE_FS("Ayanami/SurfaceCacheGen");
-        SDEF SurfaceCacheGenVS         = DECLARE_VS("Ayanami/SurfaceCacheGen");
-        SDEF TrivialGlobalDFCompCS     = DECLARE_CS("Ayanami/TrivialGlobalDFComp");
-        SDEF DFShadowTileCullingMS     = DECLARE_MS("Ayanami/DFShadowTileCulling");
-        SDEF DFShadowTileCullingFS     = DECLARE_FS("Ayanami/DFShadowTileCulling");
-        SDEF DFShadowFS                = DECLARE_FS("Ayanami/DFShadow");
-        SDEF TestDeferShadingFS        = DECLARE_FS("Ayanami/TestDeferShading");
-        SDEF DFShadowVisibilityCS      = DECLARE_CS("Ayanami/DFRadianceInjection");
-        SDEF ObjectGridCompositionCS   = DECLARE_CS("Ayanami/ObjectGridComposition");
-        SDEF RadiosityTraceCS          = DECLARE_CS("Ayanami/RadiosityTrace");
-        SDEF SurfaceCacheDirectLightCS = DECLARE_CS("Ayanami/SurfaceCacheDirectLighting");
+        SDEF CopyFS                     = DECLARE_FS("Ayanami/Copy");
+        SDEF CopyVS                     = DECLARE_VS("Ayanami/Copy");
+        SDEF DirectShadowVisibilityCS   = DECLARE_CS("Ayanami/DirectShadowVisibility");
+        SDEF GlobalDFRayMarchCS         = DECLARE_CS("Ayanami/GlobalDFRayMarch");
+        SDEF RayMarchCS                 = DECLARE_CS("Ayanami/RayMarch");
+        SDEF SurfaceCacheGenFS          = DECLARE_FS("Ayanami/SurfaceCacheGen");
+        SDEF SurfaceCacheGenVS          = DECLARE_VS("Ayanami/SurfaceCacheGen");
+        SDEF TrivialGlobalDFCompCS      = DECLARE_CS("Ayanami/TrivialGlobalDFComp");
+        SDEF DFShadowTileCullingMS      = DECLARE_MS("Ayanami/DFShadowTileCulling");
+        SDEF DFShadowTileCullingFS      = DECLARE_FS("Ayanami/DFShadowTileCulling");
+        SDEF DFShadowFS                 = DECLARE_FS("Ayanami/DFShadow");
+        SDEF TestDeferShadingFS         = DECLARE_FS("Ayanami/TestDeferShading");
+        SDEF DFShadowVisibilityCS       = DECLARE_CS("Ayanami/DFRadianceInjection");
+        SDEF ObjectGridCompositionCS    = DECLARE_CS("Ayanami/ObjectGridComposition");
+        SDEF RadiosityTraceCS           = DECLARE_CS("Ayanami/RadiosityTrace");
+        SDEF RadiositySHConversionCS    = DECLARE_CS("Ayanami/RadiositySHConversion");
+        SDEF RadiositySHIntegrateCS     = DECLARE_CS("Ayanami/RadiositySHIntegrate");
+        SDEF SurfaceCacheDirectLightCS  = DECLARE_CS("Ayanami/SurfaceCacheDirectLighting");
+        SDEF SurfaceCacheCombineLightCS = DECLARE_CS("Ayanami/SurfaceCacheCombineLighting");
 
         SDEF DbgReconFromSurfaceCacheCS = DECLARE_CS("Ayanami/DbgReconFromSurfaceCache");
         SDEF DbgSampleReconDepthCS      = DECLARE_CS("Ayanami/DbgSampleReconDepthCS");
         SDEF DbgSampleObjectGridsCS     = DECLARE_CS("Ayanami/DbgSampleObjectGridsCS");
         SDEF DbgVisObjGridsMS           = DECLARE_MS("Ayanami/DbgVisObjGridsMS");
         SDEF DbgVisObjGridsFS           = DECLARE_FS("Ayanami/DbgVisObjGridsFS");
+        SDEF DbgVisAdaptiveProbeCS      = DECLARE_CS("Ayanami/DbgVisAdaptiveProbeCS");
+        SDEF DbgVisScreenUniformProbeCS = DECLARE_CS("Ayanami/DbgVisScreenUniformProbeCS");
+
+        SDEF ScreenProbeAdaptivePlaceCS  = DECLARE_CS("Ayanami/ScreenProbeAdaptivePlaceCS");
+        SDEF ScreenProbeTraceScreenCS    = DECLARE_CS("Ayanami/ScreenProbeTraceScreenCS");
+        SDEF ScreenProbeMDFCullPrepCS    = DECLARE_CS("Ayanami/ScreenProbeMDFCullPrepCS");
+        SDEF ScreenProbeMDFCullScatterVS = DECLARE_VS("Ayanami/ScreenProbeMDFCullScatterVS");
+        SDEF ScreenProbeMDFCullScatterFS = DECLARE_FS("Ayanami/ScreenProbeMDFCullScatterFS");
+        SDEF ScreenProbeMDFTraceCS       = DECLARE_CS("Ayanami/ScreenProbeMDFTraceCS");
+        SDEF ScreenProbeGDFTraceCS       = DECLARE_CS("Ayanami/ScreenProbeGDFTraceCS");
+        SDEF ScreenProbeSHIntegrateCS    = DECLARE_CS("Ayanami/ScreenProbeSHIntegrateCS");
+        SDEF ScreenProbePixelGatherCS    = DECLARE_CS("Ayanami/ScreenProbePixelGatherCS");
+        SDEF ScreenProbeBorderFixCS      = DECLARE_CS("Ayanami/ScreenProbeBorderFixCS");
+
+        SDEF DeferredShadowFS         = DECLARE_FS("Ayanami/DeferredShadow");
+        SDEF DeferredLightingFS       = DECLARE_FS("Ayanami/DeferredLighting");
+        SDEF DeferredExpMixFS         = DECLARE_FS("Ayanami/DeferredExpMix");
+        SDEF TemporalFilterIndirectCS = DECLARE_CS("Ayanami/TemporalFilterIndirect");
 
     } kIntShaderTableAyanami;
 

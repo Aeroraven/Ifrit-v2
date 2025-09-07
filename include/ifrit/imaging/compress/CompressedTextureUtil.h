@@ -26,23 +26,26 @@ namespace Ifrit::Imaging::Compress
     {
         RGBA8_UNORM,
         RG8_UNORM,
+        R8_UNORM,
         ATSC_6x6_UNORM,
         BC7_UNORM,
+        BC4_UNORM
     };
 
     enum class CompressionAlgo
     {
         BC5,
-        BC7
+        BC7,
+        BC4
     };
 
     IFRIT_IMAGING_API void DiscardBAChannel(
-        const RSizedBuffer& in, RSizedBuffer& out, u32 width, u32 height, u32 depth, u32 inChannels, u32 channelWidth);
+        const TSizedBuffer& in, TSizedBuffer& out, u32 width, u32 height, u32 depth, u32 inChannels, u32 channelWidth);
 
-    IFRIT_IMAGING_API void WriteTex2DToBlockCompressedFile(const RSizedBuffer& in, const String& outFile,
+    IFRIT_IMAGING_API void WriteTex2DToBlockCompressedFile(const TSizedBuffer& in, const String& outFile,
         TextureFormat fmt, u32 baseWidth, u32 baseHeight, u32 baseDepth, CompressionAlgo algo);
 
     IFRIT_IMAGING_API void ReadBlockCompressedTex2DFromFile(
-        RSizedBuffer& out, const String& inFile, u32& baseWidth, u32& baseHeight, u32& baseDepth);
+        TSizedBuffer& out, const String& inFile, u32& baseWidth, u32& baseHeight, u32& baseDepth);
 
 } // namespace Ifrit::Imaging::Compress

@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 // Hierrachical Z-Buffer
@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "Syaro/Syaro.Shared.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 
@@ -53,7 +54,7 @@ void main(){
         // Copy the source image to the destination image. 
         // I think this step could be optimized. However, depth RTs cannot
         // be written in compute shaders.
-        float depth = texelFetch(GetSampler2D(uHiZData.depthImg),ivec2(x,y),0).r;
+        float depth = SampleTexture2DLoad(uHiZData.depthImg,sNearestClamp,ivec2(x,y)).r;
         imageStore(GetUAVImage2DR32F(uHiZData.dstImg),ivec2(x,y),vec4(depth,0.0,0.0,0.0));
     }else{
         // Just find the minimum depth each 2x2 block.

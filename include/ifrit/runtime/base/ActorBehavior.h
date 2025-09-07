@@ -18,28 +18,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "Component.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
-    struct ActorBehaviorAttribute
-    {
-        u32 m_placeHolder;
 
-        IFRIT_STRUCT_SERIALIZE(m_placeHolder);
-    };
-
-    class IFRIT_APIDECL ActorBehavior : public Component, public AttributeOwner<ActorBehaviorAttribute>
+    class IFRIT_APIDECL IF_CLASS() ActorBehavior : public Component
     {
-    private:
     public:
-        ActorBehavior(){};
-        ActorBehavior(Ref<GameObject> parent) : Component(parent), AttributeOwner<ActorBehaviorAttribute>() {}
-
-        String Serialize() override { return SerializeAttribute(); }
-        void   Deserialize() override { DeserializeAttribute(); }
-
-        IFRIT_COMPONENT_SERIALIZE(m_attributes);
+        using Component::Component;
     };
 } // namespace Ifrit::Runtime
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::ActorBehavior);

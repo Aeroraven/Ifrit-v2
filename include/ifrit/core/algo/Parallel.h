@@ -4,6 +4,8 @@
 #include <execution>
 #include <functional>
 #include <ranges>
+#include <mutex>
+#include <condition_variable>
 namespace Ifrit
 {
     template <class T> void UnorderedFor(T start, T end, std::function<void(T)> func)
@@ -20,8 +22,8 @@ namespace Ifrit
         }
     }
 
-    using RSpinLock = Atomic<i32>;
-    IF_FORCEINLINE void SpinLockAcquire(RSpinLock& lock)
+    using FSpinLock = Atomic<i32>;
+    IF_FORCEINLINE void SpinLockAcquire(FSpinLock& lock)
     {
         i32 expected = 0;
         while (lock.compare_exchange_strong(expected, 1, std::memory_order::acq_rel, std::memory_order::acquire))
@@ -29,16 +31,22 @@ namespace Ifrit
             expected = 0;
         }
     }
-    IF_FORCEINLINE void SpinLockRelease(RSpinLock& lock) { lock.store(0, std::memory_order::release); }
+    IF_FORCEINLINE void SpinLockRelease(FSpinLock& lock) { lock.store(0, std::memory_order::release); }
 
-    class RSpinLockGuard
+    class FSpinLockGuard
     {
     private:
-        RSpinLock& m_Lock;
+        FSpinLock& m_Lock;
 
     public:
-        RSpinLockGuard(RSpinLock& lock) : m_Lock(lock) { SpinLockAcquire(m_Lock); }
-        ~RSpinLockGuard() { SpinLockRelease(m_Lock); }
+        FSpinLockGuard(FSpinLock& lock) : m_Lock(lock) { SpinLockAcquire(m_Lock); }
+        ~FSpinLockGuard() { SpinLockRelease(m_Lock); }
     };
+
+    // MUTEX
+    using Mutex               = std::mutex;
+    using ScopedLock          = std::lock_guard<Mutex>;
+    using ConditionalVariable = std::condition_variable;
+    using UniqueLock          = std::unique_lock<Mutex>;
 
 } // namespace Ifrit

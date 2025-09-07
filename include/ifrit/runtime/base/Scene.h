@@ -17,90 +17,118 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
+#include "ifrit/runtime/common/Pch.h"
+
 #include "ifrit/runtime/base/Camera.h"
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/runtime/util/TimingRecorder.h"
 #include "ifrit/runtime/scene/FrameCollector.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
     class Scene;
+    using SceneNodeId = u32;
 
-    class IFRIT_APIDECL SceneNode
+    class IFRIT_APIDECL IF_CLASS() SceneNode
     {
+    public:
+        IF_PROPERTY()
+        String mName;
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
+        Vec<SceneNodeId> mChildren;
+
+        IF_PROPERTY()
+        Vec<GameObjectReference> mGameObjectRefs;
+
     protected:
-        Scene*               m_parentScene;
-        Vec<Ref<SceneNode>>  m_children;
-        Vec<Ref<GameObject>> m_gameObjects;
+        Scene*           m_Parent;
+        Vec<GameObject*> m_GameObjects;
 
     public:
         SceneNode();
-        SceneNode(Scene* parentScene) : m_parentScene(parentScene){};
+        SceneNode(Scene* parentScene) : m_Parent(parentScene){};
         virtual ~SceneNode() = default;
-        Ref<SceneNode>             AddChildNode();
-        Ref<GameObject>            AddGameObject(const String& name);
-        Ref<GameObject>            AddGameObjectTransferred(Ref<GameObject>&& obj);
 
-        inline Ref<SceneNode>      GetSceneNode(u32 x) { return m_children.at(x); }
-        inline Ref<GameObject>     GetGameObject(u32 x) { return m_gameObjects.at(x); }
-        inline Vec<Ref<SceneNode>> GetChildren()
-        {
-            Vec<Ref<SceneNode>> x;
-            for (auto& y : m_children)
-            {
-                x.push_back(y);
-            }
-            return x;
-        }
-        inline Vec<Ref<GameObject>> GetGameObjects()
-        {
-            Vec<Ref<GameObject>> x;
-            for (auto& y : m_gameObjects)
-            {
-                x.push_back(y);
-            }
-            return x;
-        }
+        SceneNode*              AddChildNode(const String& name);
+        GameObject*             AddGameObject(const String& name);
+        GameObject*             AddGameObjectGPUTransform(const String& name);
+        GameObject*             AddGameObjectTransferred(GameObject* obj);
+        void                    DetachGameObject(u32 inNodeOffset);
 
-        void OnComponentStart();
-        void OnComponentAwake();
-        void OnUpdate();
-        void OnFixedUpdate();
+        SceneNode*              GetSceneNode(u32 x);
+        inline GameObject*      GetGameObject(u32 x) { return m_GameObjects.at(x); }
+        Vec<SceneNode*>         GetChildren();
+        inline Vec<GameObject*> GetGameObjects() { return m_GameObjects; }
+        inline GUID             GetGUID() const { return mGuid; }
+        inline String           GetName() const { return mName; }
 
-        IFRIT_STRUCT_SERIALIZE(m_children, m_gameObjects);
+        void                    OnComponentStart();
+        void                    OnComponentAwake();
+        void                    OnUpdate();
+        void                    OnFixedUpdate();
+
+        friend class Scene;
     };
 
-    class IFRIT_APIDECL Scene : public IComponentManagerKeeper
+    class IFRIT_APIDECL IF_CLASS() Scene : public IComponentManagerKeeper
     {
+    public:
+        // Note:This dtor should be called in order
+
+        IF_PROPERTY()
+        Owner<ComponentManager> mComponentManager;
+
+        IF_PROPERTY()
+        Owner<GameObjectManager> mGameObjectManager;
+
+        IF_PROPERTY()
+        Vec<Owner<SceneNode>> mSceneNodes;
+
+        IF_PROPERTY()
+        Owner<SceneNode> mRoot;
+
     protected:
-        Ref<ComponentManager> m_componentManager; // This dtor should be called last
-        Ref<SceneNode>        m_root;
-        bool                  m_isAwake       = false;
-        u64                   m_curFixedFrame = 0;
-        Ref<PerFrameData>     m_perFrameData;
+        Owner<PerFrameData> m_PerFrameData;
+        bool                m_IsAwake       = false;
+        u64                 m_CurFixedFrame = 0;
 
     public:
         Scene();
+        ~Scene();
 
-        inline Ref<SceneNode> GetRootNode() { return m_root; }
-        Camera*               GetMainCamera();
+        SceneNode*         GetRootNode();
+        Camera*            GetMainCamera();
 
-        Ref<SceneNode>        AddSceneNode();
-        Vec<Ref<GameObject>>  FilterObjects(Fn<bool(Ref<GameObject>)> filter);
-        Vec<GameObject*>      FilterObjectsUnsafe(Fn<bool(GameObject*)> filter);
+        u32                AllocateSceneNode(const String& name);
+        SceneNode*         GetSceneNode(u32 id);
 
-        void                  OnComponentStart();
-        void                  OnComponentAwake();
-        void                  OnUpdate();
-        void                  OnFixedUpdate(TimingRecorder* stopwatch, u32 fixedUpdateRate, u32 maxCompensationFrames);
+        SceneNode*         AddSceneNode(const String& name);
+        Vec<GameObject*>   FilterObjects(Fn<bool(GameObject*)> filter);
+        Vec<SceneNode*>    FilterNodes(Fn<bool(SceneNode*)> filter);
 
-        void                  InvokeFrameUpdate();
+        void               OnComponentStart();
+        void               OnComponentAwake();
+        void               OnUpdate();
+        void               OnFixedUpdate(TimingRecorder* stopwatch, u32 fixedUpdateRate, u32 maxCompensationFrames);
 
-        Ref<PerFrameData>     GetPerFrameData() { return m_perFrameData; }
+        void               InvokeFrameUpdate();
 
-        inline ComponentManager* GetComponentManager() override { return m_componentManager.get(); }
-        IFRIT_STRUCT_SERIALIZE(m_root);
+        PerFrameData*      GetPerFrameData();
+
+        ComponentManager*  GetComponentManager() override;
+        GameObjectManager* GetGameObjectManager() override;
+
+        void               DepthFirstTraverse(
+                          Fn<bool(SceneNode*)> fnNode, Fn<void(GameObject*)> fnObject, Fn<void()> fnOnPush, Fn<void()> fnOnPop);
+
+        String Serialize() const;
+        void   Deserialize(const String& data);
+        void   RemoveGameObject(GameObjectReference ref);
     };
 
 } // namespace Ifrit::Runtime

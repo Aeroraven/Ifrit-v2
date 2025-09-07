@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 #include "Base.glsl"
@@ -55,6 +55,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 layout(local_size_x = cClassifyMaterialCountThreadGroupSizeX, local_size_y = cClassifyMaterialCountThreadGroupSizeY, local_size_z = 1) in;
 
 #include "Syaro/Syaro.ClassifyMaterial.Shared.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 void main(){
     uint tX = gl_GlobalInvocationID.x;
@@ -71,7 +72,6 @@ void main(){
                 continue;
             }
             // Percision might be a problem here
-            // float materialIdFloat = texelFetch(GetSampler2D(uMaterialPassData.materialDepthRef), ivec2(pos), 0).a;
             float materialIdFloat = imageLoad(GetUAVImage2DRGBA32F(uMaterialPassData.materialDepthRef), ivec2(pos)).a;
 
             uint materialId = uint(materialIdFloat);

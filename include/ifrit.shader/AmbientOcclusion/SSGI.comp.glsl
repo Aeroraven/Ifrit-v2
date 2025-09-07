@@ -1,7 +1,7 @@
 
 /*
 Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
+Copyright (C) 2024-2025 funkybirds(Aeroraven)
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published by
@@ -17,369 +17,278 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "AmbientOcclusion/AmbientOcclusion.Shared.h"
+#include "Math.SphericalHarmonics.glsl"
+#include "Math.Sampling.glsl"
+#include "Math.RayUtils.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 #include "Random/Random.WNoise2D.glsl"
 #include "Random/Random.BlueNoise2D.glsl"
 
-RegisterUniform(bPerframe,{
-    PerFramePerViewData data;
+RegisterStorage(BPerframe,{
+    PerFramePerViewData m_Data;
 });
 
-RegisterStorage(bHiZStorage,{
-    uint pad;
-    uint mipRefs[];
+RegisterStorage(BHiZStorage,{
+    uint m_Pad;
+    uint m_Mip[];
 });
 
 layout(local_size_x = cSSGIThreadGroupSizeX, local_size_y = cSSGIThreadGroupSizeY, local_size_z = 1) in;
 
+const bool kHizProceed = true; 
+const bool kAllowSkylightFallback = true;
+const uint kMaxTraceIters = 60; 
+const float kRayProceedMax = 20.0;
+
 layout(push_constant) uniform PushConstantSSGI{
-    uint perframe;
-    uint normalTex; //SRV
-    uint depthHizTexMin; //Ref->UAVs
-    uint depthHizTexMax; //Ref->UAVs
-    uint aoTex; //UAV
-    uint albedoTex; //SRV
-    uint hizTexW;
-    uint hizTexH;
-    uint rtW;
-    uint rtH;
-    uint maxMips;
-    uint blueNoiseSRV;
-} pushConst;
+    uint m_PerFrameCBV;
+    uint m_NormalTexSRV; //SRV
+    uint m_HizMinRefUAV; //Ref->UAVs
+    uint m_HizMaxRefUAV; //Ref->UAVs
+    uint m_AOTexUAV; //UAV
+    uint m_FinalLightingSRV; //SRV, Last frame's final lighting
+    uint m_HizTexW;
+    uint m_HizTexH;
+    uint m_RTWidth;
+    uint m_RTHeight;
+    uint m_MaxMips;
+    uint m_BlueNoiseSRV;
+    uint m_AlbedoTexSRV;
+} PushConst;
 
 
-struct RayHitPayload{
-    bool hit;
-    vec3 hitPos;
-    float hitDepth;
-    float cmpDepth;
-    vec2 pdir;
-};
-
-vec3 toViewspace(vec2 uv, float depth, mat4 invPerspective,float nearZ, float farZ){
-    float vsDepth = ifrit_recoverViewSpaceDepth(depth,nearZ,farZ);
-    vec4 clipPos = vec4(uv * 2.0 - 1.0,depth,1.0)*vsDepth;
-    vec4 viewPos = invPerspective * clipPos;
-    return viewPos.xyz / viewPos.w;
-}
-
-float getHizDepth(ivec2 uv, uint mip, bool ranged, uint uavId){
-    // convert uv to mip
-    ivec2 mipUV = uv >> mip;
-    uint mipId = GetResource(bHiZStorage,uavId).mipRefs[mip];
-    if(!ranged){
-        return imageLoad(GetUAVImage2DR32F(mipId), mipUV).r;
+float GetHizDepth(ivec2 UV, uint Mip, bool Ranged){
+    ivec2 MipUV = UV >> Mip;
+    uint MipId = GetResource(BHiZStorage,PushConst.m_HizMinRefUAV).m_Mip[Mip];
+    if(!Ranged){
+        return imageLoad(GetUAVImage2DR32F(MipId), MipUV).r;
     }
-    float t0 = imageLoad(GetUAVImage2DR32F(mipId), mipUV).r;
-    float t1 = imageLoad(GetUAVImage2DR32F(mipId), mipUV+ivec2(1,0)).r;
-    float t2 = imageLoad(GetUAVImage2DR32F(mipId), mipUV+ivec2(0,1)).r;
-    float t3 = imageLoad(GetUAVImage2DR32F(mipId), mipUV+ivec2(1,1)).r;
+    float t0 = imageLoad(GetUAVImage2DR32F(MipId), MipUV).r;
+    float t1 = imageLoad(GetUAVImage2DR32F(MipId), MipUV+ivec2(1,0)).r;
+    float t2 = imageLoad(GetUAVImage2DR32F(MipId), MipUV+ivec2(0,1)).r;
+    float t3 = imageLoad(GetUAVImage2DR32F(MipId), MipUV+ivec2(1,1)).r;
     return min(min(t0,t1),min(t2,t3));
 }
 
-float getHizDepthMin(ivec2 uv, uint mip, bool ranged){
-    return getHizDepth(uv,mip,ranged,pushConst.depthHizTexMin);
+float GetHizDepth(vec2 UV, uint Mip){
+    vec2 PixelUV = UV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+    ivec2 PixelUVInt = ivec2(PixelUV);
+    return GetHizDepth(PixelUVInt, Mip, false);
 }
 
-float getHizDepthMax(ivec2 uv, uint mip, bool ranged){
-    return getHizDepth(uv,mip,ranged,pushConst.depthHizTexMax);
-}
+vec3 SsgiTraceImpl(vec3 RayStartVS, vec3 RayEndVS, vec2 RayStartUV, vec2 RayEndUV){
+    PerFramePerViewData PerFrame = GetResource(BPerframe,PushConst.m_PerFrameCBV).m_Data;
+    float ClipNear = PerFrame.m_cameraNear;
+    float ClipFar = PerFrame.m_cameraFar;
 
-float ndcToUV(float ndc){
-    return (ndc + 1.0) * 0.5;
-}
+    vec2 DiffUV = RayEndUV - RayStartUV;
+    vec2 DiffPixels = DiffUV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+    ivec2 DiffPixelsInt = ivec2(DiffPixels);
+    ivec2 RayStartUVInt = ivec2(RayStartUV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight));
 
-float uvToNdc(float uv){
-    return uv * 2.0 - 1.0;
-}   
-float uvToNdcDelta(float uv){
-    return uv * 2.0;
-}
-
-// For simplicity, roughness is not used here.
-vec3 getWoRay(vec3 normal, vec3 rayDir, float roughness, uint seed){
-
-    // just reflect the ray
-    // return reflect(rayDir,normal);
+    float MaxStepsF = max(abs(DiffPixels.x), abs(DiffPixels.y));
+    uint MaxSteps = uint(MaxStepsF) + 1; // total steps required on marching Hiz level 0
+    float MinimalStep = 1.0 / float(MaxSteps);
     
-    float threadX = gl_GlobalInvocationID.x;
-    float threadY = gl_GlobalInvocationID.y;
-    float rtWidth = float(pushConst.rtW);
-    float rtHeight = float(pushConst.rtH);
+    int CurMip = 0;
+    bool FinalHit = true;
+    vec2 HitUV = vec2(-1.0,0.0);
+    float DepthDiffVS = 0.0;
 
-    vec2 randParam1 = vec2(threadX,threadY) * 7 * float(seed)/float(rtWidth);
-    vec2 randParam2 = vec2(threadX,threadY) * 13 * float(seed)/float(rtHeight);
+    int ProceedSignX = DiffPixels.x > 0.0 ? 1 : -1;
+    int ProceedSignY = DiffPixels.y > 0.0 ? 1 : -1;
+    float CurStepF  = 0.0;
+    int MaxIters = int(kMaxTraceIters);
+    int CurIters = 0;
 
-    randParam1 = fract(randParam1);
-    randParam2 = fract(randParam2);
+    while(CurMip >= 0 && CurIters < MaxIters){
+        CurIters += 1;
+        float T = CurStepF;
+        vec2 CurUV = mix(RayStartUV, RayEndUV, T);
+        float ReferenceZ = GetHizDepth(CurUV, CurMip);
+        bool ValidZ = ReferenceZ > 0.0 && ReferenceZ < 1.0;
+        ReferenceZ = ifrit_recoverViewSpaceDepth(ReferenceZ, ClipNear, ClipFar);
+        float CurZ = ifrit_perspectiveLerp(RayStartVS.z, RayEndVS.z, RayStartVS.z, RayEndVS.z, T);
+        ivec2 CurUVInt = ivec2(CurUV * vec2(PushConst.m_RTWidth, PushConst.m_RTHeight));
+        ivec2 CurUVIntMip = CurUVInt >> CurMip;
 
-    vec4 bnoise = ifrit_bnoise2d(pushConst.blueNoiseSRV,vec2(randParam1.x,randParam1.y));
+        bool IsCollided = false;
+        if(CurZ >= ReferenceZ && (CurMip!=0 || ValidZ)){
+            IsCollided = true;
+        }
 
-    float rand1 = bnoise.r;
-    float rand2 = bnoise.g;
+        if(IsCollided && CurMip == 0){
+            FinalHit = true;
+            HitUV = mix(RayStartUV, RayEndUV, T);
+            DepthDiffVS = CurZ - ReferenceZ;
+            break;
+        }
 
-    rand1 = clamp(rand1,0.0,1.0);
-    rand2 = clamp(rand2,0.0,1.0);
+        // step if not collided
+        if(!IsCollided){
+            int NextTexelX = ((CurUVIntMip.x + ProceedSignX)<<CurMip) - RayStartUVInt.x;
+            int NextTexelY = ((CurUVIntMip.y + ProceedSignY)<<CurMip) - RayStartUVInt.y;
 
-    // make a random vector on sphere
-    float phi = rand1 * 2.0 * 3.1415926;
-    float cosTheta = 1.0 - rand2;
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
-    vec3 randVec = vec3(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
-
-    vec3 finalOutRay = normal+randVec;
-
-    return normalize(finalOutRay);
-}
-
-float getLambertianBRDF(vec3 normal, vec3 rayDir, vec3 outRay){
-    return 1.0 / kPI;
-}
-
-float getWoSamplingWeightInv(vec3 normal, vec3 rayDir, vec3 outRay){
-    float newDistWeight = dot(normal,outRay);
-    float uniqDistWeight = 1.0 / 4.0;
-    return (newDistWeight) / uniqDistWeight;
-}
-
-void ssgiRayMarch(mat4 invP, vec3 startPosVS,vec3 rayDirVS,vec3 clipStartSS,
-     vec3 clipNextSS, float camNear, float camFar, out RayHitPayload payload){
-        
-    vec3 nextPosVS = startPosVS + rayDirVS * SSGI_RAY_MAX_DISTANCE;
-    float ssFactorX = clipNextSS.x - clipStartSS.x;
-    float ssFactorY = clipNextSS.y - clipStartSS.y;
-
-    payload.pdir = vec2(ssFactorX,ssFactorY);
-    payload.pdir = normalize(payload.pdir)*0.5+0.5;
-
-    bool useY = abs(ssFactorY) > abs(ssFactorX);
-    int ssSign = int(useY ? sign(ssFactorY) : sign(ssFactorX));
-    float ssFactor = useY ? ssFactorY : ssFactorX;
-    float ssScaleFactor = useY ? ssFactorX/ssFactorY : ssFactorY/ssFactorX;
-    
-    int currentMips = 0;
-    int pixelAdvance = (1<<currentMips)*ssSign;
-    int initPixelAdvance = 1;
-
-    int clipStartSSPx = int(ndcToUV(clipStartSS.x) * pushConst.rtW);
-    int clipStartSSPy = int(ndcToUV(clipStartSS.y) * pushConst.rtH);
-
-    float clipCurSSPx = clipStartSSPx;    
-    float clipCurSSPy = clipStartSSPy;
-    float compareDepthMin;
-    float compareDepthMax;
-
-    // Advance some distances first
-    if(!useY){
-        clipCurSSPx = clipCurSSPx + initPixelAdvance;
-        clipCurSSPy = clipCurSSPy + initPixelAdvance * ssScaleFactor;
-    }else{
-        clipCurSSPy = clipCurSSPy + initPixelAdvance;
-        clipCurSSPx = clipCurSSPx + initPixelAdvance * ssScaleFactor;
-    }
-    uint remainSteps = 40;
-    while(currentMips>=0 && remainSteps-- > 0){
-        // note that the  hiz here use MIN instead of MAX. so we need another hiz.
-        // pass to get the MIN.
-        float clipCurSSPxNext = 0;
-        float clipCurSSPyNext = 0;
-
-        if(!useY){
-            clipCurSSPxNext = clipCurSSPx + pixelAdvance;
-            clipCurSSPyNext = clipCurSSPy + pixelAdvance * ssScaleFactor;
+            float StepX = float(NextTexelX) / float(DiffPixelsInt.x);
+            float StepY = float(NextTexelY) / float(DiffPixelsInt.y);
+            float NextStep = max(CurStepF, min(abs(StepX), abs(StepY)));
+            CurStepF = NextStep;
+            if(kHizProceed)
+                CurMip = min(CurMip+1, 6);
         }else{
-            clipCurSSPyNext = clipCurSSPy + pixelAdvance;
-            clipCurSSPxNext = clipCurSSPx + pixelAdvance * ssScaleFactor;
-        }
-
-        compareDepthMin = getHizDepthMin(ivec2(clipCurSSPxNext,clipCurSSPyNext),uint(currentMips),currentMips!=0);
-        compareDepthMax = getHizDepthMax(ivec2(clipCurSSPxNext,clipCurSSPyNext),uint(currentMips),currentMips!=0);
-
-        float cmpDepthMinView = ifrit_clipZToViewZ(compareDepthMin,camNear,camFar);
-        float cmpDepthMaxView = ifrit_clipZToViewZ(compareDepthMax,camNear,camFar);
-
-        bool hit = false;
-        bool nextOutBound = false;
-        if(clipCurSSPxNext >= pushConst.rtW || clipCurSSPyNext >= pushConst.rtH ||
-            clipCurSSPxNext < 0 || clipCurSSPyNext < 0){
-            nextOutBound = true;
-        }
-        // get current depth
-        if(!useY){
-            float deltaSx = float(clipCurSSPxNext - clipStartSSPx) / pushConst.rtW;
-            float deltaSxNdc = uvToNdcDelta(deltaSx);
-            float tX = deltaSxNdc / ssFactorX;
-            float viewZ = ifrit_perspectiveLerp(startPosVS.z,nextPosVS.z,startPosVS.z,nextPosVS.z,tX);
-            float ndcZ = ifrit_viewZToClipZ(viewZ,camNear,camFar);
-            if(viewZ>=cmpDepthMinView && viewZ < cmpDepthMaxView+1e-1){
-                hit = true;
-                payload.hitDepth = viewZ;
-                payload.cmpDepth = cmpDepthMinView;
-            }
-        }else{
-            float deltaSy = float(clipCurSSPyNext - clipStartSSPy) / pushConst.rtH;
-            float deltaSyNdc = uvToNdcDelta(deltaSy);
-            float tY = deltaSyNdc / ssFactorY;
-            float viewZ = ifrit_perspectiveLerp(startPosVS.z,nextPosVS.z,startPosVS.z,nextPosVS.z,tY);
-            float ndcZ = ifrit_viewZToClipZ(viewZ,camNear,camFar);
-            if(viewZ>=cmpDepthMinView && viewZ < cmpDepthMaxView+1e-1){
-                hit = true;
-                payload.hitDepth = viewZ;
-                payload.cmpDepth = cmpDepthMinView;
-            }
-        }
-        if(nextOutBound){
-            if(currentMips == 0){
-                payload.hit = false;
-                return;
-            }else{
-                currentMips--;
-                pixelAdvance /= 2;
-                continue;
-            }
-        }
-
-        if(!hit){
-            if(!useY){
-                // check whether out of bound after advancing
-                float nxtClipCurSSPx = clipCurSSPx + pixelAdvance;
-                float nxtClipCurSSPy = clipCurSSPy + pixelAdvance * ssScaleFactor;
-                if((nxtClipCurSSPx >= pushConst.rtW || nxtClipCurSSPy >= pushConst.rtH ||
-                    nxtClipCurSSPx < 0 || nxtClipCurSSPy < 0) && currentMips > 0){
-                    // narrow lods
-                    hit = false;
-                    currentMips--;
-                    pixelAdvance = (1<<currentMips)*ssSign;;
-                    continue;
-                }else{
-                    clipCurSSPx += pixelAdvance;
-                    clipCurSSPy += pixelAdvance * ssScaleFactor;
-                }
-            }
-            else{
-                float nxtClipCurSSPx = clipCurSSPx + pixelAdvance * ssScaleFactor;
-                float nxtClipCurSSPy = clipCurSSPy + pixelAdvance;
-                if((nxtClipCurSSPx >= pushConst.rtW || nxtClipCurSSPy >= pushConst.rtH ||
-                    nxtClipCurSSPx < 0 || nxtClipCurSSPy < 0) && currentMips > 0){
-                    // narrow lods
-                    hit = false;
-                    currentMips--;
-                    pixelAdvance=(1<<currentMips)*ssSign;
-                    continue;
-                }else{
-                    clipCurSSPy += pixelAdvance;
-                    clipCurSSPx += pixelAdvance * ssScaleFactor;
-                }
-            }
-            if(clipCurSSPx >= pushConst.rtW || clipCurSSPy >= pushConst.rtH ||
-                clipCurSSPx < 0 || clipCurSSPy < 0){
-                payload.hit = false;
-                return;
-            }
-        }else{
-            if(currentMips == 0){
-                break;
-            }
-            // Narrow down the hit position
-            hit = false;
-            currentMips--;
-            pixelAdvance =  (1<<currentMips)*ssSign;
+            if(kHizProceed)
+                CurMip-=1;
         }
     }
 
-    if(remainSteps <= 0){
-        payload.hit = false;
-        return;
+    // Check the hit z difference
+    if(abs(DepthDiffVS) > 0.35){
+        FinalHit = false;
     }
-
-    payload.hit = true;
-    vec2 hituv = vec2(clipCurSSPx,clipCurSSPy)/vec2(pushConst.rtW,pushConst.rtH);
-    vec2 hitNdc = vec2(uvToNdc(hituv.x),uvToNdc(hituv.y));
-    float hitZ = compareDepthMin;
-    vec3 hitNdc3 = vec3(hitNdc,hitZ);
-
-    // inverse transform this into view space
-    vec4 clipPos = vec4(hitNdc3,1.0);
-    vec4 viewPos = invP * clipPos;
-    payload.hitPos = viewPos.xyz / viewPos.w;
+    return vec3(HitUV, FinalHit ? 1.0 : 0.0);
 }
 
-void ssgiTraverse(mat4 invP, vec3 startPosVS,vec3 rayDirVS,vec3 clipStartSS,
-     vec3 clipNextSS, float camNear, float camFar, out RayHitPayload payload){
+vec3 SsgiRayTrace(vec3 RayOriginWS, vec3 RayDirWS){
+    PerFramePerViewData PerFrame = GetResource(BPerframe,PushConst.m_PerFrameCBV).m_Data;
+    bool ValidSample = true;
+    mat4 WorldToClip = PerFrame.m_worldToClip;
+    mat4 ClipToWorld = PerFrame.m_clipToWorld;
+    mat4 WorldToView = PerFrame.m_worldToView;
+    mat4 ViewToClip = PerFrame.m_perspective;
+    float ClipNear = PerFrame.m_cameraNear;
 
-    ssgiRayMarch(invP,startPosVS,rayDirVS,clipStartSS,clipNextSS,camNear,camFar,payload);
-} 
-
-void ssgiMainSingleBounce(){
-    uint renderHeight = uint(GetResource(bPerframe,pushConst.perframe).data.m_renderHeight);
-    uint renderWidth = uint(GetResource(bPerframe,pushConst.perframe).data.m_renderWidth);
-    uint threadX = gl_GlobalInvocationID.x;
-    uint threadY = gl_GlobalInvocationID.y;
-    if(threadX >= renderWidth || threadY >= renderHeight){
-        return;
-    }
-    vec2 uv = (vec2(0.5)+ vec2(threadX,threadY)) / vec2(renderWidth,renderHeight);
-    vec2 tUV = vec2(threadX,threadY);
-
-    uint depthMip0Id = GetResource(bHiZStorage,pushConst.depthHizTexMin).mipRefs[0];
-    float vsDepth = imageLoad(GetUAVImage2DR32F(depthMip0Id), ivec2(threadX,threadY)).r;
-
-    mat4 invPerspective = GetResource(bPerframe,pushConst.perframe).data.m_invPerspective;
-    mat4 perspective = GetResource(bPerframe,pushConst.perframe).data.m_perspective;
-    float nearZ = GetResource(bPerframe,pushConst.perframe).data.m_cameraNear;
-    float farZ = GetResource(bPerframe,pushConst.perframe).data.m_cameraFar;
-
-    
-    vec3 vsPos = toViewspace(uv,vsDepth,invPerspective,nearZ,farZ);
-    vec3 normal = texelFetch(GetSampler2D(pushConst.normalTex), ivec2(threadX,threadY), 0).xyz;
-    normal = normalize(normal * 2.0 - 1.0);
-    vec3 startAlbedo = texelFetch(GetSampler2D(pushConst.albedoTex), ivec2(threadX,threadY), 0).xyz;
-    vec3 inRay = normalize(vsPos);
-
-    vec3 finalGI = vec3(0.0);
-    bool nanFlag = false;
-    for(uint S=0;S<cSSGISamples;S++){
-        vec3 outRay = getWoRay(normal,inRay,0.0,threadX%149+S);
-        float invpdf = getWoSamplingWeightInv(normal,inRay,outRay);
-        float cosTheta = dot(normal,outRay);
-        float brdf = getLambertianBRDF(normal,inRay,outRay);
-        vec3 brdfA = startAlbedo*brdf;
-    
-
-        // begin ssgi traverse
-        vec4 clipPos1 = perspective * vec4(vsPos,1.0);
-        vec3 ndc1 = clipPos1.xyz / clipPos1.w;
-        vec3 vsPos2 = vsPos + outRay * SSGI_RAY_MAX_DISTANCE;
-        vec4 clipPos2 = perspective * vec4(vsPos2,1.0);
-        vec3 ndc2 = clipPos2.xyz / clipPos2.w;
-
-        RayHitPayload payload;
-        ssgiTraverse(invPerspective,vsPos,outRay,ndc1,ndc2,nearZ,farZ,payload);
-
-        vec3 Li = vec3(1.0);
-        if(payload.hit){
-            vec4 clipPosHit = perspective * vec4(payload.hitPos,1.0);
-            vec2 uvHit = clipPosHit.xy / clipPosHit.w;
-            uvHit = (uvHit + 1.0) * 0.5;
-            vec3 hitAlbedo = texture(GetSampler2D(pushConst.albedoTex), uvHit).xyz;
-            Li = hitAlbedo;
+    vec4 OriginVS = WorldToView * vec4(RayOriginWS, 1.0);
+    vec4 ProceedVS = WorldToView * vec4(RayOriginWS + RayDirWS * kRayProceedMax, 1.0);
+    vec4 RayDirVS = ProceedVS - OriginVS;
+    // Need to limit the proceed vs in the view frustum. (at least, larger than near plane)
+    if(ProceedVS.z < ClipNear+1e-3){
+        // find O+td intersection with near plane.
+        float t = (ClipNear+1e-3 - OriginVS.z) / RayDirVS.z;
+        if(abs(RayDirVS.z) < 1e-4){
+           ValidSample = false;
         }
-        vec3 Ls = brdfA * Li * cosTheta * invpdf;
-
-        finalGI += Ls;
+        ProceedVS = OriginVS + RayDirVS * t;
     }
-    finalGI /= float(cSSGISamples);
 
-    // Store GI
-    vec4 aoRaw = imageLoad(GetUAVImage2DRGBA32F(pushConst.aoTex), ivec2(threadX,threadY));
-    aoRaw.rgb = finalGI;
-    imageStore(GetUAVImage2DRGBA32F(pushConst.aoTex), ivec2(threadX,threadY),aoRaw);
+    vec4 OriginCS = ViewToClip * OriginVS;
+    vec4 ProceedCS = ViewToClip * ProceedVS;
+
+    vec2 OriginNDCxy = OriginCS.xy / OriginCS.w;
+    vec2 ProceedNDCxy = ProceedCS.xy / ProceedCS.w;
+    vec2 OriginUV = (OriginNDCxy + 1.0) * 0.5;
+    vec2 ProceedUV = (ProceedNDCxy + 1.0) * 0.5;
+
+    vec2 ProceedDirUV = ProceedUV - OriginUV;
+    vec2 RayNDCIntersection = ifrit_RayIntersectWithUnitRect2D(OriginUV, ProceedDirUV);
+
+    // The tracing center does not present in the screen space.
+    if(OriginUV.x < 0.0 || OriginUV.x > 1.0 || OriginUV.y < 0.0 || OriginUV.y > 1.0){
+        ValidSample = false;
+    }
+    if(RayNDCIntersection.x>0.0 || RayNDCIntersection.y < 0.0){
+        ValidSample = false;
+    }
+    vec2 AbsProceedDirUV = abs(ProceedDirUV);
+    if(AbsProceedDirUV.x < 1e-4 || AbsProceedDirUV.y < 1e-4){
+        ValidSample = false;
+    }
+
+    vec3 RayTraceStartVS = OriginVS.xyz;
+    vec3 RayTraceEndVS = ProceedVS.xyz;
+    vec2 RayTraceStartUV = OriginUV;
+    vec2 RayTraceEndUV = ProceedUV;
+
+    vec3 RayTraceDirNew = normalize(RayTraceEndVS - RayTraceStartVS);
+    vec3 RayTraceDirOld = normalize(ProceedVS.xyz - OriginVS.xyz);
+    
+    if(!ValidSample){
+        // The ray is not valid, return the invalid color
+        return vec3(0.0, 0.0, 0.0);
+    }
+    return SsgiTraceImpl(RayTraceStartVS, RayTraceEndVS, RayTraceStartUV, RayTraceEndUV);
 }
 
 void main(){
-    ssgiMainSingleBounce();
+    uvec2 ScreenCoord = uvec2(gl_GlobalInvocationID.xy);
+    if(ScreenCoord.x >= PushConst.m_RTWidth || ScreenCoord.y >= PushConst.m_RTHeight) return;
+
+    PerFramePerViewData PerFrame = GetResource(BPerframe,PushConst.m_PerFrameCBV).m_Data;
+
+    vec2 ScreenUV = (vec2(ScreenCoord) + vec2(0.5)) / vec2(PushConst.m_RTWidth, PushConst.m_RTHeight);
+    float DepthCS = GetHizDepth(ScreenUV, 0);
+    vec3 ScreenNDC = vec3(ScreenUV*2.0 - 1.0, DepthCS);
+
+    mat4 InvPerspective = PerFrame.m_invPerspective;
+    mat4 ClipToWorld = PerFrame.m_clipToWorld;
+    vec4 LocationVS = InvPerspective * vec4(ScreenNDC, 1.0);
+    vec4 LocationWS = ClipToWorld * vec4(ScreenNDC, 1.0);
+    LocationWS /= LocationWS.w;
+    LocationVS /= LocationVS.w;
+
+    vec3 NormalVS = SampleTexture2DLoad(PushConst.m_NormalTexSRV,sNearestClamp, ivec2(ScreenCoord)).xyz;
+    NormalVS = normalize(NormalVS * 2.0 - 1.0);
+    vec3 NormalWS = (PerFrame.m_worldToView * vec4(NormalVS, 0.0)).xyz;
+    NormalWS = normalize(NormalWS);
+
+    vec3 InRay = normalize(LocationVS.xyz);
+    float NumValidSamples = 0.0f;
+    MThreeBandSH_RGB SHCoefs = ifrit_ZeroSH3RGB();
+
+    for(uint S=0;S<cSSGISamples;S++){
+        uint RayCoordX = S % cSSGIHemiProbeHemiRes;
+        uint RayCoordY = S / cSSGIHemiProbeHemiRes;
+        uvec2 RayCoord = uvec2(RayCoordX, RayCoordY);   
+        vec2 RayUV = (vec2(RayCoord) + vec2(0.5)) / vec2(cSSGIHemiProbeHemiRes);
+
+        vec4 SampledRayAndPDF = ifrit_SampleCosineHemisphereWithPDF(RayUV, NormalWS);
+        vec3 SampledRay = SampledRayAndPDF.xyz;
+        float SampledPDF = SampledRayAndPDF.w;
+
+        vec3 TraceLocationWS = LocationWS.xyz + SampledRay * 0.1;
+        
+        vec3 TracingResultRaw = SsgiRayTrace(TraceLocationWS, SampledRay);
+        vec4 TracingResult;
+        TracingResult.w = TracingResultRaw.z;
+
+        vec2 HitUV = vec2(TracingResultRaw.x, TracingResultRaw.y);
+        vec3 HitLighting = SampleTexture2D(PushConst.m_FinalLightingSRV,sLinearClamp,HitUV).rgb;
+        if(HitUV.x == -1.0 && HitUV.y == 0.0){
+            HitLighting = vec3(0.0,0.0,0.0); //skylight, for simplicity
+        }
+        TracingResult.xyz = HitLighting;
+
+        if(TracingResult.w > 0.0){
+            NumValidSamples += 1.0;
+            MThreeBandSH_RGB SHBasis = ifrit_SHBasis3EncodeRGB(SampledRay);
+            MThreeBandSH_RGB SHResult = ifrit_MulSH3RGBColor(SHBasis, TracingResult.xyz / SampledPDF);
+
+            SHCoefs = ifrit_AddSH3RGB(SHCoefs, SHResult);
+        }
+    }
+    if(NumValidSamples > 0.0){
+        SHCoefs = ifrit_MulSH3RGB(SHCoefs, 1.0 / NumValidSamples);
+    }
+
+    MThreeBandSH DiffuseTransfer = ifrit_SHCosineLobe3Encode(NormalWS);
+    float DiffuseLobeR = ifrit_DotSH3(DiffuseTransfer, SHCoefs.m_R);
+    float DiffuseLobeG = ifrit_DotSH3(DiffuseTransfer, SHCoefs.m_G);
+    float DiffuseLobeB = ifrit_DotSH3(DiffuseTransfer, SHCoefs.m_B);
+
+    vec3 Albedo = SampleTexture2DLoad(PushConst.m_AlbedoTexSRV, sLinearClamp, ivec2(ScreenCoord)).xyz;
+
+    vec3 LambertBRDF = Albedo * (1.0 / 3.14159265358979323846);
+    vec3 Irradiance = vec3(DiffuseLobeR, DiffuseLobeG, DiffuseLobeB);
+    Irradiance = max(Irradiance, vec3(0.0)) ;
+    Irradiance = Irradiance ;
+
+    // Store GI
+    vec4 AoRaw = imageLoad(GetUAVImage2DRGBA32F(PushConst.m_AOTexUAV), ivec2(ScreenCoord));
+    AoRaw.xyz = Irradiance;
+    imageStore(GetUAVImage2DRGBA32F(PushConst.m_AOTexUAV), ivec2(ScreenCoord), AoRaw);
 }

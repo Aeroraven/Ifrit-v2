@@ -17,14 +17,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "AmbientOcclusion/AmbientOcclusion.Shared.h"
 #include "Random/Random.WNoise2D.glsl"
+#include "SamplerUtils.SharedConst.h"
 
-RegisterUniform(bPerframe,{
+RegisterStorage(bPerframe,{
     PerFramePerViewData data;
 });
 
@@ -76,9 +77,9 @@ void main(){
     vec2 uv = (vec2(0.5)+ vec2(threadX,threadY)) / vec2(renderWidth,renderHeight);
     vec2 tUV = vec2(threadX,threadY);
 
-    vec3 vsNormal = texture(GetSampler2D(pushConst.normalTex),uv).xyz;
+    vec3 vsNormal = SampleTexture2D(pushConst.normalTex,sLinearClamp,uv).xyz;
     vsNormal = vsNormal * 2.0 - 1.0;
-    float vsDepth = texture(GetSampler2D(pushConst.depthTex),uv).x;
+    float vsDepth = SampleTexture2D(pushConst.depthTex,sLinearClamp,uv).x;
 
     mat4 invPerspective = GetResource(bPerframe,pushConst.perframe).data.m_invPerspective;
     float nearZ = GetResource(bPerframe,pushConst.perframe).data.m_cameraNear;
@@ -110,7 +111,7 @@ void main(){
         float maxAO = 0.2;
         for(uint j=0;j<cHBAOSampleSteps;j++){
             vec2 sampUV = uv + dir * sampleStep * (float(j) + randv);
-            float sampDepth = texture(GetSampler2D(pushConst.depthTex),sampUV).x;
+            float sampDepth = SampleTexture2D(pushConst.depthTex,sLinearClamp,sampUV).x;
             vec3 sampVSPos = toViewspace(sampUV,sampDepth,invPerspective,nearZ,farZ);
             float ao = computeAO(vsPos,sampVSPos,vsNormal,maxAO);
             accAO += ao;

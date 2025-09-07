@@ -17,13 +17,16 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Ayanami/Ayanami.Shared.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 #include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
+
 
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
@@ -57,13 +60,11 @@ RegisterStorage(BTileScatter,{
     uint m_Data[];
 });
 
-RegisterUniform(BLocalTransform,{
-    mat4 m_localToWorld;
-    mat4 m_worldToLocal;
-    vec4 m_maxScale;
+RegisterStorage(BModelTransform,{
+    FLocalTransformData m_Data;
 });
 
-RegisterUniform(BPerFrameData,{
+RegisterStorage(BPerFrameData,{
     PerFramePerViewData data;
 });
 
@@ -71,7 +72,7 @@ RegisterUniform(BPerFrameData,{
 float RayMarchingForObject(uint meshDFId, vec3 rayOriginWS){
     MeshDFDesc desc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[meshDFId];
     MeshDFMeta meta = GetResource(BMeshDFMeta, desc.m_MdfMetaId).m_Data;
-    mat4 worldToLocal = GetResource(BLocalTransform, desc.m_TransformId).m_worldToLocal;
+    mat4 worldToLocal = GetResource(BModelTransform, desc.m_TransformId).m_Data.m_WorldToLocal;
 
     uint sdfId = meta.sdfId;
     vec3 lb = meta.bboxMin.xyz;
@@ -101,11 +102,13 @@ float RayMarchingForObject(uint meshDFId, vec3 rayOriginWS){
     float retShadow = 1.0;
     float selfBias = 0e-4*maxExtent;
     float volBias = 1e-3*maxExtent;
+
+    vec2 MeshDFQuantScale = AyaShared_GetSdfQuantScale(meta);
     if(hit){
         for(int i=0;i<32;i++){
             vec3 uvw= (hitp - lb) / (rt - lb);
             uvw = clamp(uvw, 0.0, 1.0);
-            float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-volBias;
+            float sdf = AyaShared_SampleMeshDF(sdfId, uvw, MeshDFQuantScale) - volBias;
             t+= max(1e-4*maxExtent,abs(sdf)* 0.5) ;
             hitp = o + nD * t;
             retShadow = min(retShadow, PushConst.m_ShadowCoefK*abs(sdf)/(abs(t)+1e-6)*100.0);
@@ -155,7 +158,7 @@ float RayMarchingFromWS(vec3 rayOriginWS){
 
 void main(){
     vec2 ndcXY = texCoord * 2.0 - 1.0;
-    float depth = texture(GetSampler2D(PushConst.m_DepthSRV), texCoord).x;
+    float depth = SampleTexture2D(PushConst.m_DepthSRV,sLinearClamp, texCoord).x;
     float camNear = GetResource(BPerFrameData, PushConst.m_PerFrameId).data.m_cameraNear;
     float camFar = GetResource(BPerFrameData, PushConst.m_PerFrameId).data.m_cameraFar;
     mat4 clipToWorld = GetResource(BPerFrameData, PushConst.m_PerFrameId).data.m_clipToWorld;

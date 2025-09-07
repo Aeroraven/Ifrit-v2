@@ -18,9 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 // Stockham FFT & IFFT, in single pass
 
-#version 450
+
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 
 layout(push_constant) uniform PushConstFFTConv2d{
@@ -73,12 +74,12 @@ void main(){
     //vec2 srcVal2 = imageLoad(GetUAVImage2DRGBA32F(pc.srcIntermImage),ivec2(posXf,posYf)+ivec2(fftW,0)).rb;
 
     vec2 srcValUV =vec2(posXf/float(fftW),posYf/float(fftH))*vec2(0.5,1.0);
-    vec2 srcVal = texture(GetSampler2D(pc.srcIntermImageSamp),srcValUV).rb;
+    vec2 srcVal = SampleTexture2D(pc.srcIntermImageSamp,sLinearClamp,srcValUV).rb;
 
     vec2 srcValUV2 =vec2(posXf/float(fftW),posYf/float(fftH))*vec2(0.5,1.0)+vec2(0.5,0.0);
-    vec2 srcVal2 = texture(GetSampler2D(pc.srcIntermImageSamp),srcValUV2).rb;
+    vec2 srcVal2 = SampleTexture2D(pc.srcIntermImageSamp,sLinearClamp,srcValUV2).rb;
     
-    vec4 rawVal = texture(GetSampler2D(pc.srcImage),vec2(float(px)/float(pc.srcRtW),float(py)/float(pc.srcRtH)));
+    vec4 rawVal = SampleTexture2D(pc.srcImage,sLinearClamp,vec2(float(px)/float(pc.srcRtW),float(py)/float(pc.srcRtH)));
 
     vec4 retVal = vec4(srcVal.x,srcVal.y,srcVal2.x,srcVal2.y);
     if(pc.bloomMix==1){

@@ -1,23 +1,22 @@
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/common/Pch.h"
+
 #include "ifrit/runtime/base/ApplicationInterface.h"
-#include "ifrit/runtime/base/Scene.h"
 #include "ifrit/runtime/scene/FrameCollector.h"
-#include "ifrit/rhi/common/RhiLayer.h"
 
 namespace Ifrit::Runtime
 {
 
     class IFRIT_APIDECL SinglePassHiZPass
     {
-        using ComputePass  = Graphics::Rhi::RhiComputePass;
-        using GPUCmdBuffer = Graphics::Rhi::RhiCommandList;
-        using GPUTexture   = Graphics::Rhi::RhiTexture;
-        using GPUSampler   = Graphics::Rhi::RhiSampler;
+        using ComputePass  = RHI::RhiComputePass;
+        using GPUCmdBuffer = RHI::RhiCommandList;
+        using GPUTexture   = RHI::RhiTexture;
+        using GPUSampler   = RHI::RhiSampler;
 
     protected:
-        ComputePass*  m_singlePassHiZPass = nullptr;
+        ComputePass*  m_SinglePassHiZPassMin = nullptr;
+        ComputePass*  m_SinglePassHiZPassMax = nullptr;
         IApplication* m_app;
 
     public:

@@ -21,18 +21,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit::Graphics::SoftGraphics
 {
 
-	class ShaderRuntime
-	{
-	public:
-		virtual ~ShaderRuntime() = default;
-		virtual void						   loadIR(std::string shaderCode, std::string shaderIdentifier) = 0;
-		virtual void*						   lookupSymbol(std::string symbol) = 0;
-		virtual std::unique_ptr<ShaderRuntime> getThreadLocalCopy() = 0;
-	};
+    class ShaderRuntime
+    {
+    public:
+        virtual ~ShaderRuntime()                                                                  = default;
+        virtual void                 loadIR(std::string shaderCode, std::string shaderIdentifier) = 0;
+        virtual void*                lookupSymbol(std::string symbol)                             = 0;
+        virtual Owner<ShaderRuntime> getThreadLocalCopy()                                         = 0;
+    };
 
-	class ShaderRuntimeBuilder
-	{
-	public:
-		virtual std::unique_ptr<ShaderRuntime> buildRuntime() const = 0;
-	};
+    class ShaderRuntimeBuilder
+    {
+    public:
+        virtual Owner<ShaderRuntime> buildRuntime() const = 0;
+    };
 } // namespace Ifrit::Graphics::SoftGraphics

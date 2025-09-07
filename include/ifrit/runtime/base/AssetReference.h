@@ -15,41 +15,114 @@ GNU Affero General Public License for more details.
 
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/serialization/SerialInterface.h"
+#include "ifrit/core/reflection/PropertyUIControl.h"
 #include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/core/algo/Guid.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 #include <memory>
 #include <string>
 
 namespace Ifrit::Runtime
 {
-    struct AssetReference
+    enum class EAssetReferencingType : u8
     {
-        String m_fileId;
-        String m_uuid;
-        String m_name;
-        bool   m_usingAsset = false;
-        IFRIT_STRUCT_SERIALIZE(m_fileId, m_uuid, m_name, m_usingAsset)
-
-        bool operator==(const AssetReference& other) const { return m_uuid == other.m_uuid && m_name == other.m_name; }
+        Unknown,
+        Empty,
+        Internal,
+        Imported
     };
 
-    class IFRIT_APIDECL IAssetCompatible
+    enum class EAssetType : u8
     {
-    public:
-        virtual void _PolyHolderAsset() {}
+        General,
+        Texture,
+        Material,
+        Mesh,
+        Prefab,
+        Shader,
+        VolumetricData
     };
 
-    class AssetReferenceContainer
+    struct IF_CLASS() AssetReferenceId
+    {
+        IF_PROPERTY()
+        EAssetReferencingType mType = EAssetReferencingType::Empty;
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
+        String mRelativePath;
+
+        bool   operator==(const AssetReferenceId& other) const
+        {
+            if (mType != other.mType)
+                return false;
+            if (mGuid != other.mGuid)
+            {
+                if (mType != EAssetReferencingType::Internal)
+                    return mRelativePath == other.mRelativePath;
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        IFRIT_APIDECL void GetUIEditingHandle(const Reflection::PropertyMetadata& propMeta);
+        IFRIT_APIDECL void DoSerialize(Reflection::Archive* archive) const;
+        IFRIT_APIDECL void DoDeserialize(Reflection::Archive* archive);
+    };
+
+    struct IF_CLASS() AssetMetadata
+    {
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
+        String mName;
+
+        IF_PROPERTY()
+        String mExternalPath;
+
+        IF_PROPERTY()
+        String mImporter = "";
+
+        IF_PROPERTY()
+        EAssetReferencingType mReferencingType = EAssetReferencingType::Unknown;
+
+        EAssetType            mAssetType = EAssetType::General;
+    };
+
+    class IFRIT_APIDECL IF_CLASS() Asset
     {
     public:
-        AssetReference                  m_assetReference;
-        bool                            m_usingAsset = false;
-        std::weak_ptr<IAssetCompatible> m_asset;
+        IF_PROPERTY()
+        AssetMetadata mMetadata;
 
-        IFRIT_STRUCT_SERIALIZE(m_assetReference, m_usingAsset)
+    public:
+        Asset()          = default;
+        virtual ~Asset() = default;
+
+        Asset(AssetMetadata metadata) : mMetadata(metadata) {}
+        const GUID&               GetGuid() const { return mMetadata.mGuid; }
+        const String&             GetName() const { return mMetadata.mName; }
+        const String&             GetExternalPath() const { return mMetadata.mExternalPath; }
+        virtual void              _PolyHolder() {}
+
+        const AssetReferenceId    GetAssetReference() const;
+        inline virtual EAssetType GetAsseType() const { return EAssetType::General; }
+    };
+
+    class IF_CLASS() InternalAssetHolder
+    {
+    public:
+        IF_PROPERTY()
+        Owner<Asset> mAsset;
     };
 
 } // namespace Ifrit::Runtime

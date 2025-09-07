@@ -22,11 +22,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/algo/Memory.h"
 #include "ifrit/core/algo/Parallel.h"
 
-namespace Ifrit
+#include "ifrit/core/base/CoreBase.h"
+namespace Ifrit::Task
 {
     IF_CONSTEXPR u32 cTaskMaxContinuationCount = 16;
 
-    enum class TaskState : u32
+    enum class ETaskState : u32
     {
         Idle,
         Scheduling,
@@ -35,11 +36,27 @@ namespace Ifrit
         Failed,
     };
 
-    enum class TaskWorkerState : u32
+    enum class ETaskWorkerState : u32
     {
         Alive,
         Terminating,
         Terminated,
+    };
+
+    enum class ENamedTaskThread : u32
+    {
+        Invalid             = 0,
+        GameThread          = 1,
+        RenderThread        = 2,
+        RHIThread           = 3,
+        RHISubmissionThread = 4,
+        AnyThread           = 0xff
+    };
+
+    enum class ETaskWorkerType : u32
+    {
+        Generic    = 0,
+        UniqueTask = 1
     };
 
     class TaskScheduler;
@@ -65,12 +82,14 @@ namespace Ifrit
         Atomic<i32>                             m_ChildJobs   = 0;
         Atomic<i32>                             m_ParentJobs  = 0;
 
-        RSpinLock                               m_ContinuationLock = 0;
-        Atomic<TaskState>                       m_State            = TaskState::Idle;
+        FSpinLock                               m_ContinuationLock = 0;
+        Atomic<ETaskState>                      m_State            = ETaskState::Idle;
         Array<Task*, cTaskMaxContinuationCount> m_Continuations;
         Array<Task*, cTaskMaxContinuationCount> m_Parents;
-        RIndexedPtr                             m_PooledIdx = RIndexedPtr(0);
+        FIndexedPtr                             m_PooledIdx = FIndexedPtr(0);
         TaskScheduler*                          m_Scheduler = nullptr;
+
+        ENamedTaskThread                        m_ThreadType = ENamedTaskThread::Invalid;
 
         void*                                   m_Payload;
 
@@ -84,14 +103,12 @@ namespace Ifrit
         friend TaskScheduler;
     };
 
+    using TaskReference = TObjectPool<Task>::TObjectRef;
+
     struct TaskWorkerAttributes;
     class IFRIT_APIDECL TaskWorker : public NonCopyable
     {
-        using TaskRef = RObjectPool<Task>::RObjectRef;
-
-    private:
-        std::thread           m_Thread;
-        TaskWorkerAttributes* m_Attributes = nullptr;
+        using TaskRef = TObjectPool<Task>::TObjectRef;
 
     private:
         void    EnqueueTask(TaskRef task);
@@ -101,39 +118,61 @@ namespace Ifrit
         TaskWorker(TaskScheduler* scheduler, u32 id);
         ~TaskWorker();
 
-        void Launch();
-        void Run();
+        void         Launch();
+        void         Run();
+        void         RequestTerminate();
+
+        virtual void RunUnique() {}
+
+        bool         IsTerminating() const;
+        void         WaitForTermination();
 
         friend class TaskScheduler;
+
+    protected:
+        ENamedTaskThread mThreadType = ENamedTaskThread::AnyThread;
+        ETaskWorkerType  mWorkerType = ETaskWorkerType::Generic;
+
+    private:
+        std::thread           m_Thread;
+        TaskWorkerAttributes* m_Attributes = nullptr;
     };
-    using TaskHandle = RObjectPool<Task>::RObjectRef;
+    using TaskHandle = TObjectPool<Task>::TObjectRef;
 
     struct TaskSchedulerAttributes;
     class IFRIT_APIDECL TaskScheduler : public NonCopyable
     {
     private:
         // I don't want the use of dangled pointer
-        using TaskRef = RObjectPool<Task>::RObjectRef;
+        using TaskRef = TObjectPool<Task>::TObjectRef;
 
     private:
-        TaskSchedulerAttributes* m_Attributes  = nullptr;
-        bool                     m_IsSingleton = false;
-
-    private:
-        void        RegisterDependency(Task* parent, Task* child);
+        bool        RegisterDependency(Task* parent, Task* child);
         void        ScheduleTask(TaskRef task);
-        void        ScheduleTaskFromId(RIndexedPtr taskId);
+        void        ScheduleTaskFromId(FIndexedPtr taskId);
         TaskWorker* FetchRandomWorker();
-        void        DereferenceTask(RIndexedPtr taskId);
+        void        DereferenceTask(FIndexedPtr taskId);
+        TaskWorker* GetNamedWorker(ENamedTaskThread threadType);
 
     public:
         TaskScheduler(u32 numWorkers, bool isSingleton = false);
         ~TaskScheduler();
-        TaskRef EnqueueTask(Fn<void(Task*, void*)> fn, Vec<TaskRef> dependencies, void* payload);
-        void    WaitForTask(TaskRef task);
+        TaskRef EnqueueTask(
+            Fn<void(Task*, void*)> fn, ENamedTaskThread threadType, Vec<TaskRef> dependencies, void* payload);
+        void WaitForTask(TaskRef task);
+        void RegisterNamedWorker(Owner<TaskWorker> worker, ENamedTaskThread threadType);
+        void RequestTerminating(ENamedTaskThread threadType);
+        void WaitForTerminating(ENamedTaskThread threadType);
 
         friend class TaskWorker;
         friend class Task;
+
+    private:
+        TaskSchedulerAttributes* m_Attributes  = nullptr;
+        bool                     m_IsSingleton = false;
     };
 
-} // namespace Ifrit
+    IFRIT_CORE_API TaskScheduler* GetTaskScheduler();
+    IFRIT_CORE_API bool           IsInNamedThread(ENamedTaskThread threadType);
+
+} // namespace Ifrit::Task

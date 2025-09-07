@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include "RhiBaseTypes.h"
-#include "RhiCommandList.h"
+#include "RhiCommandListContext.h"
 #include "RhiDevice.h"
 #include "RhiInterface.h"
 #include "RhiPipeline.h"

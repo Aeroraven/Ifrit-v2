@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 
 // Simple Temporary Anti-Aliasing
 // Implementation might be incorrect, but it works for now.
@@ -31,6 +31,7 @@ layout(location = 0) out vec4 outColorNextHistory;
 layout(location = 1) out vec4 outColorFrameBuffer;
 
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
 
 layout(binding = 0, set = 1) uniform TAAHistory {
     uint frameUnresolved;
@@ -82,15 +83,15 @@ vec4 colorClamp(vec4 srcColor, vec4 historyColor, vec2 uv){
     vec3 colorAABBMin = vec3(5.0);
     vec3 colorAABBMax = vec3(-5.0);
     vec4 colors[9];
-    colors[0] = textureOffset(GetSampler2D(uHistory.frameUnresolved), uv, ivec2(0, 0));
-    colors[1] = textureOffset(GetSampler2D(uHistory.frameUnresolved), uv, ivec2(1, 0));
-    colors[2] = textureOffset(GetSampler2D(uHistory.frameUnresolved), uv, ivec2(-1, 0));
-    colors[3] = textureOffset(GetSampler2D(uHistory.frameUnresolved), uv, ivec2(0, 1));
-    colors[4] = textureOffset(GetSampler2D(uHistory.frameUnresolved), uv, ivec2(0, -1));
-    colors[5] = textureOffset(GetSampler2D(uHistory.frameUnresolved), uv, ivec2(1, 1));
-    colors[6] = textureOffset(GetSampler2D(uHistory.frameUnresolved), uv, ivec2(-1, 1));
-    colors[7] = textureOffset(GetSampler2D(uHistory.frameUnresolved), uv, ivec2(1, -1));
-    colors[8] = textureOffset(GetSampler2D(uHistory.frameUnresolved), uv, ivec2(-1, -1));
+    colors[0] = SampleTexture2DOffset(uHistory.frameUnresolved, sLinearClamp, uv, ivec2(0, 0));
+    colors[1] = SampleTexture2DOffset(uHistory.frameUnresolved, sLinearClamp, uv, ivec2(1, 0));
+    colors[2] = SampleTexture2DOffset(uHistory.frameUnresolved, sLinearClamp, uv, ivec2(-1, 0));
+    colors[3] = SampleTexture2DOffset(uHistory.frameUnresolved, sLinearClamp, uv, ivec2(0, 1));
+    colors[4] = SampleTexture2DOffset(uHistory.frameUnresolved, sLinearClamp, uv, ivec2(0, -1));
+    colors[5] = SampleTexture2DOffset(uHistory.frameUnresolved, sLinearClamp, uv, ivec2(1, 1));
+    colors[6] = SampleTexture2DOffset(uHistory.frameUnresolved, sLinearClamp, uv, ivec2(-1, 1));
+    colors[7] = SampleTexture2DOffset(uHistory.frameUnresolved, sLinearClamp, uv, ivec2(1, -1));
+    colors[8] = SampleTexture2DOffset(uHistory.frameUnresolved, sLinearClamp, uv, ivec2(-1, -1));
     for(int i = 0; i < 9; i++){
         vec3 neighborYCoCg = rgbToYCoCg(colors[i].rgb);
         colorAABBMin = min(colorAABBMin, neighborYCoCg);
@@ -107,7 +108,7 @@ vec4 colorClampYCbCr(vec4 srcColor, vec4 historyColor, vec2 uv){
     for(int dx = -1; dx <= 1; dx++){
         for(int dy = -1; dy <= 1; dy++){
             vec2 offset = vec2(dx, dy) / vec2(uTAA.renderWidth, uTAA.renderHeight);
-            vec4 neighborColor = texture(GetSampler2D(uHistory.frameUnresolved), uv + offset);
+            vec4 neighborColor = SampleTexture2D(uHistory.frameUnresolved,sLinearClamp, uv + offset);
             vec3 neighborYCbCr = rgbToYCbCr(neighborColor.rgb);
             colorAABBMin = min(colorAABBMin, neighborYCbCr);
             colorAABBMax = max(colorAABBMax, neighborYCbCr);
@@ -120,21 +121,21 @@ vec4 colorClampYCbCr(vec4 srcColor, vec4 historyColor, vec2 uv){
 
 void main(){
     vec2 curFrameJitter = vec2(uTAA.jitterX, uTAA.jitterY);
-    vec2 motionVector = texture(GetSampler2D(uMotionDepthRefs.ref), texCoord).rg;
+    vec2 motionVector = SampleTexture2D(uMotionDepthRefs.ref,sLinearClamp, texCoord).rg;
     vec2 lastTexCoord = (texCoord) - motionVector;
     vec4 resolvedColor;
 
     float blendFactor = clamp(0.05 + length(motionVector)*114.514, 0.0, 1.0);
     if(uTAA.frame % 2 == 0){
         // read from frame1
-        vec4 historyColor = texture(GetSampler2D(uHistory.frame2), lastTexCoord);
-        vec4 frameColor = texture(GetSampler2D(uHistory.frameUnresolved), texCoord);
+        vec4 historyColor = SampleTexture2D(uHistory.frame2,sLinearClamp, lastTexCoord);
+        vec4 frameColor = SampleTexture2D(uHistory.frameUnresolved,sLinearClamp, texCoord);
         historyColor = colorClampYCbCr(frameColor, historyColor, texCoord);
         resolvedColor = mix(historyColor, frameColor, blendFactor);
     }else{
         // read from frame2
-        vec4 historyColor = texture(GetSampler2D(uHistory.frame1), lastTexCoord);
-        vec4 frameColor = texture(GetSampler2D(uHistory.frameUnresolved), texCoord);
+        vec4 historyColor = SampleTexture2D(uHistory.frame1,sLinearClamp, lastTexCoord);
+        vec4 frameColor = SampleTexture2D(uHistory.frameUnresolved,sLinearClamp, texCoord);
         historyColor = colorClampYCbCr(frameColor, historyColor, texCoord);
         resolvedColor = mix(historyColor, frameColor, blendFactor);
     }

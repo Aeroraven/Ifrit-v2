@@ -17,17 +17,19 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "Syaro/Syaro.Shared.glsl"
 #include "Syaro/Syaro.SharedConst.h"
+#include "SamplerUtils.SharedConst.h"
 
 #include "Atmosphere/PAS.SharedConst.h"
 #include "Atmosphere/PAS.Definition.glsl"
 #include "Atmosphere/PAS.Function.glsl"
 #include "Atmosphere/PAS.Shared.glsl"
+
 
 layout(local_size_x = cAtmoRenderThreadGroupSizeX, local_size_y = cAtmoRenderThreadGroupSizeY, local_size_z = 1) in;
 
@@ -48,7 +50,7 @@ layout(push_constant) uniform PushConstant{
 } uAtmoRenderPushConstant;
 
 float texFetchDepth(uvec2 uv){
-    float depth = texelFetch(GetSampler2D(uAtmoRenderPushConstant.depthTex), ivec2(uv), 0).r;
+    float depth = SampleTexture2DLoad(uAtmoRenderPushConstant.depthTex,sLinearClamp, ivec2(uv)).r;
     return depth;
 }
 
@@ -113,8 +115,8 @@ void main(){
         vec3 skyIrradiance;
         vec3 sunIrradiance = GetSunAndSkyIrradiance(
             atmo, 
-            GetSampler2D(uAtmoRenderPushConstant.texTransmittance),
-            GetSampler2D(uAtmoRenderPushConstant.texIrradiance),
+            uAtmoRenderPushConstant.texTransmittance,
+            uAtmoRenderPushConstant.texIrradiance,
             groundPos - earthCenter,
             groundNormal,
             sunDirection,
@@ -124,9 +126,9 @@ void main(){
         vec3 transmittance;
         vec3 inScatter = GetSkyRadianceToPoint(
             atmo,
-            GetSampler2D(uAtmoRenderPushConstant.texTransmittance),
-            GetSampler3D(uAtmoRenderPushConstant.texScattering),
-            GetSampler3D(uAtmoRenderPushConstant.texMieScattering),
+            uAtmoRenderPushConstant.texTransmittance,
+            uAtmoRenderPushConstant.texScattering,
+            uAtmoRenderPushConstant.texMieScattering,
             camPosKmRelativeToEarth.xyz,
             groundPos - earthCenter,
             0.0,
@@ -141,9 +143,9 @@ void main(){
     vec3 transmittance;
     vec3 skyRadiance = GetSkyRadiance(
         atmo,
-        GetSampler2D(uAtmoRenderPushConstant.texTransmittance),
-        GetSampler3D(uAtmoRenderPushConstant.texScattering),
-        GetSampler3D(uAtmoRenderPushConstant.texMieScattering),
+        uAtmoRenderPushConstant.texTransmittance,
+        uAtmoRenderPushConstant.texScattering,
+        uAtmoRenderPushConstant.texMieScattering,
         camPosKmRelativeToEarth.xyz,
         rayDir,
         0.0,

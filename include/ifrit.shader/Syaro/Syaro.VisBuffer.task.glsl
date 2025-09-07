@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #extension GL_EXT_mesh_shader: require
 #extension GL_GOOGLE_include_directive: require
 
@@ -215,7 +215,7 @@ void main(){
 
         uint trans = GetResource(bPerObjectRef,uInstanceData.ref.x).data[objId].transformRef;
         vec4 camPos = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraPosition;
-        mat4 model = GetResource(bLocalTransform,trans).m_localToWorld;
+        mat4 model = GetResource(bModelTransform,trans).m_Data.m_LocalToWorld;
         mat4 worldToView = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_worldToView;
         float fovy = GetResource(bPerframeView,uPerframeView.refCurFrame).data.m_cameraFovY;
         float tanHalfFovY = tan(fovy * 0.5);

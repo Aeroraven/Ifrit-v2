@@ -16,13 +16,16 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Ayanami/Ayanami.Shared.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 #include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
+
 
 layout(location = 0) in flat uint meshId;
 
@@ -52,5 +55,5 @@ void main(){
     uint inListPos = atomicAdd(GetResource(BTileAtomics, PushConst.m_TileAtomics).m_Data[tileId], 1u);
     uint overPos = inListPos + PushConst.m_NumMeshDF * tileId;
     GetResource(BTileScatter, PushConst.m_ScatterOutput).m_Data[overPos] = meshId;
-    outDummy = 0.0;
+    outDummy = 1.0;
 }

@@ -22,7 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/rhi/common/RhiLayer.h"
 #include <memory>
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
     enum class RhiBackendType
     {
@@ -34,6 +34,6 @@ namespace Ifrit::Graphics::Rhi
     class IFRIT_APIDECL RhiSelector
     {
     public:
-        Uref<RhiBackend> CreateBackend(RhiBackendType, const RhiInitializeArguments& args);
+        Owner<RhiBackend> CreateBackend(RhiBackendType, const RhiInitializeArguments& args);
     };
-} // namespace Ifrit::Graphics::Rhi
+} // namespace Ifrit::RHI

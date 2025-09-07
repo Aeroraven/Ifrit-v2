@@ -22,58 +22,69 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/math/VectorDefs.h"
 #include "ifrit/core/serialization/MathTypeSerialization.h"
 #include "ifrit/core/serialization/SerialInterface.h"
-
-#include "ifrit/core/typing/Util.h"
+#include "ifrit/core/serialization/SerialEnumDefine.h"
+#include "ifrit/core/reflection/ReflAttrs.h"
 
 namespace Ifrit::Runtime
 {
-    enum class CameraType
+    enum class CameraType : u8
     {
         Perspective,
         Orthographic
     };
-    struct CameraData
-    {
-        CameraType m_type           = CameraType::Perspective; // Ortho support not implemented
-        f32        m_fov            = 60.0f;
-        f32        m_orthoSpaceSize = 1.0f;
-        f32        m_aspect         = 1.0f;
-        f32        m_near           = 0.1f;
-        f32        m_far            = 1000.0f;
-        bool       m_IsMainCamera   = false;
-        IFRIT_STRUCT_SERIALIZE(m_type, m_fov, m_aspect, m_near, m_far, m_IsMainCamera);
-    };
-    class IFRIT_APIDECL Camera : public Component, public AttributeOwner<CameraData>
+
+    class IFRIT_APIDECL IF_CLASS() Camera : public Component
     {
     public:
-        Camera(){};
-        Camera(std::shared_ptr<GameObject> owner) : Component(owner), AttributeOwner() {}
+        IF_PROPERTY(Editable, UISelect)
+        CameraType mType = CameraType::Perspective;
+
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 180.0f))
+        f32 mFov = 60.0f;
+
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 1000.0f))
+        f32 mOrthoSpaceSize = 1.0f;
+
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 10.0f))
+        f32 mAspect = 1.0f;
+
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 1000.0f))
+        f32 mNear = 0.1f;
+
+        IF_PROPERTY(Editable, UISlider = (min = 0.1f, max = 10000.0f))
+        f32 mFar = 1000.0f;
+
+        IF_PROPERTY(Editable, UISelect)
+        bool mIsMainCamera = false;
+
+    public:
+        using Component::Component;
         virtual ~Camera() = default;
-        inline std::string Serialize() override { return SerializeAttribute(); }
-        inline void        Deserialize() override { DeserializeAttribute(); }
-        Matrix4x4f         GetWorldToCameraMatrix() const;
-        Matrix4x4f         GetProjectionMatrix() const;
-        Vector4f           GetFront() const;
+
+        Matrix4x4f        GetWorldToCameraMatrix() const;
+        Matrix4x4f        GetProjectionMatrix() const;
+        Vector4f          GetFront() const;
 
         // getters
-        inline f32         GetFov() const { return m_attributes.m_fov; }
-        inline f32         GetAspect() const { return m_attributes.m_aspect; }
-        inline f32         GetNear() const { return m_attributes.m_near; }
-        inline f32         GetFar() const { return m_attributes.m_far; }
-        inline bool        IsMainCamera() const { return m_attributes.m_IsMainCamera; }
-        inline f32         GetOrthoSpaceSize() const { return m_attributes.m_orthoSpaceSize; }
-        inline CameraType  GetCameraType() const { return m_attributes.m_type; }
+
+        inline f32        GetFov() const { return mFov; }
+        inline f32        GetAspect() const { return mAspect; }
+        inline f32        GetNear() const { return mNear; }
+        inline f32        GetFar() const { return mFar; }
+        inline bool       GetIsMainCamera() const { return mIsMainCamera; }
+        inline f32        GetOrthoSpaceSize() const { return mOrthoSpaceSize; }
+        inline CameraType GetCameraType() const { return mType; }
+
+        Vector3f          GetCameraPosition() const;
 
         // setters
-        inline void        SetFov(f32 fov) { m_attributes.m_fov = fov; }
-        inline void        SetAspect(f32 aspect) { m_attributes.m_aspect = aspect; }
-        inline void        SetNear(f32 nearx) { m_attributes.m_near = nearx; }
-        inline void        SetFar(f32 farx) { m_attributes.m_far = farx; }
-        inline void        SetMainCamera(bool isMain) { m_attributes.m_IsMainCamera = isMain; }
-        inline void        SetOrthoSpaceSize(f32 size) { m_attributes.m_orthoSpaceSize = size; }
-        inline void        SetCameraType(CameraType type) { m_attributes.m_type = type; }
+
+        inline void       SetFov(f32 fov) { mFov = fov; }
+        inline void       SetAspect(f32 aspect) { mAspect = aspect; }
+        inline void       SetNear(f32 nearx) { mNear = nearx; }
+        inline void       SetFar(f32 farx) { mFar = farx; }
+        inline void       SetMainCamera(bool isMain) { mIsMainCamera = isMain; }
+        inline void       SetOrthoSpaceSize(f32 size) { mOrthoSpaceSize = size; }
+        inline void       SetCameraType(CameraType type) { mType = type; }
     };
 } // namespace Ifrit::Runtime
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::Camera)
-IFRIT_ENUMCLASS_SERIALIZE(Ifrit::Runtime::CameraType)

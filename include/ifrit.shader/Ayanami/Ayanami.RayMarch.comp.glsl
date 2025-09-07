@@ -16,17 +16,21 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "ComputeUtils.glsl"
+#include "SamplerUtils.SharedConst.h"
+
+#include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
 
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-RegisterUniform(bPerframe,{
+RegisterStorage(bPerframe,{
     PerFramePerViewData data;
 });
 
@@ -38,10 +42,8 @@ RegisterStorage(bMeshDFMeta,{
     MeshDFMeta data;
 });
 
-RegisterUniform(bLocalTransform,{
-    mat4 m_localToWorld;
-    mat4 m_worldToLocal;
-    vec4 m_maxScale;
+RegisterStorage(BModelTransform,{
+    FLocalTransformData m_Data;
 });
 
 layout(push_constant) uniform PushConstant{
@@ -96,7 +98,7 @@ void main(){
     int tY = int(gl_GlobalInvocationID.y);
     if(tX >= pc.rtW || tY >= pc.rtH) return;
 
-    float ndcX = (2.0 * (float(tX)+0.5) / float(pc.rtW) - 1.0) * aspect;
+    float ndcX = -(2.0 * (float(tX)+0.5) / float(pc.rtW) - 1.0) * aspect;
     float ndcY = 1.0 - 2.0 * (float(tY)+0.5) / float(pc.rtH);
     float tanFov = tan(fov * 0.5);
     vec3 rayDir = normalize(vec3(ndcX * tanFov, ndcY * tanFov, 1.0));
@@ -107,9 +109,12 @@ void main(){
 
     for(int T=0;T<pc.totalInsts;T++){
         MeshDFDesc desc0 = GetResource(bMeshDFDesc, pc.descId).data[T];
-        mat4 worldToLocal = GetResource(bLocalTransform, desc0.m_TransformId).m_worldToLocal;
+        mat4 worldToLocal = GetResource(BModelTransform, desc0.m_TransformId).m_Data.m_WorldToLocal;
         uint mdfMetaId = desc0.m_MdfMetaId;
         MeshDFMeta meta = GetResource(bMeshDFMeta, mdfMetaId).data;
+
+        vec2 MeshDFQuantScale = AyaShared_GetSdfQuantScale(meta);
+        
 
         vec3 lb = meta.bboxMin.xyz;
         vec3 rt = meta.bboxMax.xyz;
@@ -139,7 +144,7 @@ void main(){
         vec3 hitp = o + d*t;
         bool finalHit = false;
         bool outp = false;
-        vec3 normalEps = vec3(0.02, 0.02, 0.02);
+        vec3 normalEps = vec3(0.05, 0.05, 0.05)*2.0;
 
         // Begin sdf tracing
         if(hit){
@@ -147,18 +152,18 @@ void main(){
                 // get sdf value
                 vec3 uvw= (hitp - lb) / (rt - lb);
                 uvw = clamp(uvw, 0.0, 1.0);
-                float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-1.0;
-                if(abs(sdf) < 1.0){
+                float sdf = AyaShared_SampleMeshDF(meta.sdfId, uvw, MeshDFQuantScale);
+                if(sdf < 0.001){
                     finalHit = true;
 
                     float tval = length(hitp - o) / length(d);
                     if(tval < bestT){
-                        float dx1 = texture(GetSampler3D(meta.sdfId), uvw + vec3(normalEps.x, 0.0, 0.0)).x;
-                        float dx2 = texture(GetSampler3D(meta.sdfId), uvw - vec3(normalEps.x, 0.0, 0.0)).x;
-                        float dy1 = texture(GetSampler3D(meta.sdfId), uvw + vec3(0.0, normalEps.y, 0.0)).x;
-                        float dy2 = texture(GetSampler3D(meta.sdfId), uvw - vec3(0.0, normalEps.y, 0.0)).x;
-                        float dz1 = texture(GetSampler3D(meta.sdfId), uvw + vec3(0.0, 0.0, normalEps.z)).x;
-                        float dz2 = texture(GetSampler3D(meta.sdfId), uvw - vec3(0.0, 0.0, normalEps.z)).x;
+                        float dx1 = AyaShared_SampleMeshDF(meta.sdfId, uvw + vec3(normalEps.x, 0.0, 0.0), MeshDFQuantScale);
+                        float dx2 = AyaShared_SampleMeshDF(meta.sdfId, uvw - vec3(normalEps.x, 0.0, 0.0), MeshDFQuantScale);
+                        float dy1 = AyaShared_SampleMeshDF(meta.sdfId, uvw + vec3(0.0, normalEps.y, 0.0), MeshDFQuantScale);
+                        float dy2 = AyaShared_SampleMeshDF(meta.sdfId, uvw - vec3(0.0, normalEps.y, 0.0), MeshDFQuantScale);
+                        float dz1 = AyaShared_SampleMeshDF(meta.sdfId, uvw + vec3(0.0, 0.0, normalEps.z), MeshDFQuantScale);
+                        float dz2 = AyaShared_SampleMeshDF(meta.sdfId, uvw - vec3(0.0, 0.0, normalEps.z), MeshDFQuantScale);
                         normal.x = dx1 - dx2;
                         normal.y = dy1 - dy2;
                         normal.z = dz1 - dz2;
@@ -168,7 +173,7 @@ void main(){
                    
                     break;
                 }
-                hitp += sdf * nD ;
+                hitp += nD*max(1e-4,sdf * 0.25);
             }
         }
     }

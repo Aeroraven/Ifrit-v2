@@ -1,97 +1,62 @@
-
-/*
-Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
-#include "AssetReference.h"
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/algo/Container.h"
-#include "ifrit/core/logging/Logging.h"
-#include "ifrit/core/math/VectorDefs.h"
-#include "ifrit/core/serialization/MathTypeSerialization.h"
-#include "ifrit/core/serialization/SerialInterface.h"
-#include "ifrit/core/platform/ApiConv.h"
-#include "ifrit/core/typing/Util.h"
-#include "ifrit/rhi/common/RhiLayer.h"
-#include <array>
-#include <cstdint>
-#include <memory>
-#include <string>
+#include "ifrit/runtime/base/AssetReference.h"
+#include "ifrit/runtime/common/Pch.h"
+#include "ifrit/runtime/base/Property.h"
+#include "ifrit/core/typing/EnumReflection.h"
+#include "ifrit/core/typing/Traits.h"
+#include "ifrit/core/typing/TypeMetaInfo.h"
 #include <typeinfo>
-#include <unordered_map>
-#include <vector>
+#include "ifrit/core/reflection/ReflAttrs.h"
+#include "ifrit/runtime/base/Prefab.h"
 
-#define IFRIT_COMPONENT_SERIALIZE(...) IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject, __VA_ARGS__)
+#define IFRIT_COMPONENT_SERIALIZE(...)    // IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef, __VA_ARGS__)
+#define IFRIT_COMPONENT_SERIALIZE_EMPTY() // IFRIT_STRUCT_SERIALIZE(m_id, m_isEnabled, m_ParentRef)
 #define IFRIT_COMPONENT_REGISTER(x) \
     IFRIT_DERIVED_REGISTER(x);      \
     IFRIT_INHERIT_REGISTER(Ifrit::Runtime::Component, x);
 
+// Change log at 2025-07-18:
+// It's the pity that the messy ownership identification is found by @AEMShana
+// I am changing the ownership of Component to be unique.
+
+// Change log at 2025-07-23:
+// Temporarily droping (sealing) the manual serialization for Component. It's not user friendly to use
+
 namespace Ifrit::Runtime
 {
-
-    struct ComponentIdentifier
-    {
-        String m_uuid;
-        String m_name;
-        u32    m_ArrayIndex   = 0;
-        u32    m_ManagerIndex = 0;
-
-        IFRIT_STRUCT_SERIALIZE(m_uuid, m_name)
-    };
-
-    template <class T> class AttributeOwner
-    {
-    protected:
-        T m_attributes{};
-
-    public:
-        inline String SerializeAttribute()
-        {
-            String serialized;
-            Ifrit::Common::Serialization::serialize(m_attributes, serialized);
-            return serialized;
-        }
-        inline void DeserializeAttribute()
-        {
-            String serialized;
-            Ifrit::Common::Serialization::deserialize(serialized, m_attributes);
-        }
-    };
 
     class Component;
     class GameObject;
     class Transform;
-    using ComponentTypeHash = u64;
     class ComponentManager;
+    class GameObjectManager;
+    class SceneNode;
+
+    using ComponentTypeHash   = u64;
+    using ComponentReference  = Pair<ComponentTypeHash, u32>;
+    using GameObjectReference = u32;
 
     class IFRIT_APIDECL IComponentManagerKeeper
     {
     public:
-        virtual ComponentManager* GetComponentManager() = 0;
+        virtual ComponentManager*  GetComponentManager()  = 0;
+        virtual GameObjectManager* GetGameObjectManager() = 0;
     };
 
-    class IFRIT_APIDECL ComponentManager : public NonCopyable
+    class IFRIT_APIDECL IF_CLASS() ComponentManager : public NonCopyable
     {
+    public:
+        IF_PROPERTY()
+        HashMap<ComponentTypeHash, Vec<Owner<Component>>> mComponentArray;
+
+        IF_PROPERTY()
+        HashMap<u32, ComponentTypeHash> mIdToTypeHash;
+
+        IF_PROPERTY()
+        u32 mAllocatedComponents = 0;
 
     private:
-        Queue<u32>                                      m_FreeIdQueue;
-        u32                                             m_AllocatedComponents = 0;
-        HashMap<ComponentTypeHash, Vec<Ref<Component>>> m_ComponentArray;
-        HashMap<u32, ComponentTypeHash>                 m_IdToTypeHash;
+        Queue<u32> m_FreeIdQueue;
 
     public:
         ComponentManager();
@@ -99,263 +64,226 @@ namespace Ifrit::Runtime
         u32  AllocateId();
 
     private:
-        void                 SetComponentId(Ref<Component> component, u32 arrayPos, ComponentTypeHash typeHash);
-        Vec<Ref<Component>>& GetComponentArray(ComponentTypeHash typeHash) { return m_ComponentArray[typeHash]; }
-
-        template <typename T> Ref<T> CreateComponent(Ref<GameObject> parentObject)
+        void                          SetComponentId(Component* component, u32 arrayPos, ComponentTypeHash typeHash);
+        inline Vec<Owner<Component>>& GetComponentArray(ComponentTypeHash typeHash)
         {
-            static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
-            using Ifrit::RTypeInfo;
-            auto typeName = RTypeInfo<T>::name;
-            auto typeHash = RTypeInfo<T>::hash;
-            if (m_ComponentArray.count(typeHash) == 0)
+            return mComponentArray[typeHash];
+        }
+
+        template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
+        ComponentReference CreateComponent(GameObject* parentObject)
+        {
+            auto typeName = TMetaTypeInfo<T>::Name;
+            auto typeHash = TMetaTypeInfo<T>::Hash;
+            if (mComponentArray.count(typeHash) == 0)
             {
-                m_ComponentArray[typeHash] = Vec<Ref<Component>>();
+                mComponentArray[typeHash] = Vec<Owner<Component>>();
             }
-            auto ret = std::make_shared<T>(parentObject);
-            SetComponentId(ret, m_ComponentArray[typeHash].size(), typeHash);
-            m_ComponentArray[typeHash].push_back(ret);
-            return ret;
+            auto ret = MakeOwner<T>(parentObject);
+            SetComponentId(ret.get(), SizeCast<u32>(mComponentArray[typeHash].size()), typeHash);
+            mComponentArray[typeHash].push_back(std::move(ret));
+            return { typeHash, SizeCast<u32>(mComponentArray[typeHash].size() - 1) };
+        }
+
+        ComponentReference CreateComponentFromMeta(
+            GameObject* parentObject, const FMetaTypeInfo& metaTypeInfo, bool enabled);
+
+        template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)>
+        T* GetComponentFromReference(ComponentReference ref)
+        {
+            auto typeHash = ref.first;
+            if (ref.first != typeHash || mComponentArray.count(typeHash) == 0)
+                return nullptr;
+            auto& componentArray = mComponentArray[typeHash];
+            if (ref.second >= componentArray.size())
+                return nullptr;
+            return static_cast<T*>(componentArray[ref.second].get());
         }
 
         friend class GameObject;
+        friend class GameObjectManager;
+    };
+
+    class IFRIT_APIDECL IF_CLASS() GameObjectManager : public NonCopyable
+    {
+
+    public:
+        IF_PROPERTY()
+        Vec<Owner<GameObject>> mGameObjects;
+
+        IF_PROPERTY()
+        u32 mAllocatedObjects = 0;
+
+    private:
+        Queue<u32>           m_FreeIdQueue;
+        HashMap<String, u32> m_GameObjectNameToIndex;
+        HashMap<GUID, u32>   m_GameObjectUUIDToIndex;
+
+    private:
+        u32 AllocateId();
+
+    public:
+        GameObjectManager()  = default;
+        ~GameObjectManager() = default;
+
+        GameObjectReference CreateGameObject(const String& name);
+        GameObject*         GetGameObject(GameObjectReference ref);
+        void                RebuildLookupTable();
+        void                RequestRemove(GameObjectReference ref);
     };
 
     // TODO: for performance considerations, components container is not consistent
     // across different build envs.
 
-    class IFRIT_APIDECL GameObject : public NonCopyable, public std::enable_shared_from_this<GameObject>
+    class IFRIT_APIDECL IF_CLASS() GameObject : public NonCopyable
     {
-    protected:
-        ComponentIdentifier             m_id;
-        String                          m_name;
-        // HashMap<String, Ref<Component>> m_components;
-        Vec<Ref<Component>>             m_components;
-        HashMap<String, u32>            m_componentIndex;
-        HashMap<ComponentTypeHash, u32> m_componentsHashed;
+    public:
+        IF_PROPERTY()
+        u32 mManagedIndex;
 
-        ComponentManager*               m_componentManager = nullptr;
+        IF_PROPERTY()
+        u32 mIdInParent;
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
+        String mName;
+
+        IF_PROPERTY()
+        HashMap<ComponentTypeHash, u32> mComponentsHashed;
+
+        SceneNode*                      mParentNode = nullptr;
+
+    public:
+        ComponentManager*  m_ComponentManager  = nullptr;
+        GameObjectManager* m_GameObjectManager = nullptr;
+
+    private:
+        inline void SetManagerId(GameObjectReference id) { mManagedIndex = id; }
 
     public:
         GameObject();
         virtual ~GameObject();
-        void                      Initialize(ComponentManager* manager);
+        void                       Initialize(ComponentManager* manager, GameObjectManager* gameObjectManager);
+        inline String              GetName() const { return mName; }
+        inline GUID                GetUUID() const { return mGuid; }
+        inline GameObjectReference GetManagerId() const { return mManagedIndex; }
 
-        static Ref<GameObject>    CreatePrefab(IComponentManagerKeeper* managerKeeper);
-
-        template <class T> Ref<T> AddComponent()
+        template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* AddComponent()
         {
-            static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
-            auto component = m_componentManager->CreateComponent<T>(shared_from_this());
-
-            m_components.push_back(component);
-            auto typeName = Ifrit::RTypeInfo<T>::name;
-            auto typeHash = Ifrit::RTypeInfo<T>::hash;
-            if (m_componentIndex.count(typeName) > 0 || m_componentsHashed.count(typeHash) > 0)
+            auto componentRef = m_ComponentManager->CreateComponent<T>(this);
+            auto typeName     = TMetaTypeInfo<T>::Name;
+            auto typeHash     = TMetaTypeInfo<T>::Hash;
+            if (mComponentsHashed.count(typeHash) > 0)
             {
-                iError("Component type name conflicted");
                 std::abort();
             }
-            m_componentIndex[typeName]   = m_components.size() - 1;
-            m_componentsHashed[typeHash] = m_components.size() - 1;
-            return component;
+            mComponentsHashed[typeHash] = componentRef.second;
+            return m_ComponentManager->GetComponentFromReference<T>(componentRef);
         }
 
-        template <class T> Ref<T> GetComponent()
+        void AddComponentFromMeta(const FMetaTypeInfo& metaTypeInfo, bool enabled);
+
+        template <typename T IF_REQUIRES(std::is_base_of<Component, T>::value)> T* GetComponent()
         {
-            static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
-            using Ifrit::RTypeInfo;
-            auto typeHash = RTypeInfo<T>::hash;
-            if (m_componentsHashed.count(typeHash) == 0)
+            auto typeHash = TMetaTypeInfo<T>::Hash;
+            if (mComponentsHashed.count(typeHash) == 0)
             {
                 return nullptr;
             }
-            auto itIndex = m_componentsHashed[typeHash];
-#ifdef _DEBUG
-            auto ret = std::dynamic_pointer_cast<T>(m_components[itIndex]);
-            if (ret == nullptr)
-            {
-                iError("Invalid cast");
-                std::abort();
-            }
-            return ret;
-#else
-            return std::static_pointer_cast<T>(m_components[itIndex]);
-#endif
+            auto itIndex   = mComponentsHashed[typeHash];
+            auto component = m_ComponentManager->GetComponentFromReference<T>({ typeHash, itIndex });
+            return component ? component : nullptr;
         }
 
-        // Unsafe version of GetComponent, use with caution. It's intended to be used
-        // in performance-critical code.
-        template <class T> T* GetComponentUnsafe()
+        void                   RemoveComponentFromMeta(u64 typeHash);
+
+        inline Vec<Component*> GetAllComponents()
         {
-            static_assert(std::is_base_of<Component, T>::value, "T must be derived from Component");
-            using Ifrit::RTypeInfo;
-            auto typeHash = RTypeInfo<T>::hash;
-            if (m_componentsHashed.count(typeHash) == 0)
+            Vec<Component*> components;
+            for (auto& [typeHash, index] : mComponentsHashed)
             {
-                return nullptr;
+                auto component = m_ComponentManager->GetComponentFromReference<Component>({ typeHash, index });
+                if (component)
+                    components.push_back(component);
             }
-            auto itIndex = m_componentsHashed[typeHash];
-            return static_cast<T*>(m_components[itIndex].get());
+            return components;
         }
 
-        inline Vec<Ref<Component>> GetAllComponents() { return m_components; }
+        Owner<Prefab> CreatePrefab();
 
-        inline void                SetName(const String& name) { m_name = name; }
-        IFRIT_STRUCT_SERIALIZE(m_id, m_name, m_components, m_componentIndex, m_componentsHashed);
+        friend class GameObjectManager;
+        friend class Component;
+
+        inline void SetName(const String& name) { mName = name; }
     };
 
-    // This will change in the future
-    using GameObjectPrefab = GameObject;
-
-    class IFRIT_APIDECL Component : public Ifrit::NonCopyable
+    class IFRIT_APIDECL IF_CLASS() Component : public NonCopyable
     {
-    protected:
-        ComponentIdentifier       m_id;
-        std::weak_ptr<GameObject> m_parentObject;
-        bool                      m_isEnabled         = true;
-        bool                      m_shouldInvokeStart = true;
-        bool                      m_shouldInvokeAwake = true;
+    public:
+        IF_PROPERTY()
+        u32 mId;
+
+        IF_PROPERTY()
+        String mName;
+
+        IF_PROPERTY()
+        GUID mGuid;
+
+        IF_PROPERTY()
+        u32 mManagedIndex;
+
+        IF_PROPERTY()
+        u32 mArrayIndex;
+
+        IF_PROPERTY(Editable, UISelect)
+        bool mEnabled = true;
+
+    public:
+        GameObjectReference m_ParentRef;
+        GameObjectManager*  m_GameObjectManager = nullptr;
+
+        // Vec<ComponentPropertyBase> m_Property;
+        bool                m_PropertyRegistered = false;
+        bool                m_shouldInvokeStart  = true;
+        bool                m_shouldInvokeAwake  = true;
 
     private:
-        GameObject*                m_parentObjectRaw = nullptr;
-        inline ComponentIdentifier GetMetaData() { return m_id; }
         friend class ComponentManager;
 
     public:
-        Component(){}; // for deserializatioin
-        Component(Ref<GameObject> parentObject);
-        virtual ~Component() = default;
+        virtual void CallPropertyEditorHandle();
+        virtual void CallFunctionEditorHandle();
 
-        virtual String               Serialize()   = 0;
-        virtual void                 Deserialize() = 0;
-
-        virtual void                 OnFrameCollecting() {}
-        virtual void                 OnAwake() {}
-        virtual void                 OnStart() {}
-        virtual void                 OnFixedUpdate() {}
-        virtual void                 OnUpdate() {}
-        virtual void                 OnEnd() {}
-
-        inline void                  SetName(const String& name) { m_id.m_name = name; }
-        virtual void                 SetAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>>& out) {}
-        void                         SetEnable(bool enable);
-
-        inline String                GetName() const { return m_id.m_name; }
-        inline String                GetUuid() const { return m_id.m_uuid; }
-        inline Ref<GameObject>       GetParent() const { return m_parentObject.lock(); }
-        virtual Vec<AssetReference*> GetAssetRefs() { return {}; }
-        inline bool                  IsEnabled() const { return m_isEnabled; }
-
-        void                         InvokeStart();
-        void                         InvokeAwake();
-
-        // This function is intended to be used in performance-critical code.
-        // Use with caution.
-        inline GameObject*           GetParentUnsafe() { return m_parentObjectRaw; }
-
-        IFRIT_STRUCT_SERIALIZE(m_id, m_parentObject);
-    };
-
-    struct TransformAttribute
-    {
-        Vector3f m_position = Vector3f{ 0.0f, 0.0f, 0.0f };
-        Vector3f m_rotation = Vector3f{ 0.0f, 0.0f, 0.0f };
-        Vector3f m_scale    = Vector3f{ 1.0f, 1.0f, 1.0f };
-
-        IFRIT_STRUCT_SERIALIZE(m_position, m_rotation, m_scale);
-    };
-
-    class IFRIT_APIDECL Transform : public Component, public AttributeOwner<TransformAttribute>
-    {
-    private:
-        using GPUUniformBuffer                     = Ifrit::Graphics::Rhi::RhiMultiBuffer;
-        using GPUBindId                            = Ifrit::Graphics::Rhi::RhiDescHandleLegacy;
-        Ref<GPUUniformBuffer> m_gpuBuffer          = nullptr;
-        Ref<GPUUniformBuffer> m_gpuBufferLast      = nullptr;
-        Ref<GPUBindId>        m_gpuBindlessRef     = nullptr;
-        Ref<GPUBindId>        m_gpuBindlessRefLast = nullptr;
-        TransformAttribute    m_lastFrame;
-
-        struct DirtyFlag
-        {
-            bool changed     = true;
-            bool lastChanged = true;
-        } m_dirty;
+        inline u32   GetArrayIndex() const { return mArrayIndex; }
+        inline u32   GetManagedIndex() const { return mManagedIndex; }
 
     public:
-        Transform(){};
-        Transform(Ref<GameObject> parent) : Component(parent), AttributeOwner<TransformAttribute>() {}
+        Component() {}; // for deserializatioin
+        Component(GameObject* parentObject);
+        virtual ~Component() = default;
 
-        String      Serialize() override { return SerializeAttribute(); }
-        void        Deserialize() override { DeserializeAttribute(); }
+        virtual u32   GetNumVisibleProperties() const final;
 
-        inline void OnFrameCollecting()
-        {
-            if (m_dirty.changed)
-            {
-                m_lastFrame = m_attributes;
-            }
-            m_dirty.lastChanged = m_dirty.changed;
-            m_dirty.changed     = false;
-        }
+        virtual void  OnFrameCollecting() {}
+        virtual void  OnAwake() {}
+        virtual void  OnStart() {}
+        virtual void  OnFixedUpdate() {}
+        virtual void  OnUpdate() {}
+        virtual void  OnEnd() {}
 
-        // getters
-        inline Vector3f GetPosition() const { return m_attributes.m_position; }
-        inline Vector3f GetRotation() const { return m_attributes.m_rotation; }
-        inline Vector3f GetScale() const { return m_attributes.m_scale; }
+        virtual void  SetupProperties() final {}
 
-        // setters
-        inline void     SetPosition(const Vector3f& pos)
-        {
-            m_attributes.m_position = pos;
-            m_dirty.changed         = true;
-        }
-        inline void SetRotation(const Vector3f& rot)
-        {
-            m_attributes.m_rotation = rot;
-            m_dirty.changed         = true;
-        }
-        inline void SetScale(const Vector3f& scale)
-        {
-            m_attributes.m_scale = scale;
-            m_dirty.changed      = true;
-        }
+        inline void   SetName(const String& name) { mName = name; }
+        void          SetEnable(bool enable);
 
-        inline void      markUnchanged() { m_dirty.changed = false; }
+        inline String GetName() const { return mName; }
+        inline GUID   GetGUID() const { return mGuid; }
+        GameObject*   GetParent() const;
+        inline bool   IsEnabled() const { return mEnabled; }
 
-        inline DirtyFlag GetDirtyFlag() { return m_dirty; }
-        Matrix4x4f       GetModelToWorldMatrix();
-        Matrix4x4f       GetModelToWorldMatrixLast();
-        inline Vector3f  GetScaleLast() { return m_lastFrame.m_scale; }
-        inline void      SetGPUResource(Ref<GPUUniformBuffer> buffer, Ref<GPUUniformBuffer> last,
-                 Ref<GPUBindId>& bindlessRef, Ref<GPUBindId>& bindlessRefLast)
-        {
-            m_gpuBuffer          = buffer;
-            m_gpuBufferLast      = last;
-            m_gpuBindlessRef     = bindlessRef;
-            m_gpuBindlessRefLast = bindlessRefLast;
-        }
-        inline void GetGPUResource(Ref<GPUUniformBuffer>& buffer, Ref<GPUUniformBuffer>& last,
-            Ref<GPUBindId>& bindlessRef, Ref<GPUBindId>& bindlessRefLast)
-        {
-            buffer          = m_gpuBuffer;
-            last            = m_gpuBufferLast;
-            bindlessRef     = m_gpuBindlessRef;
-            bindlessRefLast = m_gpuBindlessRefLast;
-        }
-        inline u32 GetActiveResourceId()
-        {
-            if (m_gpuBindlessRef != nullptr)
-            {
-                return m_gpuBindlessRef->GetActiveId();
-            }
-            std::abort();
-            return 0;
-        }
-        IFRIT_COMPONENT_SERIALIZE(m_attributes);
+        void          InvokeStart();
+        void          InvokeAwake();
     };
-
 } // namespace Ifrit::Runtime
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::Transform);

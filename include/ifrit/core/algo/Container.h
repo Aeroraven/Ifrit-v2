@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit
 {
     // Reinterpret_cast a pointer to a vector view
-    template <typename T> class RVectorView
+    template <typename T> class TVectorView
     {
     private:
         T*     m_data;
@@ -33,7 +33,7 @@ namespace Ifrit
         using iterator       = T*;
         using const_iterator = const T*;
 
-        RVectorView(T* data, size_t size) : m_data(data), m_size(size) {}
+        TVectorView(T* data, size_t size) : m_data(data), m_size(size) {}
 
         iterator       begin() { return m_data; }
         iterator       end() { return m_data + m_size; }
@@ -51,7 +51,7 @@ namespace Ifrit
     // Reinterpret_cast a vector of Ref<Base> to a vector view of Ref<Derived>
     template <typename Derived, typename Base>
         requires std::derived_from<Derived, Base>
-    class RDerivedVectorView
+    class TDerivedVectorView
     {
     private:
         Vec<Ref<Base>>& m_data;
@@ -135,7 +135,7 @@ namespace Ifrit
             }
         };
 
-        RDerivedVectorView(Vec<Ref<Base>>& data) : m_data(data) {}
+        TDerivedVectorView(Vec<Ref<Base>>& data) : m_data(data) {}
 
         iterator        begin() { return iterator(m_data, 0); }
         iterator        end() { return iterator(m_data, m_data.size()); }

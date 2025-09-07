@@ -1,5 +1,81 @@
 cmake_minimum_required(VERSION 3.10)
-project(Ifrit-v2x)
+project(Project-Ifrit-v2)
+
+# set(ENV{http_proxy} "http://127.0.0.1:10809")
+# set(ENV{https_proxy} "http://127.0.0.1:10809")
+
+function(set_targets_folder folder_name group_name)
+    message(STATUS "Setting targets folder to ${folder_name}")
+    get_property(target_list DIRECTORY ${folder_name} PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(tgt IN LISTS target_list)
+        # message
+        message(STATUS "Setting target ${tgt} to folder ${group_name}")
+        set_target_properties(${tgt} PROPERTIES FOLDER "${group_name}")
+    endforeach()
+endfunction()
+
+function(ifrit_add_dependency dependency_name)
+    if(MSVC)
+        add_compile_options(/MP)
+        add_compile_options(/Ob2)
+        add_compile_options(/Ot)
+        add_compile_options(/Oi)
+    endif()
+    message(STATUS "[Ifrit.Build.Dependencies] Adding dependency ${dependency_name}")
+    add_subdirectory(dependencies/${dependency_name})
+endfunction()
+ 
+function(ifrit_add_core_component component_name)
+    if(MSVC)
+        add_compile_options(/MP)
+        add_compile_options(/Ob2)
+        add_compile_options(/Ot) 
+        add_compile_options(/Oi)
+    endif()
+    message(STATUS "[Ifrit.Build.Core] Adding core component ${component_name}")
+    add_subdirectory(modules/${component_name})
+endfunction()
+
+function(ifrit_add_misc_component component_name)
+    if(MSVC)
+        add_compile_options(/MP)
+        add_compile_options(/Od)
+    endif()
+    message(STATUS "[Ifrit.Build.Misc] Adding misc component ${component_name}")
+    add_subdirectory(experimentals/${component_name})
+endfunction()
+
+ 
+function(ifrit_add_all_demos demo_root_dir)
+    message(STATUS "[Ifrit.Build.Demo] Searching for demo projects in ${demo_root_dir}")
+    
+    # Get all subdirectories under demo folder
+    file(GLOB demo_candidates RELATIVE ${demo_root_dir} ${demo_root_dir}/*)
+    
+    foreach(demo_candidate ${demo_candidates})
+        set(demo_path ${demo_root_dir}/${demo_candidate})
+        
+        # Check if it's a directory and contains CMakeLists.txt
+        if(IS_DIRECTORY ${demo_path})
+            if(EXISTS ${demo_path}/CMakeLists.txt)
+                message(STATUS "[Ifrit.Build.Demo] Found demo project: ${demo_candidate}")
+                
+                # Add the subdirectory
+                add_subdirectory(${demo_path})
+                
+                # Add to demo list for tracking
+                list(APPEND IFRIT_DEMO_LIST ${demo_candidate})
+                set(IFRIT_DEMO_LIST ${IFRIT_DEMO_LIST} CACHE INTERNAL "List of demo projects" FORCE)
+            else()
+                message(STATUS "[Ifrit.Build.Demo] Skipping ${demo_candidate} (no CMakeLists.txt)")
+            endif()
+        endif()
+    endforeach()
+    
+    # Report discovered demos
+    list(LENGTH IFRIT_DEMO_LIST demo_count)
+    message(STATUS "[Ifrit.Build.Demo] Found ${demo_count} demo projects: ${IFRIT_DEMO_LIST}")
+endfunction()
 
 # Note following paths should be set to the correct paths on your system
 # Fallback paths will be used if `find_package` fails to find the package 
@@ -7,13 +83,27 @@ set(IFRIT_GLOBAL_LLVM_DIR_LINUX "/usr/local/llvm-10/")
 set(IFRIT_GLOBAL_LLVM_DIR_WINDOWS "C:/llvm-project/")
 set(IFRIT_GLOBAL_CUDA_DIR_WINDOWS "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/")
 
+set(IFRIT_BASE_PATH ${CMAKE_CURRENT_LIST_DIR})
+message(STATUS "[Ifrit.Build.Dependencies] Using Ifrit base path: ${CMAKE_CURRENT_LIST_DIR}")
+set(IFRIT_THIRDPARTH_INSTALL_DIR ${IFRIT_BASE_PATH}/build_thirdparty/)
+
 # Set global flags
 set(IFRIT_GLOBAL_INTEGRATED_BUILD_FLAG 1)
 set(IFRIT_GLOBAL_DISABLE_LLVM 1)
+set(CMAKE_WARN_DEPRECATED CACHE BOOL "Disable deprecated warnings" FORCE)
+
+
+# some global checks
+include(cmake/SIMDCheck.cmake)
+
+# global compiler options
+if(MSVC)
+    add_compile_options(/MP)
+endif()
  
 # llvm
 if (IFRIT_GLOBAL_DISABLE_LLVM)
-    message(STATUS "[Ifrit/Deps] LLVM disabled. Using pre-defined paths.")
+    message(STATUS "[Ifrit.Build.Dependencies] LLVM disabled. Using pre-defined paths.")
 else()
     find_package(LLVM 10...<12 CONFIG QUIET)
     if(LLVM_FOUND)
@@ -22,7 +112,7 @@ else()
         set(IFRIT_GLOBAL_LLVM_DIR_LINUX "${LLVM_INCLUDE_DIRS}/../")
     else()
         # warning message
-        message(STATUS "[Ifrit/Deps] LLVM package not found. Using pre-defined paths.")
+        message(STATUS "[Ifrit.Build.Dependencies] LLVM package not found. Using pre-defined paths.")
     endif()
 endif()
 
@@ -30,6 +120,15 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../bin)
+
+if(CMAKE_CONFIGURATION_TYPES)
+    foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/../bin)
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/../bin)
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/../bin)
+    endforeach()
+endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
@@ -40,41 +139,176 @@ set(FSR2_API_LIBRARIES ffx_fsr2_api_vk_x64 ffx_fsr2_api_x64)
 set(KTX_FEATURE_TESTS OFF CACHE BOOL "Disable KTX feature tests" FORCE)
 set(KTX_FEATURE_TOOLS_CTS OFF CACHE BOOL "Disable KTX tests" FORCE)
 set(KTX_FEATURE_TOOLS OFF CACHE BOOL "Disable KTX tools" FORCE)
+set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1) # hack to prevent CTest added targets
+ 
+# spdlog
+set(SPDLOG_BUILD_SHARED ON CACHE BOOL "Disable KTX tools" FORCE)
+
+# slang
+set(SLANG_ENABLE_EXAMPLES OFF CACHE BOOL "Disable Slang examples" FORCE)
+set(SLANG_ENABLE_REPLAYER OFF CACHE BOOL "Disable Slang replayer" FORCE)
+set(SLANG_ENABLE_TESTS OFF CACHE BOOL "Disable Slang replayer" FORCE)
+set(SLANG_ENABLE_GFX OFF CACHE BOOL "Disable Slang GFX" FORCE)
+set(SLANG_ENABLE_SLANG_RHI OFF CACHE BOOL "Disable Slang RHI" FORCE)
+set(SLANG_LIB_TYPE STATIC CACHE STRING "Slang library type" FORCE)
+
+# tetgen
+set(TETGEN_SKIP_INSTALL ON CACHE BOOL "Disable Tetgen install" FORCE)
+
+# openvdb
+set(OPENVDB_BUILD_BINARIES  OFF CACHE BOOL "Disable OpenVDB tools" FORCE)
+set(OPENVDB_USE_DELAYED_LOADING OFF CACHE BOOL "Disable OpenVDB tools" FORCE)
+set(OPENVDB_BUILD_VDB_VIEW ON CACHE BOOL "Enable OpenVDB VDB viewer" FORCE)
+set(USE_BLOSC ON CACHE BOOL "Disable OpenVDB Blosc support" FORCE)
+set(TBB_ROOT "${IFRIT_THIRDPARTH_INSTALL_DIR}/tbb" CACHE PATH "TBB root directory" FORCE)
+message(STATUS "[Ifrit.Build.Dependencies] Using TBB root directory: ${TBB_ROOT}")
+set(BLOSC_ROOT "${IFRIT_THIRDPARTH_INSTALL_DIR}/blosc" CACHE PATH "Blosc root directory" FORCE)
+set(ZLIB_ROOT "${IFRIT_THIRDPARTH_INSTALL_DIR}/zlib" CACHE PATH "Zlib root directory" FORCE)
+
+# mimalloc
+set(MI_BUILD_TESTS OFF CACHE BOOL "Disable mimalloc tests" FORCE)
+
+# ifrit
+set(IFRIT_DEMO_LIST CACHE INTERNAL "List of demo stages" FORCE)
+
 
 # start building
-add_subdirectory(dependencies/glfw)
-add_subdirectory(dependencies/meshoptimizer)
-add_subdirectory(dependencies/gklib)
-add_subdirectory(dependencies/metis)
-add_subdirectory(dependencies/ktxsoftware)
+ifrit_add_dependency(spdlog)
+ifrit_add_dependency(meshoptimizer)
+ifrit_add_dependency(gklib)
+ifrit_add_dependency(metis)
+ifrit_add_dependency(ktxsoftware)
+ifrit_add_dependency(slang)
+ifrit_add_dependency(tetgen)
+ifrit_add_dependency(openvdb)
+ifrit_add_dependency(mimalloc)
 
-add_subdirectory(projects/core)
-add_subdirectory(projects/imaging)
-add_subdirectory(projects/display)
-add_subdirectory(projects/ircompile)
-add_subdirectory(projects/softgraphics)
-add_subdirectory(projects/meshproclib)
-add_subdirectory(projects/vkgraphics)
-add_subdirectory(projects/external/fsr2)
-add_subdirectory(projects/runtime)
-add_subdirectory(projects/rhi)
-add_subdirectory(projects/demo)
-
-add_dependencies(ifrit.meshproclib meshoptimizer metis)
-add_dependencies(ifrit.softrenderer ifrit.ircompile)
-add_dependencies(ifrit.imaging ktx)
-add_dependencies(ifrit.runtime ifrit.rhi ifrit.display ifrit.meshproclib ifrit.core ${FSR2_API_LIBRARIES})
-
-set(DEMO_DEPENDENCIES 
-    ifrit.vkrenderer 
-    ifrit.meshproclib 
-    ifrit.softrenderer 
-    ifrit.display 
-    ifrit.runtime 
+ifrit_add_core_component(external/fsr2)
+ifrit_add_core_component(external/imgui)
+ifrit_add_core_component(external/glfw)
+ifrit_add_core_component(external/nfd)
+# ifrit_add_core_component(reflparser)
+ ifrit_add_core_component(core)
+ ifrit_add_core_component(shadercompile)
+# ifrit_add_core_component(imaging)
+ ifrit_add_core_component(display)
+# ifrit_add_core_component(ircompile)
+# ifrit_add_core_component(softgraphics)
+# ifrit_add_core_component(geomproc)
+# ifrit_add_core_component(vkrhi)
+ ifrit_add_core_component(vkrhi2)
+# ifrit_add_core_component(dx12rhi)
+# ifrit_add_core_component(runtime)
+ ifrit_add_core_component(rhi)
+# ifrit_add_core_component(profiler)
+# ifrit_add_core_component(editor)
+ 
+ # ifrit_add_misc_component(spgrid)
+ 
+ # Demo
+ set(IFRIT_DEMO_LINK_LIBRARIES 
+    # ifrit.geomproc 
+     ifrit.display 
+    # ifrit.vkrhi 
+    # ifrit.runtime 
+    # ifrit.core
+    # ifrit.profiler
+    # ifrit.editor
     ifrit.rhi
-    ifrit.imaging
-)
-add_dependencies(ifrit.demo.syaro ${DEMO_DEPENDENCIES})
-add_dependencies(ifrit.demo.ayanami ${DEMO_DEPENDENCIES})
-add_dependencies(ifrit.demo.test ${DEMO_DEPENDENCIES})
-add_dependencies(ifrit.demo.memdiag ${DEMO_DEPENDENCIES})
+    ifrit.vkrhi2
+     ifrit.core
+    ifrit.shadercompile
+     ${IFRIT_COMMON_DEPENDENCIES_SHARED})
+ 
+ set(IFRIT_DEMO_DEPENDENCIES 
+    # ifrit.vkrhi 
+    # ifrit.geomproc 
+    # ifrit.softgraphics 
+     ifrit.display 
+    # ifrit.runtime 
+    # ifrit.rhi
+    # ifrit.imaging
+    # ifrit.profiler
+    # ifrit.reflparser
+    ifrit.core
+    ifrit.vkrhi2
+    ifrit.shadercompile
+ )
+
+ifrit_add_all_demos(${CMAKE_CURRENT_SOURCE_DIR}/demo)
+
+set(IFRIT_GROUP_ENGINE "Project Ifrit/Engine")
+set(IFRIT_GROUP_EXPERIMENTAL "Project Ifrit/Experimental")
+set(IFRIT_GROUP_DEPENDENCIES "Project Ifrit/ThirdParty")
+set(IFRIT_GROUP_DEMO "Project Ifrit/Demo")
+set(IFRIT_GROUP_TOOL "Project Ifrit/Tool")
+set(IFRIT_GROUP_SOFTRENDERER "Project Ifrit/SoftRenderer")
+
+# openvdb targets
+include(cmake/OpenVDBBuildPostprocess.cmake)
+
+# slang targets
+include(cmake/SlangBuildPostprocess.cmake)
+
+# mimalloc targets
+include(cmake/MiMallocBuildPostprocess.cmake)
+
+# spdlog targets
+set_targets_folder(dependencies/spdlog ${IFRIT_GROUP_DEPENDENCIES}/spdlog)
+
+# ktx targets
+set_target_properties(ktx PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/ktx)
+set_target_properties(ktx_read PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/ktx)
+set_target_properties(ktx_version PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/ktx)
+set_target_properties(objUtil PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/ktx)
+set_target_properties(astcenc-avx2-static PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/ktx)
+set_target_properties(obj_basisu_cbind PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/ktx)
+
+# metis and gklib targets
+set_target_properties(metis PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/metis)
+set_target_properties(GKlib PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/metis)
+
+# meshoptimizer targets
+set_target_properties(meshoptimizer PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/meshoptimizer)
+
+# fsr2 targets
+set_target_properties(ffx_fsr2_api_x64 PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/fsr2)
+set_target_properties(ffx_fsr2_api_vk_x64 PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/fsr2)
+set_target_properties(shader_permutations_vk PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/fsr2)
+
+# glfw3 targets
+set_target_properties(glfw PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/glfw)
+set_target_properties(update_mappings PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/glfw)
+
+# tetgen targets
+set_target_properties(tet PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/tetgen)
+set_target_properties(tetgen PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/tetgen)
+
+# imgui targets
+set_target_properties(ifrit.external.imgui PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/imgui)
+
+# nfd targets
+set_target_properties(nfd PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/nfd)
+ 
+# ifrit targets
+ set_target_properties(ifrit.core PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+# set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+ set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+# set_target_properties(ifrit.editor PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+ 
+ set_target_properties(ifrit.shadercompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+# set_target_properties(ifrit.imaging PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+ set_target_properties(ifrit.display PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+# set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+# set_target_properties(ifrit.profiler PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+ 
+# set_target_properties(ifrit.vkrhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
+# set_target_properties(ifrit.dx12rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
+set_target_properties(ifrit.vkrhi2 PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
+ 
+# set_target_properties(ifrit.reflparser PROPERTIES FOLDER ${IFRIT_GROUP_TOOL})
+ 
+# set_target_properties(ifrit.ircompile PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
+# set_target_properties(ifrit.softgraphics PROPERTIES FOLDER ${IFRIT_GROUP_SOFTRENDERER})
+ 
+ # set_target_properties(ifrit.exps.spgrid PROPERTIES FOLDER ${IFRIT_GROUP_EXPERIMENTAL})

@@ -18,10 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 // Stockham FFT & IFFT, in single pass
 
-#version 450
+
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "Postprocess/FFTConv2d.Shared.h"
+#include "SamplerUtils.SharedConst.h"
 
 layout(push_constant) uniform PushConstFFTConv2d{
     uint srcDownScale;
@@ -168,11 +169,8 @@ vec4 loadImageWithPaddings(uint imgId,uint downscale,uint rtW,uint rtH,uvec4 pad
     float halfPixelX = 0.5/float(rtW/downscale);
     float halfPixelY = 0.5/float(rtH/downscale);
     vec2 uv = vec2(sampX+halfPixelX,sampY+halfPixelY);
-    // if(uv.x<0.0||uv.x>1.0||uv.y<0.0||uv.y>1.0){
-    //     return vec4(0.0);
-    // }
     uv = clamp(uv,0.0,1.0);
-    vec4 rt = texture(GetSampler2D(imgId),uv);
+    vec4 rt = SampleTexture2D(imgId,sLinearClamp,uv);
 
     float luma = rgbToLuma(rt);
     if(pc.fftStep!=kStepDFT1){

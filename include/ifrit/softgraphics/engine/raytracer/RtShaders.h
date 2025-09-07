@@ -47,10 +47,10 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
     {
     public:
         IFRIT_DUAL virtual void execute(const Vector3i& inputInvocation, const Vector3i& dimension, void* context) = 0;
-        IFRIT_DUAL virtual ~RayGenShader()                                                                         = default;
-        IFRIT_HOST virtual RayGenShader*                    GetCudaClone() { return nullptr; };
-        IFRIT_HOST virtual std::unique_ptr<RayGenShader>    getThreadLocalCopy() = 0;
-        IFRIT_HOST virtual void                             updateUniformData(int binding, int set, const void* pData) {}
+        IFRIT_DUAL virtual ~RayGenShader() = default;
+        IFRIT_HOST virtual RayGenShader*       GetCudaClone() { return nullptr; };
+        IFRIT_HOST virtual Owner<RayGenShader> getThreadLocalCopy() = 0;
+        IFRIT_HOST virtual void                updateUniformData(int binding, int set, const void* pData) {}
         IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return {}; }
     };
 
@@ -59,9 +59,9 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
     public:
         IFRIT_DUAL virtual void execute(void* context) = 0;
         IFRIT_DUAL virtual ~MissShader()               = default;
-        IFRIT_HOST virtual MissShader*                      GetCudaClone() { return nullptr; };
-        IFRIT_HOST virtual std::unique_ptr<MissShader>      getThreadLocalCopy() = 0;
-        IFRIT_HOST virtual void                             updateUniformData(int binding, int set, const void* pData) {}
+        IFRIT_HOST virtual MissShader*       GetCudaClone() { return nullptr; };
+        IFRIT_HOST virtual Owner<MissShader> getThreadLocalCopy() = 0;
+        IFRIT_HOST virtual void              updateUniformData(int binding, int set, const void* pData) {}
         IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return {}; }
     };
 
@@ -70,9 +70,9 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
     public:
         IFRIT_DUAL virtual void execute(const RayHit& hitAttribute, const RayInternal& ray, void* context) = 0;
         IFRIT_DUAL virtual ~CloseHitShader()                                                               = default;
-        IFRIT_HOST virtual CloseHitShader*                  GetCudaClone() { return nullptr; };
-        IFRIT_HOST virtual std::unique_ptr<CloseHitShader>  getThreadLocalCopy() = 0;
-        IFRIT_HOST virtual void                             updateUniformData(int binding, int set, const void* pData){};
+        IFRIT_HOST virtual CloseHitShader*       GetCudaClone() { return nullptr; };
+        IFRIT_HOST virtual Owner<CloseHitShader> getThreadLocalCopy() = 0;
+        IFRIT_HOST virtual void                  updateUniformData(int binding, int set, const void* pData){};
         IFRIT_HOST virtual std::vector<std::pair<int, int>> getUniformList() { return {}; }
     };
 

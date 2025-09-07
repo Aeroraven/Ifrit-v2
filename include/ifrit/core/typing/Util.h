@@ -19,8 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/platform/ApiConv.h"
-#include <memory>
-#include <stdexcept>
+#ifdef _DEBUG
+    #include <stdexcept>
+#endif
 
 namespace Ifrit
 {
@@ -66,6 +67,36 @@ namespace Ifrit
 #endif
     }
 
+    template <typename T, typename U> T* ForcedCheckedCast(U* ptr)
+    {
+        // static cast
+        if (ptr == nullptr)
+        {
+            return nullptr;
+        }
+        auto casted = dynamic_cast<T*>(ptr);
+        if (casted == nullptr)
+        {
+            std::abort();
+        }
+        return casted;
+    }
+
+    template <typename T, typename U> const T* ForcedCheckedCast(const U* ptr)
+    {
+        // static cast
+        if (ptr == nullptr)
+        {
+            return nullptr;
+        }
+        auto casted = dynamic_cast<const T*>(ptr);
+        if (casted == nullptr)
+        {
+            std::abort();
+        }
+        return casted;
+    }
+
     template <typename T, typename U> std::shared_ptr<T> CheckedPointerCast(const std::shared_ptr<U>& ptr)
     {
 #ifdef _DEBUG
@@ -89,7 +120,7 @@ namespace Ifrit
 
     // Non-copyable class:
     // https://www.boost.org/doc/libs/1_41_0/boost/noncopyable.hpp
-    class IFRIT_APIDECL     NonCopyable
+    class IFRIT_APIDECL NonCopyable
     {
     protected:
         NonCopyable()  = default;
@@ -108,45 +139,6 @@ namespace Ifrit
     private:
         NonCopyableStruct(const NonCopyableStruct&)            = delete;
         NonCopyableStruct& operator=(const NonCopyableStruct&) = delete;
-    };
-
-    template <class T> consteval inline static const char* GetFuncName()
-    {
-#ifdef _MSC_VER
-        return __FUNCSIG__;
-#else
-    #ifdef __PRETTY_FUNCTION__
-        return __PRETTY_FUNCTION__;
-    #else
-        static_assert(false, "Unsupported compiler");
-    #endif
-#endif
-    }
-
-    template <unsigned E, unsigned N> consteval u64 GetFuncNameHash(const char (&str)[N])
-    {
-        if IF_CONSTEXPR (N == E)
-            return 1;
-        else
-        {
-            return (str[E] + 1) + 257 * GetFuncNameHash<E + 1, N>(str);
-        }
-    }
-
-    template <class T> consteval u64 GetFuncNameHashId()
-    {
-        static_assert(!std::is_same_v<T, void>, "T must not be void");
-#ifdef _MSC_VER
-        return GetFuncNameHash<0>(__FUNCSIG__);
-#else
-        return GetFuncNameHash<0>(__PRETTY_FUNCTION__);
-#endif
-    }
-
-    template <class T> struct RTypeInfo
-    {
-        static IF_CONSTEXPR const char* name = GetFuncName<T>();
-        static IF_CONSTEXPR u64         hash = GetFuncNameHashId<T>();
     };
 
 } // namespace Ifrit

@@ -15,15 +15,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 #extension GL_EXT_mesh_shader : require
 #extension GL_EXT_nonuniform_qualifier : enable
 
 #include "Base.glsl"
 #include "Bindless.glsl"
-#include "Ayanami/Ayanami.Shared.glsl"
+#include "ComputeUtils.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 #include "Ayanami/Ayanami.SharedConst.h"
+#include "Ayanami/Ayanami.Shared.glsl"
+
 
 
 // TODO: It's better to make them group in a warp (32 for most NV devices). Now some threads are idle.
@@ -31,7 +35,7 @@ layout(local_size_x = 12, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 8, max_primitives = 12) out;
 
 layout(location = 0) out vec3 meshColor[];
-RegisterUniform(BPerframe,{
+RegisterStorage(BPerframe,{
     PerFramePerViewData m_Data;
 });
 

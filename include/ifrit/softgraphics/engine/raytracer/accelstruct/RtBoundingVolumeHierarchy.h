@@ -35,17 +35,17 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
 
     struct BVHNode
     {
-        BoundingBox              bbox;
-        std::unique_ptr<BVHNode> left = nullptr, right = nullptr;
-        int                      elementSize = 0;
-        int                      startPos    = 0;
+        BoundingBox    bbox;
+        Owner<BVHNode> left = nullptr, right = nullptr;
+        int            elementSize = 0;
+        int            startPos    = 0;
     };
 
     class IFRIT_APIDECL BoundingVolumeHierarchyBottomLevelAS
     {
     private:
         std::vector<Ifrit::Math::SIMD::SVector3f> data;
-        std::unique_ptr<BVHNode>                  root;
+        Owner<BVHNode>                            root;
         std::vector<BoundingBox>                  bboxes;
         std::vector<Ifrit::Math::SIMD::SVector3f> centers;
         std::vector<int>                          belonging;
@@ -68,7 +68,7 @@ namespace Ifrit::Graphics::SoftGraphics::Raytracer
     {
     private:
         std::vector<BoundingVolumeHierarchyBottomLevelAS*> data;
-        std::unique_ptr<BVHNode>                           root;
+        Owner<BVHNode>                                     root;
         std::vector<BoundingBox>                           bboxes;
         std::vector<Ifrit::Math::SIMD::SVector3f>          centers;
         std::vector<int>                                   belonging;

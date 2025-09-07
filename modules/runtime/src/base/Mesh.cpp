@@ -1,0 +1,317 @@
+
+/*
+Ifrit-v2
+Copyright (C) 2024 funkybirds(Aeroraven)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+#include "ifrit/runtime/base/Mesh.h"
+#define IFRIT_MESHPROC_IMPORT
+#include "ifrit/geomproc/mesh/MeshClusterLodProc.h"
+#include "ifrit/geomproc/mesh/MeshletConeCull.h"
+
+#include "ifrit/geomproc/base/MeshDesc.h"
+
+#undef IFRIT_MESHPROC_IMPORT
+#include "ifrit/runtime/common/Pch.h"
+#include "ifrit/core/file/FileOps.h"
+#include <filesystem>
+#include "ifrit/core/serialization/Serializer.h"
+
+using namespace Ifrit::Math::SIMD;
+using namespace Ifrit::Serialization;
+
+namespace Ifrit::Runtime
+{
+    struct ConeCullData
+    {
+        Vec<Vector4f> m_normalsCone;
+        Vec<Vector4f> m_normalsConeApex;
+        Vec<Vector4f> m_boundSphere;
+
+        IFRIT_STRUCT_SERIALIZE(m_normalsCone, m_normalsConeApex, m_boundSphere);
+    };
+
+    struct CreateMeshLodHierMiscInfo
+    {
+        u32 totalLods;
+
+        IFRIT_STRUCT_SERIALIZE(totalLods);
+    };
+
+    IFRIT_APIDECL void Mesh::CreateMeshLodHierarchy(std::shared_ptr<MeshData> meshData, const String& cachePath)
+    {
+        using namespace Ifrit::GeometryProc;
+        using namespace Ifrit::GeometryProc::MeshProcess;
+        using namespace Ifrit;
+        const size_t        max_vertices  = 64;
+        const size_t        max_triangles = 124;
+        const float         cone_weight   = 0.0f;
+        IF_CONSTEXPR int    MAX_LOD       = 10;
+
+        MeshClusterLodProc  meshProc;
+        MeshletConeCullProc coneCullProc;
+
+        MeshDescriptor      meshDesc;
+        meshDesc.indexCount     = SizeCast<int>(meshData->m_indices.size());
+        meshDesc.indexData      = reinterpret_cast<i8*>(meshData->m_indices.data());
+        meshDesc.positionOffset = 0;
+        meshDesc.vertexCount    = SizeCast<int>(meshData->m_vertices.size());
+        meshDesc.vertexData     = reinterpret_cast<i8*>(meshData->m_vertices.data());
+        meshDesc.vertexStride   = sizeof(Vector3f);
+        meshDesc.normalData     = reinterpret_cast<i8*>(meshData->m_normals.data());
+        meshDesc.normalStride   = sizeof(Vector3f);
+
+        auto                     chosenLod = MAX_LOD - 1;
+        auto                     totalLods = 0;
+        CombinedClusterLodBuffer meshletData;
+
+        Vec<FlattenedBVHNode>    bvhNodes;
+        Vec<ClusterGroup>        clusterGroupData;
+
+        bool                     ableToLoadCachedVG = false;
+        bool                     needToGenerateVG   = false;
+        bool                     needToStoreVG      = false;
+
+        bool                     needToGenerateConeCull   = false;
+        bool                     needToStoreConeCull      = false;
+        bool                     ableToLoadCachedConeCull = false;
+
+        auto                     serialCCLBufferName = "core.mesh.ccl." + meshData->identifier + ".cache";
+        auto                     serialFBNName       = "core.mesh.fbn." + meshData->identifier + ".cache";
+        auto                     serialCGName        = "core.mesh.cg." + meshData->identifier + ".cache";
+        auto                     serialMiscName      = "core.mesh.misc." + meshData->identifier + ".cache";
+
+        auto                     serialConeCullName = "core.mesh.conecull." + meshData->identifier + ".cache";
+
+        auto                     serialCCLPath  = cachePath + serialCCLBufferName;
+        auto                     serialFBNPath  = cachePath + serialFBNName;
+        auto                     serialCGPath   = cachePath + serialCGName;
+        auto                     serialMiscPath = cachePath + serialMiscName;
+
+        auto                     serialConeCullPath = cachePath + serialConeCullName;
+
+        if (meshData->identifier.empty())
+        {
+            needToGenerateVG       = true;
+            needToGenerateConeCull = true;
+        }
+        else
+        {
+            if (cachePath.empty())
+            {
+                needToGenerateVG       = true;
+                needToGenerateConeCull = true;
+            }
+            else
+            {
+                // AUTOLOD
+                bool cclBufferExists = false;
+                bool fbnExists       = false;
+                bool cgExists        = false;
+                bool miscExists      = false;
+
+                // check files exist
+                cclBufferExists = std::filesystem::exists(serialCCLPath);
+                fbnExists       = std::filesystem::exists(serialFBNPath);
+                cgExists        = std::filesystem::exists(serialCGPath);
+                miscExists      = std::filesystem::exists(serialMiscPath);
+
+                if (cclBufferExists && fbnExists && cgExists && miscExists)
+                {
+                    ableToLoadCachedVG = true;
+                }
+                else
+                {
+                    needToGenerateVG = true;
+                    needToStoreVG    = true;
+                }
+
+                // CONECULL
+                bool coneCullBufferExists = std::filesystem::exists(serialConeCullPath);
+                if (coneCullBufferExists)
+                {
+                    ableToLoadCachedConeCull = true;
+                }
+                else
+                {
+                    needToGenerateConeCull = true;
+                    needToStoreConeCull    = true;
+                }
+            }
+        }
+
+        if (ableToLoadCachedVG)
+        {
+            String cclBuffer;
+            String fbnBuffer;
+            String cgBuffer;
+            String miscBuffer;
+
+            cclBuffer  = ReadBinaryFile(serialCCLPath);
+            fbnBuffer  = ReadBinaryFile(serialFBNPath);
+            cgBuffer   = ReadBinaryFile(serialCGPath);
+            miscBuffer = ReadBinaryFile(serialMiscPath);
+
+            Deserialize<ESerializationFormat::Binary>(cclBuffer, meshletData);
+            Deserialize<ESerializationFormat::Binary>(fbnBuffer, bvhNodes);
+            Deserialize<ESerializationFormat::Binary>(cgBuffer, clusterGroupData);
+            CreateMeshLodHierMiscInfo miscInfo;
+            Deserialize<ESerializationFormat::Binary>(miscBuffer, miscInfo);
+
+            totalLods = miscInfo.totalLods;
+
+            // iInfo("Loaded cached mesh VG for {}", meshData->identifier);
+        }
+        if (needToGenerateVG)
+        {
+            totalLods = meshProc.ClusterLodHierachy(meshDesc, meshletData, clusterGroupData, bvhNodes, MAX_LOD);
+            if (needToStoreVG)
+            {
+                String cclBuffer = Serialize<ESerializationFormat::Binary>(meshletData);
+                String fbnBuffer = Serialize<ESerializationFormat::Binary>(bvhNodes);
+                String cgBuffer = Serialize<ESerializationFormat::Binary>(clusterGroupData);
+                CreateMeshLodHierMiscInfo miscInfo;
+                miscInfo.totalLods = totalLods;
+                String miscBuffer  = Serialize<ESerializationFormat::Binary>(miscInfo);
+
+                WriteBinaryFile(serialCCLPath, cclBuffer);
+                WriteBinaryFile(serialFBNPath, fbnBuffer);
+                WriteBinaryFile(serialCGPath, cgBuffer);
+                WriteBinaryFile(serialMiscPath, miscBuffer);
+            }
+        }
+        ConeCullData coneCullData;
+
+        if (ableToLoadCachedConeCull)
+        {
+            String coneCullBuffer;
+            coneCullBuffer = ReadBinaryFile(serialConeCullPath);
+            Deserialize<ESerializationFormat::Binary>(coneCullBuffer, coneCullData);
+        }
+
+        if (needToGenerateConeCull)
+        {
+
+            coneCullProc.CreateNormalCones(meshDesc, meshletData.meshletsRaw, meshletData.meshletVertices,
+                meshletData.meshletTriangles, coneCullData.m_normalsCone, coneCullData.m_normalsConeApex,
+                coneCullData.m_boundSphere);
+            if (needToStoreConeCull)
+            {
+                String coneCullBuffer = Serialize<ESerializationFormat::Binary>(coneCullData);
+                WriteBinaryFile(serialConeCullPath, coneCullBuffer);
+            }
+        }
+        meshData->m_normalsCone     = std::move(coneCullData.m_normalsCone);
+        meshData->m_normalsConeApex = std::move(coneCullData.m_normalsConeApex);
+        meshData->m_boundSphere     = std::move(coneCullData.m_boundSphere);
+
+        auto meshlet_triangles      = meshletData.meshletTriangles;
+        auto meshlets               = meshletData.meshletsRaw;
+        auto meshlet_vertices       = meshletData.meshletVertices;
+        auto meshlet_count          = meshlets.size();
+        auto meshlet_cull           = meshletData.meshletCull;
+        auto meshlet_graphPart      = meshletData.graphPartition;
+        auto meshlet_inClusterGroup = meshletData.meshletsInClusterGroups;
+
+        meshData->m_meshlets.resize(meshlets.size());
+        for (auto i = 0; i < meshData->m_normalsCone.size(); i++)
+        {
+            meshData->m_meshlets[i].normalConeAxisCutoff = meshData->m_normalsCone[i];
+            meshData->m_meshlets[i].normalConeApex       = meshData->m_normalsConeApex[i];
+            meshData->m_meshlets[i].boundSphere          = meshData->m_boundSphere[i];
+        }
+
+        for (size_t i = 0; i < meshlets.size(); i++)
+        {
+            meshData->m_meshlets[i].vertexOffset    = meshlets[i].x;
+            meshData->m_meshlets[i].triangleOffset  = meshlets[i].y;
+            meshData->m_meshlets[i].vertexCount     = meshlets[i].z;
+            meshData->m_meshlets[i].triangleCount   = meshlets[i].w;
+            meshData->m_meshlets[i].selfErrorSphere = meshletData.selfErrorSphereW[i];
+        }
+
+        u32 totalTriangles = 0;
+        for (size_t i = 0; i < meshlet_count; i++)
+        {
+            auto orgOffset                         = meshData->m_meshlets[i].triangleOffset;
+            meshData->m_meshlets[i].triangleOffset = totalTriangles;
+            totalTriangles += meshData->m_meshlets[i].triangleCount;
+            for (size_t j = 0; j < meshData->m_meshlets[i].triangleCount; j++)
+            {
+                u32 packedTriangle = 0;
+                packedTriangle |= meshlet_triangles[orgOffset + j * 3];
+                packedTriangle |= meshlet_triangles[orgOffset + j * 3 + 1] << 8;
+                packedTriangle |= meshlet_triangles[orgOffset + j * 3 + 2] << 16;
+                meshData->m_meshletTriangles.push_back(packedTriangle);
+            }
+        }
+
+        meshData->m_meshletVertices       = std::move(meshlet_vertices);
+        meshData->m_meshCullData          = std::move(meshlet_cull);
+        meshData->m_meshletInClusterGroup = std::move(meshlet_inClusterGroup);
+        meshData->m_bvhNodes              = std::move(bvhNodes);
+        meshData->m_clusterGroups         = std::move(clusterGroupData);
+        meshData->m_numMeshletsEachLod    = std::move(meshletData.numClustersEachLod);
+
+        meshData->m_maxLod = totalLods;
+    }
+
+    IFRIT_APIDECL Vector4f Mesh::GetBoundingSphere(const Vec<Vector3f>& vertices)
+    {
+        SVector3f minv = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(),
+            std::numeric_limits<float>::max() };
+        SVector3f maxv = { -std::numeric_limits<float>::max(), -std::numeric_limits<float>::max(),
+            -std::numeric_limits<float>::max() };
+        for (auto& v : vertices)
+        {
+            minv = Min(minv, SVector3f{ v.x, v.y, v.z });
+            maxv = Max(maxv, SVector3f{ v.x, v.y, v.z });
+        }
+        auto center = (minv + maxv) * 0.5f;
+        auto radius = Length(maxv - center);
+        return { center.x, center.y, center.z, radius };
+    }
+
+    IFRIT_APIDECL u32 Mesh::GetNumIndices() { return SizeCast<u32>(m_data->m_indices.size()); }
+    IFRIT_APIDECL u32 Mesh::GetNumVertices() { return SizeCast<u32>(m_data->m_vertices.size()); }
+
+    IFRIT_APIDECL Vec<u32> Mesh::GetIndexBufferHost()
+    {
+        Vec<u32> indices;
+        indices.reserve(m_data->m_indices.size());
+        for (auto& i : m_data->m_indices)
+        {
+            indices.push_back(SizeCast<u32>(i));
+        }
+        return indices;
+    }
+
+    IFRIT_APIDECL Vec<Vector3f> Mesh::GetVertexBufferHost()
+    {
+        Vec<Vector3f> vertices;
+        vertices.reserve(m_data->m_vertices.size());
+        for (auto& v : m_data->m_vertices)
+        {
+            vertices.push_back(v);
+        }
+        return vertices;
+    }
+
+    IFRIT_APIDECL Vec<u32> Mesh::GetSolidMeshIndices() { return GetIndexBufferHost(); }
+    IFRIT_APIDECL Vec<Vector3f> Mesh::GetSolidMeshVertices() { return GetVertexBufferHost(); }
+    IFRIT_APIDECL Vec<u32> Mesh::GetSurfaceMeshIndices() { return GetIndexBufferHost(); }
+    IFRIT_APIDECL Ref<MeshData> Mesh::GetBaseMesh() { return LoadMesh(); }
+
+} // namespace Ifrit::Runtime

@@ -17,8 +17,11 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
+
+
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
 layout(binding = 0, set = 1) uniform SamplerLocation{
@@ -29,9 +32,9 @@ layout(binding = 0, set = 1) uniform SamplerLocation{
 } uSampler;
 
 void main(){
-    ivec2 size = textureSize(GetSampler2D(uSampler.ref), 0);
+    ivec2 size = SampleTexture2DSize(uSampler.ref, sLinearClamp);
     ivec2 coordInt = ivec2(texCoord * vec2(size));
-    uint sampledVal = texelFetch(GetSampler2DU(uSampler.ref), coordInt, 0).r;
+    uint sampledVal = SampleTexture2DLoad(uSampler.ref,sLinearClamp, coordInt).r;
 
     uint x = sampledVal & 0x0000007Fu;
     float color = float(x) / 127.0;

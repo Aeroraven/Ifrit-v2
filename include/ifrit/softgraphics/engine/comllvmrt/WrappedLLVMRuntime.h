@@ -22,25 +22,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Graphics::SoftGraphics::ComLLVMRuntime
 {
-	struct WrappedLLVMRuntimeContext;
-	class WrappedLLVMRuntime : public ShaderRuntime
-	{
-	public:
-		WrappedLLVMRuntime();
-		~WrappedLLVMRuntime();
-		static void							   initLlvmBackend();
-		virtual void						   loadIR(std::string irCode, std::string irIdentifier);
-		virtual void*						   lookupSymbol(std::string symbol);
-		virtual std::unique_ptr<ShaderRuntime> getThreadLocalCopy();
+    struct WrappedLLVMRuntimeContext;
+    class WrappedLLVMRuntime : public ShaderRuntime
+    {
+    public:
+        WrappedLLVMRuntime();
+        ~WrappedLLVMRuntime();
+        static void                  initLlvmBackend();
+        virtual void                 loadIR(std::string irCode, std::string irIdentifier);
+        virtual void*                lookupSymbol(std::string symbol);
+        virtual Owner<ShaderRuntime> getThreadLocalCopy();
 
-	private:
-		WrappedLLVMRuntimeContext* session;
-	};
+    private:
+        WrappedLLVMRuntimeContext* session;
+    };
 
-	class WrappedLLVMRuntimeBuilder : public ShaderRuntimeBuilder
-	{
-	public:
-		WrappedLLVMRuntimeBuilder();
-		virtual std::unique_ptr<ShaderRuntime> buildRuntime() const override;
-	};
+    class WrappedLLVMRuntimeBuilder : public ShaderRuntimeBuilder
+    {
+    public:
+        WrappedLLVMRuntimeBuilder();
+        virtual Owner<ShaderRuntime> buildRuntime() const override;
+    };
 } // namespace Ifrit::Graphics::SoftGraphics::ComLLVMRuntime

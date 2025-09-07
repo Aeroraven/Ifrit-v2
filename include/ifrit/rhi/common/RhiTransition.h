@@ -21,41 +21,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "RhiBaseTypes.h"
 #include "RhiResource.h"
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
-    struct RhiUAVBarrier
+    enum class ERhiTransitionState
     {
-        RhiResourceType m_type;
-        union
-        {
-            RhiBuffer*  m_buffer;
-            RhiTexture* m_texture;
-        };
+        Pending,
+        Begin,
+        End
     };
 
-    struct RhiTransitionBarrier
+    struct RhiResourceTransitionDesc
     {
-        RhiResourceType m_type;
-        union
-        {
-            RhiBuffer*  m_buffer = nullptr;
-            RhiTexture* m_texture;
-        };
-        RhiImageSubResource m_subResource = { 0, 0, 1, 1 };
-        RhiResourceState    m_srcState    = RhiResourceState::AutoTraced;
-        RhiResourceState    m_dstState    = RhiResourceState::AutoTraced;
-
-        RhiTransitionBarrier() { m_texture = nullptr; }
+        ERhiResourceType    mType        = ERhiResourceType::Texture;
+        RhiTexture*         mTexture     = nullptr;
+        RhiBuffer*          mBuffer      = nullptr;
+        RhiImageSubResource mSubResource = { 0, 0, 1, 1 };
+        ERhiResourceState   mSrcState    = ERhiResourceState::Undefined;
+        ERhiResourceState   mDstState    = ERhiResourceState::Undefined;
     };
 
-    struct RhiResourceBarrier
+    struct RhiTransition
     {
-        RhiBarrierType m_type = RhiBarrierType::UAVAccess;
-        union
-        {
-            RhiUAVBarrier        m_uav;
-            RhiTransitionBarrier m_transition;
-        };
-        RhiResourceBarrier() { m_uav = {}; }
+        Atomic<ERhiTransitionState>    mState       = ERhiTransitionState::Pending;
+        ERhiPipelineType               mPipelineSrc = ERhiPipelineType::Graphics;
+        ERhiPipelineType               mPipelineDst = ERhiPipelineType::Graphics;
+        Vec<RhiResourceTransitionDesc> mTransitions;
+
+        Ref<RhiTaskSubmission>         mTransitionBeginSemaphore = nullptr;
     };
-} // namespace Ifrit::Graphics::Rhi
+
+} // namespace Ifrit::RHI

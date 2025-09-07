@@ -25,12 +25,12 @@ namespace Ifrit
     // Reference:
     // At commit: 047c35299a4c8573c41ebc84e90587889cb0e0c6
     // /src/engine/tilerastercuda/TileRasterInvocationCuda.cu
-    template <typename T, u32 TPageNums = 4096, u32 TPageSize = 16384> class RConcurrentGrowthVector
+    template <typename T, u32 TPageNums = 4096, u32 TPageSize = 16384> class TConcurrentGrowthVector
     {
     private:
-        Atomic<T*> m_Pages[TPageNums];
-        Atomic<u32>         m_SpinLock;
-        Atomic<u32>         m_CurrentBack = 0;
+        Atomic<T*>  m_Pages[TPageNums];
+        Atomic<u32> m_SpinLock;
+        Atomic<u32> m_CurrentBack = 0;
 
     private:
         void AutoGrow(u32 pos)
@@ -61,7 +61,7 @@ namespace Ifrit
         }
 
     public:
-        RConcurrentGrowthVector()
+        TConcurrentGrowthVector()
         {
             for (u32 i = 0; i < TPageNums; ++i)
             {
@@ -70,7 +70,7 @@ namespace Ifrit
             m_SpinLock.store(0, std::memory_order::release);
             m_CurrentBack.store(0, std::memory_order::release);
         }
-        ~RConcurrentGrowthVector()
+        ~TConcurrentGrowthVector()
         {
             for (u32 i = 0; i < TPageNums; ++i)
             {

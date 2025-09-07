@@ -140,9 +140,9 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
         SpVcGenInstruction*                                            def;
         SpVcVMGenBlock*                                                blockBelong = nullptr;
         SpVcVMGenFunction*                                             funcBelong  = nullptr;
-        std::unique_ptr<SpVcVMTypeDescriptor>                          tp;
-        std::unique_ptr<SpVcVMGenConstant>                             constant;
-        std::unique_ptr<SpVcVMDecoration>                              descSet;
+        Owner<SpVcVMTypeDescriptor>                                    tp;
+        Owner<SpVcVMGenConstant>                                       constant;
+        Owner<SpVcVMDecoration>                                        descSet;
         std::unordered_set<int>                                        usedByVars;
         std::unordered_set<int>                                        dependOnVars;
         int                                                            flag         = 0;
@@ -259,28 +259,28 @@ namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec
     // Generator context
     struct SpVcVMGeneratorContext
     {
-        std::vector<int>                                 vO;
-        std::unordered_map<int, SpVcVMGenVariable>       v;
-        std::vector<std::unique_ptr<SpVcVMGenBlock>>     blocks;
-        std::vector<std::unique_ptr<SpVcVMGenStack>>     genstack;
-        std::vector<std::unique_ptr<SpVcVMGenFunction>>  funcs;
-        SpVcStructuredControlFlowIndication              cfgInd;
+        std::vector<int>                           vO;
+        std::unordered_map<int, SpVcVMGenVariable> v;
+        std::vector<Owner<SpVcVMGenBlock>>         blocks;
+        std::vector<Owner<SpVcVMGenStack>>         genstack;
+        std::vector<Owner<SpVcVMGenFunction>>      funcs;
+        SpVcStructuredControlFlowIndication        cfgInd;
 
-        std::vector<SpVcVMEntryPoint>                    entryPoints;
-        SpVcVMMemoryModel                                memoryModel;
-        std::vector<int>                                 capabilities;
+        std::vector<SpVcVMEntryPoint>              entryPoints;
+        SpVcVMMemoryModel                          memoryModel;
+        std::vector<int>                           capabilities;
 
-        SpVcVMGenFunction*                               activeFuncEnv;
-        std::vector<SpVcVMGenBlock*>                     blockStack;
+        SpVcVMGenFunction*                         activeFuncEnv;
+        std::vector<SpVcVMGenBlock*>               blockStack;
 
-        std::vector<SpVcVMGenStack*>                     structStack;
+        std::vector<SpVcVMGenStack*>               structStack;
 
-        SpVcVMGenVariable*                               maskTypeRef;
-        std::vector<std::unique_ptr<LLVM::SpVcLLVMExpr>> irExprs;
-        std::vector<LLVM::SpVcLLVMExpr*>                 globalDefs;
+        SpVcVMGenVariable*                         maskTypeRef;
+        std::vector<Owner<LLVM::SpVcLLVMExpr>>     irExprs;
+        std::vector<LLVM::SpVcLLVMExpr*>           globalDefs;
 
-        int                                              funcCounter = 0;
-        SpVcSymbolInfo                                   binds;
+        int                                        funcCounter = 0;
+        SpVcSymbolInfo                             binds;
     };
 
 } // namespace Ifrit::Graphics::SoftGraphics::ShaderVM::SpirvVec

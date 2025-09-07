@@ -35,6 +35,13 @@ namespace Ifrit
         return content;
     }
 
+    inline void WriteTextFile(const String& path, const String& content)
+    {
+        std::ofstream file(path);
+        file << content;
+        file.close();
+    }
+
     inline void WriteBinaryFile(const String& path, const String& content)
     {
         std::ofstream file(path, std::ios::binary);

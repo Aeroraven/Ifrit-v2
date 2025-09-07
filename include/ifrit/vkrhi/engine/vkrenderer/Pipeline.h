@@ -1,0 +1,123 @@
+
+/*
+Ifrit-v2
+Copyright (C) 2024 funkybirds(Aeroraven)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>. */
+
+#pragma once
+#include "ifrit/vkrhi/common/Pch.h"
+#include "ifrit/vkrhi/engine/vkrenderer/EngineContext.h"
+#include "ifrit/vkrhi/engine/vkrenderer/Shader.h"
+
+namespace Ifrit::RHI::VulkanAdapter
+{
+
+    struct GraphicsPipelineCreateInfo
+    {
+        u32                            viewportCount;
+        u32                            scissorCount;
+        RHI::RhiRasterizerTopology     topology;
+        Vec<VkFormat>                  colorAttachmentFormats;
+        VkFormat                       depthAttachmentFormat;
+        VkFormat                       stencilAttachmentFormat;
+        Vec<ShaderModule*>             shaderModules;
+        Vec<VkDescriptorSetLayout>     descriptorSetLayouts;
+        RHI::RhiGeometryGenerationType geomGenType   = RHI::RhiGeometryGenerationType::Conventional;
+        u32                            pushConstSize = 0;
+        u32                            msaaSamples   = 1;
+    };
+    struct ComputePipelineCreateInfo
+    {
+        ShaderModule*              shaderModules;
+        Vec<VkDescriptorSetLayout> descriptorSetLayouts;
+        u32                        pushConstSize = 0;
+    };
+
+    class IFRIT_APIDECL PipelineBase
+    {
+    protected:
+        EngineContext*   m_context;
+        VkPipeline       m_pipeline;
+        VkPipelineLayout m_layout;
+        bool             m_layoutCreated   = false;
+        bool             m_pipelineCreated = false;
+
+    public:
+        PipelineBase(EngineContext* ctx) : m_context(ctx) {}
+        virtual ~PipelineBase() {}
+        inline VkPipeline       GetPipeline() const { return m_pipeline; }
+        inline VkPipelineLayout GetLayout() const { return m_layout; }
+    };
+
+    class IFRIT_APIDECL GraphicsPipeline : public PipelineBase
+    {
+    private:
+        GraphicsPipelineCreateInfo m_createInfo;
+
+    protected:
+        void Init();
+
+    public:
+        GraphicsPipeline(EngineContext* ctx, const GraphicsPipelineCreateInfo& ci) : PipelineBase(ctx), m_createInfo(ci)
+        {
+            Init();
+        }
+        virtual ~GraphicsPipeline();
+    };
+
+    class IFRIT_APIDECL ComputePipeline : public PipelineBase
+    {
+    private:
+        ComputePipelineCreateInfo m_createInfo;
+
+    protected:
+        void Init();
+
+    public:
+        ComputePipeline(EngineContext* ctx, const ComputePipelineCreateInfo& ci) : PipelineBase(ctx), m_createInfo(ci)
+        {
+            Init();
+        }
+        virtual ~ComputePipeline();
+    };
+
+    // Reuse pipelines that share the same layout
+    class IFRIT_APIDECL PipelineCache
+    {
+    private:
+        EngineContext*                  m_context;
+        Vec<Owner<GraphicsPipeline>>    m_graphicsPipelines;
+        Vec<GraphicsPipelineCreateInfo> m_graphicsPipelineCI;
+        HashMap<u64, Vec<int>>          m_graphicsPipelineMap;
+
+        Vec<Owner<ComputePipeline>>     m_computePipelines;
+        Vec<ComputePipelineCreateInfo>  m_computePipelineCI;
+        HashMap<u64, Vec<int>>          m_computePipelineMap;
+
+    public:
+        PipelineCache(EngineContext* context);
+        PipelineCache(const PipelineCache& p)            = delete;
+        PipelineCache& operator=(const PipelineCache& p) = delete;
+
+        u64            GraphicsPipelineHash(const GraphicsPipelineCreateInfo& ci);
+        bool           GraphicsPipelineEqual(const GraphicsPipelineCreateInfo& a, const GraphicsPipelineCreateInfo& b);
+        GraphicsPipeline* GetGraphicsPipeline(const GraphicsPipelineCreateInfo& ci);
+
+        u64               ComputePipelineHash(const ComputePipelineCreateInfo& ci);
+        bool              ComputePipelineEqual(const ComputePipelineCreateInfo& a, const ComputePipelineCreateInfo& b);
+        ComputePipeline*  GetComputePipeline(const ComputePipelineCreateInfo& ci);
+    };
+
+} // namespace Ifrit::RHI::VulkanAdapter

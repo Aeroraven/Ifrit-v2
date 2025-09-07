@@ -22,25 +22,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit
 {
 
-    class RSizedBuffer
+    class TSizedBuffer
     {
     private:
         Vec<u8> m_Data;
 
     public:
-        RSizedBuffer() = default;
-        RSizedBuffer(u32 size) : m_Data(size) {}
-        RSizedBuffer(void* ptr, u32 size) : m_Data(size) { memcpy(m_Data.data(), ptr, size); }
+        TSizedBuffer() = default;
+        TSizedBuffer(u32 size) : m_Data(size) {}
+        TSizedBuffer(void* ptr, u32 size) : m_Data(size) { memcpy(m_Data.data(), ptr, size); }
 
-        template <typename T> RSizedBuffer(const Vec<T>& data) : m_Data(data.size() * sizeof(T))
+        template <typename T> TSizedBuffer(const Vec<T>& data) : m_Data(data.size() * sizeof(T))
         {
             memcpy(m_Data.data(), data.data(), m_Data.size());
         }
 
-        RSizedBuffer(const RSizedBuffer& other) : m_Data(other.m_Data) {}
-        RSizedBuffer(RSizedBuffer&& other) noexcept : m_Data(std::move(other.m_Data)) {}
+        TSizedBuffer(const TSizedBuffer& other) : m_Data(other.m_Data) {}
+        TSizedBuffer(TSizedBuffer&& other) noexcept : m_Data(std::move(other.m_Data)) {}
 
-        RSizedBuffer& operator=(const RSizedBuffer& other)
+        TSizedBuffer& operator=(const TSizedBuffer& other)
         {
             if (this != &other)
             {
@@ -48,7 +48,7 @@ namespace Ifrit
             }
             return *this;
         }
-        RSizedBuffer& operator=(RSizedBuffer&& other) noexcept
+        TSizedBuffer& operator=(TSizedBuffer&& other) noexcept
         {
             if (this != &other)
             {
@@ -56,23 +56,23 @@ namespace Ifrit
             }
             return *this;
         }
-        RSizedBuffer& operator=(const Vec<u8>& other)
+        TSizedBuffer& operator=(const Vec<u8>& other)
         {
             m_Data = other;
             return *this;
         }
-        RSizedBuffer& operator=(Vec<u8>&& other) noexcept
+        TSizedBuffer& operator=(Vec<u8>&& other) noexcept
         {
             m_Data = std::move(other);
             return *this;
         }
-        RSizedBuffer& operator=(const Vec<u8>&& other)
+        TSizedBuffer& operator=(const Vec<u8>&& other)
         {
             m_Data = other;
             return *this;
         }
 
-        ~RSizedBuffer() = default;
+        ~TSizedBuffer() = default;
 
         void*       GetData() { return m_Data.data(); }
         const void* GetData() const { return m_Data.data(); }
@@ -81,10 +81,20 @@ namespace Ifrit
         u8&         operator[](u32 index) { return m_Data[index]; }
         const u8&   operator[](u32 index) const { return m_Data[index]; }
 
-        void        CopyFromRaw(void* ptr, u32 size)
+        void        CopyFromRaw(const void* ptr, u32 size)
         {
             m_Data.resize(size);
             memcpy(m_Data.data(), ptr, size);
         }
+
+        template <typename T> Vec<T> ToByteVector() const
+        {
+            static_assert(sizeof(T) == 1, "T must be a byte-sized type");
+            Vec<T> result(m_Data.size() / sizeof(T));
+            memcpy(result.data(), m_Data.data(), m_Data.size());
+            return result;
+        }
+
+        String ToString() const { return String(reinterpret_cast<const char*>(m_Data.data()), m_Data.size()); }
     };
 } // namespace Ifrit

@@ -16,15 +16,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "ComputeUtils.glsl"
+#include "SamplerUtils.SharedConst.h"
+#include "Math.RayUtils.glsl"
+
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
 #include "Random/Random.WNoise2D.glsl"
-#include "SamplerUtils.SharedConst.h"
 
 layout(
     local_size_x = kAyanamiShadowVisibilityCardSizePerBlock, 
@@ -40,10 +43,8 @@ RegisterStorage(BAllWorldData,{
     uint m_TransformId[];
 });
 
-RegisterUniform(BLocalTransform,{
-    mat4 m_LocalToWorld;
-    mat4 m_WorldToLocal;
-    float m_MaxScale;
+RegisterStorage(BModelTransform,{
+    FLocalTransformData m_Data;
 });
 
 RegisterStorage(BTileScatter,{
@@ -84,78 +85,98 @@ layout(push_constant)  uniform PushConstData{
     float m_ShadowCoefK;
 } PushConst;
 
+const bool kUseGridCull = true;
+const float kShadowInterruptThreshold = 1e-3;
+
 float DistanceFieldShadowInObj(vec3 rayOriginWS, uint meshDFId){
 
     MeshDFDesc desc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[meshDFId];
     MeshDFMeta meta = GetResource(BMeshDFMeta, desc.m_MdfMetaId).m_Data;
-    mat4 worldToLocal = GetResource(BLocalTransform, desc.m_TransformId).m_WorldToLocal;
+    mat4 worldToLocal = GetResource(BModelTransform, desc.m_TransformId).m_Data.m_WorldToLocal;
 
-    uint sdfId = meta.sdfId;
+    vec2 MeshDFQuantScale = AyaShared_GetSdfQuantScale(meta);
+
+    uint SdfId = meta.sdfId;
     vec3 lb = meta.bboxMin.xyz;
     vec3 rt = meta.bboxMax.xyz;
     vec3 extent = rt - lb;
-    float maxExtent = min(min(extent.x, extent.y), extent.z);
+    float MaxExtent = min(min(extent.x, extent.y), extent.z);
     vec3 rayDir = normalize(-PushConst.m_ShadowLightDir.xyz);
 
     float advance = 0.01;
     vec4 pO = vec4(rayOriginWS + rayDir * advance, 1.0);
+    vec4 pD = pO + vec4(rayDir, 0.0);
     pO = worldToLocal * pO;
-    pO = pO / pO.w;
-
-    vec4 pD = vec4(rayOriginWS + rayDir * (1.0+advance), 1.0);
     pD = worldToLocal * pD;
-    pD = pD / pD.w;
 
     vec3 d = pD.xyz - pO.xyz;
     vec3 o = pO.xyz;
     vec3 nD = normalize(d);
 
-    float t;
-    bool hit = ifrit_RayboxIntersection(o,nD,lb,rt,t);
+    float t,tMax;
+    bool Hit = ifrit_RayboxIntersectionDual(o,nD,lb,rt,t, tMax);
     t = max(0.0,t);
 
-    vec3 hitp = o + nD * t;
-    float retShadow = 1.0;
-    float selfBias = 0e-4*maxExtent;
-    float volBias = 1e-3*maxExtent;
-    if(hit){
-        for(int i=0;i<20;i++){
-            vec3 uvw= (hitp - lb) / (rt - lb);
-            uvw = clamp(uvw, 0.0, 1.0);
-            float sdf = texture(GetSampler3D(meta.sdfId), uvw).x-volBias;
-            t+= max(1e-4*maxExtent,abs(sdf)* 0.5) ;
-            hitp = o + nD * t;
-            
-            retShadow = min(retShadow, PushConst.m_ShadowCoefK*abs(sdf)/(abs(t)+1e-6)*100.0);
-            if(abs(sdf)<1e-1){
+    vec3 Hitp = o + nD * t;
+    float RetShadow = 1.0;
+    float VolBias = 0.005;
+    if(Hit){
+        vec3 InvExtent = 1.0 / (rt - lb);
+        for(int i=0;i<40;i++){
+            vec3 UVW= (Hitp - lb) * InvExtent;
+            float Sdf = AyaShared_SampleMeshDF(SdfId, UVW, MeshDFQuantScale) - VolBias;
+            float AbsSdf = abs(Sdf);
+
+            t += max(1e-4,AbsSdf* 0.2) ;
+            Hitp = o + nD * t;
+            RetShadow = min(RetShadow, PushConst.m_ShadowCoefK*max(0.0,AbsSdf)/(t+1e-6)*5.0);
+
+            if(AbsSdf<0 || t>=tMax || RetShadow <= kShadowInterruptThreshold){
                 break;
             }
         }
     }
-    return retShadow;
+    return RetShadow;
 }
 
-float DistanceFieldShadowInTile(vec3 rayOriginWS, uint tileId){
-    float shadowAttn = 1.0;
-    uint tileOffset = PushConst.m_ShadowCullTotalDFs * tileId;
-    uint dfInTile = GetResource(BTileAtomics, PushConst.m_ShadowCullTileDFAtomics).m_Data[tileId];
-    for(uint i=0;i<dfInTile;i++){
+float DistanceFieldShadowInTile(vec3 rayOriginWS, uint TileId){
+    float ShadowAttn = 1.0;
+    uint tileOffset = PushConst.m_ShadowCullTotalDFs * TileId;
+    uint DfInTile = GetResource(BTileAtomics, PushConst.m_ShadowCullTileDFAtomics).m_Data[TileId];
+    for(uint i=0;i<DfInTile;i++){
         uint dfId = GetResource(BTileScatter, PushConst.m_ShadowCullTileDFList).m_Data[tileOffset + i];
-        shadowAttn = min(shadowAttn,DistanceFieldShadowInObj(rayOriginWS,dfId));
+        ShadowAttn = min(ShadowAttn,DistanceFieldShadowInObj(rayOriginWS,dfId));
+        if(ShadowAttn<=kShadowInterruptThreshold){
+            break;
+        }
     }
-    return shadowAttn;
+    return ShadowAttn;
 }
 
 float DistanceFieldShadow(vec3 rayOriginWS){
     vec4 lightPos = PushConst.m_ShadowLightVP * vec4(rayOriginWS, 1.0);
-    vec2 uv = (lightPos.xy / lightPos.w) * 0.5 + 0.5;
+    vec2 uv = lightPos.xy * 0.5 + 0.5;
     if(uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0){
         return 1.0;
     }
-    uint tileX = uint(uv.x * PushConst.m_ShadowCullTileSize);
-    uint tileY = uint(uv.y * PushConst.m_ShadowCullTileSize);
-    uint tileId = tileX + tileY * PushConst.m_ShadowCullTileSize;
-    return DistanceFieldShadowInTile(rayOriginWS, tileId);
+
+    if(kUseGridCull){
+        uint TileX = uint(uv.x * PushConst.m_ShadowCullTileSize);
+        uint TileY = uint(uv.y * PushConst.m_ShadowCullTileSize);
+        uint TileId = TileX + TileY * PushConst.m_ShadowCullTileSize;
+        return DistanceFieldShadowInTile(rayOriginWS, TileId);
+    }else{
+        uint NumMeshDFs = PushConst.m_TotalCards / 6;
+        float ShadowAttnGlobal = 1.0;
+        for(uint i=0;i<NumMeshDFs;i++){
+            float ShadowAttn = DistanceFieldShadowInObj(rayOriginWS,i);
+            ShadowAttnGlobal = min(ShadowAttnGlobal, ShadowAttn);
+            if(ShadowAttnGlobal <= kShadowInterruptThreshold){
+                break;
+            }
+        }
+        return ShadowAttnGlobal;
+    }
 }
 
 
@@ -177,7 +198,7 @@ void main(){
 
     mat4 atlasToLocal = GetResource(BAllCardData, PushConst.m_CardDataId).m_Mats[cardIndex].m_VPInv;
     uint transformId = GetResource(BAllWorldData, PushConst.m_WorldObjId).m_TransformId[cardIndex];
-    mat4 localToWorld = GetResource(BLocalTransform, transformId).m_LocalToWorld;
+    mat4 localToWorld = GetResource(BModelTransform, transformId).m_Data.m_LocalToWorld;
     mat4 atlasToWorld = localToWorld * atlasToLocal;
 
     vec2 tileOffsetToNDCxy = (vec2(tileOffset)+0.5) / vec2(PushConst.m_CardResolution);

@@ -18,10 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/runtime/application/Application.h"
-#include "ifrit/runtime/assetmanager/Asset.h"
-#include "ifrit/runtime/assetmanager/GLTFAsset.h"
-#include "ifrit/runtime/assetmanager/ShaderAsset.h"
-#include "ifrit/runtime/assetmanager/WaveFrontAsset.h"
+#include "ifrit/runtime/asset/Asset.h"
+#include "ifrit/runtime/asset/prefab/GLTFAsset.h"
+#include "ifrit/runtime/asset/ShaderAsset.h"
+#include "ifrit/runtime/asset/mesh/WaveFrontAsset.h"
+#include "ifrit/runtime/asset/image/TrivialImageAsset.h"
 #include "ifrit/runtime/base/Camera.h"
 #include "ifrit/runtime/base/Component.h"
 #include "ifrit/runtime/base/ActorBehavior.h"
@@ -29,6 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/runtime/base/Material.h"
 #include "ifrit/runtime/base/Mesh.h"
 #include "ifrit/runtime/base/Scene.h"
+#include "ifrit/runtime/base/Transform.h"
 #include "ifrit/runtime/renderer/AyanamiRenderer.h"
 #include "ifrit/runtime/renderer/SyaroRenderer.h"
 #include "ifrit/runtime/scene/FrameCollector.h"
@@ -37,3 +39,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshDF.h"
 #include "ifrit/runtime/renderer/ayanami/AyanamiMeshMarker.h"
+
+#include "ifrit/runtime/renderer/BaseForwardRenderer.h"
+#include "ifrit/runtime/renderer/BaseDeferredRenderer.h"
+
+#include "ifrit/runtime/physics/artemis/pbd/PBDCloth.h"
+#include "ifrit/runtime/physics/artemis/geometry/TessellatedRectMesh.h"
+#include "ifrit/runtime/physics/artemis/ArtemisSimulator.h"
+#include "ifrit/runtime/physics/artemis/geometry/TetrahedralMesh.h"
+
+#include "ifrit/runtime/geometry/surfaceop/ParticleSurfaceProceduralMesh.h"
+
+#include "ifrit/runtime/physics/artemis/rigid/RigidSimulator.h"
+#include "ifrit/runtime/physics/artemis/rigid/GpuRigidCollider.h"
+
+#include "ifrit/runtime/physics/artemis/mpm/MPMParticleContainer.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMSimulator.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMSimulatorConfigurator.h"
+#include "ifrit/runtime/physics/artemis/mpm/MPMParticleEmitter.h"

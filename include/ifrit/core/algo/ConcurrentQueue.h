@@ -25,10 +25,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit
 {
     // Warning: ABA problem is not resolved yet
-    template <typename T> class RPooledConcurrentQueue : public NonCopyable
+    template <typename T> class TPooledConcurrentQueue : public NonCopyable
     {
     public:
-        struct RPooledConcurrentQueueElement
+        struct TPooledConcurrentQueueElement
         {
             Atomic<IntPtr> m_Next    = 0;
             u8             m_IsDummy = 0;
@@ -37,11 +37,11 @@ namespace Ifrit
                 Atomic<u64> m_Dummy = 0;
                 T           m_Data;
             };
-            explicit RPooledConcurrentQueueElement(nullptr_t x) : m_Next(0), m_Dummy(0), m_IsDummy(1) {}
-            explicit RPooledConcurrentQueueElement(T&& data) : m_Next(0), m_Data(std::move(data)), m_IsDummy(0) {}
-            explicit RPooledConcurrentQueueElement(const T& data) : m_Next(0), m_Data(data), m_IsDummy(0) {}
+            explicit TPooledConcurrentQueueElement(nullptr_t x) : m_Next(0), m_Dummy(0), m_IsDummy(1) {}
+            explicit TPooledConcurrentQueueElement(T&& data) : m_Next(0), m_Data(std::move(data)), m_IsDummy(0) {}
+            explicit TPooledConcurrentQueueElement(const T& data) : m_Next(0), m_Data(data), m_IsDummy(0) {}
 
-            ~RPooledConcurrentQueueElement()
+            ~TPooledConcurrentQueueElement()
             {
                 if (m_IsDummy == 0)
                 {
@@ -54,10 +54,10 @@ namespace Ifrit
         Atomic<IntPtr>                             m_Head     = 0;
         Atomic<IntPtr>                             m_Tail     = 0;
         Atomic<u64>                                m_RefCount = 0;
-        RObjectPool<RPooledConcurrentQueueElement> m_Pool;
+        TObjectPool<TPooledConcurrentQueueElement> m_Pool;
 
     private:
-        void EnqueueNode(RIndexedPtr nodeIndex)
+        void EnqueueNode(FIndexedPtr nodeIndex)
         {
             auto qId     = nodeIndex.Ptr();
             auto qPtr    = m_Pool.GetPtrFromIndex(nodeIndex);
@@ -65,11 +65,11 @@ namespace Ifrit
 
             bool succ;
             auto pId  = m_Tail.load(std::memory_order::acquire);
-            auto pPtr = m_Pool.GetPtrFromIndex(RIndexedPtr(pId));
+            auto pPtr = m_Pool.GetPtrFromIndex(FIndexedPtr(pId));
             do
             {
                 pId       = m_Tail.load(std::memory_order::acquire);
-                pPtr      = m_Pool.GetPtrFromIndex(RIndexedPtr(pId));
+                pPtr      = m_Pool.GetPtrFromIndex(FIndexedPtr(pId));
                 IntPtr ep = 0ull;
                 succ      = pPtr->m_Next.compare_exchange_strong(
                     ep, qId, std::memory_order::acq_rel, std::memory_order::acquire);
@@ -77,7 +77,7 @@ namespace Ifrit
                 if (!succ)
                 {
                     auto expected = pId;
-                    auto tailPtr  = m_Pool.GetPtrFromIndex(RIndexedPtr(expected));
+                    auto tailPtr  = m_Pool.GetPtrFromIndex(FIndexedPtr(expected));
                     auto pNext    = pPtr->m_Next.load(std::memory_order::acquire);
                     m_Tail.compare_exchange_strong(
                         expected, pNext, std::memory_order::acq_rel, std::memory_order::acquire);
@@ -88,20 +88,20 @@ namespace Ifrit
             m_RefCount.fetch_add(1, std::memory_order::acq_rel);
         }
 
-        RIndexedPtr DequeueNode()
+        FIndexedPtr DequeueNode()
         {
             auto pId  = m_Head.load();
-            auto pPtr = m_Pool.GetPtrFromIndex(RIndexedPtr(pId));
+            auto pPtr = m_Pool.GetPtrFromIndex(FIndexedPtr(pId));
 
             auto expected = pId;
             auto pNext    = pPtr->m_Next.load(std::memory_order::acquire);
             do
             {
                 pId  = m_Head.load(std::memory_order::acquire);
-                pPtr = m_Pool.GetPtrFromIndex(RIndexedPtr(pId));
+                pPtr = m_Pool.GetPtrFromIndex(FIndexedPtr(pId));
                 if (pPtr->m_Next.load(std::memory_order::acquire) == 0)
                 {
-                    return RIndexedPtr(0);
+                    return FIndexedPtr(0);
                 }
                 expected = pId;
                 pNext    = pPtr->m_Next.load(std::memory_order::acquire);
@@ -110,11 +110,11 @@ namespace Ifrit
                 expected, pNext, std::memory_order::acq_rel, std::memory_order::acquire));
 
             m_RefCount.fetch_sub(1, std::memory_order::acq_rel);
-            return RIndexedPtr(pPtr->m_Next.load());
+            return FIndexedPtr(pPtr->m_Next.load());
         }
 
     public:
-        RPooledConcurrentQueue()
+        TPooledConcurrentQueue()
         {
             auto m_DummyPtr = m_Pool.AllocateIndexed(nullptr);
             auto m_Dummy    = m_Pool.GetPtrFromIndex({ m_DummyPtr });
@@ -123,7 +123,7 @@ namespace Ifrit
             m_Head.store(m_DummyPtr, std::memory_order::release);
             m_Tail.store(m_DummyPtr, std::memory_order::release);
         }
-        ~RPooledConcurrentQueue()
+        ~TPooledConcurrentQueue()
         {
             while (!Empty())
             {
@@ -131,7 +131,7 @@ namespace Ifrit
             }
             // Remaining one dummy node
             auto dummyPtr = m_Head.load(std::memory_order::acquire);
-            m_Pool.DeallocateIndexed(RIndexedPtr(dummyPtr));
+            m_Pool.DeallocateIndexed(FIndexedPtr(dummyPtr));
         }
 
         void Enqueue(T&& data)
@@ -156,7 +156,7 @@ namespace Ifrit
                     return T();
                 }
                 throw std::runtime_error(
-                    "RPooledConcurrentQueue: Queue is empty. Add a default constructor to suppress this error.");
+                    "TPooledConcurrentQueue: Queue is empty. Add a default constructor to suppress this error.");
             }
             auto node = m_Pool.GetPtrFromIndex(nodeIdx);
             auto data = std::move(node->m_Data);
@@ -176,14 +176,14 @@ namespace Ifrit
                     return T();
                 }
                 throw std::runtime_error(
-                    "RPooledConcurrentQueue: Queue is empty. Add a default constructor to suppress this error.");
+                    "TPooledConcurrentQueue: Queue is empty. Add a default constructor to suppress this error.");
             }
             auto node = m_Pool.GetPtrFromIndex(nextPtr);
             return node->m_Data;
         }
         bool Empty()
         {
-            auto headPtr = m_Pool.GetPtrFromIndex(RIndexedPtr(m_Head.load(std::memory_order::acquire)));
+            auto headPtr = m_Pool.GetPtrFromIndex(FIndexedPtr(m_Head.load(std::memory_order::acquire)));
             auto nextPtr = headPtr->m_Next.load(std::memory_order::acquire);
             return nextPtr == 0;
         }

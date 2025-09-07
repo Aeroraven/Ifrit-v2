@@ -24,35 +24,33 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::Graphics::SoftGraphics::Raytracer
 {
-	struct RaytracingShaderGlobalVarSection
-	{
-		ShaderBase* shader;
-	};
+    struct RaytracingShaderGlobalVarSection
+    {
+        ShaderBase* shader;
+    };
 
-	class IFRIT_APIDECL TrivialRaytracerWorker
-	{
-	private:
-		int											 workerId;
-		std::atomic<TrivialRaytracerWorkerStatus>	 status;
-		TrivialRaytracer*							 renderer;
-		std::shared_ptr<TrivialRaytracerContext>	 context;
-		std::unique_ptr<std::thread>				 thread;
+    class IFRIT_APIDECL TrivialRaytracerWorker
+    {
+    private:
+        int                                          workerId;
+        std::atomic<TrivialRaytracerWorkerStatus>    status;
+        TrivialRaytracer*                            renderer;
+        std::shared_ptr<TrivialRaytracerContext>     context;
+        Owner<std::thread>                           thread;
 
-		std::stack<RaytracingShaderGlobalVarSection> execStack;
-		int											 recurDepth = 0;
+        std::stack<RaytracingShaderGlobalVarSection> execStack;
+        int                                          recurDepth = 0;
 
-	public:
-		friend class TrivialRaytracer;
-		TrivialRaytracerWorker(std::shared_ptr<TrivialRaytracer> renderer,
-			std::shared_ptr<TrivialRaytracerContext>			 context,
-			int													 workerId);
-		void Run();
-		void threadCreate();
+    public:
+        friend class TrivialRaytracer;
+        TrivialRaytracerWorker(
+            std::shared_ptr<TrivialRaytracer> renderer, std::shared_ptr<TrivialRaytracerContext> context, int workerId);
+        void Run();
+        void threadCreate();
 
-		void tracingProcess();
-		void tracingRecursiveProcess(const RayInternal& ray, void* payload, int depth,
-			float tmin, float tmax);
+        void tracingProcess();
+        void tracingRecursiveProcess(const RayInternal& ray, void* payload, int depth, float tmin, float tmax);
 
-		int	 getTracingDepth();
-	};
+        int  getTracingDepth();
+    };
 } // namespace Ifrit::Graphics::SoftGraphics::Raytracer

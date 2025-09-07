@@ -17,13 +17,14 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 #include "Base.glsl"
 #include "Bindless.glsl"
 #include "Syaro/Syaro.Shared.glsl"
 #include "Syaro/Syaro.SharedConst.h"
+#include "SamplerUtils.SharedConst.h"
 
 // Material Pass / Scatter Pass
 // This pass is unoptimized. It just do scattering.
@@ -47,7 +48,6 @@ void main(){
             continue;
         }
         uint pixelId = x + y * uMaterialPassPushConstant.renderWidth;
-        //uint materialId =  texelFetch(GetSampler2D(uMaterialPassData.materialDepthRef), ivec2(int(x),int(y)), 0).a;
         float materialIdFloat = imageLoad(GetUAVImage2DRGBA32F(uMaterialPassData.materialDepthRef), ivec2(x, y)).a;
         uint materialId = uint(materialIdFloat);
         if(materialId == 0){

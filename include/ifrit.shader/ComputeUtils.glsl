@@ -19,3 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 bool ifrit_IsFirstLane(){
     return gl_LocalInvocationID.x == 0 && gl_LocalInvocationID.y == 0 && gl_LocalInvocationID.z == 0;
 }
+
+bool ifrit_IsGlobalFirstThread(){
+    return gl_GlobalInvocationID.x == 0 && gl_GlobalInvocationID.y == 0 && gl_GlobalInvocationID.z == 0;
+}

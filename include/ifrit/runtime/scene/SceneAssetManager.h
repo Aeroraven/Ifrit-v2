@@ -17,8 +17,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/runtime/assetmanager/Asset.h"
+#include "ifrit/runtime/common/Pch.h"
+
+#include "ifrit/runtime/asset/Asset.h"
 #include "ifrit/runtime/base/Scene.h"
 #include <filesystem>
 #include <stdexcept>
@@ -33,30 +34,14 @@ namespace Ifrit::Runtime
     {
     public:
         Ref<Scene> m_scene;
-        SceneAsset(AssetMetadata metadata, std::filesystem::path path) : Asset(metadata, path) {}
+        using Asset::Asset;
         inline Ref<Scene> GetScene() { return m_scene; }
     };
 
-    class IFRIT_APIDECL SceneAssetImporter : public AssetImporter
-    {
-    protected:
-        SceneAssetManager* m_sceneAssetManager;
-
-    public:
-        IF_CONSTEXPR static const char* IMPORTER_NAME = "SceneImporter";
-        SceneAssetImporter(AssetManager* manager, SceneAssetManager* sceneManager)
-            : AssetImporter(manager), m_sceneAssetManager(sceneManager)
-        {
-        }
-        void        ProcessMetadata(AssetMetadata& metadata) override;
-        void        ImportAsset(const std::filesystem::path& path, AssetMetadata& metadata) override;
-        Vec<String> GetSupportedExtensionNames() override;
-    };
 
     class IFRIT_APIDECL SceneAssetManager
     {
     private:
-        Ref<SceneAssetImporter> m_sceneImporter;
         Vec<Ref<Scene>>         m_scenes;
         Vec<u32>                m_sceneAssetLoaded;
         HashMap<String, u32>    m_scenesIndex;
@@ -73,7 +58,6 @@ namespace Ifrit::Runtime
         void                           LoadScenes();
         void                           RegisterScene(String name, Ref<Scene> scene);
         Ref<Scene>                     CreateScene(String name);
-        inline Ref<SceneAssetImporter> GetImporter() { return m_sceneImporter; }
         inline Ref<Scene>              GetScene(String name)
         {
             if (m_scenesIndex.count(name) == 0)

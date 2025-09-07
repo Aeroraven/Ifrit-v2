@@ -35,6 +35,6 @@ namespace Ifrit::Display::Window
     class IFRIT_APIDECL WindowSelector
     {
     public:
-        static Uref<WindowProvider> CreateWindowProvider(WindowProviderType type, const WindowProviderSetupArgs& args);
+        static Owner<WindowProvider> CreateWindowProvider(WindowProviderType type, const WindowProviderSetupArgs& args);
     };
 } // namespace Ifrit::Display::Window

@@ -17,12 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/common/Pch.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
-#include "ifrit/runtime/base/Scene.h"
-#include "ifrit/runtime/scene/FrameCollector.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/runtime/forwarding/FwdScene.h"
+#include "ifrit/runtime/base/Material.h"
 
 namespace Ifrit::Runtime
 {
@@ -37,12 +35,12 @@ namespace Ifrit::Runtime
     class IFRIT_APIDECL PostprocessPass
     {
     protected:
-        using DrawPass       = Graphics::Rhi::RhiGraphicsPass;
-        using ComputePass    = Graphics::Rhi::RhiComputePass;
-        using RenderTargets  = Graphics::Rhi::RhiRenderTargets;
-        using GPUShader      = Graphics::Rhi::RhiShader;
-        using GPUCmdBuffer   = Graphics::Rhi::RhiCommandList;
-        using GPUBindlessRef = Graphics::Rhi::RhiBindlessDescriptorRef;
+        using DrawPass       = RHI::RhiGraphicsPass;
+        using ComputePass    = RHI::RhiComputePass;
+        using RenderTargets  = RHI::RhiRenderTargets;
+        using GPUShader      = RHI::RhiShader;
+        using GPUCmdBuffer   = RHI::RhiCommandList;
+        using GPUBindlessRef = RHI::RhiBindlessDescriptorRef;
 
     protected:
         using PipeConfig = PipelineAttachmentConfigs;

@@ -18,15 +18,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "AssetReference.h"
-#include "Component.h"
 #include "Material.h"
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/typing/Util.h"
-#include "ifrit/meshproc/engine/mesh/MeshClusterBase.h"
-#include "ifrit/rhi/common/RhiLayer.h"
+#include "ifrit/runtime/common/Pch.h"
+#include "ifrit/geomproc/mesh/MeshClusterBase.h"
+#include "ifrit/runtime/base/MeshTransform.h"
 
 namespace Ifrit::Runtime
 {
+    enum class MeshType
+    {
+        Surface,
+        Solid,
+        VirtualGeometry,
+    };
+
+    enum class MeshGeneratorType
+    {
+        Static,
+        Procedual
+    };
+
     struct MeshData
     {
         struct GPUCPCounter
@@ -48,51 +59,47 @@ namespace Ifrit::Runtime
             Vector4f boundSphere;
             Vector4f selfErrorSphere;
         };
-        String                                          identifier;
+        String                                           identifier;
+        MeshType                                         m_MeshType       = MeshType::VirtualGeometry;
+        MeshGeneratorType                                m_GenerationType = MeshGeneratorType::Static;
 
-        Vec<Vector3f>                                   m_vertices;
-        Vec<Vector4f>                                   m_verticesAligned;
-        Vec<Vector3f>                                   m_normals;
-        Vec<Vector4f>                                   m_normalsAligned;
-        Vec<Vector2f>                                   m_uvs;
-        Vec<Vector4f>                                   m_tangents;
-        Vec<u32>                                        m_indices;
+        Vec<Vector3f>                                    m_vertices;
+        Vec<Vector4f>                                    m_verticesAligned;
+        Vec<Vector3f>                                    m_normals;
+        Vec<Vector4f>                                    m_normalsAligned;
+        Vec<Vector2f>                                    m_uvs;
+        Vec<Vector4f>                                    m_tangents;
+        Vec<u32>                                         m_indices;
 
         // Cluster data
-        Vec<MeshletData>                                m_meshlets;
-        Vec<Vector4f>                                   m_normalsCone;
-        Vec<Vector4f>                                   m_normalsConeApex;
-        Vec<Vector4f>                                   m_boundSphere;
-        Vec<u32>                                        m_meshletTriangles;
-        Vec<u32>                                        m_meshletVertices;
-        Vec<u32>                                        m_meshletInClusterGroup;
-        Vec<MeshProcLib::MeshProcess::MeshletCullData>  m_meshCullData;
-        Vec<MeshProcLib::MeshProcess::FlattenedBVHNode> m_bvhNodes; // seems not suitable to be here
-        Vec<MeshProcLib::MeshProcess::ClusterGroup>     m_clusterGroups;
+        Vec<MeshletData>                                 m_meshlets;
+        Vec<Vector4f>                                    m_normalsCone;
+        Vec<Vector4f>                                    m_normalsConeApex;
+        Vec<Vector4f>                                    m_boundSphere;
+        Vec<u32>                                         m_meshletTriangles;
+        Vec<u32>                                         m_meshletVertices;
+        Vec<u32>                                         m_meshletInClusterGroup;
+        Vec<GeometryProc::MeshProcess::MeshletCullData>  m_meshCullData;
+        Vec<GeometryProc::MeshProcess::FlattenedBVHNode> m_bvhNodes; // seems not suitable to be here
+        Vec<GeometryProc::MeshProcess::ClusterGroup>     m_clusterGroups;
 
         // Num meshlets in each lod
-        Vec<u32>                                        m_numMeshletsEachLod;
-        GPUCPCounter                                    m_cpCounter;
-        u32                                             m_maxLod;
+        Vec<u32>                                         m_numMeshletsEachLod;
+        GPUCPCounter                                     m_cpCounter;
+        u32                                              m_maxLod;
 
         // Some static data
-        Vector3f                                        m_BoundingBoxMin;
-        Vector3f                                        m_BoundingBoxMax;
+        Vector3f                                         m_BoundingBoxMin;
+        Vector3f                                         m_BoundingBoxMax;
 
         IFRIT_STRUCT_SERIALIZE(m_vertices, m_normals, m_uvs, m_tangents, m_indices);
     };
 
-    struct MeshInstanceTransform
+    
+    class IFRIT_APIDECL Mesh
     {
-        Matrix4x4f model;
-        Matrix4x4f invModel;
-        Vector4f   maxScale;
-    };
-
-    class IFRIT_APIDECL Mesh : public AssetReferenceContainer, public IAssetCompatible
-    {
-        using GPUBuffer = Graphics::Rhi::RhiBufferRef;
-        using GPUBindId = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUBuffer = RHI::RhiBufferRef;
+        using GPUBindId = RHI::RhiDescHandleLegacy;
 
     public:
         struct GPUObjectBuffer
@@ -132,6 +139,8 @@ namespace Ifrit::Runtime
             GPUBuffer       tangentBuffer          = nullptr;
             GPUBuffer       indexBuffer            = nullptr;
 
+            GPUBuffer       procIndirectDrawBuffer = nullptr;
+
             GPUObjectBuffer objectData;
             GPUBuffer       objectBuffer = nullptr;
 
@@ -164,6 +173,7 @@ namespace Ifrit::Runtime
             m_resource.materialDataBuffer     = resource.materialDataBuffer;
             m_resource.tangentBuffer          = resource.tangentBuffer;
             m_resource.indexBuffer            = resource.indexBuffer;
+            m_resource.procIndirectDrawBuffer = resource.procIndirectDrawBuffer;
 
             m_resource.objectBuffer = resource.objectBuffer;
             m_resource.objectData   = resource.objectData;
@@ -184,15 +194,25 @@ namespace Ifrit::Runtime
             resource.materialDataBuffer     = m_resource.materialDataBuffer;
             resource.tangentBuffer          = m_resource.tangentBuffer;
             resource.indexBuffer            = m_resource.indexBuffer;
+            resource.procIndirectDrawBuffer = m_resource.procIndirectDrawBuffer;
 
             resource.objectBuffer = m_resource.objectBuffer;
             resource.objectData   = m_resource.objectData;
         }
         // TODO: static method
-        virtual void     CreateMeshLodHierarchy(Ref<MeshData> meshData, const String& cachePath);
-        virtual Vector4f GetBoundingSphere(const Vec<Vector3f>& vertices);
+        virtual void          CreateMeshLodHierarchy(Ref<MeshData> meshData, const String& cachePath);
+        virtual Vector4f      GetBoundingSphere(const Vec<Vector3f>& vertices);
+        virtual u32           GetNumIndices();
+        virtual u32           GetNumVertices();
+        virtual Vec<u32>      GetIndexBufferHost();
+        virtual Vec<Vector3f> GetVertexBufferHost();
 
-        IFRIT_STRUCT_SERIALIZE(m_data, m_assetReference, m_usingAsset);
+        virtual Vec<u32>      GetSolidMeshIndices();
+        virtual Vec<Vector3f> GetSolidMeshVertices();
+        virtual Vec<u32>      GetSurfaceMeshIndices();
+
+        virtual Ref<MeshData> GetBaseMesh();
+
     };
 
     // This subjects to change. It's only an alleviation for the coupled design of
@@ -201,8 +221,8 @@ namespace Ifrit::Runtime
     // Migrating this into persistent culling pass's buffer might be an alternative
     class IFRIT_APIDECL MeshInstance
     {
-        using GPUBuffer = Graphics::Rhi::RhiBufferRef;
-        using GPUBindId = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUBuffer = RHI::RhiBufferRef;
+        using GPUBindId = RHI::RhiDescHandleLegacy;
 
     public:
         struct GPUObjectBuffer
@@ -238,71 +258,4 @@ namespace Ifrit::Runtime
             resource.objectData   = m_resource.objectData;
         }
     };
-
-    class MeshFilter : public Component
-    {
-    private:
-        bool              m_meshLoaded = false;
-        Ref<Mesh>         m_rawData    = nullptr;
-        AssetReference    m_meshReference;
-        // this points to the actual object used for primitive gathering
-        Ref<Mesh>         m_attribute = nullptr;
-        Ref<MeshInstance> m_instance  = nullptr;
-
-    public:
-        MeshFilter() { m_instance = std::make_shared<MeshInstance>(); }
-        MeshFilter(Ref<GameObject> owner) : Component(owner) { m_instance = std::make_shared<MeshInstance>(); }
-        virtual ~MeshFilter() = default;
-        inline String Serialize() override { return ""; }
-        inline void   Deserialize() override {}
-        void          LoadMesh();
-        inline void   SetMesh(Ref<Mesh> p)
-        {
-            m_meshReference = p->m_assetReference;
-            if (!p->m_usingAsset)
-            {
-                m_rawData = p;
-            }
-            m_attribute = p;
-        }
-        inline virtual Vec<AssetReference*> GetAssetRefs() override
-        {
-            if (m_meshReference.m_usingAsset == false)
-                return {};
-            return { &m_meshReference };
-        }
-        inline virtual void SetAssetReferencedAttributes(const Vec<Ref<IAssetCompatible>>& out) override
-        {
-            if (m_meshReference.m_usingAsset)
-            {
-                auto mesh   = CheckedPointerCast<Mesh>(out[0]);
-                m_attribute = mesh;
-            }
-        }
-        inline Ref<Mesh>         GetMesh() { return m_attribute; }
-        inline Ref<MeshInstance> GetMeshInstance() { return m_instance; }
-        IFRIT_COMPONENT_SERIALIZE(m_rawData, m_meshReference);
-    };
-
-    class MeshRenderer : public Component
-    {
-    private:
-        Ref<Material>  m_material = nullptr;
-        AssetReference m_materialReference;
-
-    public:
-        MeshRenderer() {} // for deserialization
-        MeshRenderer(Ref<GameObject> owner) : Component(owner) {}
-        virtual ~MeshRenderer() = default;
-        inline String        Serialize() override { return ""; }
-        inline void          Deserialize() override {}
-        inline Ref<Material> GetMaterial() { return m_material; }
-        inline void          SetMaterial(Ref<Material> p) { m_material = p; }
-
-        IFRIT_COMPONENT_SERIALIZE(m_materialReference);
-    };
-
 } // namespace Ifrit::Runtime
-
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::MeshFilter);
-IFRIT_COMPONENT_REGISTER(Ifrit::Runtime::MeshRenderer);

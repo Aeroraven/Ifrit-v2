@@ -55,6 +55,8 @@ namespace Ifrit::Display::Window
         String                       title              = "Ifrit-v2";
         GLFWWindowProviderInitArgs   m_args;
         Fn<void(int, int, int, int)> keyCallBack;
+        Fn<void(double, double)>     mousePositionCallBack;
+        Fn<void(int, int, int)>      mouseButtonCallBack;
 
     public:
         GLFWWindowProvider() = default;
@@ -80,5 +82,9 @@ namespace Ifrit::Display::Window
         }
         virtual void RegisterKeyCallback(std::function<void(int, int, int, int)>) override;
         inline std::function<void(int, int, int, int)> GetKeyCallBack() { return keyCallBack; }
+        virtual void RegisterMousePostionCallback(std::function<void(double, double)>) override;
+        virtual void RegisterMouseButtonCallback(std::function<void(int, int, int)>) override;
+        virtual u32  GetWindowLeft() const override;
+        virtual u32  GetWindowTop() const override;
     };
 } // namespace Ifrit::Display::Window

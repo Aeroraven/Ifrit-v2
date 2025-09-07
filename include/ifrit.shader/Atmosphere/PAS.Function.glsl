@@ -472,11 +472,11 @@ texture lookup (assuming there is no intersection with the ground):
 
 DimensionlessSpectrum GetTransmittanceToTopAtmosphereBoundary(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
+    uint transmittance_texture,
     Length r, Number mu) {
   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
   vec2 uv = GetTransmittanceTextureUvFromRMu(atmosphere, r, mu);
-  return DimensionlessSpectrum(texture(transmittance_texture, uv));
+  return DimensionlessSpectrum(SampleTexture2D(transmittance_texture,sLinearClamp, uv));
 }
 
 /*
@@ -492,7 +492,7 @@ assume that the segment between the two points does not intersect the ground):
 
 DimensionlessSpectrum GetTransmittance(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
+    uint transmittance_texture,
     Length r, Number mu, Length d, bool ray_r_mu_intersects_ground) {
   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
   assert(mu >= -1.0 && mu <= 1.0);
@@ -551,7 +551,7 @@ approximate the transmittance to the Sun with the following function:
 
 DimensionlessSpectrum GetTransmittanceToSun(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
+    uint transmittance_texture,
     Length r, Number mu_s) {
   Number sin_theta_h = atmosphere.bottom_radius / r;
   Number cos_theta_h = -sqrt(max(1.0 - sin_theta_h * sin_theta_h, 0.0));
@@ -649,7 +649,7 @@ on for efficiency reasons):
 
 void ComputeSingleScatteringIntegrand(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
+    uint transmittance_texture,
     Length r, Number mu, Number mu_s, Number nu, Length d,
     bool ray_r_mu_intersects_ground,
     OUT(DimensionlessSpectrum) rayleigh, OUT(DimensionlessSpectrum) mie) {
@@ -694,7 +694,7 @@ rule</a>):
 
 void ComputeSingleScattering(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
+    uint transmittance_texture,
     Length r, Number mu, Number mu_s, Number nu,
     bool ray_r_mu_intersects_ground,
     OUT(IrradianceSpectrum) rayleigh, OUT(IrradianceSpectrum) mie) {
@@ -931,7 +931,7 @@ the single scattering in a 3D texture:
 */
 
 void ComputeSingleScatteringTexture(IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture, IN(vec3) frag_coord,
+    uint transmittance_texture, IN(vec3) frag_coord,
     OUT(IrradianceSpectrum) rayleigh, OUT(IrradianceSpectrum) mie) {
   Length r;
   Number mu;
@@ -958,8 +958,7 @@ inverse of the 3D-4D mapping defined in
 TEMPLATE(AbstractSpectrum)
 AbstractSpectrum GetScattering(
     IN(AtmosphereParameters) atmosphere,
-    IN(AbstractScatteringTexture TEMPLATE_ARGUMENT(AbstractSpectrum))
-        scattering_texture,
+    uint scattering_texture,
     Length r, Number mu, Number mu_s, Number nu,
     bool ray_r_mu_intersects_ground) {
   vec4 uvwz = GetScatteringTextureUvwzFromRMuMuSNu(
@@ -971,8 +970,8 @@ AbstractSpectrum GetScattering(
       uvwz.z, uvwz.w);
   vec3 uvw1 = vec3((tex_x + 1.0 + uvwz.y) / Number(SCATTERING_TEXTURE_NU_SIZE),
       uvwz.z, uvwz.w);
-  return AbstractSpectrum(texture(scattering_texture, uvw0) * (1.0 - lerp) +
-      texture(scattering_texture, uvw1) * lerp);
+  return AbstractSpectrum(SampleTexture3D(scattering_texture,sLinearClamp, uvw0) * (1.0 - lerp) +
+      SampleTexture3D(scattering_texture,sLinearClamp, uvw1) * lerp);
 }
 
 /*
@@ -986,9 +985,9 @@ with both Rayleigh and Mie included, as well as all the phase function terms.
 
 RadianceSpectrum GetScattering(
     IN(AtmosphereParameters) atmosphere,
-    IN(ReducedScatteringTexture) single_rayleigh_scattering_texture,
-    IN(ReducedScatteringTexture) single_mie_scattering_texture,
-    IN(ScatteringTexture) multiple_scattering_texture,
+    uint single_rayleigh_scattering_texture,
+    uint single_mie_scattering_texture,
+    uint multiple_scattering_texture,
     Length r, Number mu, Number mu_s, Number nu,
     bool ray_r_mu_intersects_ground,
     int scattering_order) {
@@ -1145,7 +1144,7 @@ irradiance from a precomputed texture:
 
 IrradianceSpectrum GetIrradiance(
     IN(AtmosphereParameters) atmosphere,
-    IN(IrradianceTexture) irradiance_texture,
+    uint irradiance_texture,
     Length r, Number mu_s);
 
 /*
@@ -1162,11 +1161,11 @@ equal to $n$):</li>
 
 RadianceDensitySpectrum ComputeScatteringDensity(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
-    IN(ReducedScatteringTexture) single_rayleigh_scattering_texture,
-    IN(ReducedScatteringTexture) single_mie_scattering_texture,
-    IN(ScatteringTexture) multiple_scattering_texture,
-    IN(IrradianceTexture) irradiance_texture,
+    uint transmittance_texture,
+    uint single_rayleigh_scattering_texture,
+    uint single_mie_scattering_texture,
+    uint multiple_scattering_texture,
+    uint irradiance_texture,
     Length r, Number mu, Number mu_s, Number nu, int scattering_order) {
   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
   assert(mu >= -1.0 && mu <= 1.0);
@@ -1284,8 +1283,8 @@ instead, using the actual ground albedo.
 
 RadianceSpectrum ComputeMultipleScattering(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
-    IN(ScatteringDensityTexture) scattering_density_texture,
+    uint transmittance_texture,
+    uint scattering_density_texture,
     Length r, Number mu, Number mu_s, Number nu,
     bool ray_r_mu_intersects_ground) {
   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
@@ -1347,11 +1346,11 @@ over the number of bounces:
 
 RadianceDensitySpectrum ComputeScatteringDensityTexture(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
-    IN(ReducedScatteringTexture) single_rayleigh_scattering_texture,
-    IN(ReducedScatteringTexture) single_mie_scattering_texture,
-    IN(ScatteringTexture) multiple_scattering_texture,
-    IN(IrradianceTexture) irradiance_texture,
+    uint transmittance_texture,
+    uint single_rayleigh_scattering_texture,
+    uint single_mie_scattering_texture,
+    uint multiple_scattering_texture,
+    uint irradiance_texture,
     IN(vec3) frag_coord, int scattering_order) {
   Length r;
   Number mu;
@@ -1368,8 +1367,8 @@ RadianceDensitySpectrum ComputeScatteringDensityTexture(
 
 RadianceSpectrum ComputeMultipleScatteringTexture(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
-    IN(ScatteringDensityTexture) scattering_density_texture,
+    uint transmittance_texture,
+    uint scattering_density_texture,
     IN(vec3) frag_coord, OUT(Number) nu) {
   Length r;
   Number mu;
@@ -1442,7 +1441,7 @@ equations can be simplified as follows:
 
 IrradianceSpectrum ComputeDirectIrradiance(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
+    uint transmittance_texture,
     Length r, Number mu_s) {
   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
   assert(mu_s >= -1.0 && mu_s <= 1.0);
@@ -1476,9 +1475,9 @@ $n$):</li>
 
 IrradianceSpectrum ComputeIndirectIrradiance(
     IN(AtmosphereParameters) atmosphere,
-    IN(ReducedScatteringTexture) single_rayleigh_scattering_texture,
-    IN(ReducedScatteringTexture) single_mie_scattering_texture,
-    IN(ScatteringTexture) multiple_scattering_texture,
+    uint single_rayleigh_scattering_texture,
+    uint single_mie_scattering_texture,
+    uint multiple_scattering_texture,
     Length r, Number mu_s, int scattering_order) {
   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
   assert(mu_s >= -1.0 && mu_s <= 1.0);
@@ -1557,7 +1556,7 @@ const vec2 IRRADIANCE_TEXTURE_SIZE =
 
 IrradianceSpectrum ComputeDirectIrradianceTexture(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
+    uint transmittance_texture,
     IN(vec2) frag_coord) {
   Length r;
   Number mu_s;
@@ -1572,9 +1571,9 @@ IrradianceSpectrum ComputeDirectIrradianceTexture(
 
 IrradianceSpectrum ComputeIndirectIrradianceTexture(
     IN(AtmosphereParameters) atmosphere,
-    IN(ReducedScatteringTexture) single_rayleigh_scattering_texture,
-    IN(ReducedScatteringTexture) single_mie_scattering_texture,
-    IN(ScatteringTexture) multiple_scattering_texture,
+    uint single_rayleigh_scattering_texture,
+    uint single_mie_scattering_texture,
+    uint multiple_scattering_texture,
     IN(vec2) frag_coord, int scattering_order) {
   Length r;
   Number mu_s;
@@ -1594,10 +1593,10 @@ with a single texture lookup:
 
 IrradianceSpectrum GetIrradiance(
     IN(AtmosphereParameters) atmosphere,
-    IN(IrradianceTexture) irradiance_texture,
+    uint irradiance_texture,
     Length r, Number mu_s) {
   vec2 uv = GetIrradianceTextureUvFromRMuS(atmosphere, r, mu_s);
-  return IrradianceSpectrum(texture(irradiance_texture, uv));
+  return IrradianceSpectrum(SampleTexture2D(irradiance_texture,sLinearClamp, uv));
 }
 
 /*
@@ -1657,8 +1656,8 @@ in <code>scattering_texture</code> and
 
 IrradianceSpectrum GetCombinedScattering(
     IN(AtmosphereParameters) atmosphere,
-    IN(ReducedScatteringTexture) scattering_texture,
-    IN(ReducedScatteringTexture) single_mie_scattering_texture,
+    uint scattering_texture,
+    uint single_mie_scattering_texture,
     Length r, Number mu, Number mu_s, Number nu,
     bool ray_r_mu_intersects_ground,
     OUT(IrradianceSpectrum) single_mie_scattering) {
@@ -1673,18 +1672,18 @@ IrradianceSpectrum GetCombinedScattering(
       uvwz.z, uvwz.w);
 #ifdef COMBINED_SCATTERING_TEXTURES
   vec4 combined_scattering =
-      texture(scattering_texture, uvw0) * (1.0 - lerp) +
-      texture(scattering_texture, uvw1) * lerp;
+      SampleTexture2D(scattering_texture,sLinearClamp, uvw0) * (1.0 - lerp) +
+      SampleTexture2D(scattering_texture,sLinearClamp, uvw1) * lerp;
   IrradianceSpectrum scattering = IrradianceSpectrum(combined_scattering);
   single_mie_scattering =
       GetExtrapolatedSingleMieScattering(atmosphere, combined_scattering);
 #else
   IrradianceSpectrum scattering = IrradianceSpectrum(
-      texture(scattering_texture, uvw0) * (1.0 - lerp) +
-      texture(scattering_texture, uvw1) * lerp);
+      SampleTexture3D(scattering_texture,sLinearClamp, uvw0) * (1.0 - lerp) +
+      SampleTexture3D(scattering_texture,sLinearClamp, uvw1) * lerp);
   single_mie_scattering = IrradianceSpectrum(
-      texture(single_mie_scattering_texture, uvw0) * (1.0 - lerp) +
-      texture(single_mie_scattering_texture, uvw1) * lerp);
+      SampleTexture3D(single_mie_scattering_texture,sLinearClamp, uvw0) * (1.0 - lerp) +
+      SampleTexture3D(single_mie_scattering_texture,sLinearClamp, uvw1) * lerp);
 #endif
   return scattering;
 }
@@ -1704,9 +1703,9 @@ of viewers outside the atmosphere, and the case of light shafts:
 
 RadianceSpectrum GetSkyRadiance(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
-    IN(ReducedScatteringTexture) scattering_texture,
-    IN(ReducedScatteringTexture) single_mie_scattering_texture,
+    uint transmittance_texture,
+    uint scattering_texture,
+    uint single_mie_scattering_texture,
     Position camera, IN(Direction) view_ray, Length shadow_length,
     IN(Direction) sun_direction, OUT(DimensionlessSpectrum) transmittance) {
   // Compute the distance to the top atmosphere boundary along the view ray,
@@ -1788,9 +1787,9 @@ correctly handle the case of viewers outside the atmosphere):
 
 RadianceSpectrum GetSkyRadianceToPoint(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
-    IN(ReducedScatteringTexture) scattering_texture,
-    IN(ReducedScatteringTexture) single_mie_scattering_texture,
+    uint transmittance_texture,
+    uint scattering_texture,
+    uint single_mie_scattering_texture,
     Position camera, IN(Position) point, Length shadow_length,
     IN(Direction) sun_direction, OUT(DimensionlessSpectrum) transmittance) {
   // Compute the distance to the top atmosphere boundary along the view ray,
@@ -1879,8 +1878,8 @@ The function below returns the direct and indirect irradiances separately:
 
 IrradianceSpectrum GetSunAndSkyIrradiance(
     IN(AtmosphereParameters) atmosphere,
-    IN(TransmittanceTexture) transmittance_texture,
-    IN(IrradianceTexture) irradiance_texture,
+    uint transmittance_texture,
+    uint irradiance_texture,
     IN(Position) point, IN(Direction) normal, IN(Direction) sun_direction,
     OUT(IrradianceSpectrum) sky_irradiance) {
   Length r = length(point);

@@ -65,7 +65,7 @@ namespace Ifrit::Graphics::SoftGraphics::TileRaster
     private:
         u32                                       workerId;
         TileRasterRenderer*                       rendererReference;
-        std::unique_ptr<std::thread>              execWorker;
+        Owner<std::thread>                        execWorker;
         std::shared_ptr<TileRasterContext>        context;
 
         std::vector<Ifrit::Math::SIMD::SVector4f> interpolatedVaryings;

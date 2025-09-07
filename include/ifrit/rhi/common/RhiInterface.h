@@ -17,9 +17,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-
+#include "ifrit/rhi/common/RhiApi.h"
 #include "RhiBaseTypes.h"
 #include "RhiFsr2Processor.h"
+#include "RhiDevice.h"
+#include "RhiCommandList.h"
+#include "RhiCommandListContext.h"
+#include "RhiShaderResource.h"
 
 #ifdef _WIN32
     #ifndef NOMINMAX
@@ -28,140 +32,167 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #include <Windows.h>
 #endif
 
-namespace Ifrit::Graphics::Rhi
+namespace Ifrit::RHI
 {
 
     // Structs
     struct RhiInitializeArguments
     {
-        Fn<const char**(u32*)> m_extensionGetter;
-        bool                   m_enableValidationLayer       = true;
-        bool                   m_enableHardwareRayTracing    = false;
-        u32                    m_surfaceWidth                = -1;
-        u32                    m_surfaceHeight               = -1;
-        u32                    m_expectedSwapchainImageCount = 3;
-        u32                    m_expectedGraphicsQueueCount  = 1;
-        u32                    m_expectedComputeQueueCount   = 1;
-        u32                    m_expectedTransferQueueCount  = 1;
+        Fn<const char**(u32*)> mExtensionGetter;
+        u32                    mSurfaceWidth                = -1;
+        u32                    mSurfaceHeight               = -1;
+        u32                    mExpectedSwapchainImageCount = 3;
+        RhiCapabilityList      mDesiredCapabilities;
+
+        ERhiVendor             mPreferredVendor            = ERhiVendor::Any;
+        u32                    mPreferredGraphcisAdapterId = ~0u;
+
+        String                 mCachePath = "";
+
 #ifdef _WIN32
         struct
         {
             HINSTANCE m_hInstance;
             HWND      m_hWnd;
-        } m_win32;
+        } mWin32;
 #else
         struct
         {
             void* m_hInstance;
             void* m_hWnd;
-        } m_win32;
+        } mWin32;
 
 #endif
     };
 
-    // classes
-    class IFRIT_APIDECL RhiBackendFactory
-    {
+         // classes
+    class IFRIT_RHI_API RhiBackendFactory
+     {
+     public:
+         virtual ~RhiBackendFactory()                                                = default;
+         virtual Owner<RhiBackend> CreateBackend(const RhiInitializeArguments& args) = 0;
+     };
+ 
+    struct RhiBackendInternal;
+    class IFRIT_RHI_API RhiBackend
+     {
     public:
-        virtual ~RhiBackendFactory()                                               = default;
-        virtual Uref<RhiBackend> CreateBackend(const RhiInitializeArguments& args) = 0;
-    };
+        RhiBackend();
+        virtual ~RhiBackend();
+        virtual void                      Init(const RhiInitializeArguments& args) = 0;
+        virtual void                      Finalize()                               = 0;
 
-    class IFRIT_APIDECL RhiBackend
-    {
-    protected:
-        RhiDevice* m_context;
+        virtual IRhiCommandContext*       GetImmediateContext()                               = 0;
+        virtual Owner<IRhiCommandContext> GetUploadContext()                                  = 0;
+        virtual Owner<IRhiCommandContext> GetCommandContext(ERhiCommandListPipelineType type) = 0;
+        virtual RhiDynamicUtils*          GetDynamicUtils()                                   = 0;
 
+        virtual void                      BeginFrame() = 0;
+        virtual void                      EndFrame()   = 0;
+
+        virtual RhiTextureRef             CreateTexture(const RhiTextureDesc& desc)                       = 0;
+        virtual RhiBufferRef              CreateBuffer(const RhiBufferDesc& desc)                         = 0;
+        virtual RhiUAVRef                 CreateUAV(RhiTexture* texture, RhiImageSubResource subResource) = 0;
+        virtual RhiUAVRef                 CreateUAV(RhiBuffer* buffer)                                    = 0;
+        virtual RhiSRVRef                 CreateSRV(RhiTexture* texture, RhiImageSubResource subResource) = 0;
+        virtual RhiSRVRef                 CreateSRV(RhiBuffer* buffer)                                    = 0;
+ 
     public:
-        virtual ~RhiBackend() = default;
-        // Timer
+        virtual RhiShaderRef         CreateShader(const RhiShaderCreateDesc& desc);
+        virtual RhiShaderRef         GetShader(const String& name);
+        virtual RhiShaderVariantDesc GetShaderVariant(const String& name, const Vec<String>& keys);
+ 
+     public:
+        void InitRenderResources();
+        void Unload();
 
-        virtual Ref<RhiDeviceTimer> CreateDeviceTimer() = 0;
-        // Memory resource
-        virtual void                WaitDeviceIdle() = 0;
+    private:
+        RhiBackendInternal* mInternal = nullptr;
+     };
+ 
+    IFRIT_RHI_API void        SetRhiBackend(Owner<RhiBackend> backend);
+    IFRIT_RHI_API RhiBackend* GetRhiBackend();
 
-        // Create a general buffer
-        virtual RhiBufferRef        CreateBuffer(
-                   const String& name, u32 size, u32 usage, bool hostVisible, bool addUAV) const                   = 0;
-        virtual RhiBufferRef        CreateBufferDevice(const String& name, u32 size, u32 usage, bool addUAV) const = 0;
-        virtual Ref<RhiMultiBuffer> CreateBufferCoherent(u32 size, u32 usage, u32 numCopies = ~0u) const           = 0;
-        virtual RhiBufferRef        GetFullScreenQuadVertexBuffer() const                                          = 0;
+    // class IFRIT_APIDECL RhiBackend
+    // {
+    // protected:
+    //     RhiDevice* mContext;
 
-        // Note that the texture created can only be accessed by the GPU
-        virtual RhiTextureRef       CreateDepthTexture(const String& name, u32 width, u32 height, bool addUAV) = 0;
-        virtual RhiTextureRef       CreateTexture2D(
-                  const String& name, u32 width, u32 height, RhiImageFormat format, u32 extraFlags, bool addUAV) = 0;
-        virtual RhiTextureRef CreateTexture2DMsaa(
-            const String& name, u32 width, u32 height, RhiImageFormat format, u32 extraFlags, u32 samples) = 0;
-        virtual RhiTextureRef CreateTexture3D(const String& name, u32 width, u32 height, u32 depth,
-            RhiImageFormat format, u32 extraFlags, bool addUAV)                                            = 0;
-        virtual RhiTextureRef CreateMipMapTexture(const String& name, u32 width, u32 height, u32 mips,
-            RhiImageFormat format, u32 extraFlags, bool addUAV)                                            = 0;
+    // protected:
 
-        // Sampler, new
-        virtual RhiSamplerRef CreateSampler(
-            RhiSamplerFilter filter, RhiSamplerWrapMode addressMode, bool addBinding) = 0;
+    // public:
+    //     virtual ~RhiBackend() = default;
 
-        virtual Ref<RhiStagedSingleBuffer> CreateStagedSingleBuffer(RhiBuffer* target) = 0;
+    //     // ===== Core =====
+    //     virtual void                     BeginFrame()                         = 0;
+    //     virtual void                     EndFrame()                           = 0;
+    //     virtual Owner<RhiTaskSubmission> GetSwapchainFrameReadyEventHandler() = 0;
+    //     virtual Owner<RhiTaskSubmission> GetSwapchainRenderDoneEventHandler() = 0;
+    //     virtual void                     WaitDeviceIdle()                     = 0;
+    //     virtual RhiCapabilityList        GetCapabilities() const              = 0;
 
-        // Command execution
-        virtual RhiQueue*                  GetQueue(RhiQueueCapability req)       = 0;
-        virtual RhiShader*                 CreateShader(const String& name, const Vec<char>& code, const String& entry,
-                            RhiShaderStage stage, RhiShaderSourceType sourceType) = 0;
+    //     virtual void                     SetCacheDirectory(const String& dir) = 0;
+    //     virtual String                   GetCacheDir() const                  = 0;
 
-        // Pass execution, Deprecated
-        virtual RhiComputePass*            CreateComputePass()  = 0;
-        virtual RhiGraphicsPass*           CreateGraphicsPass() = 0;
+    //     virtual RhiTexture*              GetSwapchainImage() = 0;
 
-        // Pass execution
-        virtual Uref<RhiComputePass>       CreateComputePass2()  = 0;
-        virtual Uref<RhiGraphicsPass>      CreateGraphicsPass2() = 0;
+    //     // ===== Resource Creation =====
+    //     virtual RhiBufferRef        CreateBuffer(const String& name, u32 size, u32 usage, bool hostVisible) const  =
+    //     0; virtual RhiTextureRef       CreateTexture(const String& name, u32 width, u32 height, u32 depth, u32
+    //     mipLevels,
+    //               ERhiImageFormat format, u32 accessFlags) const                                                   =
+    //               0;
+    //     virtual RhiSamplerRef       CreateSampler(ERhiSamplerFilter filter, ERhiSamplerWrapMode addressMode) const =
+    //     0; virtual Ref<RhiMultiBuffer> CreateBufferCoherent(
+    //         const String& name, u32 size, u32 usage, u32 numCopies = ~0u) const = 0;
 
-        // Swapchain
-        virtual RhiTexture*                GetSwapchainImage()                  = 0;
-        virtual void                       BeginFrame()                         = 0;
-        virtual void                       EndFrame()                           = 0;
-        virtual Uref<RhiTaskSubmission>    GetSwapchainFrameReadyEventHandler() = 0;
-        virtual Uref<RhiTaskSubmission>    GetSwapchainRenderDoneEventHandler() = 0;
+    //     // ===== Resource Views =====
+    //     virtual RhiUAVRef                  CreateUAV(RhiTexture* texture, RhiImageSubResource subResource) const = 0;
+    //     virtual RhiUAVRef                  CreateUAV(RhiBuffer* buffer) const                                    = 0;
+    //     virtual RhiSRVRef                  CreateSRV(RhiTexture* texture, RhiImageSubResource subResource) const = 0;
+    //     virtual RhiSRVRef                  CreateSRV(RhiTexture* texture) const                                  = 0;
+    //     virtual RhiSRVRef                  CreateSRV(RhiBuffer* buffer) const                                    = 0;
+    //     virtual RhiCBVRef                  CreateCBV(RhiBuffer* buffer) const                                    = 0;
 
-        // Descriptor, these are deprecated.
-        virtual RhiBindlessDescriptorRef*  CreateBindlessDescriptorRef()                                          = 0;
-        virtual Ref<RhiDescHandleLegacy>   RegisterUniformBuffer(RhiMultiBuffer* buffer)                          = 0;
-        virtual Ref<RhiDescHandleLegacy>   RegisterStorageBufferShared(RhiMultiBuffer* buffer)                    = 0;
-        virtual Ref<RhiDescHandleLegacy>   RegisterCombinedImageSampler(RhiTexture* texture, RhiSampler* sampler) = 0;
+    //     // ===== Shader =====
+    //     virtual Ref<RhiShaderCollection>   CreateShader(const String& name, const Vec<char>& code, const String&
+    //     entry,
+    //           ERhiShaderStage stage, ERhiShaderSourceType sourceType) = 0;
 
-        // Descriptors
-        virtual RhiSRVDesc                 GetSRVDescriptor(RhiTexture* texture, RhiImageSubResource subResource) = 0;
-        virtual RhiUAVDesc                 GetUAVDescriptor(RhiTexture* texture, RhiImageSubResource subResource) = 0;
-        virtual RhiSRVDesc                 GetSRVDescriptor(RhiTexture* texture)                                  = 0;
-        virtual RhiUAVDesc                 GetUAVDescriptor(RhiTexture* texture)                                  = 0;
-        virtual RhiSRVDesc                 GetSRVDescriptor(RhiBuffer* buffer)                                    = 0;
-        virtual RhiUAVDesc                 GetUAVDescriptor(RhiBuffer* buffer)                                    = 0;
+    //     // ===== Staged Buffer Creation =====
+    //     virtual Ref<RhiStagedSingleBuffer> CreateStagedBuffer(RhiBuffer* target) = 0;
 
-        // Render target
-        virtual Ref<RhiColorAttachment>    CreateRenderTarget(RhiTexture* renderTarget, RhiClearValue clearValue,
-               RhiRenderTargetLoadOp loadOp, u32 mip, u32 arrLayer) = 0;
+    //     // ===== Pipeline Creation =====
+    //     virtual Owner<RhiComputePass>      CreateComputePass()  = 0;
+    //     virtual Owner<RhiGraphicsPass>     CreateGraphicsPass() = 0;
 
-        virtual Ref<RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
-            RhiTexture* renderTarget, RhiClearValue clearValue, RhiRenderTargetLoadOp loadOp) = 0;
+    //     // ===== Render Targets =====
+    //     virtual Ref<RhiColorAttachment>    CreateRenderTarget(RhiTexture* renderTarget, RhiClearValue2 clearValue,
+    //            ERhiRenderTargetLoadOp loadOp, u32 mip, u32 arrLayer) = 0;
+    //     virtual Ref<RhiDepthStencilAttachment> CreateRenderTargetDepthStencil(
+    //         RhiTexture* renderTarget, RhiClearValue2 clearValue, ERhiRenderTargetLoadOp loadOp) = 0;
+    //     virtual Ref<RhiRenderTargets>          CreateRenderTargets()                            = 0;
 
-        virtual Ref<RhiRenderTargets>         CreateRenderTargets() = 0;
+    //     // ===== Raytracing =====
+    //     virtual Owner<RhiRTInstance>           CreateTLAS()               = 0;
+    //     virtual Owner<RhiRTScene>              CreateBLAS()               = 0;
+    //     virtual Owner<RhiRTShaderBindingTable> CreateShaderBindingTable() = 0;
+    //     virtual Owner<RhiRTPass>               CreateRaytracingPass()     = 0;
 
-        // Vertex buffer
-        virtual Ref<RhiVertexBufferView>      CreateVertexBufferView()                  = 0;
-        virtual Ref<RhiVertexBufferView>      GetFullScreenQuadVertexBufferView() const = 0;
+    //     // ===== Utility =====
+    //     virtual Ref<RhiDeviceTimer>            CreateDeviceTimer() = 0;
 
-        virtual void                          SetCacheDirectory(const String& dir) = 0;
-        virtual String                        GetCacheDir() const                  = 0;
+    //     // ===== Raw Handles =====
+    //     virtual RhiRawHandle                   GetRawHandle_Instance() const      = 0;
+    //     virtual RhiRawHandle                   GetRawHandle_ActiveAdapter() const = 0;
+    //     virtual RhiRawHandle                   GetRawHandle_Device() const        = 0;
 
-        // Extensions
-        virtual Uref<FSR2::RhiFsr2Processor>  CreateFsr2Processor() = 0;
+    //     // ===== Extension =====
+    //     virtual Owner<FSR2::RhiFsr2Processor>  CreateFsr2Processor() = 0;
 
-        // Raytracing
-        virtual Uref<RhiRTInstance>           CreateTLAS()               = 0;
-        virtual Uref<RhiRTScene>              CreateBLAS()               = 0;
-        virtual Uref<RhiRTShaderBindingTable> CreateShaderBindingTable() = 0;
-        virtual Uref<RhiRTPass>               CreateRaytracingPass()     = 0;
-    };
+    //     // ===== Commands (Queues are planned to be removed) =====
+    //     virtual RhiQueue*                      GetQueue(ERhiQueueCapability req)            = 0;
+    //     virtual RhiCommandListBase*            AllocateCommandList(ERhiQueueCapability req) = 0;
+    // };
 
-} // namespace Ifrit::Graphics::Rhi
+ } // namespace Ifrit::RHI

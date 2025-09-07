@@ -17,16 +17,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/runtime/renderer/util/CascadeShadowMapPreproc.h"
+#include "ifrit/runtime/common/Pch.h"
 
-#include "ifrit/core/typing/Util.h"
+#include "ifrit/runtime/renderer/util/CascadeShadowMapPreproc.h"
 #include "ifrit/runtime/base/ApplicationInterface.h"
 #include "ifrit/runtime/base/Scene.h"
-
 #include "ifrit/runtime/scene/FrameCollector.h"
-#include "ifrit/rhi/common/RhiLayer.h"
-
 #include <mutex>
 
 namespace Ifrit::Runtime
@@ -40,12 +36,12 @@ namespace Ifrit::Runtime
 
     struct ImmutableRendererResources
     {
-        using GPUTexture = Graphics::Rhi::RhiTextureRef;
-        using GPUBindId  = Graphics::Rhi::RhiDescHandleLegacy;
-        std::mutex                 m_mutex;
-        bool                       m_initialized = false;
-        GPUTexture                 m_blueNoise;
-        std::shared_ptr<GPUBindId> m_blueNoiseSRV = nullptr;
+        using GPUTexture = RHI::RhiTextureRef;
+        using SRVDesc    = RHI::RhiSRVDesc;
+        std::mutex m_mutex;
+        bool       m_initialized = false;
+        GPUTexture m_blueNoise;
+        SRVDesc    m_blueNoiseSRV = 0;
     };
 
     enum class AntiAliasingType
@@ -65,6 +61,13 @@ namespace Ifrit::Runtime
         HBAO,
         SSGI
     };
+    enum class OverrideMaterialCulling
+    {
+        None,
+        ForcedCullFront,
+        ForcedCullBack,
+        ForcedCullNone
+    };
 
     struct RendererConfig
     {
@@ -77,18 +80,19 @@ namespace Ifrit::Runtime
             Array<f32, 4>           m_csmBorders    = { 0.08f, 0.05f, 0.0f, 0.0f };
         };
 
-        AntiAliasingType          m_antiAliasingType     = AntiAliasingType::None;
-        IndirectLightingType      m_indirectLightingType = IndirectLightingType::HBAO;
-        RendererVisualizationType m_visualizationType    = RendererVisualizationType::Default;
-        ShadowConfig              m_shadowConfig;
-        f32                       m_superSamplingRate = 1.0f;
+        AntiAliasingType          m_AntiAliasingType        = AntiAliasingType::None;
+        IndirectLightingType      m_IndirectLightingType    = IndirectLightingType::HBAO;
+        RendererVisualizationType m_VisualizationType       = RendererVisualizationType::Default;
+        OverrideMaterialCulling   m_OverrideMaterialCulling = OverrideMaterialCulling::None;
+        ShadowConfig              m_ShadowConfig;
+        f32                       m_SuperSamplingRate = 1.0f;
     };
 
     // TODO: move render graph to here
     class IFRIT_APIDECL RendererBase
     {
-        using RenderTargets        = Graphics::Rhi::RhiRenderTargets;
-        using GPUCommandSubmission = Graphics::Rhi::RhiTaskSubmission;
+        using RenderTargets        = RHI::RhiRenderTargets;
+        using GPUCommandSubmission = RHI::RhiTaskSubmission;
 
     protected:
         IApplication*              m_app;
@@ -101,9 +105,9 @@ namespace Ifrit::Runtime
         inline void GetSupersampledRenderArea(
             const RenderTargets* finalRenderTargets, u32* renderWidth, u32* renderHeight)
         {
-            *renderWidth = static_cast<u32>(finalRenderTargets->GetRenderArea().width / m_config->m_superSamplingRate);
+            *renderWidth = static_cast<u32>(finalRenderTargets->GetRenderArea().width / m_config->m_SuperSamplingRate);
             *renderHeight =
-                static_cast<u32>(finalRenderTargets->GetRenderArea().height / m_config->m_superSamplingRate);
+                static_cast<u32>(finalRenderTargets->GetRenderArea().height / m_config->m_SuperSamplingRate);
         }
 
         virtual void PrepareImmutableResources();
@@ -120,10 +124,10 @@ namespace Ifrit::Runtime
         inline void  SetRendererConfig(const RendererConfig* config) { m_config = config; }
 
     public:
-        virtual Uref<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
+        virtual Owner<GPUCommandSubmission> Render(Scene* scene, Camera* camera, RenderTargets* renderTargets,
             const RendererConfig& config, const Vec<GPUCommandSubmission*>& cmdToWait) = 0;
 
-        virtual void                       EndFrame(const Vec<GPUCommandSubmission*>& cmdToWait);
-        virtual Uref<GPUCommandSubmission> BeginFrame();
+        virtual void                        EndFrame(const Vec<GPUCommandSubmission*>& cmdToWait);
+        virtual Owner<GPUCommandSubmission> BeginFrame();
     };
 } // namespace Ifrit::Runtime

@@ -16,15 +16,16 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
-#version 450
+
 #extension GL_GOOGLE_include_directive : require
 
 #include "Base.glsl"
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 #include "Ayanami/Ayanami.SharedConst.h"
 #include "Ayanami/Ayanami.Shared.glsl"
 #include "ComputeUtils.glsl"
-#include "SamplerUtils.SharedConst.h"
 
 layout(
     local_size_x = kAyanamiObjectGridTileSize, 
@@ -48,10 +49,8 @@ RegisterStorage(BMeshDFMeta,{
     MeshDFMeta m_Data;
 });
 
-RegisterUniform(BLocalTransform,{
-    mat4 m_LocalToWorld;
-    mat4 m_WorldToLocal;
-    vec4 m_MaxScale;
+RegisterStorage(BModelTransform,{
+    FLocalTransformData m_Data;
 });
 
 RegisterStorage(BObjectCell,{
@@ -67,6 +66,7 @@ float ClosestDistanceToSDF(MeshDFMeta MdfMeta, vec3 QueryPos, vec3 MeshScale, ma
 
     vec4 CellLocalCoord = WorldToLocal*vec4(QueryPos, 1.0);
     vec3 CellLocalCoord3 = CellLocalCoord.xyz/CellLocalCoord.w;
+    vec2 MeshDFQuantScale = AyaShared_GetSdfQuantScale(MdfMeta);
 
     vec3 MeshBBoxMin = MdfMeta.bboxMin.xyz;
     vec3 MeshBBoxMax = MdfMeta.bboxMax.xyz;
@@ -87,8 +87,7 @@ float ClosestDistanceToSDF(MeshDFMeta MdfMeta, vec3 QueryPos, vec3 MeshScale, ma
 
     vec3 ClampedUVW = (ClampedPos-MeshBBoxMin)/(MeshBBoxMax-MeshBBoxMin);
 
-    //float SdfVal = SampleTexture3D(SDFId,sLinearClamp,ClampedUVW).r * MeshMaxScale; 
-    float SdfVal = texture(GetSampler3D(SDFId), ClampedUVW).r * MeshMaxScale;
+    float SdfVal = AyaShared_SampleMeshDF(SDFId, ClampedUVW, MeshDFQuantScale) * MeshMaxScale;
     float TotalSdf = max(SdfVal + ToBoxAllPositive,ToBoxAll);
     return TotalSdf;
 }
@@ -98,24 +97,6 @@ uint PackCellData(uint MeshId,float HitDist,float CellWidth){
     HitDistRaw = clamp(HitDistRaw, 0.0, 1.0);
     uint HitDistInt = uint( HitDistRaw * 0xFF) & 0xFF;
     return (MeshId & 0xFFFFFF) | (HitDistInt << 24);
-}
-
-void AddObjectToGridCell(uint MeshId, uint CellId, float HitDist,float CellWidth){
-    uint MaxIndex = 0;
-    uvec4 CellData = GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId];
-    uint PackedData = PackCellData(MeshId, HitDist, CellWidth);
-    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
-        MaxIndex = max(MaxIndex, CellData[i]);
-    }
-    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
-        if(CellData[i] == MaxIndex){
-            if(PackedData < CellData[i]){
-                CellData[i] = PackedData;
-                GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId] = CellData;
-                break;
-            }
-        }
-    }
 }
 
 void SortGridCell(uint CellId){
@@ -137,6 +118,27 @@ void SortGridCell(uint CellId){
         CellData[i] = CellDataArr[i];
     }
     GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId] = CellData;
+}
+
+void AddObjectToGridCell(uint MeshId, uint CellId, float HitDist,float CellWidth){
+    uint MaxIndex = 0;
+    uvec4 CellData = GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId];
+    uint PackedData = PackCellData(MeshId, HitDist, CellWidth);
+    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
+        MaxIndex = max(MaxIndex, CellData[i]);
+    }
+    if(MaxIndex != 0xFFFFFFFF){
+        SortGridCell(CellId);
+    }
+    for(uint i=0;i<kAyanamiObjectGridTileSize;i++){
+        if(CellData[i] == MaxIndex){
+            if(PackedData < CellData[i]){
+                CellData[i] = PackedData;
+                GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellId] = CellData;
+                break;
+            }
+        }
+    }
 }
 
 
@@ -170,14 +172,16 @@ void main(){
 
     uint CellLoc = ifrit_ToCellId(CellId, uvec3(PushConst.m_VoxelsPerClipMapWidth));
     GetResource(BObjectCell, PushConst.m_CellDataId).m_Cell[CellLoc] = uvec4(0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF,0xFFFFFFFF);
+    memoryBarrierShared();
     barrier();
     
-#if AYANAMI_OBJECT_GRID_CULL
+#if 1
     for(uint T=0; T<NumCullingPasses; T++){
 
         if(ifrit_IsFirstLane()){
             LocalSharedCullResultCount = 0;
         }
+        memoryBarrierShared();
         barrier();
 
         // Cull mdfs to Tiles
@@ -187,51 +191,50 @@ void main(){
         for(i=startId+LocalId; i<endId; i+= LocalSize){
             MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[i];
             MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
-            mat4 localToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
+            mat4 LocalToWorld = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_LocalToWorld;
 
             vec3 BoxLT = MdfMeta.bboxMin.xyz;
             vec3 BoxRB = MdfMeta.bboxMax.xyz;
             vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
             vec3 BoxExtentMS = (BoxRB - BoxLT);
 
-            vec4 BoxCenterWSH = (localToWorld * vec4(BoxCenterMS, 1.0));
-            vec3 BoxCenterWS = BoxCenterWSH.xyz / BoxCenterWSH.w;
-            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
+            vec3 BoxCenterWS = (LocalToWorld * vec4(BoxCenterMS, 1.0)).xyz;
+            vec3 BoxExtentWS = BoxExtentMS * GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(TileCenterCoord, TileExtent, BoxCenterWS, BoxExtentWS);
-            //if(SqDist < CullingAcceptThSq){
+            if(SqDist < CullingAcceptThSq){
                 uint LocalIndex = atomicAdd(LocalSharedCullResultCount, 1);
                 if(LocalIndex < kAyanami_ObjectGridCellMaxCullObjPerPass){
                     LocalSharedCullResult[LocalIndex] = i;
                 }
-            //}
+            }
         }
+        memoryBarrierShared();
         barrier();
         // compose mdfs to Cells
         for(i=0;i<LocalSharedCullResultCount;i++){
             uint MeshId = LocalSharedCullResult[i];
             MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
             MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
-            mat4 localToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
-            mat4 WorldToLocal = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_WorldToLocal;
+            mat4 LocalToWorld = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_LocalToWorld;
+            mat4 WorldToLocal = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_WorldToLocal;
             vec3 BoxLT = MdfMeta.bboxMin.xyz;
             vec3 BoxRB = MdfMeta.bboxMax.xyz;
             vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
             vec3 BoxExtentMS = (BoxRB - BoxLT);
 
-            vec4 BoxCenterWSH = (localToWorld * vec4(BoxCenterMS, 1.0));
-            vec3 BoxCenterWS = BoxCenterWSH.xyz / BoxCenterWSH.w;
-            vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
+            vec3 BoxCenterWS = (LocalToWorld * vec4(BoxCenterMS, 1.0)).xyz;
+            vec3 BoxExtentWS = BoxExtentMS * GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz;
 
             float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
-            //if(SqDist < CellCullingAcceptThSq){
+            if(SqDist < CellCullingAcceptThSq){
                 //might be a candidate to this grid
-                vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
+                vec3 MeshMaxScale = vec3(GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz);
                 float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
-                AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius * 2.0);
-                SortGridCell(CellLoc);
-            //}
+                AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius * 0.5);
+            }
         }
+        memoryBarrierShared();
         barrier();
     }
 #else
@@ -240,24 +243,22 @@ void main(){
         uint MeshId = i;
         MeshDFDesc MdfDesc = GetResource(BMeshDFDesc, PushConst.m_MeshDFDescListId).m_Data[MeshId];
         MeshDFMeta MdfMeta = GetResource(BMeshDFMeta, MdfDesc.m_MdfMetaId).m_Data;
-        mat4 localToWorld = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_LocalToWorld;
-        mat4 WorldToLocal = GetResource(BLocalTransform, MdfDesc.m_TransformId).m_WorldToLocal;
+        mat4 LocalToWorld = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_LocalToWorld;
+        mat4 WorldToLocal = GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_WorldToLocal;
         vec3 BoxLT = MdfMeta.bboxMin.xyz;
         vec3 BoxRB = MdfMeta.bboxMax.xyz;
         vec3 BoxCenterMS = (BoxLT + BoxRB) * 0.5;
         vec3 BoxExtentMS = (BoxRB - BoxLT);
 
-        vec4 BoxCenterWSH = (localToWorld * vec4(BoxCenterMS, 1.0));
-        vec3 BoxCenterWS = BoxCenterWSH.xyz / BoxCenterWSH.w;
-        vec3 BoxExtentWS = BoxExtentMS * GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz;
+        vec4 BoxCenterWS = (LocalToWorld * vec4(BoxCenterMS, 1.0));
+        vec3 BoxExtentWS = BoxExtentMS * GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz;
 
         float SqDist = ifrit_AabbSquaredDistance(CellCenterCoord, CellExtent, BoxCenterWS, BoxExtentWS);
         if(SqDist < CellCullingAcceptThSq){
             //might be a candidate to this grid
-            vec3 MeshMaxScale = vec3(GetResource(BLocalTransform, MdfDesc.m_TransformId).m_MaxScale.xyz);
+            vec3 MeshMaxScale = vec3(GetResource(BModelTransform, MdfDesc.m_TransformId).m_Data.m_MaxScale.xyz);
             float HitDist = ClosestDistanceToSDF(MdfMeta, CellCenterCoord, MeshMaxScale,WorldToLocal);
             AddObjectToGridCell(MeshId, CellLoc, HitDist, PushConst.m_ClipMapRadius*0.5 );
-            SortGridCell(CellLoc);
         }
     }
 

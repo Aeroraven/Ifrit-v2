@@ -1,4 +1,3 @@
-
 /*
 Ifrit-v2
 Copyright (C) 2024 funkybirds(Aeroraven)
@@ -31,107 +30,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #include <unordered_set>
     #include <vector>
     #include <queue>
+    #include <span>
+    #include <concepts>
+    #include <type_traits>
 #endif
 
-#define IF_SIZEOF_RETURN_TYPE u32
-
-// check if compiler supports constexpr
-#if _MSC_VER >= 1920
-    #define IF_CONSTEXPR constexpr
-    #define IF_CONSTEXPR_AVAILABLE 1
-#else
-    #if __cplusplus >= 201703L
-        #define IF_CONSTEXPR constexpr
-        #define IF_CONSTEXPR_AVAILABLE 1
-    #else
-        #define IF_CONSTEXPR
-    #endif
-#endif
-
-// check if compiler support noexcept
-#if _MSC_VER >= 1900
-    #define IF_NOEXCEPT noexcept
-#else
-    #if __cplusplus >= 201703L
-        #define IF_NOEXCEPT noexcept
-    #else
-        #define IF_NOEXCEPT
-    #endif
-#endif
-
-// forceinline
-#if _MSC_VER >= 1900
-    #define IF_FORCEINLINE __forceinline
-#else
-    #if __cplusplus >= 201703L
-        #define IF_FORCEINLINE inline
-    #else
-        #define IF_FORCEINLINE
-    #endif
-#endif
-
-namespace Ifrit
-{
-    typedef uint8_t   u8;
-    typedef uint16_t  u16;
-    typedef uint32_t  u32;
-    typedef uint64_t  u64;
-
-    typedef int8_t    i8;
-    typedef int16_t   i16;
-    typedef int32_t   i32;
-    typedef int64_t   i64;
-
-    typedef float     f32;
-    typedef double    f64;
-
-    typedef intptr_t  isize;
-    typedef uintptr_t usize;
-
-#define IF_TYPE_SIZEOF(type) (static_cast<IF_SIZEOF_RETURN_TYPE>(sizeof(type)))
-
-// if have constexpr, use it
-#if defined(IF_CONSTEXPR_AVAILABLE)
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE u8Size  = IF_TYPE_SIZEOF(u8);
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE u16Size = IF_TYPE_SIZEOF(u16);
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE u32Size = IF_TYPE_SIZEOF(u32);
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE u64Size = IF_TYPE_SIZEOF(u64);
-
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE i8Size  = IF_TYPE_SIZEOF(i8);
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE i16Size = IF_TYPE_SIZEOF(i16);
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE i32Size = IF_TYPE_SIZEOF(i32);
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE i64Size = IF_TYPE_SIZEOF(i64);
-
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE f32Size = IF_TYPE_SIZEOF(f32);
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE f64Size = IF_TYPE_SIZEOF(f64);
-
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE isizeSize = IF_TYPE_SIZEOF(isize);
-    IF_CONSTEXPR IF_SIZEOF_RETURN_TYPE usizeSize = IF_TYPE_SIZEOF(usize);
-
-#else
-    // if not, use normal variable
-    #define u8Size IF_TYPE_SIZEOF(u8)
-    #define u16Size IF_TYPE_SIZEOF(u16)
-    #define u32Size IF_TYPE_SIZEOF(u32)
-    #define u64Size IF_TYPE_SIZEOF(u64)
-
-    #define i8Size IF_TYPE_SIZEOF(i8)
-    #define i16Size IF_TYPE_SIZEOF(i16)
-    #define i32Size IF_TYPE_SIZEOF(i32)
-    #define i64Size IF_TYPE_SIZEOF(i64)
-
-    #define f32Size IF_TYPE_SIZEOF(f32)
-    #define f64Size IF_TYPE_SIZEOF(f64)
-
-    #define isizeSize IF_TYPE_SIZEOF(isize)
-    #define usizeSize IF_TYPE_SIZEOF(usize)
-#endif
+#include "ifrit/core/base/IfritBasicAlias.h"
 
 #ifdef __cplusplus
+namespace Ifrit
+{
     template <typename T, u32 V> using Array                          = std::array<T, V>;
+    template <typename T> using VecView                               = std::span<T>;
     template <typename T> using Vec                                   = std::vector<T>;
     template <typename T> using Ref                                   = std::shared_ptr<T>;
-    template <typename T> using Uref                                  = std::unique_ptr<T>;
+    template <typename T> using Owner                                 = std::unique_ptr<T>;
     template <typename T> using Set                                   = std::set<T>;
     template <typename T> using HashSet                               = std::unordered_set<T>;
     template <typename K, typename V> using Map                       = std::map<K, V>;
@@ -141,8 +54,22 @@ namespace Ifrit
     template <typename T> using Atomic                                = std::atomic<T>;
     template <typename T, typename U> using Pair                      = std::pair<T, U>;
     using String                                                      = std::string;
+    using StringView                                                  = std::string_view;
     template <typename T> using Queue                                 = std::queue<T>;
     using IntPtr                                                      = std::intptr_t;
-#endif
 
+    template <typename T, typename... Args>
+        requires std::is_constructible_v<T, Args...>
+    IF_FORCEINLINE Ref<T> MakeRef(Args&&... args)
+    {
+        return std::make_shared<T>(std::forward<Args>(args)...);
+    }
+
+    template <typename T, typename... Args>
+        requires std::is_constructible_v<T, Args...>
+    IF_FORCEINLINE Owner<T> MakeOwner(Args&&... args)
+    {
+        return std::make_unique<T>(std::forward<Args>(args)...);
+    }
 } // namespace Ifrit
+#endif

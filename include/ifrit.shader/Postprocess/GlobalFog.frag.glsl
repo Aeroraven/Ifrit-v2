@@ -17,11 +17,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #include "Bindless.glsl"
 #include "Base.glsl"
+#include "SamplerUtils.SharedConst.h"
 
-RegisterUniform(bPerframeView,{
+RegisterStorage(bPerframeView,{
     PerFramePerViewData data;
 });
 
@@ -38,7 +39,7 @@ void main(){
     // Temporarily, celestial depths are not written into the depth buffer in atmospheric scattering.
     // So, the depth values here are not the actual depth values.
     
-    float depth = texture(GetSampler2D(pc.depthTexture), texCoord).r;
+    float depth = SampleTexture2D(pc.depthTexture,sLinearClamp, texCoord).r;
     mat4 inverseProj = GetResource(bPerframeView, pc.viewDataRef).data.m_invPerspective;
     float camNear = GetResource(bPerframeView, pc.viewDataRef).data.m_cameraNear;
     float camFar = GetResource(bPerframeView, pc.viewDataRef).data.m_cameraFar;
@@ -69,7 +70,7 @@ void main(){
 
     float coef = 1.0 - exp(-thickness);
 
-    vec4 color = texture(GetSampler2D(pc.inputTexture), texCoord).rgba;
+    vec4 color = SampleTexture2D(pc.inputTexture,sLinearClamp, texCoord).rgba;
     float colorAlpha = color.a;
     vec3 fogColor = vec3(0.5, 0.5, 0.5);
     //color = mix(color, vec4(fogColor, 1.0), coef);

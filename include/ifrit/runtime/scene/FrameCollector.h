@@ -17,14 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/math/VectorDefs.h"
+#include "ifrit/runtime/common/Pch.h"
+#include "ifrit/runtime/forwarding/FwdComponent.h"
 #include "ifrit/runtime/base/Material.h"
 #include "ifrit/runtime/base/Mesh.h"
-#include "ifrit/runtime/base/Object.h"
-#include "ifrit/rhi/common/RhiLayer.h"
-#include <unordered_map>
-#include <vector>
 
 namespace Ifrit::Runtime
 {
@@ -68,35 +64,35 @@ namespace Ifrit::Runtime
 
     struct PerShaderEffectData
     {
-        Vec<Material*>                           m_materials;
-        Vec<Mesh*>                               m_meshes;
-        Vec<Transform*>                          m_transforms;
-        Vec<MeshInstance*>                       m_instances;
+        Vec<Material*>                 m_materials;
+        Vec<Mesh*>                     m_meshes;
+        Vec<Transform*>                m_transforms;
+        Vec<MeshInstance*>             m_instances;
 
         // Data to GPUs
-        u32                                      m_lastObjectCount = ~0u;
-        Vec<PerObjectData>                       m_objectData;
-        Ref<Graphics::Rhi::RhiMultiBuffer>       m_batchedObjectData = nullptr;
-        Graphics::Rhi::RhiBindlessDescriptorRef* m_batchedObjBufRef  = nullptr;
+        u32                            m_lastObjectCount = ~0u;
+        Vec<PerObjectData>             m_objectData;
+        Ref<RHI::RhiMultiBuffer>       m_batchedObjectData = nullptr;
+        RHI::RhiBindlessDescriptorRef* m_batchedObjBufRef  = nullptr;
     };
 
     struct PerFrameRenderTargets
     {
-        Graphics::Rhi::RhiTextureRef                  m_colorRT;
-        Ref<Graphics::Rhi::RhiDescHandleLegacy>       m_colorRTIdSRV;
-        Graphics::Rhi::RhiTexture*                    m_depthRT;
+        RHI::RhiTextureRef                  m_colorRT;
+        RHI::RhiSRVDesc                     m_colorRTIdSRV;
+        RHI::RhiTexture*                    m_depthRT;
 
-        Ref<Graphics::Rhi::RhiColorAttachment>        m_colorRTRef;
-        Ref<Graphics::Rhi::RhiDepthStencilAttachment> m_depthRTRef;
-        Ref<Graphics::Rhi::RhiRenderTargets>          m_rts;
-        u32                                           m_width = 0, m_height = 0;
+        Ref<RHI::RhiColorAttachment>        m_colorRTRef;
+        Ref<RHI::RhiDepthStencilAttachment> m_depthRTRef;
+        Ref<RHI::RhiRenderTargets>          m_rts;
+        u32                                 m_width = 0, m_height = 0;
     };
 
     struct ShadowMappingData
     {
-        using GPUBuffer        = Graphics::Rhi::RhiBuffer;
-        using GPUUniformBuffer = Graphics::Rhi::RhiMultiBuffer;
-        using GPUBindId        = Graphics::Rhi::RhiDescHandleLegacy;
+        using GPUBuffer        = RHI::RhiBuffer;
+        using GPUUniformBuffer = RHI::RhiMultiBuffer;
+        using GPUBindId        = RHI::RhiDescHandleLegacy;
 
         struct SingleShadowView
         {
@@ -119,16 +115,20 @@ namespace Ifrit::Runtime
 
     struct PerFrameData
     {
-        using GPUUniformBuffer = Graphics::Rhi::RhiMultiBuffer;
-        using GPUBuffer        = Graphics::Rhi::RhiBufferRef;
-        using GPUBindlessRef   = Graphics::Rhi::RhiBindlessDescriptorRef;
-        using GPUBindId        = Graphics::Rhi::RhiDescHandleLegacy;
-        using GPUTexture       = Graphics::Rhi::RhiTextureRef;
-        using GPUColorRT       = Graphics::Rhi::RhiColorAttachment;
-        using GPUDepthRT       = Graphics::Rhi::RhiDepthStencilAttachment;
-        using GPURTs           = Graphics::Rhi::RhiRenderTargets;
-        using GPUSampler       = Graphics::Rhi::RhiSampler;
-        using GPUBarrier       = Graphics::Rhi::RhiResourceBarrier;
+        using GPUUniformBuffer = RHI::RhiMultiBuffer;
+        using GPUBuffer        = RHI::RhiBufferRef;
+        using GPUBindlessRef   = RHI::RhiBindlessDescriptorRef;
+        using GPUBindId        = RHI::RhiDescHandleLegacy;
+        using GPUTexture       = RHI::RhiTextureRef;
+        using GPUColorRT       = RHI::RhiColorAttachment;
+        using GPUDepthRT       = RHI::RhiDepthStencilAttachment;
+        using GPURTs           = RHI::RhiRenderTargets;
+        using GPUSampler       = RHI::RhiSampler;
+        using GPUBarrier       = RHI::RhiResourceBarrier;
+
+        using SRVDesc = RHI::RhiSRVDesc;
+        using UAVDesc = RHI::RhiUAVDesc;
+        using CBVDesc = RHI::RhiCBVDesc;
 
         enum class ViewType
         {
@@ -160,10 +160,10 @@ namespace Ifrit::Runtime
             u32             m_rtHeight  = 0;
             u32             m_rtCreated = 0;
 
-            Ref<GPUBindId>  m_albedo_materialFlags_sampId;
-            Ref<GPUBindId>  m_specular_occlusion_sampId;
-            Ref<GPUBindId>  m_specular_occlusion_intermediate_sampId;
-            Ref<GPUBindId>  m_normal_smoothness_sampId;
+            SRVDesc         m_albedo_materialFlags_sampId;
+            SRVDesc         m_specular_occlusion_sampId;
+            SRVDesc         m_specular_occlusion_intermediate_sampId;
+            SRVDesc         m_normal_smoothness_sampId;
 
             Ref<GPUColorRT> m_specular_occlusion_colorRT;
             Ref<GPURTs>     m_specular_occlusion_RTs;
@@ -193,6 +193,7 @@ namespace Ifrit::Runtime
 
         struct PerViewData
         {
+
             ViewType              m_viewType = ViewType::Invisible;
 
             PerFramePerViewData   m_viewData;
@@ -214,7 +215,7 @@ namespace Ifrit::Runtime
             Ref<GPUColorRT>       m_visColorRT_HW    = nullptr;
             Ref<GPUDepthRT>       m_visDepthRT_HW    = nullptr;
             Ref<GPURTs>           m_visRTs_HW        = nullptr;
-            Ref<GPUBindId>        m_visDepthIdSRV_HW = nullptr;
+            SRVDesc               m_visDepthIdSRV_HW = 0;
 
             // visibility buffer software. It's compute shader, so
             // not repeated decl required
@@ -226,8 +227,8 @@ namespace Ifrit::Runtime
             GPUTexture            m_visibilityBuffer_Combined = nullptr;
             GPUTexture            m_visibilityDepth_Combined  = nullptr;
 
-            Ref<GPUBindId>        m_visibilityBufferIdSRV_Combined = nullptr;
-            Ref<GPUBindId>        m_visibilityDepthIdSRV_Combined  = nullptr;
+            SRVDesc               m_visibilityBufferIdSRV_Combined = 0;
+            SRVDesc               m_visibilityDepthIdSRV_Combined  = 0;
 
             // visibility buffer for 2nd pass, reference to the same texture, but
             // without clearing
@@ -265,13 +266,12 @@ namespace Ifrit::Runtime
 
         struct FSR2ExtraData
         {
-            GPUTexture     m_fsr2Output      = nullptr;
-            Ref<GPUBindId> m_fsr2OutputSRVId = nullptr;
-            u32            m_fsrFrameId      = 0;
+            GPUTexture m_fsr2Output      = nullptr;
+            SRVDesc    m_fsr2OutputSRVId = 0;
+            u32        m_fsrFrameId      = 0;
         };
 
-        IF_CONSTEXPR static Graphics::Rhi::RhiImageFormat c_visibilityFormat =
-            Graphics::Rhi::RhiImageFormat::RhiImgFmt_R32_UINT;
+        IF_CONSTEXPR static RHI::RhiImageFormat            c_visibilityFormat = RHI::RhiImageFormat::RhiImgFmt_R32_UINT;
 
         HashSet<u32>                                       m_enabledEffects;
         Vec<PerShaderEffectData>                           m_shaderEffectData;
@@ -329,7 +329,13 @@ namespace Ifrit::Runtime
         Ref<GPUColorRT>                                    m_deferShadowMaskRT;
         Ref<GPURTs>                                        m_deferShadowMaskRTs;
 
-        Ref<GPUBindId>                                     m_deferShadowMaskId;
+        SRVDesc                                            m_deferShadowMaskId;
+
+        // Extra data
+        HashMap<String, Ref<void>>                         m_ExtraData;
+
+        // Validity
+        u32                                                mSkipRendering = 0;
     };
 
 } // namespace Ifrit::Runtime

@@ -17,7 +17,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/runtime/material/ShaderRegistry.h"
+#include "ifrit/runtime/rendercore/shadercore/ShaderRegistry.h"
 #include "ifrit/runtime/base/Base.h"
 
 namespace Ifrit::Runtime::Internal
@@ -36,13 +36,13 @@ namespace Ifrit::Runtime::Internal
 #define SDEF IF_CONSTEXPR static const char*
     static struct InternalShaderTable
     {
-        IF_CONSTEXPR static struct
+        IF_CONSTEXPR static struct InternalShaderTable_GI
         {
             SDEF HBAOCS = DECLARE_CS("GI/HBAO");
             SDEF SSGICS = DECLARE_CS("GI/SSGI");
         } GI;
 
-        IF_CONSTEXPR static struct
+        IF_CONSTEXPR static struct InternalShaderTable_Atmo
         {
             SDEF PASIndirectRadianceCS   = DECLARE_CS("Atmo/PAS/IndirectRadiance");
             SDEF PASIrradianceCS         = DECLARE_CS("Atmo/PAS/Irradiance");
@@ -52,13 +52,14 @@ namespace Ifrit::Runtime::Internal
             SDEF PASTransmittanceCS      = DECLARE_CS("Atmo/PAS/Transmittance");
         } Atmosphere;
 
-        IF_CONSTEXPR static struct
+        IF_CONSTEXPR static struct InternalShaderTable_Common
         {
-            SDEF FullScreenVS    = DECLARE_VS("Common/FullScreen");
-            SDEF SinglePassHzbCS = DECLARE_CS("Common/SinglePassHiZ");
+            SDEF FullScreenVS         = DECLARE_VS("Common/FullScreen");
+            SDEF SinglePassHzbCS      = DECLARE_CS("Common/SinglePassHiZ");
+            SDEF ResolveToSwapchainPS = DECLARE_FS("Common/ResolveToSwapchain");
         } Common;
 
-        IF_CONSTEXPR static struct
+        IF_CONSTEXPR static struct InternalShaderTable_Postprocess
         {
             SDEF ACESFS                   = DECLARE_FS("PostProc/ACES");
             SDEF FFTBloomCS               = DECLARE_CS("PostProc/FFTBloom");
@@ -71,12 +72,12 @@ namespace Ifrit::Runtime::Internal
             SDEF StockhamDFT2CS           = DECLARE_CS("PostProc/StockhamDFT2");
         } Postprocess;
 
-        IF_CONSTEXPR static struct
+        IF_CONSTEXPR static struct InternalShaderTable_PostprocessVertex
         {
             SDEF CommonVS = DECLARE_VS("PostProc/Common");
         } PostprocessVertex;
 
-        IF_CONSTEXPR static struct
+        IF_CONSTEXPR static struct InternalShaderTable_Syaro
         {
             SDEF ClassifyMaterialCountCS   = DECLARE_CS("Syaro/ClassifyMaterial/Count");
             SDEF ClassifyMaterialReserveCS = DECLARE_CS("Syaro/ClassifyMaterial/Reserve");
@@ -100,6 +101,24 @@ namespace Ifrit::Runtime::Internal
             SDEF VisBufferMS               = DECLARE_MS("Syaro/VisBuffer");
             SDEF VisBufferDepthMS          = DECLARE_MS("Syaro/VisBufferDepth");
         } Syaro;
+
+        IF_CONSTEXPR static struct InternalShaderTable_BaseForward
+        {
+            SDEF ForwardVS = DECLARE_VS("BaseForward/Default");
+            SDEF ForwardPS = DECLARE_FS("BaseForward/Default");
+        } BaseForward;
+
+        IF_CONSTEXPR static struct InternalShaderTable_BaseDeferred
+        {
+            SDEF DeferredDefaultVS = DECLARE_VS("BaseDeferred/Default");
+            SDEF DeferredDefaultFS = DECLARE_FS("BaseDeferred/Default");
+            SDEF DeferredShadingFS = DECLARE_FS("BaseDeferred/Shading");
+        } BaseDeferred;
+
+        IF_CONSTEXPR static struct InternalShaderTable_Experimental
+        {
+            SDEF GelatinTestFS = DECLARE_FS("Experimental/GelatinTest");
+        } Experimental;
 
     } kIntShaderTable;
 

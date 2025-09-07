@@ -90,7 +90,7 @@ namespace Ifrit::Runtime::SyaroConfig
     SYARO_DEFINE_UINT(cClassifyMaterialScatterThreadGroupSizeX, 8);
     SYARO_DEFINE_UINT(cClassifyMaterialScatterThreadGroupSizeY, 8);
 
-    SYARO_DEFINE_UINT(cEmitGbufThreadGroupSizeX, 256);
+    SYARO_DEFINE_UINT(cEmitGbufThreadGroupSizeX, 64);
 
     SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeX, 16);
     SYARO_DEFINE_UINT(cAtmoRenderThreadGroupSizeY, 16);

@@ -17,8 +17,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 
-#version 450
+
 #include "Bindless.glsl"
+#include "SamplerUtils.SharedConst.h"
+
 layout(location = 0) in vec2 texCoord;
 layout(location = 0) out vec4 outColor;
 
@@ -43,22 +45,22 @@ void main(){
     // https://zhuanlan.zhihu.com/p/607012514
 
     vec2 fragCoord = vec2(gl_FragCoord.x, gl_FragCoord.y);
-    vec3 colorSelf = texelFetch(GetSampler2D(pc.colorSRV), ivec2(fragCoord), 0).rgb;
-    vec3 normalSelf = texelFetch(GetSampler2D(pc.normalSRV), ivec2(fragCoord), 0).rgb;
+    vec3 colorSelf = SampleTexture2DLoad(pc.colorSRV,sLinearClamp, ivec2(fragCoord)).rgb;
+    vec3 normalSelf = SampleTexture2DLoad(pc.normalSRV,sLinearClamp, ivec2(fragCoord)).rgb;
     normalSelf = normalSelf*2.0-1.0;
-    float depthSelf = texelFetch(GetSampler2D(pc.depthSRV), ivec2(fragCoord), 0).r;
+    float depthSelf = SampleTexture2DLoad(pc.depthSRV,sLinearClamp, ivec2(fragCoord)).r;
 
     float totalWeights = 0.0;
     
     vec4 retColor = vec4(0.0);
     for(int i=-pc.halfKernSize;i<=pc.halfKernSize;i++){
         for(int j=-pc.halfKernSize;j<=pc.halfKernSize;j++){
-            vec3 colorNeigh = texelFetch(GetSampler2D(pc.colorSRV), ivec2(fragCoord)+ivec2(i,j), 0).rgb;
-            vec3 normalNeigh = texelFetch(GetSampler2D(pc.normalSRV), ivec2(fragCoord)+ivec2(i,j), 0).rgb;
+            vec3 colorNeigh = SampleTexture2DLoad(pc.colorSRV,sLinearClamp, ivec2(fragCoord)+ivec2(i,j)).rgb;
+            vec3 normalNeigh = SampleTexture2DLoad(pc.normalSRV,sLinearClamp, ivec2(fragCoord)+ivec2(i,j)).rgb;
             normalNeigh = normalNeigh*2.0-1.0;
-            float depthNeigh = texelFetch(GetSampler2D(pc.depthSRV), ivec2(fragCoord)+ivec2(i,j), 0).r;
+            float depthNeigh = SampleTexture2DLoad(pc.depthSRV,sLinearClamp, ivec2(fragCoord)+ivec2(i,j)).r;
             float weight = getConvWeight(fragCoord,fragCoord+vec2(i,j),colorSelf,colorNeigh,normalSelf,normalNeigh,depthSelf,depthNeigh);
-            retColor += texelFetch(GetSampler2D(pc.colorSRV), ivec2(fragCoord)+ivec2(i,j), 0).rgba*weight;
+            retColor += SampleTexture2DLoad(pc.colorSRV,sLinearClamp, ivec2(fragCoord)+ivec2(i,j)).rgba*weight;
             totalWeights += weight;
         }
     }

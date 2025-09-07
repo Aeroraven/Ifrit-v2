@@ -16,13 +16,10 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
-#include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/math/LinalgOps.h"
-#include "ifrit/core/math/constfunc/ConstFunc.h"
+#include "ifrit/runtime/common/Pch.h"
 #include "ifrit/core/file/FileOps.h"
 #include "ifrit/runtime/renderer/RendererBase.h"
 #include "ifrit/runtime/scene/FrameCollector.h"
-#include "ifrit/rhi/common/RhiLayer.h"
 #include <algorithm>
 #include <bit>
 
