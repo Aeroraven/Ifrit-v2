@@ -45,11 +45,18 @@ namespace Ifrit::Task
 
     enum class ENamedTaskThread : u32
     {
-        Invalid      = 0,
-        GameThread   = 1,
-        RenderThread = 2,
-        RHIThread    = 3,
-        AnyThread    = 0xff
+        Invalid             = 0,
+        GameThread          = 1,
+        RenderThread        = 2,
+        RHIThread           = 3,
+        RHISubmissionThread = 4,
+        AnyThread           = 0xff
+    };
+
+    enum class ETaskWorkerType : u32
+    {
+        Generic    = 0,
+        UniqueTask = 1
     };
 
     class TaskScheduler;
@@ -96,6 +103,8 @@ namespace Ifrit::Task
         friend TaskScheduler;
     };
 
+    using TaskReference = TObjectPool<Task>::TObjectRef;
+
     struct TaskWorkerAttributes;
     class IFRIT_APIDECL TaskWorker : public NonCopyable
     {
@@ -109,13 +118,20 @@ namespace Ifrit::Task
         TaskWorker(TaskScheduler* scheduler, u32 id);
         ~TaskWorker();
 
-        void Launch();
-        void Run();
+        void         Launch();
+        void         Run();
+        void         RequestTerminate();
+
+        virtual void RunUnique() {}
+
+        bool         IsTerminating() const;
+        void         WaitForTermination();
 
         friend class TaskScheduler;
 
     protected:
         ENamedTaskThread mThreadType = ENamedTaskThread::AnyThread;
+        ETaskWorkerType  mWorkerType = ETaskWorkerType::Generic;
 
     private:
         std::thread           m_Thread;
@@ -145,6 +161,8 @@ namespace Ifrit::Task
             Fn<void(Task*, void*)> fn, ENamedTaskThread threadType, Vec<TaskRef> dependencies, void* payload);
         void WaitForTask(TaskRef task);
         void RegisterNamedWorker(Owner<TaskWorker> worker, ENamedTaskThread threadType);
+        void RequestTerminating(ENamedTaskThread threadType);
+        void WaitForTerminating(ENamedTaskThread threadType);
 
         friend class TaskWorker;
         friend class Task;

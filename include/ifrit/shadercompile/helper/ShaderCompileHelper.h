@@ -23,18 +23,18 @@ namespace Ifrit::ShaderCompile
     class IFRIT_SHADERCOMPILE_API ShaderCompileHelper
     {
     private:
-        String                    m_IncludeBase;
-        String                    m_CacheDir;
-        ShaderCompileOptimization m_Optimization;
+        String                     mIncludeBase;
+        String                     mCacheDir;
+        EShaderCompileOptimization mOptimization;
 
     public:
         ~ShaderCompileHelper();
-        inline void         SetIncludeBase(const String& includeBase) { m_IncludeBase = includeBase; }
-        inline void         SetCacheDir(const String& cacheDir) { m_CacheDir = cacheDir; }
-        inline void         SetOptimization(ShaderCompileOptimization optimization) { m_Optimization = optimization; }
-        ShaderCompileOutput CompileShaderFromSource(const ShaderCompileJob& job, ShaderIRFormat targetFormat);
+        inline void         SetIncludeBase(const String& includeBase) { mIncludeBase = includeBase; }
+        inline void         SetCacheDir(const String& cacheDir) { mCacheDir = cacheDir; }
+        inline void         SetOptimization(EShaderCompileOptimization optimization) { mOptimization = optimization; }
+        ShaderCompileOutput CompileShaderFromSource(const ShaderCompileJob& job, EShaderIRFormat targetFormat);
         ShaderCompileOutput CompileShaderFromFile(const String& fileName, const String& entryPoint,
-            const HashMap<String, String>& definitions, ShaderIRFormat targetFormat);
-        ShaderSourceFormat  GetShaderSourceFormatFromFileName(const String& fileName);
+            const HashMap<String, String>& definitions, EShaderIRFormat targetFormat);
+        EShaderSourceFormat GetEShaderSourceFormatFromFileName(const String& fileName);
     };
 } // namespace Ifrit::ShaderCompile

@@ -7,3 +7,4 @@ build_mingw
 buildmsvc
 misc/agentTemp
 build_thirdparty
+.cache

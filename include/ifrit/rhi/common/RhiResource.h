@@ -49,6 +49,12 @@ namespace Ifrit::RHI
 
     // ===== Buffers =====
 
+    enum class ERhiBufferMapType
+    {
+        CPUReadOnly,
+        CPUWriteOnly,
+    };
+
     struct RhiBufferDesc
     {
         String          mName   = "";
@@ -63,17 +69,12 @@ namespace Ifrit::RHI
         RhiBuffer(const RhiBufferDesc& inDesc) : RhiDeviceResource(ERhiResourceType::Buffer), mDesc(inDesc) {}
         virtual ~RhiBuffer() = default;
 
-        virtual void          MapMemory()                                         = 0;
-        virtual void          UnmapMemory()                                       = 0;
-        virtual void          FlushBuffer()                                       = 0;
-        virtual void          ReadBuffer(void* data, u32 size, u32 offset)        = 0;
-        virtual void          WriteBuffer(const void* data, u32 size, u32 offset) = 0;
-
         virtual RhiDeviceAddr GetDeviceAddress() const = 0;
+        virtual RhiRawHandle  GetRawHandle() const     = 0;
 
         friend class RhiCommandListContext;
 
-    private:
+    protected:
         RhiBufferDesc mDesc;
     };
 
@@ -88,16 +89,31 @@ namespace Ifrit::RHI
 
     struct RhiTextureDesc
     {
-        ERhiImageUsage     mUsage        = ERhiImageUsageFlag::None;
-        ERhiImageDimension mDimension    = ERhiImageDimension::Unknown;
-        ERhiImageFormat    mFormat       = ERhiImageFormat::Undefined;
-        ERhiResourceState  mInitialState = ERhiResourceState::Undefined;
-        u32                mWidth        = 0;
-        u32                mHeight       = 0;
-        u32                mDepth        = 0;
-        u32                mMips         = 1;
-        u32                mSamples      = 1;
-        u32                mArraySize    = 1;
+        ERhiImageUsage        mUsage        = ERhiImageUsageFlag::None;
+        ERhiImageDimension    mDimension    = ERhiImageDimension::Unknown;
+        ERhiImageFormat       mFormat       = ERhiImageFormat::Undefined;
+        ERhiResourceState     mInitialState = ERhiResourceState::Undefined;
+        RhiClearColorValue    mClearValue;
+        u32                   mWidth     = 0;
+        u32                   mHeight    = 0;
+        u32                   mDepth     = 0;
+        u32                   mMips      = 1;
+        u32                   mSamples   = 1;
+        u32                   mArraySize = 1;
+
+        static RhiTextureDesc CreateTexture2D(
+            u32 width, u32 height, ERhiImageFormat format, ERhiImageUsage usage = 0, u32 mipLevels = 1)
+        {
+            RhiTextureDesc desc;
+            desc.mDimension = ERhiImageDimension::Texture2D;
+            desc.mWidth     = width;
+            desc.mHeight    = height;
+            desc.mDepth     = 1;
+            desc.mMips      = mipLevels;
+            desc.mFormat    = format;
+            desc.mUsage     = usage;
+            return desc;
+        }
     };
 
     class IFRIT_RHI_API RhiTexture : public RhiDeviceResource
@@ -128,14 +144,28 @@ namespace Ifrit::RHI
     };
 
     // ===== Samplers =====
+
+    struct RhiSamplerDesc
+    {
+        ERhiSamplerFilter   mFilterMode    = ERhiSamplerFilter::Linear;
+        ERhiSamplerWrapMode mWrapModeU     = ERhiSamplerWrapMode::Repeat;
+        ERhiSamplerWrapMode mWrapModeV     = ERhiSamplerWrapMode::Repeat;
+        ERhiSamplerWrapMode mWrapModeW     = ERhiSamplerWrapMode::Repeat;
+        f32                 mLodBias       = 0.0f;
+        f32                 mMinLod        = 0.0f;
+        f32                 mMaxLod        = FLT_MAX;
+        u32                 mMaxAnisotropy = 1;
+    };
+
     class IFRIT_RHI_API RhiSampler : public RhiDeviceResource
     {
-    protected:
-        RhiSampler() : RhiDeviceResource(ERhiResourceType::SamplerState) {}
-        virtual ~RhiSampler() = default;
-
     public:
+        RhiSampler(const RhiSamplerDesc& inDesc) : RhiDeviceResource(ERhiResourceType::SamplerState), mDesc(inDesc) {}
+        virtual ~RhiSampler()                     = default;
         virtual RhiRawHandle GetRawHandle() const = 0;
+
+    protected:
+        RhiSamplerDesc mDesc;
     };
 
     // ===== Raytracing =====
@@ -160,10 +190,12 @@ namespace Ifrit::RHI
 
     struct IFRIT_RHI_API RhiResourceViewDesc
     {
+        RhiResourceViewDesc() {};
+
         struct BufferViewDesc
         {
             u32 mOffset = 0;
-            u32 mSize   = 0;
+            u32 mSize   = ~0u;
         };
 
         struct TextureViewDesc
@@ -172,11 +204,9 @@ namespace Ifrit::RHI
         };
 
         ERhiResourceViewedType mType;
-        union
-        {
-            BufferViewDesc  mBufferView;
-            TextureViewDesc mTextureView;
-        };
+
+        BufferViewDesc         mBufferView;
+        TextureViewDesc        mTextureView;
     };
 
     class IFRIT_RHI_API RhiResourceView : public RhiDeviceResource
@@ -186,20 +216,26 @@ namespace Ifrit::RHI
             : RhiDeviceResource(ERhiResourceType::View), mTexture(texture), mDesc(desc)
 
         {
+            InternalCheck();
         }
 
         RhiResourceView(RhiBuffer* buffer, const RhiResourceViewDesc& desc)
             : RhiDeviceResource(ERhiResourceType::View), mBuffer(buffer), mDesc(desc)
         {
+            InternalCheck();
         }
 
-        RhiTexture*                GetUnderlyingTexture() const;
-        RhiBuffer*                 GetUnderlyingBuffer() const;
+        RhiTexture*                       GetUnderlyingTexture() const;
+        RhiBuffer*                        GetUnderlyingBuffer() const;
 
-        virtual void               AcquireHandle() = 0;
-        virtual void               ReleaseHandle() = 0;
+        virtual void                      AcquireHandle() = 0;
+        virtual void                      ReleaseHandle() = 0;
 
-        inline RhiDescriptorHandle GetHandle() const { return mHandle; }
+        bool                              IsTextureView() const { return mTexture != nullptr; }
+        bool                              IsBufferView() const { return mBuffer != nullptr; }
+
+        inline RhiDescriptorHandle        GetHandle() const { return mHandle; }
+        inline const RhiResourceViewDesc& GetDesc() const { return mDesc; }
 
         virtual ~RhiResourceView()                = default;
         virtual RhiRawHandle GetRawHandle() const = 0;
@@ -217,6 +253,7 @@ namespace Ifrit::RHI
     class IFRIT_RHI_API RhiShaderReadView : public RhiResourceView
     {
     public:
+        using RhiResourceView::RhiResourceView;
         virtual void AcquireHandle() = 0;
         virtual void ReleaseHandle() = 0;
     };
@@ -224,6 +261,7 @@ namespace Ifrit::RHI
     class IFRIT_RHI_API RhiUnorderedAccessView : public RhiResourceView
     {
     public:
+        using RhiResourceView::RhiResourceView;
         virtual void AcquireHandle() = 0;
         virtual void ReleaseHandle() = 0;
     };

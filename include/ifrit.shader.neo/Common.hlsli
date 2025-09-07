@@ -50,11 +50,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
             #define IFSHADER_LOCATION(location) [[vk::location(location)]]
             #define IFSHADER_PUSHCONST [[vk::push_constant]]
             #define IFSHADER_POINTSIZE_DECORATE [[vk::builtin("PointSize")]]
+            #define IFSHADER_PUSHCONST_DECL(type, name) \
+                IFSHADER_PUSHCONST type name;\
+                type _Ifrit_PushConst_ReflectionAux;
+
         #else
             #define IFSHADER_BINDING(binding, set)
             #define IFSHADER_LOCATION(location)
             #define IFSHADER_PUSHCONST
             #define IFSHADER_POINTSIZE_DECORATE
+            #define IFSHADER_PUSHCONST_DECL(type, name) \
+                type name; \
+                type _Ifrit_PushConst_ReflectionAux;
         #endif
         #define IFSHADER_TYPEALIAS_STRUCT(name, type) struct name : type {};
         #define IFSHADER_TYPEALIAS(name,type) typedef type name;
@@ -80,11 +87,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
         #define IFSHADER_LOCATION(x) [vk::location(x)]
         #define IFSHADER_PUSHCONST [vk::push_constant]
         #define IFSHADER_POINTSIZE_DECORATE 
+        #define IFSHADER_PUSHCONST_DECL(type, name) \
+            IFSHADER_PUSHCONST type name; \
+            type _Ifrit_PushConst_ReflectionAux;
     #else
         #define IFSHADER_BINDING(x, y)
         #define IFSHADER_LOCATION(x)
         #define IFSHADER_PUSHCONST
         #define IFSHADER_POINTSIZE_DECORATE
+        #define IFSHADER_PUSHCONST_DECL(type, name) \
+            type name; \
+            type _Ifrit_PushConst_ReflectionAux;
     #endif
     #define IFSHADER_TYPEALIAS_STRUCT(name, type) typealias name = type;
     #define IFSHADER_TYPEALIAS(name,type) typealias name = type;

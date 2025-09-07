@@ -28,7 +28,9 @@ namespace Ifrit::RHI::VulkanRHI2
         void                       Begin();
         void                       End();
 
-        u32                        GetSubmitTimestamp() const;
+        u64                        GetSubmitTimestamp() const;
+        void                       SetSubmitState();
+        void                       ForceSetToReadyState();
 
     private:
         VA_CommandListNativeInternal* mInternal;

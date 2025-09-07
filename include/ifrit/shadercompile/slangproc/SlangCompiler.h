@@ -23,7 +23,7 @@ namespace Ifrit::ShaderCompile::SlangProc
     class IFRIT_SHADERCOMPILE_API SlangCompiler : public ShaderCompilerBase
     {
     private:
-        bool m_EnableReflection = false;
+        bool mEnableReflection = false;
 
     public:
         SlangCompiler();

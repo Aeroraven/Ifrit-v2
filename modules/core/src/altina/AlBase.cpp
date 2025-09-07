@@ -1,5 +1,5 @@
 #pragma once
-#include "ifrit/core/altina/AlBase.h"
+//#include "ifrit/core/altina/AlBase.h"
 #include "ifrit/core/logging/Logging.h"
 
 namespace Ifrit::Altina

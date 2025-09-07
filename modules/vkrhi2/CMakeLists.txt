@@ -34,12 +34,14 @@ target_precompile_headers(ifrit.vkrhi2
 
 target_link_libraries(ifrit.vkrhi2 
     Vulkan::Vulkan 
-    # ifrit.shadercompile
+    ifrit.rhi
+    ifrit.shadercompile
     ${FSR2_API_LIBRARIES} 
     ${IFRIT_COMMON_DEPENDENCIES_SHARED}
     ifrit.core)
 
 add_dependencies(ifrit.vkrhi2 
     ifrit.core 
-    # ifrit.shadercompile
+    ifrit.rhi
+    ifrit.shadercompile
     ${FSR2_API_LIBRARIES})

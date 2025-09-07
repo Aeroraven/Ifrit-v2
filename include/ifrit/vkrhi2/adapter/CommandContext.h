@@ -37,18 +37,28 @@ namespace Ifrit::RHI::VulkanRHI2
     {
     public:
         VA_CommandListContext(VA_Device* device, VA_Queue* queue, VA_CommandListContext* immediateContext);
-        virtual ~VA_CommandListContext() ;
+        virtual ~VA_CommandListContext();
 
-        Ref<VA_CommandSubmission> FlushCommands();
+        Ref<RhiTaskSubmission> FlushCommands(ERhiCommandSubmissionAction action);
+        VA_CommandListNative*  GetCommandBuffer();
+        void                   AddCompletionCallback(Fn<void()> callback) override;
+        void                   SetLastUploadingTask(Ref<RhiTaskSubmission> uploadTask) override;
+
+        void                   CmdSetComputePipelineState(const RhiComputePipelineStateDesc& desc) override;
+        void                   CmdSetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc) override;
+
+        void                   CmdBeginTransition(RhiTransition& transition) override;
+        void                   CmdEndTransition(RhiTransition& transition) override;
+        virtual void           CmdBeginTransitionList(const Vec<Ref<RhiTransition>>& transitions) override;
+        virtual void           CmdEndTransitionList(const Vec<Ref<RhiTransition>>& transitions) override;
+
+        void                   RegisterExternalDependencies(VkFence extFence, VkSemaphore extSema);
+        void                   RegisterDependencies(Vec<Ref<VA_CommandSubmission>> toWait);
 
     protected:
-        VA_CommandListNative*     GetCommandBuffer();
         void                      NewTaskSection();
         void                      EndTaskSection();
         Ref<VA_CommandSubmission> FlushAllTaskSections();
-
-        void                      RegisterDependencies(Vec<Ref<VA_CommandSubmission>> toWait);
-        void                      RegisterExternalDependencies(VkFence extFence, VkSemaphore extSema);
 
         VA_CommandTask*           GetTaskSection(EVA_CommandTaskState desiredState);
 

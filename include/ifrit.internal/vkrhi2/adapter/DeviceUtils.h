@@ -31,9 +31,10 @@ namespace Ifrit::RHI::VulkanRHI2
 
     struct VA_QueueFamilyDesc
     {
-        u32  mFamilyIndex = 0;
-        u32  mQueueCount  = 0;
-        bool mValid       = false;
+        u32  mFamilyIndex     = 0;
+        u32  mQueueCount      = 0;
+        bool mValid           = false;
+        bool mSupportsPresent = false;
     };
 
     struct VA_ChosenQueueFamily
@@ -327,5 +328,28 @@ namespace Ifrit::RHI::VulkanRHI2
         {
             device.mAvailableExtensionsNames.push_back(ext.extensionName);
         }
+    }
+
+    void FillingDeviceLimits(VkPhysicalDevice device, RhiPropertyList& outProps)
+    {
+        VkPhysicalDeviceProperties2  properties{};
+        VkPhysicalDeviceIDProperties idProperties{};
+        properties.sType   = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        properties.pNext   = &idProperties;
+        idProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+        idProperties.pNext = nullptr;
+        vkGetPhysicalDeviceProperties2(device, &properties);
+
+        // max descriptors per set
+        outProps.mMaxDescriptorsSetCBVBuffer = properties.properties.limits.maxPerStageDescriptorStorageBuffers;
+        outProps.mMaxDescriptorsSetSRVBuffer = properties.properties.limits.maxPerStageDescriptorStorageBuffers;
+        outProps.mMaxDescriptorsSetUAVBuffer = properties.properties.limits.maxPerStageDescriptorStorageBuffers;
+        outProps.mMaxDescriptorsSetSRVImage  = properties.properties.limits.maxPerStageDescriptorSampledImages;
+        outProps.mMaxDescriptorsSetUAVImage  = properties.properties.limits.maxPerStageDescriptorStorageImages;
+        outProps.mMaxDescriptorsSetSampler   = properties.properties.limits.maxPerStageDescriptorSamplers;
+
+        outProps.mRTColorSamplesSupported = properties.properties.limits.framebufferColorSampleCounts;
+        outProps.mRTDepthSamplesSupported = properties.properties.limits.framebufferDepthSampleCounts;
+        outProps.mRTSamplesSupported      = outProps.mRTColorSamplesSupported & outProps.mRTDepthSamplesSupported;
     }
 } // namespace Ifrit::RHI::VulkanRHI2

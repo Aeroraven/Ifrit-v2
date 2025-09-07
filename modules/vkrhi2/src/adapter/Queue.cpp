@@ -25,7 +25,7 @@ namespace Ifrit::RHI::VulkanRHI2
 
     // ===== Queue =====
     struct VA_QueueInternal : public NonCopyable
-    {
+     {
         VA_Device*                     mDevice = nullptr;
         VkQueue                        mQueue;
         Owner<VA_TimelineSemaphore>    mSemaphore;
@@ -47,24 +47,29 @@ namespace Ifrit::RHI::VulkanRHI2
         mInternal->mFamilyIndex = familyIndex;
         mInternal->mPipeType    = pipeType;
         mInternal->mDevice      = device;
+     }
+ 
+    IFRIT_VKRHI2_API      VA_Queue::~VA_Queue() { 
+        
+        IF_LOG_INFO("VA_Queue", "Deleted Queue");
+        delete mInternal; 
+    
     }
-
-    IFRIT_VKRHI2_API      VA_Queue::~VA_Queue() {}
-
+ 
     IFRIT_VKRHI2_API u32  VA_Queue::GetFamilyIndex() { return mInternal->mFamilyIndex; }
-
+ 
     IFRIT_VKRHI2_API void VA_Queue::SubmitCommandNative(VA_CommandListNative* cmd,
         Vec<Ref<VA_CommandSubmission>> toWait, VkFence fenceToSignal, VkSemaphore swapchainSemaToSignal,
         Ref<VA_CommandSubmission> desiredToSignalInfo)
-    {
-
-        IF_LOG_ASSERTION("VA_Queue", cmd->GetState() == EVA_CommandListNativeState::ReadyToSubmit,
-            "command buffer recording is not finished");
-
+     {
+ 
+         IF_LOG_ASSERTION("VA_Queue", cmd->GetState() == EVA_CommandListNativeState::ReadyToSubmit,
+             "command buffer recording is not finished");
+ 
         auto                      desiredToSignalVal = desiredToSignalInfo->mValue;
-
-        Vec<VkSemaphore>          waitSemaphoreHandles;
-        Vec<uint64_t>             waitValues;
+ 
+         Vec<VkSemaphore>          waitSemaphoreHandles;
+         Vec<uint64_t>             waitValues;
         Vec<VkPipelineStageFlags> waitStages;
 
         for (int i = 0; i < toWait.size(); i++)
@@ -106,11 +111,14 @@ namespace Ifrit::RHI::VulkanRHI2
 
         submitInfo.pNext = &timelineInfo;
         VkFence vfence   = VK_NULL_HANDLE;
-        if (fenceToSignal)
-        {
-            vfence = fenceToSignal;
+         if (fenceToSignal)
+         {
+             vfence = fenceToSignal;
+            // IF_LOG_INFO("VA_Queue", "Submitting command buffer with fence {}", (void*)fenceToSignal);
         }
         VA_AssertResult(vkQueueSubmit(mInternal->mQueue, 1, &submitInfo, vfence), "Failed to submit command buffer");
+
+        cmd->SetSubmitState();
     }
 
     IFRIT_VKRHI2_API VA_CommandListPool* VA_Queue::AcquireCommandPool()
@@ -122,7 +130,7 @@ namespace Ifrit::RHI::VulkanRHI2
             auto pool = std::move(mInternal->mAvailableCommandPools.back());
             mInternal->mAvailableCommandPools.pop_back();
             return pool;
-        }
+         }
         auto pool = MakeOwner<VA_CommandListPool>(
             mInternal->mDevice, mInternal->mPipeType, mInternal->mQueue, mInternal->mFamilyIndex);
         mInternal->mAcquiredCommandPools.push_back(std::move(pool));
@@ -133,29 +141,42 @@ namespace Ifrit::RHI::VulkanRHI2
         ScopedLock lock(mInternal->mSubmitMutex);
         mInternal->mAvailableCommandPools.push_back(pool);
     }
-
+ 
     IFRIT_VKRHI2_API Ref<VA_CommandSubmission> VA_Queue::PrepareSubmissionInfo()
     {
-        Ref<VA_CommandSubmission> ret = MakeRef<VA_CommandSubmission>();
+         Ref<VA_CommandSubmission> ret = MakeRef<VA_CommandSubmission>();
         ret->mSemaphore               = mInternal->mSemaphore->GetSemaphore();
         ret->mValue                   = mInternal->mSemaphore->FetchAndAdd();
-        ret->mWaitStage               = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-        return ret;
-    }
+         ret->mWaitStage               = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+         return ret;
+     }
 
     IFRIT_VKRHI2_API void VA_Queue::ProcessQueuedTasks()
     {
         ScopedLock lock(mInternal->mSubmitMutex);
         for (auto& task : mInternal->mQueuedTasks)
         {
-            if (task->mState != EVA_CommandTaskState::Recorded)
+            if (task->mType == EVA_CommandTaskType::CPUWait)
             {
-                IF_LOG_CRITICAL("VA_Queue", "Task is not ready to submit");
+                task->SetComplete();
+                continue;
             }
-            // Submit
-            SubmitCommandNative(
-                task->mCmd, task->mToWait, task->mExternalFence, task->mExternalSemaphore, task->mToSignal);
-            task->mState = EVA_CommandTaskState::Submitted;
+            else if (task->mType == EVA_CommandTaskType::CommandSubmission)
+            {
+                if (task->mState != EVA_CommandTaskState::Recorded)
+                {
+                    IF_LOG_CRITICAL("VA_Queue", "Task is not ready to submit");
+                }
+                // Submit
+                SubmitCommandNative(
+                    task->mCmd, task->mToWait, task->mExternalFence, task->mExternalSemaphore, task->mToSignal);
+                task->mState = EVA_CommandTaskState::Submitted;
+
+                for (auto& cb : task->mCompletionCallbacks)
+                {
+                    cb();
+                }
+            }
         }
         mInternal->mQueuedTasks.clear();
     }
@@ -163,6 +184,12 @@ namespace Ifrit::RHI::VulkanRHI2
     IFRIT_VKRHI2_API void VA_Queue::EnqueueCommandTask(Ref<VA_CommandTask> task)
     {
         ScopedLock lock(mInternal->mSubmitMutex);
+        if (task->mType == EVA_CommandTaskType::CPUWait)
+        {
+            mInternal->mQueuedTasks.push_back(task);
+            return;
+        }
+
         if (task->mState != EVA_CommandTaskState::Recorded)
         {
             IF_LOG_CRITICAL("VA_Queue", "Task is not ready to submit");
@@ -171,4 +198,15 @@ namespace Ifrit::RHI::VulkanRHI2
         mInternal->mQueuedTasks.push_back(task);
     }
 
-} // namespace Ifrit::RHI::VulkanRHI2
+    IFRIT_VKRHI2_API VkQueue VA_Queue::GetNativeQueue() const { return mInternal->mQueue; }
+
+    IFRIT_VKRHI2_API void    VA_Queue::RecycleCmdLists()
+    {
+        ScopedLock lock(mInternal->mSubmitMutex);
+        for (auto& pool : mInternal->mAcquiredCommandPools)
+        {
+            pool->RecycleCommandBuffers();
+        }
+    }
+
+ } // namespace Ifrit::RHI::VulkanRHI2

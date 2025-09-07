@@ -41,5 +41,12 @@ namespace Ifrit::RHI::VulkanRHI2
         PFN_vkSetDebugUtilsObjectTagEXT                p_vkSetDebugUtilsObjectTagEXT  = nullptr;
 
         PFN_vkGetBufferDeviceAddress                   p_vkGetBufferDeviceAddress = nullptr;
+
+        // Provided by VK_KHR_synchronization2
+        PFN_vkCmdPipelineBarrier2                      p_vkCmdPipelineBarrier2 = nullptr;
+        PFN_vkCmdSetEvent2                             p_vkCmdSetEvent2        = nullptr;
+        PFN_vkCmdResetEvent2                           p_vkCmdResetEvent2      = nullptr;
+        PFN_vkCmdWaitEvents2                           p_vkCmdWaitEvents2      = nullptr;
+        PFN_vkCmdWriteTimestamp2                       p_vkCmdWriteTimestamp2  = nullptr;
     };
 } // namespace Ifrit::RHI::VulkanRHI2

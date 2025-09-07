@@ -26,9 +26,19 @@ namespace Ifrit::RHI
     struct RhiPropertyList
     {
         u32 mWaveSize = ~0u;
+        u32 mMaxDescriptorsSetCBVBuffer = 0;
+        u32 mMaxDescriptorsSetSRVBuffer = 0;
+        u32 mMaxDescriptorsSetUAVBuffer = 0;
+        u32 mMaxDescriptorsSetSRVImage  = 0;
+        u32 mMaxDescriptorsSetUAVImage  = 0;
+        u32 mMaxDescriptorsSetSampler   = 0;
+
+        u32 mRTColorSamplesSupported = 0;
+        u32 mRTDepthSamplesSupported = 0;
+        u32 mRTSamplesSupported      = 0;
     };
 
-    class RhiDeviceProcs;
+    class RhiDynamicUtils;
 
     // ===== RhiDevice Interface =====
 
@@ -48,8 +58,9 @@ namespace Ifrit::RHI
         virtual RhiCapabilityList              GetCapabilities() const        = 0;
         virtual RhiPropertyList                GetProperties() const          = 0;
         virtual IRhiDeviceResourceDeleteQueue* GetResourceDeleteQueue()       = 0;
-        virtual RhiDeviceProcs*                GetDeviceRHIFunctions() const  = 0;
+        virtual RhiDynamicUtils*               GetDeviceRHIFunctions() const  = 0;
         virtual RhiCommandListExecutor*        GetCommandListExecutor() const = 0;
+        virtual String                         GetCacheDir() const            = 0;
     };
 
     class IFRIT_APIDECL RhiDeviceChild

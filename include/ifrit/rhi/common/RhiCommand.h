@@ -2,28 +2,64 @@
 #include "RhiApi.h"
 #include "RhiBaseTypes.h"
 #include "RhiForwardingTypes.h"
+#include "RhiPipeline.h"
+#include "RhiTransition.h"
 
 namespace Ifrit::RHI
 {
     struct IFRIT_RHI_API RhiCommand
     {
     public:
-        virtual ~RhiCommand() noexcept                      = default;
-        virtual void Execute(const RhiCommandListBase* cmd) = 0;
+        virtual ~RhiCommand() noexcept                = default;
+        virtual void Execute(RhiCommandListBase* cmd) = 0;
     };
 
 #define DECLARE_RHI_COMMAND(name) struct IFRIT_RHI_API name final : public RhiCommand
 
     // Lambda Command
     DECLARE_RHI_COMMAND(RhiCmd_Lambda)
-    {
-        using LambdaType = Fn<void(const RhiCommandListBase* cmd)>;
-        LambdaType mLambda;
-
-        RhiCmd_Lambda(LambdaType lambda) : mLambda(std::move(lambda)) {}
-        void Execute(const RhiCommandListBase* cmd) override { mLambda(cmd); }
-    };
-
+     {
+        using LambdaType = Fn<void(RhiCommandListBase * cmd)>;
+         LambdaType mLambda;
+ 
+         RhiCmd_Lambda(LambdaType lambda) : mLambda(std::move(lambda)) {}
+        void Execute(RhiCommandListBase * cmd) override final { mLambda(cmd); }
+     };
+ 
+    // Pipeline State Commands
+    DECLARE_RHI_COMMAND(RhiCmd_SetComputePipelineState)
+     {
+        RhiComputePipelineStateDesc mDesc;
+ 
+        RhiCmd_SetComputePipelineState(const RhiComputePipelineStateDesc& desc) : mDesc(desc) {}
+        void Execute(RhiCommandListBase * cmd) override final;
+     };
+ 
+    DECLARE_RHI_COMMAND(RhiCmd_SetGraphicsPipelineState)
+     {
+        RhiGraphicsPipelineStateDesc mDesc;
+ 
+        RhiCmd_SetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc) : mDesc(desc) {}
+        void Execute(RhiCommandListBase * cmd) override final;
+     };
+ 
+    // Transition Commands
+    DECLARE_RHI_COMMAND(RhiCmd_BeginTransitions)
+     {
+        Vec<Ref<RhiTransition>> mTransitions;
+ 
+        RhiCmd_BeginTransitions(const Vec<Ref<RhiTransition>>& transitions) : mTransitions(transitions) {}
+        void Execute(RhiCommandListBase * cmd) override final;
+     };
+ 
+    DECLARE_RHI_COMMAND(RhiCmd_EndTransitions)
+     {
+        Vec<Ref<RhiTransition>> mTransitions;
+ 
+        RhiCmd_EndTransitions(const Vec<Ref<RhiTransition>>& transitions) : mTransitions(transitions) {}
+        void Execute(RhiCommandListBase * cmd) override final;
+     };
+ 
     // // Memory Transfer Commands
     // DECLARE_RHI_COMMAND(RhiCmd_CopyBuffer)
     // {
@@ -140,5 +176,4 @@ namespace Ifrit::RHI
     //     RhiCmd_SetScissor(const Vec<RhiScissor>& scissors) : mScissors(scissors) {}
     //     void Execute(const RhiCommandListBase* cmd) override;
     // };
-
 } // namespace Ifrit::RHI

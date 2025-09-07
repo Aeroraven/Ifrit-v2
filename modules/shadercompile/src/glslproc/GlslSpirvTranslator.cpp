@@ -29,28 +29,28 @@ namespace Ifrit::ShaderCompile::GLSLProc
     class CustomShaderInclude : public shaderc::CompileOptions::IncluderInterface
     {
     private:
-        Vec<String> m_includeDirs;
+        Vec<String> mincludeDirs;
 
     public:
-        CustomShaderInclude(const String& shaderDir) : m_shaderDir(shaderDir) {}
+        CustomShaderInclude(const String& shaderDir) : mshaderDir(shaderDir) {}
 
         shaderc_include_result* GetInclude(const char* requested_source, shaderc_include_type type,
             const char* requesting_source, size_t include_depth) override
         {
-            String full_path = m_shaderDir + "/" + requested_source;
-            m_includeDirs.push_back(full_path);
+            String full_path = mshaderDir + "/" + requested_source;
+            mincludeDirs.push_back(full_path);
 
             std::ifstream file(full_path);
             if (!file.is_open())
             {
                 return nullptr;
             }
-            m_source = String((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            msource = String((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
             shaderc_include_result* result = new shaderc_include_result();
-            result->content                = m_source.c_str();
-            result->content_length         = m_source.size();
-            result->source_name            = m_includeDirs.back().c_str();
-            result->source_name_length     = m_includeDirs.back().size();
+            result->content                = msource.c_str();
+            result->content_length         = msource.size();
+            result->source_name            = mincludeDirs.back().c_str();
+            result->source_name_length     = mincludeDirs.back().size();
             result->user_data              = nullptr;
             return result;
         }
@@ -58,8 +58,8 @@ namespace Ifrit::ShaderCompile::GLSLProc
         void ReleaseInclude(shaderc_include_result* data) override { delete data; }
 
     private:
-        String m_shaderDir;
-        String m_source;
+        String mshaderDir;
+        String msource;
     };
 
     String PrecompileShaderFile(
@@ -121,21 +121,21 @@ namespace Ifrit::ShaderCompile::GLSLProc
         return { module.cbegin(), module.cend() };
     }
 
-    shaderc_shader_kind GetShaderKind(ShaderCompileStage stage)
+    shaderc_shader_kind GetShaderKind(EShaderCompileStage stage)
     {
         switch (stage)
         {
-            case ShaderCompileStage::VertexShader:
+            case EShaderCompileStage::VertexShader:
                 return shaderc_glsl_vertex_shader;
-            case ShaderCompileStage::FragmentShader:
+            case EShaderCompileStage::FragmentShader:
                 return shaderc_glsl_fragment_shader;
-            case ShaderCompileStage::ComputeShader:
+            case EShaderCompileStage::ComputeShader:
                 return shaderc_glsl_compute_shader;
-            case ShaderCompileStage::GeometryShader:
+            case EShaderCompileStage::GeometryShader:
                 return shaderc_glsl_geometry_shader;
-            case ShaderCompileStage::MeshShader:
+            case EShaderCompileStage::MeshShader:
                 return shaderc_glsl_mesh_shader;
-            case ShaderCompileStage::AmplificationShader:
+            case EShaderCompileStage::AmplificationShader:
                 return shaderc_glsl_task_shader;
             default:
                 IF_LOG_ASSERTION("GlslCompiler", false, "Unsupported shader stage for GlslSpirvTranslator");
@@ -149,62 +149,62 @@ namespace Ifrit::ShaderCompile::GLSLProc
         ShaderCompileOutput output;
 
         // todo
-        IF_LOG_ASSERTION("GlslCompiler", job.m_Source.m_Format == ShaderSourceFormat::GLSL,
+        IF_LOG_ASSERTION("GlslCompiler", job.mSource.mFormat == EShaderSourceFormat::GLSL,
             "GlslSpirvTranslator can only compile GLSL source code");
-        IF_LOG_ASSERTION("GlslCompiler", job.m_EntryPoint == "main",
+        IF_LOG_ASSERTION("GlslCompiler", job.mEntryPoint == "main",
             "GlslSpirvTranslator only supports 'main' as the entry point for GLSL source code");
 
         // add permutations preprocessor definitions
-        String rawCode = job.m_Source.m_Code;
-        if (job.m_Stage == ShaderCompileStage::VertexShader)
+        String rawCode = job.mSource.mCode;
+        if (job.mStage == EShaderCompileStage::VertexShader)
         {
             rawCode = "#define IF_VERTEX_SHADER\n" + rawCode;
         }
-        else if (job.m_Stage == ShaderCompileStage::FragmentShader)
+        else if (job.mStage == EShaderCompileStage::FragmentShader)
         {
             rawCode = "#define IF_FRAGMENT_SHADER\n" + rawCode;
         }
-        else if (job.m_Stage == ShaderCompileStage::ComputeShader)
+        else if (job.mStage == EShaderCompileStage::ComputeShader)
         {
             rawCode = "#define IF_COMPUTE_SHADER\n" + rawCode;
         }
-        else if (job.m_Stage == ShaderCompileStage::GeometryShader)
+        else if (job.mStage == EShaderCompileStage::GeometryShader)
         {
             rawCode = "#define IF_GEOMETRY_SHADER\n" + rawCode;
         }
-        else if (job.m_Stage == ShaderCompileStage::MeshShader)
+        else if (job.mStage == EShaderCompileStage::MeshShader)
         {
             rawCode = "#define IF_MESH_SHADER\n" + rawCode;
         }
-        else if (job.m_Stage == ShaderCompileStage::AmplificationShader)
+        else if (job.mStage == EShaderCompileStage::AmplificationShader)
         {
             rawCode = "#define IF_AMPLIFICATION_SHADER\n" + rawCode;
         }
 
-        if (!job.m_Definitions.empty())
+        if (!job.mDefinitions.empty())
         {
-            for (const auto& def : job.m_Definitions)
+            for (const auto& def : job.mDefinitions)
             {
                 rawCode = "#define " + def.first + " " + def.second + "\n" + rawCode;
             }
         }
         rawCode            = "#version 450\n" + rawCode;
-        String precompiled = PrecompileShaderFile(job.m_Name, shaderc_glsl_vertex_shader, rawCode, m_IncludeBase);
+        String precompiled = PrecompileShaderFile(job.mName, shaderc_glsl_vertex_shader, rawCode, mIncludeBase);
 
         // calculate hash
         SHA1   sha1;
         sha1.update(precompiled);
-        auto hash          = sha1.final();
-        output.m_Signature = hash;
+        auto hash         = sha1.final();
+        output.mSignature = hash;
 
         Vec<u32> compiledCode;
 
-        auto     cacheDir = m_CachePath;
+        auto     cacheDir = mCachePath;
         if (cacheDir.empty())
         {
-            auto kind    = GetShaderKind(job.m_Stage);
+            auto kind    = GetShaderKind(job.mStage);
             compiledCode = CompileShaderFile(
-                job.m_Name, kind, rawCode, m_IncludeBase, m_Optimization == ShaderCompileOptimization::Performance);
+                job.mName, kind, rawCode, mIncludeBase, mOptimization == EShaderCompileOptimization::Performance);
             // iDebug("Code size: {}", compiledCode.size() * sizeof(u32));
         }
         else
@@ -223,9 +223,9 @@ namespace Ifrit::ShaderCompile::GLSLProc
             }
             else
             {
-                auto kind    = GetShaderKind(job.m_Stage);
+                auto kind    = GetShaderKind(job.mStage);
                 compiledCode = CompileShaderFile(
-                    job.m_Name, kind, rawCode, m_IncludeBase, m_Optimization == ShaderCompileOptimization::Performance);
+                    job.mName, kind, rawCode, mIncludeBase, mOptimization == EShaderCompileOptimization::Performance);
                 std::ofstream cache(cacheFile, std::ios::binary);
                 cache.write(reinterpret_cast<const char*>(compiledCode.data()), compiledCode.size() * sizeof(u32));
                 cache.close();
@@ -235,7 +235,7 @@ namespace Ifrit::ShaderCompile::GLSLProc
         auto pCode    = compiledCode.data();
 
         // reflection data
-        if (m_EnableReflection)
+        if (mEnableReflection)
         {
             String                 cacheFile = cacheDir + "/ifritsc.sprivrefl." + hash + ".cache";
             SpvReflectShaderModule reflectionModule;
@@ -245,8 +245,8 @@ namespace Ifrit::ShaderCompile::GLSLProc
                 spvReflectCreateShaderModule(compiledCode.size() * sizeof(u32), compiledCode.data(), &reflectionModule);
                 u32 numDescSets = 0;
                 spvReflectEnumerateDescriptorSets(&reflectionModule, &numDescSets, nullptr);
-                // m_reflectSets.resize(numDescSets);
-                // spvReflectEnumerateDescriptorSets(&reflectionModule, &numDescSets, m_reflectSets.data());
+                // mreflectSets.resize(numDescSets);
+                // spvReflectEnumerateDescriptorSets(&reflectionModule, &numDescSets, mreflectSets.data());
             }
             else
             {
@@ -262,16 +262,16 @@ namespace Ifrit::ShaderCompile::GLSLProc
                     spvReflectCreateShaderModule(codeSize, pCode, &reflectionModule);
                     u32 numDescSets = 0;
                     spvReflectEnumerateDescriptorSets(&reflectionModule, &numDescSets, nullptr);
-                    // m_reflectSets.resize(numDescSets);
-                    // spvReflectEnumerateDescriptorSets(&reflectionModule, &numDescSets, m_reflectSets.data());
-                    // m_reflectionCreated = true;
+                    // mreflectSets.resize(numDescSets);
+                    // spvReflectEnumerateDescriptorSets(&reflectionModule, &numDescSets, mreflectSets.data());
+                    // mreflectionCreated = true;
                     // CacheReflectionData();
                 }
             }
         }
-        output.m_IR.m_Format = ShaderIRFormat::SpirV;
-        output.m_IR.m_Data.CopyFromRaw(pCode, SizeCast<u32>(codeSize));
-        // iDebug("Data size: {}", output.m_IR.m_Data.GetSize());
+        output.mIR.mFormat = EShaderIRFormat::SpirV;
+        output.mIR.mData.CopyFromRaw(pCode, SizeCast<u32>(codeSize));
+        // iDebug("Data size: {}", output.mIR.mData.GetSize());
         return output;
     }
 

@@ -91,25 +91,49 @@ namespace Ifrit::Task
 
     IFRIT_APIDECL void TaskWorker::Run()
     {
-        while (true)
+        if (mWorkerType == ETaskWorkerType::UniqueTask)
         {
-            auto state = m_Attributes->m_State.load();
-            if (state == ETaskWorkerState::Terminating)
+            RunUnique();
+            m_Attributes->m_State = ETaskWorkerState::Terminated;
+            return;
+        }
+        else
+        {
+            while (true)
             {
-                break;
-            }
-            else
-            {
-                auto task = FetchTask();
-                if (task.Get() != nullptr)
+                auto state = m_Attributes->m_State.load();
+                if (state == ETaskWorkerState::Terminating)
                 {
-                    task->Execute();
+                    break;
                 }
+                else
+                {
+                    auto task = FetchTask();
+                    if (task.Get() != nullptr)
+                    {
+                        task->Execute();
+                    }
+                }
+                std::this_thread::yield();
             }
+            m_Attributes->m_State = ETaskWorkerState::Terminated;
+        }
+    }
+
+    IFRIT_APIDECL bool TaskWorker::IsTerminating() const
+    {
+        return m_Attributes->m_State.load() == ETaskWorkerState::Terminating;
+    }
+
+    IFRIT_APIDECL void TaskWorker::WaitForTermination()
+    {
+        while (m_Attributes->m_State.load() != ETaskWorkerState::Terminated)
+        {
             std::this_thread::yield();
         }
-        m_Attributes->m_State = ETaskWorkerState::Terminated;
     }
+
+    IFRIT_APIDECL void TaskWorker::RequestTerminate() { m_Attributes->m_State = ETaskWorkerState::Terminating; }
 
     IFRIT_APIDECL void TaskWorker::Launch()
     {
@@ -303,6 +327,28 @@ namespace Ifrit::Task
         {
             std::this_thread::yield();
         }
+    }
+
+    IFRIT_APIDECL void TaskScheduler::RequestTerminating(ENamedTaskThread threadType)
+    {
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::Invalid,
+            "Task thread type is invalid. Thread type: {}", static_cast<u32>(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::AnyThread,
+            "Task thread type cannot be AnyThread. Thread type: {}", static_cast<u32>(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", m_Attributes->m_NamedWorkers.contains(threadType),
+            "Task thread type is not registered. Thread type: {}", static_cast<u32>(threadType));
+        m_Attributes->m_NamedWorkers[threadType]->RequestTerminate();
+    }
+
+    IFRIT_APIDECL void TaskScheduler::WaitForTerminating(ENamedTaskThread threadType)
+    {
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::Invalid,
+            "Task thread type is invalid. Thread type: {}", static_cast<u32>(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", threadType != ENamedTaskThread::AnyThread,
+            "Task thread type cannot be AnyThread. Thread type: {}", static_cast<u32>(threadType));
+        IF_LOG_ASSERTION("TaskScheduler", m_Attributes->m_NamedWorkers.contains(threadType),
+            "Task thread type is not registered. Thread type: {}", static_cast<u32>(threadType));
+        m_Attributes->m_NamedWorkers[threadType]->WaitForTermination();
     }
 
     IFRIT_APIDECL void TaskScheduler::RegisterNamedWorker(Owner<TaskWorker> worker, ENamedTaskThread threadType)

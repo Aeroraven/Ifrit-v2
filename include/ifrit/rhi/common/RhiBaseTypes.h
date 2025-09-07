@@ -33,7 +33,15 @@ namespace Ifrit::RHI
 
     struct RhiClearColorValue
     {
-        RhiClearColorValue() = default;
+        RhiClearColorValue()
+        {
+            m_Type        = ERhiTypeFlags::Float32;
+            m_ValueF32[0] = 0.0f;
+            m_ValueF32[1] = 0.0f;
+            m_ValueF32[2] = 0.0f;
+            m_ValueF32[3] = 0.0f;
+        }
+
         ERhiTypeFlags m_Type;
         union
         {
@@ -196,6 +204,7 @@ namespace Ifrit::RHI
 
     enum class ERhiDescriptorHeapType : u32
     {
+        Empty,
         UniformBuffer,
         StorageBuffer,
         ReadOnlyStorageBuffer,
@@ -214,8 +223,8 @@ namespace Ifrit::RHI
 
     struct RhiDescriptorHandle
     {
-        ERhiDescriptorHeapType   mType = ERhiDescriptorHeapType::Invalid;
-        u32                      mIndex;
+        ERhiDescriptorHeapType   mType       = ERhiDescriptorHeapType::Invalid;
+        u32                      mIndex      = ~0u;
         ERhiDescriptorHandleType mHandleType = ERhiDescriptorHandleType::Bindless;
 
         RhiDescriptorHandle() = default;

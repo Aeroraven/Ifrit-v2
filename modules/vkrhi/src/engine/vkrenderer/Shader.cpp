@@ -201,39 +201,39 @@ namespace Ifrit::RHI::VulkanAdapter
             defines.push_back(m_DefineNames[trailingBit]);
         }
 
-        auto stageTranslate = [](RHI::RhiShaderStage stage) -> ShaderCompile::ShaderCompileStage {
+        auto stageTranslate = [](RHI::RhiShaderStage stage) -> ShaderCompile::EShaderCompileStage {
             switch (stage)
             {
                 case RHI::RhiShaderStage::Vertex:
-                    return ShaderCompile::ShaderCompileStage::VertexShader;
+                    return ShaderCompile::EShaderCompileStage::VertexShader;
                 case RHI::RhiShaderStage::Fragment:
-                    return ShaderCompile::ShaderCompileStage::FragmentShader;
+                    return ShaderCompile::EShaderCompileStage::FragmentShader;
                 case RHI::RhiShaderStage::Compute:
-                    return ShaderCompile::ShaderCompileStage::ComputeShader;
+                    return ShaderCompile::EShaderCompileStage::ComputeShader;
                 case RHI::RhiShaderStage::Mesh:
-                    return ShaderCompile::ShaderCompileStage::MeshShader;
+                    return ShaderCompile::EShaderCompileStage::MeshShader;
                 case RHI::RhiShaderStage::Task:
-                    return ShaderCompile::ShaderCompileStage::AmplificationShader;
+                    return ShaderCompile::EShaderCompileStage::AmplificationShader;
                 default:
                     IF_LOG_ERROR("Shader", "Unsupported shader stage: {}", static_cast<u32>(stage));
                     std::abort();
-                    return ShaderCompile::ShaderCompileStage::VertexShader; // Fallback
+                    return ShaderCompile::EShaderCompileStage::VertexShader; // Fallback
             }
         };
 
-        auto sourceTypeConvert = [](RHI::RhiShaderSourceType sourceType) -> ShaderCompile::ShaderSourceFormat {
+        auto sourceTypeConvert = [](RHI::RhiShaderSourceType sourceType) -> ShaderCompile::EShaderSourceFormat {
             switch (sourceType)
             {
                 case RHI::RhiShaderSourceType::GLSLCode:
-                    return ShaderCompile::ShaderSourceFormat::GLSL;
+                    return ShaderCompile::EShaderSourceFormat::GLSL;
                 case RHI::RhiShaderSourceType::SlangCode:
-                    return ShaderCompile::ShaderSourceFormat::Slang;
+                    return ShaderCompile::EShaderSourceFormat::Slang;
                 case RHI::RhiShaderSourceType::HLSLCode:
-                    return ShaderCompile::ShaderSourceFormat::HLSL; // Fallback
+                    return ShaderCompile::EShaderSourceFormat::HLSL; // Fallback
                 default:
                     IF_LOG_ERROR("Shader", "Unsupported shader source type: {}", static_cast<u32>(sourceType));
                     std::abort();
-                    return ShaderCompile::ShaderSourceFormat::GLSL; // Fallback
+                    return ShaderCompile::EShaderSourceFormat::GLSL; // Fallback
             }
         };
 
@@ -251,7 +251,7 @@ namespace Ifrit::RHI::VulkanAdapter
         job.m_Definitions = definitionsInternal;
 
         auto compiler = ShaderCompile::ShaderCompileHelper();
-        if (job.m_Source.m_Format == ShaderCompile::ShaderSourceFormat::Slang)
+        if (job.m_Source.m_Format == ShaderCompile::EShaderSourceFormat::Slang)
         {
             compiler.SetIncludeBase(IFRIT_VKRHI_SHARED_SHADER_NEXT_INCLUDE_BASE);
         }
@@ -261,9 +261,9 @@ namespace Ifrit::RHI::VulkanAdapter
         }
 
         compiler.SetCacheDir(m_Context->GetCacheDir());
-        compiler.SetOptimization(ShaderCompile::ShaderCompileOptimization::Performance);
+        compiler.SetOptimization(ShaderCompile::EShaderCompileOptimization::Performance);
 
-        auto           output = compiler.CompileShaderFromSource(job, ShaderCompile::ShaderIRFormat::SpirV);
+        auto           output = compiler.CompileShaderFromSource(job, ShaderCompile::EShaderIRFormat::SpirV);
         auto           irSize = output.m_IR.m_Data.GetSize();
         // iDebug("IR size: {} bytes", irSize);
         ShaderModuleCI shaderModuleCI;

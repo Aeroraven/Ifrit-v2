@@ -19,19 +19,20 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/shadercompile/glslproc/GlslSpirvTranslator.h"
 #include "ifrit/shadercompile/slangproc/SlangCompiler.h"
 #include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/file/FileOps.h"
 
 namespace Ifrit::ShaderCompile
 {
     ShaderCompileOutput ShaderCompileHelper::CompileShaderFromSource(
-        const ShaderCompileJob& job, ShaderIRFormat targetFormat)
+        const ShaderCompileJob& job, EShaderIRFormat targetFormat)
     {
-        auto                   sourceType = job.m_Source.m_Format;
+        auto                   sourceType = job.mSource.mFormat;
         IShaderSourceCompiler* compiler   = nullptr;
-        if (sourceType == ShaderSourceFormat::GLSL && targetFormat == ShaderIRFormat::SpirV)
+        if (sourceType == EShaderSourceFormat::GLSL && targetFormat == EShaderIRFormat::SpirV)
         {
             compiler = new GLSLProc::GlslSpirvTranslator();
         }
-        else if (sourceType == ShaderSourceFormat::Slang && targetFormat == ShaderIRFormat::SpirV)
+        else if (sourceType == EShaderSourceFormat::Slang && targetFormat == EShaderIRFormat::SpirV)
         {
             compiler = new SlangProc::SlangCompiler();
         }
@@ -41,36 +42,36 @@ namespace Ifrit::ShaderCompile
             std::abort();
             return {};
         }
-        compiler->SetCachePath(m_CacheDir);
-        compiler->SetIncludeBase(m_IncludeBase);
-        compiler->SetOptimization(m_Optimization);
+        compiler->SetCachePath(mCacheDir);
+        compiler->SetIncludeBase(mIncludeBase);
+        compiler->SetOptimization(mOptimization);
         auto output = compiler->Compile(job);
         delete compiler;
         return output;
     }
 
     ShaderCompileOutput ShaderCompileHelper::CompileShaderFromFile(const String& fileName, const String& entryPoint,
-        const HashMap<String, String>& definitions, ShaderIRFormat targetFormat)
+        const HashMap<String, String>& definitions, EShaderIRFormat targetFormat)
     {
         // get extension from fileName
-        auto               extension         = fileName.substr(fileName.find_last_of('.') + 1);
-        auto               remainingFileName = fileName.substr(0, fileName.find_last_of('.'));
-        auto               stageName         = remainingFileName.substr(remainingFileName.find_last_of('.') + 1);
+        auto                extension         = fileName.substr(fileName.find_last_of('.') + 1);
+        auto                remainingFileName = fileName.substr(0, fileName.find_last_of('.'));
+        auto                stageName         = remainingFileName.substr(remainingFileName.find_last_of('.') + 1);
 
-        ShaderSourceFormat sourceType;
-        ShaderCompileStage stage;
+        EShaderSourceFormat sourceType;
+        EShaderCompileStage stage;
 
         if (extension == "glsl")
         {
-            sourceType = ShaderSourceFormat::GLSL;
+            sourceType = EShaderSourceFormat::GLSL;
         }
         else if (extension == "hlsl")
         {
-            sourceType = ShaderSourceFormat::HLSL;
+            sourceType = EShaderSourceFormat::HLSL;
         }
         else if (extension == "slang")
         {
-            sourceType = ShaderSourceFormat::Slang;
+            sourceType = EShaderSourceFormat::Slang;
         }
         else
         {
@@ -81,31 +82,31 @@ namespace Ifrit::ShaderCompile
 
         if (stageName == "vert" || stageName == "vs")
         {
-            stage = ShaderCompileStage::VertexShader;
+            stage = EShaderCompileStage::VertexShader;
         }
         else if (stageName == "frag" || stageName == "fs")
         {
-            stage = ShaderCompileStage::FragmentShader;
+            stage = EShaderCompileStage::FragmentShader;
         }
         else if (stageName == "comp" || stageName == "cs")
         {
-            stage = ShaderCompileStage::ComputeShader;
+            stage = EShaderCompileStage::ComputeShader;
         }
         else if (stageName == "geom" || stageName == "gs")
         {
-            stage = ShaderCompileStage::GeometryShader;
+            stage = EShaderCompileStage::GeometryShader;
         }
         else if (stageName == "mesh" || stageName == "ms")
         {
-            stage = ShaderCompileStage::MeshShader;
+            stage = EShaderCompileStage::MeshShader;
         }
         else if (stageName == "ampl" || stageName == "as")
         {
-            stage = ShaderCompileStage::AmplificationShader;
+            stage = EShaderCompileStage::AmplificationShader;
         }
         else if (stageName == "task" || stageName == "ts")
         {
-            stage = ShaderCompileStage::AmplificationShader;
+            stage = EShaderCompileStage::AmplificationShader;
         }
         else
         {
@@ -114,14 +115,14 @@ namespace Ifrit::ShaderCompile
             return {};
         }
         ShaderCompileJob job;
-        job.m_Name            = fileName;
-        job.m_Stage           = stage;
-        job.m_Source.m_Format = sourceType;
-        job.m_Source.m_Code   = fileName; // In this case, the code is the file name
-        job.m_EntryPoint      = entryPoint;
-        job.m_Definitions     = definitions;
+        job.mName           = fileName;
+        job.mStage          = stage;
+        job.mSource.mFormat = sourceType;
+        job.mSource.mCode   = ReadTextFile(fileName);
+        job.mEntryPoint     = entryPoint;
+        job.mDefinitions    = definitions;
 
-        return CompileShaderFromSource(job, ShaderIRFormat::SpirV);
+        return CompileShaderFromSource(job, EShaderIRFormat::SpirV);
     }
 
     IFRIT_APIDECL ShaderCompileHelper::~ShaderCompileHelper()
@@ -130,28 +131,28 @@ namespace Ifrit::ShaderCompile
         // Currently, no dynamic memory is allocated in this class
     }
 
-    IFRIT_APIDECL ShaderSourceFormat ShaderCompileHelper::GetShaderSourceFormatFromFileName(const String& fileName)
+    IFRIT_APIDECL EShaderSourceFormat ShaderCompileHelper::GetEShaderSourceFormatFromFileName(const String& fileName)
     {
         // get extension from fileName
         auto extension = fileName.substr(fileName.find_last_of('.') + 1);
 
         if (extension == "glsl")
         {
-            return ShaderSourceFormat::GLSL;
+            return EShaderSourceFormat::GLSL;
         }
         else if (extension == "hlsl")
         {
-            return ShaderSourceFormat::HLSL;
+            return EShaderSourceFormat::HLSL;
         }
         else if (extension == "slang")
         {
-            return ShaderSourceFormat::Slang;
+            return EShaderSourceFormat::Slang;
         }
         else
         {
             IF_LOG_CRITICAL("ShaderCompiler", "Unsupported shader source format: {}", extension);
             std::abort();
-            return ShaderSourceFormat::GLSL; // Default fallback
+            return EShaderSourceFormat::GLSL; // Default fallback
         }
     }
 

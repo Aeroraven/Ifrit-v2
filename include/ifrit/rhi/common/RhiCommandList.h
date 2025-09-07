@@ -6,6 +6,8 @@
 #include "ifrit/core/algo/Parallel.h"
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/rhi/common/RhiDevice.h"
+#include "ifrit/rhi/common/RhiPipeline.h"
+#include "ifrit/rhi/common/RhiTransition.h"
 
 namespace Ifrit::RHI
 {
@@ -14,93 +16,93 @@ namespace Ifrit::RHI
 
     // ===== Command List Context =====
 
+
+    enum class ERhiCommandSubmissionAction
+    {
+        None,
+        CPUWaitForSubmission,
+    };
+
     class IFRIT_RHI_API IRhiCommandContext
-    {
-    public:
+     {
+     public:
         virtual ~IRhiCommandContext() = default;
-    };
+ 
+        virtual void                   AddCompletionCallback(Fn<void()> callback)              = 0;
+        virtual Ref<RhiTaskSubmission> FlushCommands(ERhiCommandSubmissionAction action)       = 0;
+        virtual void                   SetLastUploadingTask(Ref<RhiTaskSubmission> uploadTask) = 0;
 
-    class IFRIT_RHI_API RhiCommandListContext : public RhiDeviceChild
-    {
-    public:
-        virtual ~RhiCommandListContext() = default;
+        virtual void                   CmdSetComputePipelineState(const RhiComputePipelineStateDesc& desc)   = 0;
+        virtual void                   CmdSetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc) = 0;
 
-    private:
-        Vec<Ref<RhiTaskSubmission>> mRhiWaitSubmissions;
+        virtual void                   CmdBeginTransition(RhiTransition& transition)                      = 0;
+        virtual void                   CmdEndTransition(RhiTransition& transition)                        = 0;
+        virtual void                   CmdBeginTransitionList(const Vec<Ref<RhiTransition>>& transitions) = 0;
+        virtual void                   CmdEndTransitionList(const Vec<Ref<RhiTransition>>& transitions)   = 0;
+     };
+ 
+     // ===== Command List Base (Recording) =====
+    class IFRIT_RHI_API RhiCommandListBase
+     {
+     public:
+        virtual ~RhiCommandListBase() = default;
+ 
+        void                EnqueueLambda(Fn<void(RhiCommandListBase*)> func);
+ 
+        void                SetComputePipelineState(const RhiComputePipelineStateDesc& desc);
+        void                SetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc);
+        void                BeginTransitions(const Vec<Ref<RhiTransition>>& transitions);
+        void                EndTransitions(const Vec<Ref<RhiTransition>>& transitions);
+ 
+        IRhiCommandContext* GetActiveContext();
+        IRhiCommandContext* GetUploadContext();
+        inline bool         IsImmediate() const { return mImmediateCmdList == nullptr; }
+ 
+    protected:
+        void EnqueueRHICommand(Owner<RhiCommand> cmd);
+ 
+    protected:
+        IRhiCommandContext*         mActiveContextImm = nullptr;
+        Owner<IRhiCommandContext>   mActiveContext;
+        Owner<IRhiCommandContext>   mUploadContext;
+        Ref<RhiTaskSubmission>      mLastUploadTask;
+ 
         ERhiCommandListPipelineType mRhiPipeline = ERhiCommandListPipelineType::Invalid;
-        ERhiCommandListState        mRhiState    = ERhiCommandListState::Invalid;
-        Mutex                       mRhiLock;
-    };
-
-    // ===== Command List Base (Recording) =====
-    class IFRIT_RHI_API RhiCommandListBase : public RhiDeviceChild
+        Vec<Owner<RhiCommand>>      mCommands;
+        Vec<Ref<RhiTaskSubmission>> mWaitSubmissions;
+ 
+        RhiCommandListBase*         mImmediateCmdList = nullptr;
+        bool                        mValid            = true;
+ 
+         friend class RhiCommandListExecutor;
+     };
+ 
+    class IFRIT_RHI_API RhiCommandListImmediate : public RhiCommandListBase
     {
     public:
-        // Compute Dispatch
-        void DispatchComputeShader(u32 groupX, u32 groupCountY, u32 groupCountZ);
-        void DispatchComputeShaderIndirect(const RhiBuffer* buffer, u32 offset);
+        RhiCommandListImmediate();
+        virtual ~RhiCommandListImmediate() = default;
 
-        // Draw Calls
-        void Draw(u32 numPrimitives, u32 instanceCount, u32 firstVertex);
-        void DrawIndexed(RhiBuffer* indexBuffer, u32 baseVertexIndex, u32 firstInstance, u32 startIndex, u32 numIndices,
-            u32 numInstances);
-        void DispatchMeshShader(u32 groupCountX, u32 groupCountY, u32 groupCountZ);
-        void DispatchMeshShaderIndirect(const RhiBuffer* buffer, u32 offset);
-
-        // Lambda
-        void ExecuteLambda(Fn<void(const RhiCommandListBase* cmd)>&& lambda);
-
-        // Utility
-        void Init();
-        void Submit();
-        void Finalize();
-        RhiCommandListContext* GetActiveContext();
-        RhiCommandListContext* GetUploadContext();
-        void                   SwitchPipeline(ERhiCommandListPipelineType type);
-
-    protected:
-        void                          EnqueueRHICommand(Owner<RhiCommand> cmd);
-
-        inline RhiCommandListContext* InternalGetActiveContext() { return mActiveContext.get(); }
-        inline RhiCommandListContext* InternalGetUploadContext() { return mUploadContext.get(); }
-
-        void                          AcquireActiveContext();
-        void                          AcquireUploadContext();
-
-        void                          ReleaseActiveContext();
-        void                          ReleaseUploadContext();
-
-        void                          SubmitActiveContext();
-        void                          SubmitUploadContext();
-
-        void                          AddPrerequisiteSubmission(Ref<RhiTaskSubmission> submission);
-
-        inline bool                   IsImmediate() const { return mImmediateCmdList == nullptr; }
-
-    protected:
-        Owner<RhiCommandListContext> mActiveContext;
-        Owner<RhiCommandListContext> mUploadContext;
-        Ref<RhiTaskSubmission>       mLastActiveContextSubmission;
-        Ref<RhiTaskSubmission>       mLastUploadContextSubmission;
-
-        ERhiCommandListPipelineType  mRhiPipeline = ERhiCommandListPipelineType::Invalid;
-        Vec<Owner<RhiCommand>>       mCommands;
-        Vec<Ref<RhiTaskSubmission>>  mWaitSubmissions;
-
-        RhiCommandListBase*          mImmediateCmdList = nullptr;
-        bool                         mValid            = true;
-
-        friend class RhiCommandListExecutor;
+        void Initialize();
     };
 
-    // ===== Command List Executor =====
-    class IFRIT_RHI_API RhiCommandListExecutor : public RhiDeviceChild, public NonCopyable
-    {
-    public:
-        RhiCommandListBase* CreateCommandList(RhiCommandListBase* immediateCmdList = nullptr);
-        RhiCommandListBase* GetImmediateCommandList();
+     // ===== Command List Executor =====
+    struct RhiCommandListExecutorInternal;
+    class IFRIT_RHI_API RhiCommandListExecutor : public NonCopyable
+     {
+     public:
+        RhiCommandListExecutor();
+        ~RhiCommandListExecutor();
 
-    private:
-        RhiCommandListBase* mImmediateCmdList = nullptr;
-    };
-} // namespace Ifrit::RHI
+        RhiCommandListImmediate* GetImmediateCmdList();
+
+        void                     Init();
+        void                     PreFinalize();
+ 
+     private:
+        RhiCommandListExecutorInternal* mInternal;
+     };
+
+    IFRIT_RHI_API RhiCommandListExecutor* GetCommandListExecutor();
+    IFRIT_RHI_API void                    UnloadCommandListExecutor();
+ } // namespace Ifrit::RHI

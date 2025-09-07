@@ -1,49 +1,110 @@
-
-/*
-Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
 #include "RhiBaseTypes.h"
+#include "ifrit/rhi/common/RhiApi.h"
+#include "ifrit/rhi/common/RhiResource.h"
+#include <any>
 
 namespace Ifrit::RHI
 {
+    struct RhiShaderParameter;
+    struct RhiShaderVariantDesc;
+    struct RhiShaderCreateDesc;
 
-    class IFRIT_APIDECL RhiShader
+    struct RhiShaderCreateDesc
+    {
+        String               mName;
+        String               mFilePath;
+        String               mEntryPoint;
+        ERhiShaderStage      mStage      = ERhiShaderStage::Vertex;
+        ERhiShaderSourceType mSourceType = ERhiShaderSourceType::SlangCode;
+    };
+
+    // ===== Shader Resource =====
+
+    class IFRIT_RHI_API RhiShaderVariant
     {
     public:
-        virtual ERhiShaderStage GetStage() const             = 0;
-        virtual u32             GetNumDescriptorSets() const = 0;
+        virtual ~RhiShaderVariant() = default;
+
+        virtual u64          GetSignatureHash() const                                   = 0;
+        virtual RhiRawHandle GetRawHandle() const                                       = 0;
+        virtual bool         ValidateShaderParameters(const RhiShaderParameter& params) = 0;
+
+        virtual u32          GetRefl_PushConstantSize() const = 0;
     };
 
-    class IFRIT_APIDECL RhiShaderCollection
+    class IFRIT_RHI_API RhiShader : public RhiDeviceResource
     {
     public:
-        virtual RhiShader* GetVariant(const Vec<String>& defines) = 0;
-        virtual bool       MultiCompileReady()                    = 0;
+        RhiShader(RhiShaderCreateDesc desc) : RhiDeviceResource(ERhiResourceType::Shader), mDesc(desc) {}
+        virtual ~RhiShader() = default;
+
+        virtual RhiShaderVariant* GetVariant(const Vec<String>& keys) = 0;
+        virtual bool              IsMultiCompileReady()               = 0;
+
+    protected:
+        RhiShaderCreateDesc mDesc;
     };
 
-    class IFRIT_APIDECL RhiRTShaderBindingTable{ public : virtual void _polymorphismPlaceHolder(){} };
-
-    struct IFRIT_APIDECL RhiRTShaderGroup
+    struct RhiShaderVariantDesc
     {
-        RhiShader* m_generalShader      = nullptr;
-        RhiShader* m_closestHitShader   = nullptr;
-        RhiShader* m_anyHitShader       = nullptr;
-        RhiShader* m_intersectionShader = nullptr;
+        RhiShaderRef      mShader  = nullptr;
+        RhiShaderVariant* mVariant = nullptr;
+
+        bool              operator==(const RhiShaderVariantDesc& other) const
+        {
+            return (mShader == other.mShader) && (mVariant == other.mVariant);
+        }
+
+        u64 Hash() const
+        {
+            u64 addr1 = reinterpret_cast<u64>(mShader.get());
+            u64 addr2 = reinterpret_cast<u64>(mVariant);
+            return addr1 ^ addr2;
+        }
     };
+
+    // ===== Shader Registry =====
+    struct RhiShaderRegistryInternal;
+    class IFRIT_RHI_API RhiShaderRegistry
+    {
+    public:
+        RhiShaderRegistry();
+        virtual ~RhiShaderRegistry();
+        virtual RhiShaderRef RegisterShader(const RhiShaderCreateDesc& desc);
+        virtual RhiShaderRef GetShader(const String& name);
+
+    private:
+        RhiShaderRegistryInternal* mInternal = nullptr;
+    };
+
+    // ===== Shader Parameters =====
+    struct IFRIT_RHI_API RhiShaderParameter
+    {
+    public:
+        template <typename T> bool SetValue(const String& name, const T& value)
+        {
+            mParameters[name] = value;
+            return true;
+        }
+
+        template <typename T> T* GetValue(const String& name)
+        {
+            auto it = mParameters.find(name);
+            if (it != mParameters.end())
+            {
+                return std::any_cast<T>(&it->second);
+            }
+            return nullptr;
+        }
+
+        const HashMap<String, std::any>& GetAllParameters() const { return mParameters; }
+
+    protected:
+        HashMap<String, std::any> mParameters;
+    };
+
+    // ===== Shader Global Functions =====
+    IFRIT_RHI_API u32 GetMaxMultiCompileDirectives();
 
 } // namespace Ifrit::RHI

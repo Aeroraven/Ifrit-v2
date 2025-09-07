@@ -32,4 +32,11 @@ namespace Ifrit
             return h1 ^ h2;
         }
     };
+
+    template <typename... Types> std::size_t HashCombine(const Types&... args)
+    {
+        std::size_t seed = 0;
+        (..., (seed ^= std::hash<Types>{}(args) + 0x9e3779b9 + (seed << 6) + (seed >> 2)));
+        return seed;
+    }
 } // namespace Ifrit

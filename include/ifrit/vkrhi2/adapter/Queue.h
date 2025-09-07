@@ -27,12 +27,12 @@ namespace Ifrit::RHI::VulkanRHI2
     };
 
     struct VA_QueueInternal;
-    class IFRIT_VKRHI2_API VA_Queue
-    {
-    public:
+     class IFRIT_VKRHI2_API VA_Queue
+     {
+     public:
         VA_Queue(VA_Device* device, ERhiCommandListPipelineType pipeType, u32 familyIndex);
-        ~VA_Queue();
-
+         ~VA_Queue();
+ 
         u32                 GetFamilyIndex();
 
         void                EnqueueCommandTask(Ref<VA_CommandTask> task);
@@ -40,13 +40,17 @@ namespace Ifrit::RHI::VulkanRHI2
         void                ReleaseCommandPool(VA_CommandListPool* pool);
         void                ProcessQueuedTasks();
 
+        VkQueue             GetNativeQueue() const;
+
+        void                RecycleCmdLists();
+
     private:
         void                      SubmitCommandNative(VA_CommandListNative* cmd, Vec<Ref<VA_CommandSubmission>> toWait,
                                  VkFence fenceToSignal, VkSemaphore swapchainSemaToSignal, Ref<VA_CommandSubmission> desiredToSignalInfo);
         Ref<VA_CommandSubmission> PrepareSubmissionInfo();
-
-    private:
+ 
+     private:
         VA_QueueInternal* mInternal;
-    };
-
-} // namespace Ifrit::RHI::VulkanRHI2
+     };
+ 
+ } // namespace Ifrit::RHI::VulkanRHI2

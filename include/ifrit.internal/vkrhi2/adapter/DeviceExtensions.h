@@ -324,6 +324,19 @@ namespace Ifrit::RHI::VulkanRHI2
         ENABLE_PROC_LOADER(vkGetBufferDeviceAddress, bufferDeviceAddress);
     };
 
+    DECLARE_EXTENSION(VkPhysicalDeviceSynchronization2FeaturesKHR,
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES_KHR, VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
+        VA_Mandatory)
+    {
+        ENABLE_FEATURE(synchronization2, VA_Mandatory);
+
+        ENABLE_PROC_LOADER_ALWAYS(vkCmdSetEvent2);
+        ENABLE_PROC_LOADER_ALWAYS(vkCmdResetEvent2);
+        ENABLE_PROC_LOADER_ALWAYS(vkCmdWaitEvents2);
+        ENABLE_PROC_LOADER_ALWAYS(vkCmdPipelineBarrier2);
+        ENABLE_PROC_LOADER_ALWAYS(vkCmdWriteTimestamp2);
+    };
+
     DECLARE_EXTENSION(VkPhysicalDeviceDynamicRenderingFeaturesKHR,
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR, VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME,
         VA_Mandatory)

@@ -39,7 +39,7 @@ namespace Ifrit::Math
         {
             static_assert(sizeof(unsigned long) == 4, "Unexpected size of unsigned long");
             //__stosd((unsigned long*)src, std::bit_cast<unsigned long, T>(value), counts);
-            std::fill(src, src + counts, value); 
+            std::fill(src, src + counts, value);
         }
         else
         {
@@ -77,7 +77,15 @@ namespace Ifrit::Math
     }
 
     // Returns the log2 of x, rounded down. If x is 0, the result is undefined.
-    template <class T> inline i32 IntegerLog2(T x) { return (((sizeof(T) * 8)) - 1) - CountLeadingZero(x); }
+    template <class T> inline u32 IntegerLog2(T x) { return (((sizeof(T) * 8)) - 1) - CountLeadingZero(x); }
+
+    // Returns the log2 of x, rounded up. If x is 0, the result is undefined.
+    template <class T> inline u32 IntegerLog2RoundUp(T x)
+    {
+        if (x <= 1) IF_UNLIKELY
+            return 0;
+        return (sizeof(T) * 8) - CountLeadingZero(x - 1);
+    }
 
     /// Returns the number of trailing 0 - bits in x, starting at the most significant
     //  bit position. If x is 0, the result is undefined.

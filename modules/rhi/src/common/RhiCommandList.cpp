@@ -1,124 +1,146 @@
-#include "ifrit/rhi/common/RhiCommandList.h"
-#include "ifrit/core/logging/Logging.h"
-#include "ifrit/rhi/common/RhiDeviceProcs.h"
+ #include "ifrit/rhi/common/RhiCommandList.h"
+ #include "ifrit/core/logging/Logging.h"
+#include "ifrit/rhi/common/RhiDynamicUtils.h"
+#include "ifrit/rhi/common/RhiInterface.h"
+#include "ifrit/core/console/ConsoleObject.h"
+ 
+ namespace Ifrit::RHI
+ {
+ 
+    static TConsoleVariable<u32> cvRHIEnableTranslationThread(
+        "cv.RHI.EnableTranslationThread", false, "Enable RHI Translation Thread", CVF_ReadOnly);
 
-namespace Ifrit::RHI
-{
-    IFRIT_APIDECL void RhiCommandListBase::Submit()
-    {
-        Finalize();
-        AcquireActiveContext();
-    }
+    // ===== Command List Base (Recording) =====
+    // IRhiCommandContext* GetActiveContext() const;
+    // IRhiCommandContext* GetUploadContext() const;
 
-    IFRIT_APIDECL void RhiCommandListBase::Finalize()
+    IFRIT_APIDECL IRhiCommandContext* RhiCommandListBase::GetActiveContext()
     {
+
         if (mUploadContext)
         {
-            SubmitUploadContext();
+            // IF_LOG_INFO("RhiCommandListBase", "Flushing upload context before getting active context");
+            mUploadContext->SetLastUploadingTask(mLastUploadTask);
+            auto uploadFlush = mUploadContext->FlushCommands(ERhiCommandSubmissionAction::None);
+            mLastUploadTask  = uploadFlush;
         }
-        if (mActiveContext)
+
+        if (IsImmediate())
         {
-            SubmitActiveContext();
+            if (mLastUploadTask)
+                mActiveContextImm->SetLastUploadingTask(mLastUploadTask);
+            return mActiveContextImm;
         }
-    }
-
-    IFRIT_APIDECL void RhiCommandListBase::Init() { AcquireActiveContext(); }
-
-    IFRIT_APIDECL void RhiCommandListBase::SwitchPipeline(ERhiCommandListPipelineType type)
-    {
-        // TODO
-    }
-
-    IFRIT_APIDECL RhiCommandListContext* RhiCommandListBase::GetActiveContext()
-    {
-        if (mUploadContext)
+        else
         {
-            SubmitUploadContext();
+            IF_LOG_ASSERTION("RhiCommandListBase", mActiveContext != nullptr, "Active context is null");
+            return mActiveContext.get();
         }
-        return InternalGetActiveContext();
     }
 
-    IFRIT_APIDECL RhiCommandListContext* RhiCommandListBase::GetUploadContext()
+    IFRIT_APIDECL IRhiCommandContext* RhiCommandListBase::GetUploadContext()
     {
-        auto RHIProcs = mContext->GetDeviceRHIFunctions();
         if (!mUploadContext)
         {
-            AcquireUploadContext();
+            auto backend   = GetRhiBackend();
+            mUploadContext = std::move(backend->GetUploadContext());
         }
-        return InternalGetUploadContext();
+        return mUploadContext.get();
     }
 
-    IFRIT_APIDECL void RhiCommandListBase::AcquireActiveContext()
+    IFRIT_APIDECL void RhiCommandListBase::EnqueueRHICommand(Owner<RhiCommand> cmd)
     {
-        IF_LOG_ASSERTION(
-            "RhiCommandListBase", mRhiPipeline != ERhiCommandListPipelineType::Invalid, "Pipeline not set");
-        IF_LOG_ASSERTION("RhiCommandListBase", !mActiveContext, "Active context already acquired");
+        IF_LOG_ASSERTION("RhiCommandListBase", mValid, "Cannot enqueue command to invalid command list");
+        if (!mValid)
+            return;
 
-        auto RHIProcs = mContext->GetDeviceRHIFunctions();
-        if (!mActiveContext)
+        if (cvRHIEnableTranslationThread.GetValue())
         {
-            mActiveContext = RHIProcs->AcquireCommandListContext(mRhiPipeline, mImmediateCmdList);
+            mCommands.push_back(std::move(cmd));
+        }
+        else
+        {
+            cmd->Execute(this);
         }
     }
 
-    IFRIT_APIDECL void RhiCommandListBase::AcquireUploadContext()
+    IFRIT_APIDECL void RhiCommandListBase::EnqueueLambda(Fn<void(RhiCommandListBase*)> func)
     {
-        IF_LOG_ASSERTION("RhiCommandListBase", !mUploadContext, "Upload context already acquired");
-
-        auto RHIProcs = mContext->GetDeviceRHIFunctions();
-        if (!mUploadContext)
-        {
-            mUploadContext =
-                RHIProcs->AcquireCommandListContext(ERhiCommandListPipelineType::Graphics, mImmediateCmdList);
-        }
+        EnqueueRHICommand(MakeOwner<RhiCmd_Lambda>(std::move(func)));
     }
-
-    IFRIT_APIDECL void RhiCommandListBase::SubmitActiveContext()
+    IFRIT_APIDECL void RhiCommandListBase::SetComputePipelineState(const RhiComputePipelineStateDesc& desc)
     {
-        IF_LOG_ASSERTION("RhiCommandListBase", mActiveContext != nullptr, "No active context to submit");
-        IF_LOG_ASSERTION("RhiCommandListBase", mUploadContext == nullptr, "Upload context must be submitted first");
-
-        auto RHIProcs = mContext->GetDeviceRHIFunctions();
-        if (mActiveContext)
+        if (mRhiPipeline != ERhiCommandListPipelineType::Compute
+            || mRhiPipeline == ERhiCommandListPipelineType::Graphics)
         {
-            Vec<Ref<RhiTaskSubmission>> toWait = mWaitSubmissions;
-            if (mLastUploadContextSubmission)
-            {
-                toWait.push_back(mLastUploadContextSubmission);
-            }
-            for (auto& sub : mWaitSubmissions)
-            {
-                toWait.push_back(sub);
-            }
-            auto signaled = RHIProcs->SubmitCommandListContext(mActiveContext.get(), mImmediateCmdList, toWait);
-            mLastActiveContextSubmission = signaled;
-            mWaitSubmissions.clear();
-            if (!IsImmediate())
-            {
-                RHIProcs->ReleaseCommandListContext(std::move(mActiveContext), mImmediateCmdList);
-            }
+            IF_LOG_ASSERTION(
+                "RhiCommandListBase", false, "Cannot set compute pipeline state on non-compute command list");
+            return;
         }
-    }
 
-    IFRIT_APIDECL void RhiCommandListBase::SubmitUploadContext()
+        EnqueueRHICommand(MakeOwner<RhiCmd_SetComputePipelineState>(desc));
+    }
+    IFRIT_APIDECL void RhiCommandListBase::SetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc)
     {
-        IF_LOG_ASSERTION("RhiCommandListBase", mUploadContext != nullptr, "No upload context to submit");
-        IF_LOG_ASSERTION("RhiCommandListBase", mActiveContext == nullptr, "Active context must be submitted first");
-
-        auto RHIProcs = mContext->GetDeviceRHIFunctions();
-        if (mUploadContext)
+        if (mRhiPipeline != ERhiCommandListPipelineType::Graphics)
         {
-            Vec<Ref<RhiTaskSubmission>> toWait = mWaitSubmissions;
-            for (auto& sub : mWaitSubmissions)
-            {
-                toWait.push_back(sub);
-            }
-            auto signaled = RHIProcs->SubmitCommandListContext(mUploadContext.get(), mImmediateCmdList, toWait);
-            mLastUploadContextSubmission = signaled;
-            mWaitSubmissions.clear();
-
-            RHIProcs->ReleaseCommandListContext(std::move(mUploadContext), mImmediateCmdList);
+            IF_LOG_ASSERTION(
+                "RhiCommandListBase", false, "Cannot set graphics pipeline state on non-graphics command list");
+            return;
         }
+
+        EnqueueRHICommand(MakeOwner<RhiCmd_SetGraphicsPipelineState>(desc));
     }
 
-} // namespace Ifrit::RHI
+    // ===== Immediate Command List =====
+    IFRIT_APIDECL RhiCommandListImmediate::RhiCommandListImmediate()
+    {
+        mImmediateCmdList = nullptr;
+        mValid            = true;
+        mRhiPipeline      = ERhiCommandListPipelineType::Graphics;
+    }
+
+    IFRIT_APIDECL void RhiCommandListImmediate::Initialize()
+    {
+        mActiveContextImm = GetRhiBackend()->GetImmediateContext();
+        IF_LOG_INFO("RhiCommandListImmediate", "Initialized immediate command list");
+    }
+
+    // ===== Command List Executor =====
+    struct RhiCommandListExecutorInternal
+    {
+        Owner<RhiCommandListImmediate> mImmediateCmdList;
+    };
+
+    IFRIT_APIDECL RhiCommandListExecutor::RhiCommandListExecutor()
+    {
+        mInternal                    = new RhiCommandListExecutorInternal();
+        mInternal->mImmediateCmdList = MakeOwner<RhiCommandListImmediate>();
+    }
+
+    IFRIT_APIDECL RhiCommandListExecutor::~RhiCommandListExecutor()
+    {
+        if (mInternal)
+            delete mInternal;
+        mInternal = nullptr;
+    }
+
+    IFRIT_APIDECL RhiCommandListImmediate* RhiCommandListExecutor::GetImmediateCmdList()
+    {
+        return mInternal->mImmediateCmdList.get();
+    }
+    IFRIT_APIDECL void                    RhiCommandListExecutor::Init() { mInternal->mImmediateCmdList->Initialize(); }
+    IFRIT_APIDECL void                    RhiCommandListExecutor::PreFinalize() { this->~RhiCommandListExecutor(); }
+
+    IFRIT_APIDECL RhiCommandListExecutor* GetCommandListExecutor()
+    {
+        static RhiCommandListExecutor executor;
+        return &executor;
+    }
+    IFRIT_APIDECL void UnloadCommandListExecutor()
+    {
+        auto executor = GetCommandListExecutor();
+        executor->PreFinalize();
+    }
+
+ } // namespace Ifrit::RHI

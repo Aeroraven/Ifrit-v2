@@ -34,7 +34,7 @@ namespace Ayanami {
         uint m_RtW;
     };
 
-    IFSHADER_PUSHCONST PushConstant_T PushConst;
+    IFSHADER_PUSHCONST_DECL(PushConstant_T, PushConst);
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)
     IFSHADER_BLOCKSIZE(

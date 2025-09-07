@@ -5,6 +5,7 @@
 #include <functional>
 #include <ranges>
 #include <mutex>
+#include <condition_variable>
 namespace Ifrit
 {
     template <class T> void UnorderedFor(T start, T end, std::function<void(T)> func)
@@ -43,7 +44,9 @@ namespace Ifrit
     };
 
     // MUTEX
-    using Mutex      = std::mutex;
-    using ScopedLock = std::lock_guard<Mutex>;
+    using Mutex               = std::mutex;
+    using ScopedLock          = std::lock_guard<Mutex>;
+    using ConditionalVariable = std::condition_variable;
+    using UniqueLock          = std::unique_lock<Mutex>;
 
 } // namespace Ifrit

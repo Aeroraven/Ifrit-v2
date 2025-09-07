@@ -286,7 +286,7 @@ namespace Ifrit::RHI::VulkanAdapter
         return imageIndex;
     }
 
-    IFRIT_APIDECL void Swapchain::Present()
+    IFRIT_APIDECL void Swapchain::PresentInternal()
     {
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;

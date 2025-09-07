@@ -23,6 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "RhiDevice.h"
 #include "RhiCommandList.h"
 #include "RhiCommandListContext.h"
+#include "RhiShaderResource.h"
 
 #ifdef _WIN32
     #ifndef NOMINMAX
@@ -46,6 +47,8 @@ namespace Ifrit::RHI
         ERhiVendor             mPreferredVendor            = ERhiVendor::Any;
         u32                    mPreferredGraphcisAdapterId = ~0u;
 
+        String                 mCachePath = "";
+
 #ifdef _WIN32
         struct
         {
@@ -62,23 +65,53 @@ namespace Ifrit::RHI
 #endif
     };
 
-    // classes
+         // classes
     class IFRIT_RHI_API RhiBackendFactory
-    {
-    public:
-        virtual ~RhiBackendFactory()                                                = default;
-        virtual Owner<RhiBackend> CreateBackend(const RhiInitializeArguments& args) = 0;
-    };
-
+     {
+     public:
+         virtual ~RhiBackendFactory()                                                = default;
+         virtual Owner<RhiBackend> CreateBackend(const RhiInitializeArguments& args) = 0;
+     };
+ 
+    struct RhiBackendInternal;
     class IFRIT_RHI_API RhiBackend
-    {
+     {
     public:
-        virtual ~RhiBackend()                                                = default;
-        virtual void                Init(const RhiInitializeArguments& args) = 0;
-        virtual void                Finalize()                               = 0;
+        RhiBackend();
+        virtual ~RhiBackend();
+        virtual void                      Init(const RhiInitializeArguments& args) = 0;
+        virtual void                      Finalize()                               = 0;
 
-        virtual IRhiCommandContext* GetImmediateContext() = 0;
-    };
+        virtual IRhiCommandContext*       GetImmediateContext()                               = 0;
+        virtual Owner<IRhiCommandContext> GetUploadContext()                                  = 0;
+        virtual Owner<IRhiCommandContext> GetCommandContext(ERhiCommandListPipelineType type) = 0;
+        virtual RhiDynamicUtils*          GetDynamicUtils()                                   = 0;
+
+        virtual void                      BeginFrame() = 0;
+        virtual void                      EndFrame()   = 0;
+
+        virtual RhiTextureRef             CreateTexture(const RhiTextureDesc& desc)                       = 0;
+        virtual RhiBufferRef              CreateBuffer(const RhiBufferDesc& desc)                         = 0;
+        virtual RhiUAVRef                 CreateUAV(RhiTexture* texture, RhiImageSubResource subResource) = 0;
+        virtual RhiUAVRef                 CreateUAV(RhiBuffer* buffer)                                    = 0;
+        virtual RhiSRVRef                 CreateSRV(RhiTexture* texture, RhiImageSubResource subResource) = 0;
+        virtual RhiSRVRef                 CreateSRV(RhiBuffer* buffer)                                    = 0;
+ 
+    public:
+        virtual RhiShaderRef         CreateShader(const RhiShaderCreateDesc& desc);
+        virtual RhiShaderRef         GetShader(const String& name);
+        virtual RhiShaderVariantDesc GetShaderVariant(const String& name, const Vec<String>& keys);
+ 
+     public:
+        void InitRenderResources();
+        void Unload();
+
+    private:
+        RhiBackendInternal* mInternal = nullptr;
+     };
+ 
+    IFRIT_RHI_API void        SetRhiBackend(Owner<RhiBackend> backend);
+    IFRIT_RHI_API RhiBackend* GetRhiBackend();
 
     // class IFRIT_APIDECL RhiBackend
     // {
@@ -162,4 +195,4 @@ namespace Ifrit::RHI
     //     virtual RhiCommandListBase*            AllocateCommandList(ERhiQueueCapability req) = 0;
     // };
 
-} // namespace Ifrit::RHI
+ } // namespace Ifrit::RHI

@@ -23,7 +23,7 @@ namespace Ifrit::ShaderCompile::GLSLProc
     class IFRIT_SHADERCOMPILE_API GlslSpirvTranslator : public ShaderCompilerBase
     {
     private:
-        bool m_EnableReflection = false;
+        bool mEnableReflection = false;
 
     public:
         virtual ~GlslSpirvTranslator();

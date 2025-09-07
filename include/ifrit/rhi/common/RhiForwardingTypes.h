@@ -23,12 +23,15 @@ namespace Ifrit::RHI
     class RhiCommandListBase;
 
     class RhiShader;
-    class RhiShaderCollection;
+    class RhiShaderVariant;
 
     // Note here 'passes' are in fact 'pipeline references'
     // If two pass hold similar pipeline CI, they are the same
-    class RhiComputePass;
-    class RhiGraphicsPass;
+    // class RhiComputePass;
+    // class RhiGraphicsPass;
+
+    class RhiComputePipeline;
+    class RhiGraphicsPipeline;
 
     class RhiQueue;
     class RhiTaskSubmission;
@@ -73,6 +76,8 @@ namespace Ifrit::RHI
         Texture      = 2,
         SamplerState = 3,
         View         = 4,
+        Shader       = 5,
+        Pipeline     = 6,
     };
 
     namespace ERhiBufferUsageFlag
@@ -454,6 +459,12 @@ namespace Ifrit::RHI
         Front,
         Back
     };
+    enum class ERhiFrontFace
+    {
+        Clockwise,
+        CounterClockwise
+    };
+
     enum class ERhiRasterizerTopology
     {
         TriangleList,
@@ -478,6 +489,18 @@ namespace Ifrit::RHI
         Always
     };
 
+    enum class ERhiStencilOp
+    {
+        Keep,
+        Zero,
+        Replace,
+        IncrementAndClamp,
+        DecrementAndClamp,
+        Invert,
+        IncrementAndWrap,
+        DecrementAndWrap
+    };
+
     enum class ERhiResourceState
     {
         Undefined,
@@ -489,6 +512,8 @@ namespace Ifrit::RHI
         CopySrc,
         CopyDst,
         Present,
+        UnorderedAccess_Read,
+        UnorderedAccess_Write
     };
     enum class ERhiBarrierType
     {
@@ -542,6 +567,16 @@ namespace Ifrit::RHI
         Upload,
     };
 
+    enum class ERhiGlobalSamplerType
+    {
+        PointClamp,
+        PointWrap,
+        BilinearClamp,
+        BilinearWrap,
+        TrilinearClamp,
+        TrilinearWrap,
+    };
+
 } // namespace Ifrit::RHI
 
 namespace Ifrit::RHI
@@ -554,5 +589,27 @@ namespace Ifrit::RHI
     using RhiSRVRef = TCountRef<RhiShaderReadView>;
     using RhiCBVRef = TCountRef<RhiConstantBufferView>;
 
+    using RhiComputePipelineRef  = TCountRef<RhiComputePipeline>;
+    using RhiGraphicsPipelineRef = TCountRef<RhiGraphicsPipeline>;
+
+    using RhiShaderRef = TCountRef<RhiShader>;
+
     using RhiRawHandle = void*;
 } // namespace Ifrit::RHI
+
+// ===== Common Flags =====
+
+// Texture creation flags
+inline constexpr auto RHITexCreate_UAV          = Ifrit::RHI::ERhiImageUsageFlag::UnorderedAccess;
+inline constexpr auto RHITexCreate_RenderTarget = Ifrit::RHI::ERhiImageUsageFlag::RenderTarget;
+inline constexpr auto RHITexCreate_Depth        = Ifrit::RHI::ERhiImageUsageFlag::Depth;
+inline constexpr auto RHITexCreate_CPUWritable  = Ifrit::RHI::ERhiImageUsageFlag::CPUWritable;
+inline constexpr auto RHITexCreate_Transient    = Ifrit::RHI::ERhiImageUsageFlag::Transient;
+inline constexpr auto RHITexCreate_Presentable  = Ifrit::RHI::ERhiImageUsageFlag::Presentable;
+inline constexpr auto RHITexCreate_InputAttach  = Ifrit::RHI::ERhiImageUsageFlag::InputAttachment;
+
+// Pixel formats
+inline constexpr auto RHIPF_RGBA8_UINT    = Ifrit::RHI::ERhiImageFormat::R8G8B8A8_UINT;
+inline constexpr auto RHIPF_D32           = Ifrit::RHI::ERhiImageFormat::D32_SFLOAT;
+inline constexpr auto RHIPF_R32F          = Ifrit::RHI::ERhiImageFormat::R32_SFLOAT;
+inline constexpr auto RHIPF_R32G32B32A32F = Ifrit::RHI::ERhiImageFormat::R32G32B32A32_SFLOAT;

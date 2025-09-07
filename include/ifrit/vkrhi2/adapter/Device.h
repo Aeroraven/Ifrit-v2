@@ -16,6 +16,10 @@ namespace Ifrit::RHI::VulkanRHI2
     struct VA_Allocator;
     class VA_Queue;
     class VA_CommandListContext;
+    class VA_StagingBufferManager;
+    class VA_SamplerRegistry;
+    class VA_BindlessDescriptorHeap;
+    class VA_PipelineStateCacheRegistry;
 
     enum class EVA_QueueType : u32
     {
@@ -30,6 +34,8 @@ namespace Ifrit::RHI::VulkanRHI2
         virtual void AddResourceToDeleteQueue(RHI::RhiDeviceResource* resource);
         virtual i32  ProcessDeleteQueue();
         virtual ~ResourceDeleteQueue() { ProcessDeleteQueue(); }
+
+        void RemoveAllResources();
 
     private:
         u64                            mCurrentFrameStep = 0;
@@ -63,31 +69,49 @@ namespace Ifrit::RHI::VulkanRHI2
         virtual RhiCapabilityList              GetCapabilities() const override;
         virtual RhiPropertyList                GetProperties() const override;
         virtual IRhiDeviceResourceDeleteQueue* GetResourceDeleteQueue() override;
-
-        virtual RhiDeviceProcs*                GetDeviceRHIFunctions() const override;
+        virtual RhiDynamicUtils*               GetDeviceRHIFunctions() const override;
         virtual RhiCommandListExecutor*        GetCommandListExecutor() const override;
+        virtual String                         GetCacheDir() const override;
 
     public:
-        VA_Allocator*                GetAllocator();
-        VA_DeviceProcs&              GetDeviceProcs() const;
-        VA_ActiveQueueFamilyInfo     GetActiveQueueFamilies() const;
-        VA_ActiveQueueInfo           GetActiveQueues() const;
+         VA_Allocator*                  GetAllocator();
+         VA_DeviceProcs&                GetDeviceProcs() const;
+         VA_ActiveQueueFamilyInfo       GetActiveQueueFamilies() const;
+        VA_ActiveQueueInfo             GetActiveQueues() const;
+        VA_SamplerRegistry*            GetSamplerRegistry();
 
-        VA_CommandListContext*       GetImmediateContext() const;
-        Owner<VA_CommandListContext> GetUploadContext();
-        Owner<VA_CommandListContext> GetCommandContext(ERhiCommandListPipelineType type);
+        VA_CommandListContext*         GetImmediateContext() const;
+        Owner<VA_CommandListContext>   GetUploadContext();
+        Owner<VA_CommandListContext>   GetCommandContext(ERhiCommandListPipelineType type);
+        VA_StagingBufferManager*       GetStagingBufferManager();
+        RhiInitializeArguments         GetInitializationArgs() const;
+        VA_BindlessDescriptorHeap*     GetBindlessDescriptorHeap();
+        VA_PipelineStateCacheRegistry* GetPipelineStateCache();
 
-        // Vulkan specific
-        VkDevice                     GetVulkanDevice() const;
-        VkFormatProperties           GetFormatProperties(VkFormat format) const;
-        u64                          GetFrameId() const;
+        VA_Queue*                      GetPresentQueue();
 
-    private:
-        void Init();
+        void                           CpuWaitForAllQueuedTaskSubmission();
+
+        void                           FrameAdvance();
+ 
+         // Vulkan specific
+         VkDevice                       GetVulkanDevice() const;
+         VkFormatProperties             GetFormatProperties(VkFormat format) const;
+         u64                            GetFrameId() const;
+        VkInstance                     GetVulkanInstance() const;
+        VkPhysicalDevice               GetVulkanPhysicalDevice() const;
+        void                           SetupPresentQueue(VkSurfaceKHR surface);
+        void                           WaitIdle();
+
+        // Utility
+        bool                           IsDebugMode() const;
+ 
+     private:
+         void Init();
         void Shutdown();
-
-    private:
-        VA_DevicePrivate* mData;
+ 
+     private:
+         VA_DevicePrivate* mData;
     };
 
 } // namespace Ifrit::RHI::VulkanRHI2

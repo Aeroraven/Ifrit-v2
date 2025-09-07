@@ -23,39 +23,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 namespace Ifrit::RHI
 {
-    struct RhiUAVBarrier
+    enum class ERhiTransitionState
     {
-        ERhiResourceType m_type;
-        union
-        {
-            RhiBuffer*  m_buffer;
-            RhiTexture* m_texture;
-        };
+        Pending,
+        Begin,
+        End
     };
 
-    struct RhiTransitionBarrier
+    struct RhiResourceTransitionDesc
     {
-        ERhiResourceType m_type;
-        union
-        {
-            RhiBuffer*  m_buffer = nullptr;
-            RhiTexture* m_texture;
-        };
-        RhiImageSubResource m_subResource = { 0, 0, 1, 1 };
-        ERhiResourceState   m_srcState    = ERhiResourceState::Undefined;
-        ERhiResourceState   m_dstState    = ERhiResourceState::Undefined;
-
-        RhiTransitionBarrier() { m_texture = nullptr; }
+        ERhiResourceType    mType        = ERhiResourceType::Texture;
+        RhiTexture*         mTexture     = nullptr;
+        RhiBuffer*          mBuffer      = nullptr;
+        RhiImageSubResource mSubResource = { 0, 0, 1, 1 };
+        ERhiResourceState   mSrcState    = ERhiResourceState::Undefined;
+        ERhiResourceState   mDstState    = ERhiResourceState::Undefined;
     };
 
-    struct RhiResourceBarrier
+    struct RhiTransition
     {
-        ERhiBarrierType m_type = ERhiBarrierType::UAVAccess;
-        union
-        {
-            RhiUAVBarrier        m_uav;
-            RhiTransitionBarrier m_transition;
-        };
-        RhiResourceBarrier() { m_uav = {}; }
+        Atomic<ERhiTransitionState>    mState       = ERhiTransitionState::Pending;
+        ERhiPipelineType               mPipelineSrc = ERhiPipelineType::Graphics;
+        ERhiPipelineType               mPipelineDst = ERhiPipelineType::Graphics;
+        Vec<RhiResourceTransitionDesc> mTransitions;
+
+        Ref<RhiTaskSubmission>         mTransitionBeginSemaphore = nullptr;
     };
+
 } // namespace Ifrit::RHI

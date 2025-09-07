@@ -12,7 +12,7 @@ namespace Ifrit::RHI::VulkanRHI2
     {
         VkCommandBuffer            mCmd             = VK_NULL_HANDLE;
         EVA_CommandListNativeState mState           = EVA_CommandListNativeState::Undefined;
-        u32                        mSubmitTimestamp = 0;
+        u64                        mSubmitTimestamp = 0;
         VA_Device*                 mDevice          = nullptr;
     };
 
@@ -33,6 +33,11 @@ namespace Ifrit::RHI::VulkanRHI2
 
     IFRIT_APIDECL void                       VA_CommandListNative::Begin()
     {
+        if (!(mInternal->mState == EVA_CommandListNativeState::ReadyToBegin))
+        {
+            IF_LOG_WARNING("VA_CommandListNative", "Command buffer not in ReadyToBegin state, forcing to ReadyToBegin");
+            IF_LOG_WARNING("VA_CommandListNative", "Current state: {}", static_cast<u32>(mInternal->mState));
+        }
         IF_LOG_ASSERTION(
             "VA_CommandListNative", mInternal->mState == EVA_CommandListNativeState::ReadyToBegin, "State corrupted");
         mInternal->mState = EVA_CommandListNativeState::Recording;
@@ -45,7 +50,19 @@ namespace Ifrit::RHI::VulkanRHI2
         // todo: attach bindless descriptors
     }
 
-    IFRIT_APIDECL u32  VA_CommandListNative::GetSubmitTimestamp() const { return mInternal->mSubmitTimestamp; }
+    IFRIT_APIDECL u64  VA_CommandListNative::GetSubmitTimestamp() const { return mInternal->mSubmitTimestamp; }
+
+    IFRIT_APIDECL void VA_CommandListNative::ForceSetToReadyState()
+    {
+        mInternal->mState = EVA_CommandListNativeState::ReadyToBegin;
+    }
+
+    IFRIT_APIDECL void VA_CommandListNative::SetSubmitState()
+    {
+        IF_LOG_ASSERTION("VA_CommandListNative", mInternal->mState == EVA_CommandListNativeState::ReadyToSubmit,
+            "State corrupted when setting to submit state");
+        mInternal->mState = EVA_CommandListNativeState::Submitted;
+    }
 
     IFRIT_APIDECL void VA_CommandListNative::End()
     {
@@ -101,9 +118,10 @@ namespace Ifrit::RHI::VulkanRHI2
             auto  state           = cmd->GetState();
             auto  submitTimestamp = cmd->GetSubmitTimestamp();
 
-            if ((state == EVA_CommandListNativeState::Submitted || state == EVA_CommandListNativeState::ReadyToSubmit)
+            if ((state == EVA_CommandListNativeState::Submitted)
                 && mInternal->mDevice->GetFrameId() - submitTimestamp > cvVulkanCommandListTTL.GetValue())
             {
+                cmd->ForceSetToReadyState();
                 auto lastNonFreeId = mInternal->mAllocatedCommandBuffers.size() - 1 - numFreeCmds;
                 if (i != lastNonFreeId)
                 {
@@ -113,16 +131,30 @@ namespace Ifrit::RHI::VulkanRHI2
                 numFreeCmds++;
             }
         }
+
         if (numFreeCmds > 0)
         {
+            // IF_LOG_DEBUG("VA_CommandListPool", "Recycling {} command buffers", numFreeCmds);
             auto startIt = mInternal->mAllocatedCommandBuffers.end() - numFreeCmds;
-            mInternal->mFreeCommandBuffers.insert(mInternal->mFreeCommandBuffers.end(),
-                std::make_move_iterator(startIt), std::make_move_iterator(mInternal->mAllocatedCommandBuffers.end()));
+
+            // Revalidate states for cmds being recycled
+            for (auto it = startIt; it != mInternal->mAllocatedCommandBuffers.end(); it++)
+            {
+                auto state = (*it)->GetState();
+                IF_LOG_ASSERTION("VA_CommandListPool", state == EVA_CommandListNativeState::ReadyToBegin,
+                    "State corrupted when recycling command buffer, state: {}", static_cast<u32>(state));
+                mInternal->mFreeCommandBuffers.push_back(std::move(*it));
+            }
             mInternal->mAllocatedCommandBuffers.erase(startIt, mInternal->mAllocatedCommandBuffers.end());
         }
     }
 
-    IFRIT_APIDECL                       VA_CommandListPool::~VA_CommandListPool() { delete mInternal; }
+    IFRIT_APIDECL VA_CommandListPool::~VA_CommandListPool()
+    {
+        // delete command pool
+        vkDestroyCommandPool(mInternal->mDevice->GetVulkanDevice(), mInternal->mCmdPool, nullptr);
+        delete mInternal;
+    }
 
     IFRIT_APIDECL VA_CommandListNative* VA_CommandListPool::AllocateCommandBuffer()
     {

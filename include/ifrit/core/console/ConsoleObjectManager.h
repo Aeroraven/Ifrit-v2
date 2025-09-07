@@ -33,7 +33,7 @@ namespace Ifrit
 
     class IFRIT_CORE_API IFConsoleVariableRegistryEntry{};
 
-    template <typename T IF_REQUIRES(TypeIsAnyOf_v<T, i32, u32, f32, String>)>
+    template <typename T IF_REQUIRES(TypeIsAnyOf_v<T, i32, u32, f32, u64, i64, bool, String>)>
     class IFRIT_CORE_API FConsoleVariableRegistryEntry : public IFConsoleVariableRegistryEntry
     {
     public:
@@ -55,7 +55,10 @@ namespace Ifrit
     template class IFRIT_CORE_API FConsoleVariableRegistryEntry<i32>;
     template class IFRIT_CORE_API FConsoleVariableRegistryEntry<u32>;
     template class IFRIT_CORE_API FConsoleVariableRegistryEntry<f32>;
+    template class IFRIT_CORE_API FConsoleVariableRegistryEntry<i64>;
+    template class IFRIT_CORE_API FConsoleVariableRegistryEntry<u64>;
     template class IFRIT_CORE_API FConsoleVariableRegistryEntry<String>;
+    template class IFRIT_CORE_API FConsoleVariableRegistryEntry<bool>;
 
     struct FConsoleVariableRegistryData;
     class IFRIT_CORE_API FConsoleVariableRegistry
