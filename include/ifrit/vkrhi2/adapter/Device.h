@@ -74,9 +74,9 @@ namespace Ifrit::RHI::VulkanRHI2
         virtual String                         GetCacheDir() const override;
 
     public:
-         VA_Allocator*                  GetAllocator();
-         VA_DeviceProcs&                GetDeviceProcs() const;
-         VA_ActiveQueueFamilyInfo       GetActiveQueueFamilies() const;
+        VA_Allocator*                  GetAllocator();
+        VA_DeviceProcs&                GetDeviceProcs() const;
+        VA_ActiveQueueFamilyInfo       GetActiveQueueFamilies() const;
         VA_ActiveQueueInfo             GetActiveQueues() const;
         VA_SamplerRegistry*            GetSamplerRegistry();
 
@@ -93,11 +93,11 @@ namespace Ifrit::RHI::VulkanRHI2
         void                           CpuWaitForAllQueuedTaskSubmission();
 
         void                           FrameAdvance();
- 
-         // Vulkan specific
-         VkDevice                       GetVulkanDevice() const;
-         VkFormatProperties             GetFormatProperties(VkFormat format) const;
-         u64                            GetFrameId() const;
+
+        // Vulkan specific
+        VkDevice                       GetVulkanDevice() const;
+        VkFormatProperties             GetFormatProperties(VkFormat format) const;
+        u64                            GetFrameId() const;
         VkInstance                     GetVulkanInstance() const;
         VkPhysicalDevice               GetVulkanPhysicalDevice() const;
         void                           SetupPresentQueue(VkSurfaceKHR surface);
@@ -105,13 +105,13 @@ namespace Ifrit::RHI::VulkanRHI2
 
         // Utility
         bool                           IsDebugMode() const;
- 
-     private:
-         void Init();
+
+    private:
+        void Init();
         void Shutdown();
- 
-     private:
-         VA_DevicePrivate* mData;
+
+    private:
+        VA_DevicePrivate* mData;
     };
 
 } // namespace Ifrit::RHI::VulkanRHI2

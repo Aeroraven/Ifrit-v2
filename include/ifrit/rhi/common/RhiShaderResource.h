@@ -74,6 +74,8 @@ namespace Ifrit::RHI
         virtual RhiShaderRef RegisterShader(const RhiShaderCreateDesc& desc);
         virtual RhiShaderRef GetShader(const String& name);
 
+        virtual void         RequestShaderRegistryUnload();
+
     private:
         RhiShaderRegistryInternal* mInternal = nullptr;
     };

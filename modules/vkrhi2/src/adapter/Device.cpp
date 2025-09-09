@@ -1,11 +1,11 @@
- #include "ifrit/vkrhi2/adapter/Device.h"
- #include "ifrit/vkrhi2/util/Log.h"
+#include "ifrit/vkrhi2/adapter/Device.h"
+#include "ifrit/vkrhi2/util/Log.h"
 #include "ifrit/vkrhi2/adapter/Queue.h"
 #include "ifrit/vkrhi2/adapter/CommandContext.h"
- #include "ifrit/core/typing/Traits.h"
- #include "ifrit.internal/vkrhi2/adapter/DeviceUtils.h"
- #include "ifrit.internal/vkrhi2/adapter/DeviceExtensions.h"
- #include "ifrit.internal/vkrhi2/adapter/AllocatorWrapper.h"
+#include "ifrit/core/typing/Traits.h"
+#include "ifrit.internal/vkrhi2/adapter/DeviceUtils.h"
+#include "ifrit.internal/vkrhi2/adapter/DeviceExtensions.h"
+#include "ifrit.internal/vkrhi2/adapter/AllocatorWrapper.h"
 #include "ifrit/vkrhi2/adapter/MemoryResource.h"
 #include "ifrit/core/tasks/TaskScheduler.h"
 #include "ifrit/vkrhi2/adapter/DynamicUtils.h"
@@ -246,7 +246,7 @@ namespace Ifrit::RHI::VulkanRHI2
         IF_LOG_INFO("VA_Device", "Vulkan device created");
 
         // Dynamic Utils
-        mData->mDynamicUtils = MakeOwner<VA_DynamicUtils>(this);        
+        mData->mDynamicUtils = MakeOwner<VA_DynamicUtils>(this);
 
         // Device Procs
         LoadDeviceProcs(mData->mDevice);
@@ -262,7 +262,6 @@ namespace Ifrit::RHI::VulkanRHI2
             vmaCreateAllocator(&allocatorCI, &mData->mAllocator), "Failed to create Vulkan memory allocator");
 
         mData->mAllocatorWrapper.mAllocator = mData->mAllocator;
-
 
         // Create Queues
         mData->mActiveQueues.mGraphics =
@@ -314,6 +313,7 @@ namespace Ifrit::RHI::VulkanRHI2
         vkDeviceWaitIdle(mData->mDevice);
         mData->mDeleteQueue.RemoveAllResources();
 
+        mData->mPipelineStateCache     = nullptr;
         mData->mStagingBufferManager   = nullptr;
         mData->mSamplerRegistry        = nullptr;
         mData->mBindlessDescriptorHeap = nullptr;
@@ -386,7 +386,6 @@ namespace Ifrit::RHI::VulkanRHI2
         info.mTransfer     = mData->mQueueInfo.mTransfer.mFamilyIndex;
         return info;
     }
-
 
     IFRIT_APIDECL VA_ActiveQueueInfo VA_Device::GetActiveQueues() const
     {
@@ -474,6 +473,9 @@ namespace Ifrit::RHI::VulkanRHI2
 
     IFRIT_APIDECL VA_SamplerRegistry* VA_Device::GetSamplerRegistry() { return mData->mSamplerRegistry.get(); }
 
-    IFRIT_APIDECL VA_PipelineStateCacheRegistry* VA_Device::GetPipelineStateCache() { return nullptr; }
+    IFRIT_APIDECL VA_PipelineStateCacheRegistry* VA_Device::GetPipelineStateCache()
+    {
+        return mData->mPipelineStateCache.get();
+    }
 
- } // namespace Ifrit::RHI::VulkanRHI2
+} // namespace Ifrit::RHI::VulkanRHI2

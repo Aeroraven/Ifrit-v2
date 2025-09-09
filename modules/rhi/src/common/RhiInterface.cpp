@@ -33,6 +33,7 @@ namespace Ifrit::RHI
     IFRIT_RHI_API void RhiBackend::Unload()
     {
         UnloadCommandListExecutor();
+        mInternal->mShaderRegistry->RequestShaderRegistryUnload();
         mInternal->mShaderRegistry = nullptr;
     }
 

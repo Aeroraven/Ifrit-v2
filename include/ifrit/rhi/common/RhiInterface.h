@@ -65,17 +65,17 @@ namespace Ifrit::RHI
 #endif
     };
 
-         // classes
+    // classes
     class IFRIT_RHI_API RhiBackendFactory
-     {
-     public:
-         virtual ~RhiBackendFactory()                                                = default;
-         virtual Owner<RhiBackend> CreateBackend(const RhiInitializeArguments& args) = 0;
-     };
- 
+    {
+    public:
+        virtual ~RhiBackendFactory()                                                = default;
+        virtual Owner<RhiBackend> CreateBackend(const RhiInitializeArguments& args) = 0;
+    };
+
     struct RhiBackendInternal;
     class IFRIT_RHI_API RhiBackend
-     {
+    {
     public:
         RhiBackend();
         virtual ~RhiBackend();
@@ -96,20 +96,22 @@ namespace Ifrit::RHI
         virtual RhiUAVRef                 CreateUAV(RhiBuffer* buffer)                                    = 0;
         virtual RhiSRVRef                 CreateSRV(RhiTexture* texture, RhiImageSubResource subResource) = 0;
         virtual RhiSRVRef                 CreateSRV(RhiBuffer* buffer)                                    = 0;
- 
+
+        virtual RhiComputePipeline*       Experimental_GetComputePipeline(const RhiComputePipelineStateDesc& desc) = 0;
+
     public:
         virtual RhiShaderRef         CreateShader(const RhiShaderCreateDesc& desc);
         virtual RhiShaderRef         GetShader(const String& name);
         virtual RhiShaderVariantDesc GetShaderVariant(const String& name, const Vec<String>& keys);
- 
-     public:
+
+    public:
         void InitRenderResources();
         void Unload();
 
     private:
         RhiBackendInternal* mInternal = nullptr;
-     };
- 
+    };
+
     IFRIT_RHI_API void        SetRhiBackend(Owner<RhiBackend> backend);
     IFRIT_RHI_API RhiBackend* GetRhiBackend();
 
@@ -195,4 +197,4 @@ namespace Ifrit::RHI
     //     virtual RhiCommandListBase*            AllocateCommandList(ERhiQueueCapability req) = 0;
     // };
 
- } // namespace Ifrit::RHI
+} // namespace Ifrit::RHI

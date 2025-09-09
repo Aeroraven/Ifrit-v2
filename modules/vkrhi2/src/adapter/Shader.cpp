@@ -21,6 +21,7 @@ namespace Ifrit::RHI::VulkanRHI2
         VkPipelineShaderStageCreateInfo     mStageCI{};
         u64                                 mSignatureHash = 0;
         ShaderCompile::ShaderReflectionData mReflection;
+        String                              mEntryPoint;
     };
 
     VA_ShaderVariant::VA_ShaderVariant(VA_Device* device, const VA_ShaderVariantCI& ci, void* reflData)
@@ -59,8 +60,11 @@ namespace Ifrit::RHI::VulkanRHI2
         VA_AssertResult(vkCreateShaderModule(deviceNative, &moduleCI, nullptr, &mData->mShaderModule),
             "Failed to create shader module");
 
+        mData->mEntryPoint = ci.mEntryPoint;
+
         mData->mStageCI.module = mData->mShaderModule;
-        mData->mStageCI.pName  = ci.mEntryPoint.c_str();
+        mData->mStageCI.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        mData->mStageCI.pName  = mData->mEntryPoint.c_str();
         mData->mStageCI.pNext  = nullptr;
         mData->mStageCI.flags  = 0;
     }

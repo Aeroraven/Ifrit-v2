@@ -5,6 +5,8 @@
 #include "ifrit/vkrhi2/adapter/MemoryResource.h"
 #include "ifrit/vkrhi2/adapter/DisplayViewport.h"
 #include "ifrit/vkrhi2/adapter/DescriptorHeap.h"
+#include "ifrit/vkrhi2/adapter/PipelineState.h"
+
 namespace Ifrit::RHI::VulkanRHI2
 {
     struct VA_BackendInternal
@@ -141,5 +143,13 @@ namespace Ifrit::RHI::VulkanRHI2
         desc.mBufferView.mSize   = ~0u;
         auto view = new VA_ResourceViewSRV(desc, static_cast<VA_Buffer*>(buffer), mInternal->mDevice.get());
         return MakeCountRef<RhiShaderReadView>(view);
+    }
+
+    IFRIT_VKRHI2_API RhiComputePipeline* VA_Backend::Experimental_GetComputePipeline(
+        const RhiComputePipelineStateDesc& desc)
+    {
+        auto psoCache = mInternal->mDevice->GetPipelineStateCache();
+        auto pipeline = psoCache->GetComputePipeline(desc);
+        return pipeline;
     }
 } // namespace Ifrit::RHI::VulkanRHI2

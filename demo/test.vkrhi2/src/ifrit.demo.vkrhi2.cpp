@@ -131,8 +131,12 @@ namespace Ifrit
                     "C:/WR/Ifrit-v2/include/ifrit.shader.neo/Ayanami/Ayanami.Debug.GlobalDFRayMarch.comp.slang";
                 rhiShaderDesc.mName = "DebugGlobalDFRayMarchCS";
 
-                auto shader  = backend->CreateShader(rhiShaderDesc);
-                auto variant = backend->GetShaderVariant("DebugGlobalDFRayMarchCS", {});
+                auto                             shader  = backend->CreateShader(rhiShaderDesc);
+                auto                             variant = backend->GetShaderVariant("DebugGlobalDFRayMarchCS", {});
+
+                RHI::RhiComputePipelineStateDesc compDesc;
+                compDesc.mComputeShader = variant;
+                auto pipeline           = backend->Experimental_GetComputePipeline(compDesc);
             },
             Task::ENamedTaskThread::AnyThread, {}, nullptr);
         taskScheduler->WaitForTask(task);

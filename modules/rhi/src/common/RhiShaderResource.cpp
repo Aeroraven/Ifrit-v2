@@ -41,4 +41,13 @@ namespace Ifrit::RHI
         return shader;
     }
 
+    IFRIT_APIDECL void RhiShaderRegistry::RequestShaderRegistryUnload()
+    {
+        for (auto& [name, shader] : mInternal->mRegisteredShaders)
+        {
+            shader = nullptr;
+        }
+        mInternal->mRegisteredShaders.clear();
+    }
+
 } // namespace Ifrit::RHI

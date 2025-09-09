@@ -35,9 +35,11 @@ namespace Ifrit::RHI::VulkanRHI2
         RhiSRVRef                 CreateSRV(RhiTexture* texture, RhiImageSubResource subResource) override final;
         RhiSRVRef                 CreateSRV(RhiBuffer* buffer) override final;
 
+        RhiComputePipeline* Experimental_GetComputePipeline(const RhiComputePipelineStateDesc& desc) override final;
+
         // VA_Backend specific
-        VA_Device*                GetDevice() const;
-        VA_StagingBufferManager*  GetStagingBufferManager() const;
+        VA_Device*          GetDevice() const;
+        VA_StagingBufferManager* GetStagingBufferManager() const;
 
     private:
         VA_BackendInternal* mInternal;
