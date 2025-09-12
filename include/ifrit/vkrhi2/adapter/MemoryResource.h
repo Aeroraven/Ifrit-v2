@@ -13,6 +13,22 @@ namespace Ifrit::RHI::VulkanRHI2
 {
     class VA_Device;
 
+    // ==== Memory =====
+    struct VA_DeviceMemoryInternal;
+    class IFRIT_VKRHI2_API VA_DeviceMemory : public RhiDeviceMemory
+    {
+    public:
+        VA_DeviceMemory(VA_Device* device, const RhiDeviceMemoryDesc& desc);
+        virtual ~VA_DeviceMemory();
+
+        virtual RhiRawHandle GetRawHandle_Allocation() const override;
+
+    private:
+        VA_DeviceMemoryInternal* mData;
+    };
+
+    // ===== Buffers =====
+
     struct VA_BufferInternal;
     class IFRIT_VKRHI2_API VA_Buffer : public RhiBuffer
     {

@@ -318,6 +318,10 @@ namespace Ifrit::RHI::VulkanRHI2
         mData->mSamplerRegistry        = nullptr;
         mData->mBindlessDescriptorHeap = nullptr;
 
+        // Then wait for shader unload
+        vkDeviceWaitIdle(mData->mDevice);
+        mData->mDeleteQueue.RemoveAllResources();
+
         vmaDestroyAllocator(mData->mAllocator);
         vkDestroyDevice(mData->mDevice, nullptr);
         if (mData->mArgs.mDesiredCapabilities.bValidationLayerEnabled)
@@ -338,7 +342,7 @@ namespace Ifrit::RHI::VulkanRHI2
     {
         return mData->mPhysicalDevice.mPhysicalDevice;
     }
-
+    IFRIT_APIDECL void* VA_Device::GetVmaAllocator() const { return reinterpret_cast<void*>(mData->mAllocator); }
     IFRIT_APIDECL VA_CommandListContext* VA_Device::GetImmediateContext() const
     {
         return mData->mImmediateContext.get();

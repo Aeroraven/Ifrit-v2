@@ -62,7 +62,23 @@ namespace Ifrit
             return *this;
         }
 
-        TCountRef& operator=(const TCountRef& other) { return *this = other.m_ref; }
+        TCountRef& operator=(const TCountRef& other)
+        {
+            if (this != &other)
+            {
+                auto oldRef = m_ref;
+                m_ref       = other.m_ref;
+                if (m_ref)
+                {
+                    m_ref->AddRef();
+                }
+                if (oldRef)
+                {
+                    oldRef->Release();
+                }
+            }
+            return *this;
+        }
         TCountRef& operator=(TCountRef&& other)
         {
 
@@ -88,13 +104,22 @@ namespace Ifrit
         }
 
         RefType             operator->() const { return m_ref; }
-        RefType             get() const { return m_ref; }
-        RefType             get() { return m_ref; }
+        RefType             Get() const { return m_ref; }
+        RefType             Get() { return m_ref; }
 
         IF_FORCEINLINE bool operator==(const TCountRef& other) const { return m_ref == other.m_ref; }
         IF_FORCEINLINE bool operator!=(const TCountRef& other) const { return m_ref != other.m_ref; }
         IF_FORCEINLINE bool operator==(RefType other) const { return m_ref == other; }
         IF_FORCEINLINE bool operator!=(RefType other) const { return m_ref != other; }
+
+        u32                 GetRefCount() const
+        {
+            if (m_ref)
+            {
+                return m_ref->GetRefCount();
+            }
+            return 0;
+        }
     };
 
     // TODO: it's a better idea to follow RAII pattern, like make_shared

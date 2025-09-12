@@ -50,7 +50,7 @@ namespace Ifrit::RHI::VulkanRHI2
     }
     IFRIT_VKRHI2_API VA_ComputePipelineState::~VA_ComputePipelineState()
     {
-
+        IF_LOG_DEBUG("VA_ComputePipelineState", "Destroying compute pipeline state");
         if (mData->mPipeline != VK_NULL_HANDLE)
         {
             vkDestroyPipeline(static_cast<VA_Device*>(mContext)->GetVulkanDevice(), mData->mPipeline, nullptr);
@@ -65,6 +65,8 @@ namespace Ifrit::RHI::VulkanRHI2
         delete mData;
         mData = nullptr;
     }
+    VkPipeline       VA_ComputePipelineState::GetVulkanPipeline() const { return mData->mPipeline; }
+    VkPipelineLayout VA_ComputePipelineState::GetVulkanPipelineLayout() const { return mData->mPipelineLayout; }
 
     // ===== Graphics Pipeline State =====
     struct VA_GraphicsPipelineStateInternal
@@ -412,6 +414,8 @@ namespace Ifrit::RHI::VulkanRHI2
                 case ERhiBlendFactor::ConstantColor:
                     return VK_BLEND_FACTOR_CONSTANT_COLOR;
             }
+            IF_LOG_CRITICAL("VA_Pipeline", "Unknown blend factor");
+            return VK_BLEND_FACTOR_ZERO;
         };
 
         VkPipelineColorBlendStateCreateInfo colorBlendCI = {};
@@ -467,6 +471,8 @@ namespace Ifrit::RHI::VulkanRHI2
         delete mData;
         mData = nullptr;
     }
+    VkPipeline       VA_GraphicsPipelineState::GetVulkanPipeline() const { return mData->mPipeline; }
+    VkPipelineLayout VA_GraphicsPipelineState::GetVulkanPipelineLayout() const { return mData->mPipelineLayout; }
 
     // ===== Pipeline State Cache Registry =====
     struct VA_PipelineStateCacheRegistryInternal : public NonCopyable
@@ -483,6 +489,7 @@ namespace Ifrit::RHI::VulkanRHI2
     }
     IFRIT_VKRHI2_API VA_PipelineStateCacheRegistry::~VA_PipelineStateCacheRegistry()
     {
+        IF_LOG_INFO("VA_PipelineStateCacheRegistry", "Destroying pipeline state cache registry");
         delete mInternal;
         mInternal = nullptr;
     }

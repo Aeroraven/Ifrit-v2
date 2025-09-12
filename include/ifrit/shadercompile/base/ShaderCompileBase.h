@@ -118,7 +118,7 @@ namespace Ifrit::ShaderCompile
     struct ShaderIR
     {
         EShaderIRFormat mFormat;
-        TSizedBuffer    mData;
+        SizedBuffer    mData;
     };
 
     struct IFRIT_SHADERCOMPILE_API ShaderBinding

@@ -5,6 +5,8 @@
 #include "ifrit/core/console/ConsoleObject.h"
 #include "ifrit/vkrhi2/adapter/PipelineState.h"
 #include "ifrit.internal/vkrhi2/adapter/CmdHelpersBarrier.h"
+#include "ifrit/vkrhi2/adapter/Shader.h"
+#include "ifrit/vkrhi2/adapter/DescriptorHeap.h"
 
 namespace Ifrit::RHI::VulkanRHI2
 {
@@ -27,8 +29,10 @@ namespace Ifrit::RHI::VulkanRHI2
         VkSemaphore                    mExternalSema  = VK_NULL_HANDLE;
 
         // Pipeline States
+        ERhiPipelineBindpoint          mCurrentBindpoint = ERhiPipelineBindpoint::Compute;
         RhiComputePipelineStateDesc    mCurrentComputePSO;
         RhiGraphicsPipelineStateDesc   mCurrentGraphicsPSO;
+        RhiShaderParameter             mCurrentShaderParams;
         Task::TaskReference            mComputePSOCompilation  = nullptr;
         Task::TaskReference            mGraphicsPSOCompilation = nullptr;
     };
@@ -186,52 +190,55 @@ namespace Ifrit::RHI::VulkanRHI2
     // Commands
     IFRIT_VKRHI2_API void VA_CommandListContext::CmdSetComputePipelineState(const RhiComputePipelineStateDesc& desc)
     {
+        mInternal->mCurrentBindpoint  = ERhiPipelineBindpoint::Compute;
         mInternal->mCurrentComputePSO = desc;
         auto psoCache                 = static_cast<VA_Device*>(mInternal->mDevice)->GetPipelineStateCache();
         auto taskScheduler            = Task::GetTaskScheduler();
-        taskScheduler->EnqueueTask(
-            [this, psoCache, desc](Task::Task* task, void* payload) {
-                mInternal->mComputePSOCompilation = nullptr;
-                auto pso                          = psoCache->GetComputePipeline(desc);
-            },
-            Task::ENamedTaskThread::AnyThread, {}, nullptr);
+        //taskScheduler->EnqueueTask(
+        //    [this, psoCache, desc](Task::Task* task, void* payload) {
+        //        mInternal->mComputePSOCompilation = nullptr;
+        //        auto pso                          = psoCache->GetComputePipeline(desc);
+        //    },
+        //    Task::ENamedTaskThread::AnyThread, {}, nullptr);
     }
     IFRIT_VKRHI2_API void VA_CommandListContext::CmdSetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc)
     {
+        mInternal->mCurrentBindpoint   = ERhiPipelineBindpoint::Graphics;
         mInternal->mCurrentGraphicsPSO = desc;
         auto psoCache                  = static_cast<VA_Device*>(mInternal->mDevice)->GetPipelineStateCache();
         auto taskScheduler             = Task::GetTaskScheduler();
-        taskScheduler->EnqueueTask(
-            [this, psoCache, desc](Task::Task* task, void* payload) {
-                mInternal->mGraphicsPSOCompilation = nullptr;
-                auto pso                           = psoCache->GetGraphicsPipeline(desc);
-            },
-            Task::ENamedTaskThread::AnyThread, {}, nullptr);
+        //taskScheduler->EnqueueTask(
+        //    [this, psoCache, desc](Task::Task* task, void* payload) {
+        //        mInternal->mGraphicsPSOCompilation = nullptr;
+        //        auto pso                           = psoCache->GetGraphicsPipeline(desc);
+        //    },
+        //    Task::ENamedTaskThread::AnyThread, {}, nullptr);
     }
-    IFRIT_VKRHI2_API void VA_CommandListContext::CmdBeginTransition(RhiTransition& transition)
+    void VA_CommandListContext::CmdSetShaderParameters(const RhiShaderParameter& params)
     {
-        if (transition.mTransitions.empty())
-            return;
-        if (transition.mState != ERhiTransitionState::Pending)
+        VA_ShaderVariant* shaderVariant = nullptr;
+        if (mInternal->mCurrentBindpoint == ERhiPipelineBindpoint::Compute)
         {
-            IF_LOG_CRITICAL("VA_CommandListContext", "Transition already begun or ended");
+            shaderVariant = CheckedCast<VA_ShaderVariant>(mInternal->mCurrentComputePSO.mComputeShader.mVariant);
         }
-        bool                requireSplitCmdBuf = (transition.mPipelineDst != transition.mPipelineSrc);
-
-        VA_PipelineBarriers barriers;
-        barriers.SetQueueInfo(mInternal->mDevice->GetActiveQueueFamilies());
-        barriers.TranslateFromRhiBarriers(transition, true);
-        auto cmd = GetCommandBuffer();
-        barriers.ExecuteNative(cmd->GetCmd());
-
-        if (requireSplitCmdBuf)
+        else if (mInternal->mCurrentBindpoint == ERhiPipelineBindpoint::Graphics)
         {
-            auto submission                      = FlushAllTaskSections();
-            transition.mTransitionBeginSemaphore = submission;
-
-            RegisterDependencies({ submission });
+            shaderVariant = CheckedCast<VA_ShaderVariant>(mInternal->mCurrentGraphicsPSO.mVertexShader.mVariant);
+            if (!shaderVariant)
+            {
+                shaderVariant = CheckedCast<VA_ShaderVariant>(mInternal->mCurrentGraphicsPSO.mPixelShader.mVariant);
+            }
+            if (!shaderVariant)
+            {
+                shaderVariant = CheckedCast<VA_ShaderVariant>(mInternal->mCurrentGraphicsPSO.mMeshShader.mVariant);
+            }
         }
-        transition.mState = ERhiTransitionState::Begin;
+        auto validity = shaderVariant->ValidateShaderParameters(params);
+        IF_LOG_ASSERTION("VA_CommandListContext", validity, "Shader parameters validation failed");
+        if (validity)
+        {
+            mInternal->mCurrentShaderParams = params;
+        }
     }
     IFRIT_VKRHI2_API void VA_CommandListContext::CmdBeginTransitionList(const Vec<Ref<RhiTransition>>& transitions)
     {
@@ -279,37 +286,6 @@ namespace Ifrit::RHI::VulkanRHI2
         }
     }
 
-    IFRIT_VKRHI2_API void VA_CommandListContext::CmdEndTransition(RhiTransition& transition)
-    {
-
-        if (transition.mTransitions.empty())
-            return;
-        if (transition.mState != ERhiTransitionState::Begin)
-        {
-            IF_LOG_CRITICAL("VA_CommandListContext", "Transition not begun or already ended");
-        }
-        if (transition.mTransitions.empty())
-            return;
-        bool requireSplitCmdBuf = (transition.mPipelineDst != transition.mPipelineSrc);
-
-        if (!requireSplitCmdBuf)
-            return;
-
-        auto                submissionCurrent = FlushAllTaskSections();
-
-        VA_PipelineBarriers barriers;
-        barriers.SetQueueInfo(mInternal->mDevice->GetActiveQueueFamilies());
-        barriers.TranslateFromRhiBarriers(transition, false);
-        auto cmd = GetCommandBuffer();
-        barriers.ExecuteNative(cmd->GetCmd());
-
-        auto submissionNative = CheckedPointerCast<VA_CommandSubmission>(transition.mTransitionBeginSemaphore);
-        if (submissionNative)
-        {
-            RegisterDependencies({ submissionNative, submissionCurrent });
-        }
-        transition.mState = ERhiTransitionState::End;
-    }
     IFRIT_VKRHI2_API void VA_CommandListContext::CmdEndTransitionList(const Vec<Ref<RhiTransition>>& transitions)
     {
         bool                           shouldFlushCmds = false;
@@ -356,6 +332,86 @@ namespace Ifrit::RHI::VulkanRHI2
                 transition->mState = ERhiTransitionState::End;
             }
             RegisterDependencies(submissionsToRegister);
+        }
+    }
+
+    IFRIT_VKRHI2_API void VA_CommandListContext::CmdDispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ)
+    {
+        ApplyPipelineStateChange();
+        ApplyShaderParameterChange();
+        auto cmd       = GetCommandBuffer();
+        auto nativeCmd = cmd->GetCmd();
+        vkCmdDispatch(nativeCmd, groupCountX, groupCountY, groupCountZ);
+    }
+
+    // Helpers
+    IFRIT_APIDECL void VA_CommandListContext::ApplyShaderParameterChange()
+    {
+        auto cmd       = GetCommandBuffer();
+        auto nativeCmd = cmd->GetCmd();
+        auto psoCache  = static_cast<VA_Device*>(mInternal->mDevice)->GetPipelineStateCache();
+        if (mInternal->mCurrentBindpoint == ERhiPipelineBindpoint::Compute)
+        {
+            auto& pso       = mInternal->mCurrentComputePSO;
+            auto  psoNative = psoCache->GetComputePipeline(pso);
+            auto  shader    = CheckedCast<VA_ShaderVariant>(pso.mComputeShader.mVariant);
+            auto  rootConst = shader->GetRootConstantData(mInternal->mCurrentShaderParams);
+            auto  layout    = psoNative->GetVulkanPipelineLayout();
+            if (rootConst.GetSize() > 0)
+            {
+                vkCmdPushConstants(
+                    nativeCmd, layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, rootConst.GetSize(), rootConst.GetData());
+            }
+        }
+        else if (mInternal->mCurrentBindpoint == ERhiPipelineBindpoint::Graphics)
+        {
+            auto&             pso       = mInternal->mCurrentGraphicsPSO;
+            auto              psoNative = psoCache->GetGraphicsPipeline(pso);
+            VA_ShaderVariant* shader    = nullptr;
+            shader                      = CheckedCast<VA_ShaderVariant>(pso.mVertexShader.mVariant);
+            if (!shader)
+            {
+                shader = CheckedCast<VA_ShaderVariant>(pso.mPixelShader.mVariant);
+            }
+            if (!shader)
+            {
+                shader = CheckedCast<VA_ShaderVariant>(pso.mMeshShader.mVariant);
+            }
+            auto rootConst = shader->GetRootConstantData(mInternal->mCurrentShaderParams);
+            auto layout    = psoNative->GetVulkanPipelineLayout();
+            if (rootConst.GetSize() > 0)
+            {
+                vkCmdPushConstants(
+                    nativeCmd, layout, VK_SHADER_STAGE_ALL_GRAPHICS, 0, rootConst.GetSize(), rootConst.GetData());
+            }
+        }
+        else
+        {
+            IF_LOG_CRITICAL("VA_CommandListContext", "No valid pipeline bound");
+        }
+    }
+    IFRIT_APIDECL void VA_CommandListContext::ApplyPipelineStateChange()
+    {
+        auto cmd       = GetCommandBuffer();
+        auto nativeCmd = cmd->GetCmd();
+        auto psoCache  = static_cast<VA_Device*>(mInternal->mDevice)->GetPipelineStateCache();
+        auto bindlessDescriptorSet =
+            static_cast<VA_Device*>(mInternal->mDevice)->GetBindlessDescriptorHeap()->GetDescriptorSet();
+        if (mInternal->mCurrentBindpoint == ERhiPipelineBindpoint::Compute)
+        {
+            auto& pso       = mInternal->mCurrentComputePSO;
+            auto  psoNative = psoCache->GetComputePipeline(pso);
+            vkCmdBindPipeline(nativeCmd, VK_PIPELINE_BIND_POINT_COMPUTE, psoNative->GetVulkanPipeline());
+            vkCmdBindDescriptorSets(nativeCmd, VK_PIPELINE_BIND_POINT_COMPUTE, psoNative->GetVulkanPipelineLayout(), 0,
+                1, &bindlessDescriptorSet, 0, nullptr);
+        }
+        else if (mInternal->mCurrentBindpoint == ERhiPipelineBindpoint::Graphics)
+        {
+            auto& pso       = mInternal->mCurrentGraphicsPSO;
+            auto  psoNative = psoCache->GetGraphicsPipeline(pso);
+            vkCmdBindPipeline(nativeCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, psoNative->GetVulkanPipeline());
+            vkCmdBindDescriptorSets(nativeCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, psoNative->GetVulkanPipelineLayout(), 0,
+                1, &bindlessDescriptorSet, 0, nullptr);
         }
     }
 } // namespace Ifrit::RHI::VulkanRHI2

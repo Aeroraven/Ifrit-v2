@@ -48,6 +48,15 @@ namespace Ifrit::RHI
             shader = nullptr;
         }
         mInternal->mRegisteredShaders.clear();
+        IF_LOG_DEBUG("RhiShaderRegistry", "Shader registry unloaded");
+    }
+
+    // ===== Shader Parameters =====
+    IFRIT_APIDECL SizedBuffer RhiShaderParameter::GetRootConstantData(RhiShaderVariant* variant)
+    {
+        auto backend  = GetRhiBackend();
+        auto dynUtils = backend->GetDynamicUtils();
+        return dynUtils->GetRootConstantData_RhiInternal(variant, *this);
     }
 
 } // namespace Ifrit::RHI

@@ -57,6 +57,12 @@ namespace Ifrit::RHI::VulkanRHI2
     {
         return mInternal->mDevice->GetStagingBufferManager();
     }
+
+    IFRIT_VKRHI2_API RhiCapabilityList VA_Backend::GetCapabilities() const
+    {
+        return mInternal->mDevice->GetCapabilities();
+    }
+
     IFRIT_VKRHI2_API IRhiCommandContext* VA_Backend::GetImmediateContext()
     {
         auto ret = mInternal->mDevice->GetImmediateContext();

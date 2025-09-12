@@ -124,28 +124,42 @@ namespace Ifrit
         auto task = taskScheduler->EnqueueTask(
             [&](Task::Task*, void*) {
                 auto rhiShaderDesc        = RHI::RhiShaderCreateDesc();
-                rhiShaderDesc.mEntryPoint = "DebugGlobalDFRayMarchCS";
+                rhiShaderDesc.mEntryPoint = "TestCS";
                 rhiShaderDesc.mSourceType = RHI::ERhiShaderSourceType::SlangCode;
                 rhiShaderDesc.mStage      = RHI::ERhiShaderStage::Compute;
-                rhiShaderDesc.mFilePath =
-                    "C:/WR/Ifrit-v2/include/ifrit.shader.neo/Ayanami/Ayanami.Debug.GlobalDFRayMarch.comp.slang";
-                rhiShaderDesc.mName = "DebugGlobalDFRayMarchCS";
+                rhiShaderDesc.mFilePath   = "D:/Project2/Ifrit-v2/include/ifrit.shader.neo/TestCS.comp.slang";
+                rhiShaderDesc.mName       = "TestCS";
 
-                auto                             shader  = backend->CreateShader(rhiShaderDesc);
-                auto                             variant = backend->GetShaderVariant("DebugGlobalDFRayMarchCS", {});
-
-                RHI::RhiComputePipelineStateDesc compDesc;
-                compDesc.mComputeShader = variant;
-                auto pipeline           = backend->Experimental_GetComputePipeline(compDesc);
+                backend->CreateShader(rhiShaderDesc);
             },
             Task::ENamedTaskThread::AnyThread, {}, nullptr);
         taskScheduler->WaitForTask(task);
 
+        RHI::RhiBufferDesc bufDesc = {};
+        bufDesc.mSize              = 114;
+        bufDesc.mFlags = RHI::ERhiBufferUsageFlag::UnorderedAccess | RHI::ERhiBufferUsageFlag::StructuredBuffer
+            | RHI::ERhiBufferUsageFlag::CopySrc;
+        bufDesc.mName = "TestBuffer";
+        auto buffer   = backend->CreateBuffer(bufDesc);
+
+        auto bufferUAV = backend->CreateUAV(buffer.get());
+
         provider->Loop([&](int* unused) {
             backend->BeginFrame();
-            RHI::RhiTextureDesc desc = RHI::RhiTextureDesc::CreateTexture2D(512, 512, RHIPF_R32F, RHITexCreate_UAV, 1);
-            auto                tex  = backend->CreateTexture(desc);
-            auto                srv  = backend->CreateSRV(tex.get(), { 0, 0, 1, 1 });
+
+            auto                             variant = backend->GetShaderVariant("TestCS", {});
+            RHI::RhiComputePipelineStateDesc compDesc;
+            compDesc.mComputeShader = variant;
+
+            auto cmd = RHI::GetCommandListExecutor()->GetImmediateCmdList();
+
+            cmd->SetComputePipelineState(compDesc);
+
+            RHI::RhiShaderParameter params;
+            params.SetValue("mData", bufferUAV->GetHandle());
+            cmd->SetShaderParameters(params);
+
+            cmd->Dispatch(1, 1, 1);
 
             backend->EndFrame();
         });

@@ -1,12 +1,12 @@
- #include "ifrit/rhi/common/RhiCommandList.h"
- #include "ifrit/core/logging/Logging.h"
+#include "ifrit/rhi/common/RhiCommandList.h"
+#include "ifrit/core/logging/Logging.h"
 #include "ifrit/rhi/common/RhiDynamicUtils.h"
 #include "ifrit/rhi/common/RhiInterface.h"
 #include "ifrit/core/console/ConsoleObject.h"
- 
- namespace Ifrit::RHI
- {
- 
+
+namespace Ifrit::RHI
+{
+
     static TConsoleVariable<u32> cvRHIEnableTranslationThread(
         "cv.RHI.EnableTranslationThread", false, "Enable RHI Translation Thread", CVF_ReadOnly);
 
@@ -71,7 +71,7 @@
     IFRIT_APIDECL void RhiCommandListBase::SetComputePipelineState(const RhiComputePipelineStateDesc& desc)
     {
         if (mRhiPipeline != ERhiCommandListPipelineType::Compute
-            || mRhiPipeline == ERhiCommandListPipelineType::Graphics)
+            && mRhiPipeline != ERhiCommandListPipelineType::Graphics)
         {
             IF_LOG_ASSERTION(
                 "RhiCommandListBase", false, "Cannot set compute pipeline state on non-compute command list");
@@ -90,6 +90,31 @@
         }
 
         EnqueueRHICommand(MakeOwner<RhiCmd_SetGraphicsPipelineState>(desc));
+    }
+    IFRIT_APIDECL void RhiCommandListBase::SetShaderParameters(const RhiShaderParameter& params)
+    {
+        EnqueueRHICommand(MakeOwner<RhiCmd_SetShaderParameters>(params));
+    }
+
+    IFRIT_APIDECL void RhiCommandListBase::BeginTransitions(const Vec<Ref<RhiTransition>>& transitions)
+    {
+        EnqueueRHICommand(MakeOwner<RhiCmd_BeginTransitions>(transitions));
+    }
+    IFRIT_APIDECL void RhiCommandListBase::EndTransitions(const Vec<Ref<RhiTransition>>& transitions)
+    {
+        EnqueueRHICommand(MakeOwner<RhiCmd_EndTransitions>(transitions));
+    }
+
+    IFRIT_APIDECL void RhiCommandListBase::Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ)
+    {
+        if (mRhiPipeline != ERhiCommandListPipelineType::Compute
+            && mRhiPipeline != ERhiCommandListPipelineType::Graphics)
+        {
+            IF_LOG_ASSERTION("RhiCommandListBase", false, "Cannot dispatch on non-compute command list");
+            return;
+        }
+
+        EnqueueRHICommand(MakeOwner<RhiCmd_Dispatch>(groupCountX, groupCountY, groupCountZ));
     }
 
     // ===== Immediate Command List =====
@@ -143,4 +168,4 @@
         executor->PreFinalize();
     }
 
- } // namespace Ifrit::RHI
+} // namespace Ifrit::RHI

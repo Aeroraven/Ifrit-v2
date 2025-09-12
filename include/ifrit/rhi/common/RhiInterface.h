@@ -82,6 +82,8 @@ namespace Ifrit::RHI
         virtual void                      Init(const RhiInitializeArguments& args) = 0;
         virtual void                      Finalize()                               = 0;
 
+        virtual RhiCapabilityList         GetCapabilities() const = 0;
+
         virtual IRhiCommandContext*       GetImmediateContext()                               = 0;
         virtual Owner<IRhiCommandContext> GetUploadContext()                                  = 0;
         virtual Owner<IRhiCommandContext> GetCommandContext(ERhiCommandListPipelineType type) = 0;

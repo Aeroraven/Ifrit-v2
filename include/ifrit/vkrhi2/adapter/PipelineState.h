@@ -14,6 +14,9 @@ namespace Ifrit::RHI::VulkanRHI2
         VA_ComputePipelineState(const RHI::RhiComputePipelineStateDesc& desc, VA_Device* device);
         virtual ~VA_ComputePipelineState();
 
+        VkPipeline       GetVulkanPipeline() const;
+        VkPipelineLayout GetVulkanPipelineLayout() const;
+
     private:
         VA_ComputePipelineStateInternal* mData = nullptr;
     };
@@ -24,6 +27,9 @@ namespace Ifrit::RHI::VulkanRHI2
     public:
         VA_GraphicsPipelineState(const RHI::RhiGraphicsPipelineStateDesc& desc, VA_Device* device);
         virtual ~VA_GraphicsPipelineState();
+
+        VkPipeline       GetVulkanPipeline() const;
+        VkPipelineLayout GetVulkanPipelineLayout() const;
 
     private:
         VA_GraphicsPipelineStateInternal* mData = nullptr;

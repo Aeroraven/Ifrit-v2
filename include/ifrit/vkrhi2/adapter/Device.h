@@ -100,6 +100,7 @@ namespace Ifrit::RHI::VulkanRHI2
         u64                            GetFrameId() const;
         VkInstance                     GetVulkanInstance() const;
         VkPhysicalDevice               GetVulkanPhysicalDevice() const;
+        void*                          GetVmaAllocator() const; // VmaAllocator
         void                           SetupPresentQueue(VkSurfaceKHR surface);
         void                           WaitIdle();
 

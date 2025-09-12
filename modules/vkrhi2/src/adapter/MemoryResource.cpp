@@ -23,6 +23,8 @@ namespace Ifrit::RHI::VulkanRHI2
     static TConsoleVariable<u32> cvVulkanStagingBufferGranularity(
         "cv.VulkanRHI2.StagingBufferGranularity", 32, "Vulkan Staging Buffer Granularity", CVF_ReadOnly);
 
+    // ===== Internals =====
+
     struct VA_BufferInternal
     {
         VkBuffer          mBuffer;
@@ -43,6 +45,62 @@ namespace Ifrit::RHI::VulkanRHI2
         VmaAllocationInfo mAllocInfo;
         bool              mCreated = false;
     };
+
+    struct VA_DeviceMemoryInternal
+    {
+        VmaAllocation     mAllocation;
+        VmaAllocationInfo mAllocInfo;
+        bool              mCreated = false;
+    };
+
+    // ===== Memory =====
+
+    VA_DeviceMemory::VA_DeviceMemory(VA_Device* device, const RhiDeviceMemoryDesc& desc) : RhiDeviceMemory(desc)
+    {
+        auto castedCtx = CheckedCast<VA_Device>(device);
+
+        IF_LOG_ASSERTION("VulkanRHI2", desc.mSize > 0, "Memory size must be greater than 0");
+
+        mContext        = device;
+        mData           = new VA_DeviceMemoryInternal();
+        mData->mCreated = false;
+
+        auto                    allocator = reinterpret_cast<VmaAllocator>(castedCtx->GetVmaAllocator());
+        VmaAllocationCreateInfo allocCI{};
+        allocCI.usage = VMA_MEMORY_USAGE_AUTO;
+        if (HasFlagBit(desc.mFlags, ERhiMemoryFlagBits::CPUAccess))
+        {
+            allocCI.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        }
+        allocCI.requiredFlags = 0;
+
+        u32 memoryIdx;
+        vmaFindMemoryTypeIndex(allocator, 0xffffffffu, &allocCI, &memoryIdx);
+
+        VkMemoryRequirements descx{};
+        descx.memoryTypeBits = (1 << memoryIdx);
+        descx.size           = desc.mSize;
+        descx.alignment      = desc.mAlignment;
+
+        VA_AssertResult(vmaAllocateMemory(castedCtx->GetAllocator()->mAllocator, &descx, &allocCI, &mData->mAllocation,
+                            &mData->mAllocInfo),
+            "Failed to allocate memory");
+
+        mData->mCreated = true;
+    }
+
+    VA_DeviceMemory::~VA_DeviceMemory()
+    {
+        if (mData->mCreated)
+        {
+            auto castedCtx = CheckedCast<VA_Device>(mContext);
+            vmaFreeMemory(castedCtx->GetAllocator()->mAllocator, mData->mAllocation);
+        }
+        delete mData;
+        mData = nullptr;
+    }
+
+    RhiRawHandle VA_DeviceMemory::GetRawHandle_Allocation() const { return (RhiRawHandle)mData->mAllocation; }
 
     // ===== VA Buffer =====
     VA_Buffer::VA_Buffer(RhiDevice* device, const RhiBufferDesc& desc) : RhiBuffer(desc)
@@ -120,24 +178,52 @@ namespace Ifrit::RHI::VulkanRHI2
         bufferCI.usage       = desiredUsage;
         bufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        VmaAllocationCreateInfo allocCI{};
-        allocCI.usage = VMA_MEMORY_USAGE_AUTO;
-        if (isHostVisible)
-        {
-            allocCI.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-        }
-        VA_AssertResult(vmaCreateBuffer(castedCtx->GetAllocator()->mAllocator, &bufferCI, &allocCI, &mData->mBuffer,
-                            &mData->mAllocation, &mData->mAllocInfo),
-            "Failed to create buffer");
+        bool isAliasedResource = HasFlagBit(desc.mFlags, ERhiBufferUsageFlag::Aliasing);
 
-        // get device address
-        if (isBufferDeviceAddr)
+        if (!isAliasedResource)
         {
-            VkBufferDeviceAddressInfo bufferDeviceAddrInfo{};
-            bufferDeviceAddrInfo.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-            bufferDeviceAddrInfo.buffer = mData->mBuffer;
-            mData->mDeviceAddress       = castedCtx->GetDeviceProcs().p_vkGetBufferDeviceAddress(
-                castedCtx->GetVulkanDevice(), &bufferDeviceAddrInfo);
+            VmaAllocationCreateInfo allocCI{};
+            allocCI.usage = VMA_MEMORY_USAGE_AUTO;
+            if (isHostVisible)
+            {
+                allocCI.flags |=
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            }
+            VA_AssertResult(vmaCreateBuffer(castedCtx->GetAllocator()->mAllocator, &bufferCI, &allocCI, &mData->mBuffer,
+                                &mData->mAllocation, &mData->mAllocInfo),
+                "Failed to create buffer");
+
+            // get device address
+            if (isBufferDeviceAddr)
+            {
+                VkBufferDeviceAddressInfo bufferDeviceAddrInfo{};
+                bufferDeviceAddrInfo.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+                bufferDeviceAddrInfo.buffer = mData->mBuffer;
+                mData->mDeviceAddress       = castedCtx->GetDeviceProcs().p_vkGetBufferDeviceAddress(
+                    castedCtx->GetVulkanDevice(), &bufferDeviceAddrInfo);
+            }
+        }
+        else
+        {
+            auto memoryPool = desc.mManualMemory;
+            IF_LOG_ASSERTION("VA_Buffer", memoryPool.mMemory != nullptr, "Aliased resource must have memory pool");
+            VkMemoryRequirements memReq{};
+            vkGetBufferMemoryRequirements(castedCtx->GetVulkanDevice(), mData->mBuffer, &memReq);
+            IF_LOG_ASSERTION("VA_Buffer", memoryPool.mOffset % memReq.alignment == 0,
+                "Aliased resource memory offset must be aligned to memory requirements");
+
+            VmaAllocationCreateInfo allocCI{};
+            allocCI.usage = VMA_MEMORY_USAGE_AUTO;
+            if (isHostVisible)
+            {
+                allocCI.flags |=
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            }
+
+            VA_AssertResult(vmaCreateAliasingBuffer2(castedCtx->GetAllocator()->mAllocator,
+                                (VmaAllocation)desc.mManualMemory.mMemory->GetRawHandle_Allocation(),
+                                desc.mManualMemory.mOffset, &bufferCI, &mData->mBuffer),
+                "Failed to create aliased buffer");
         }
 
         mData->mCreated = true;
@@ -147,8 +233,16 @@ namespace Ifrit::RHI::VulkanRHI2
     {
         if (mData->mCreated)
         {
-            auto castedCtx = CheckedCast<VA_Device>(mContext);
-            vmaDestroyBuffer(castedCtx->GetAllocator()->mAllocator, mData->mBuffer, mData->mAllocation);
+            auto castedCtx         = CheckedCast<VA_Device>(mContext);
+            bool isAliasedResource = HasFlagBit(mDesc.mFlags, ERhiBufferUsageFlag::Aliasing);
+            if (!isAliasedResource)
+            {
+                vmaDestroyBuffer(castedCtx->GetAllocator()->mAllocator, mData->mBuffer, mData->mAllocation);
+            }
+            else
+            {
+                vkDestroyBuffer(castedCtx->GetVulkanDevice(), mData->mBuffer, nullptr);
+            }
         }
         delete mData;
         mData = nullptr;
@@ -343,20 +437,43 @@ namespace Ifrit::RHI::VulkanRHI2
         }
         imageCI.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
-        // todo:
-        VmaAllocationCreateInfo allocCI{};
-        allocCI.usage = VMA_MEMORY_USAGE_AUTO;
-        if (HasFlagBit(desc.mUsage, ERhiImageUsageFlag::CPUWritable))
+        bool isAliasedResource = HasFlagBit(desc.mUsage, ERhiBufferUsageFlag::Aliasing);
+
+        if (!isAliasedResource)
         {
-            allocCI.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            VmaAllocationCreateInfo allocCI{};
+            allocCI.usage = VMA_MEMORY_USAGE_AUTO;
+            if (HasFlagBit(desc.mUsage, ERhiImageUsageFlag::CPUWritable))
+            {
+                allocCI.flags |=
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            }
+            VA_AssertResult(vmaCreateImage(castedCtx->GetAllocator()->mAllocator, &imageCI, &allocCI, &mData->mImage,
+                                &mData->mAllocation, &mData->mAllocInfo),
+                "Failed to create image");
         }
+        else
+        {
+            auto memoryPool = desc.mManualMemory;
+            IF_LOG_ASSERTION("VA_Texture", memoryPool.mMemory != nullptr, "Aliased resource must have memory pool");
+            VkMemoryRequirements memReq{};
+            vkGetImageMemoryRequirements(castedCtx->GetVulkanDevice(), mData->mImage, &memReq);
+            IF_LOG_ASSERTION("VA_Texture", memoryPool.mOffset % memReq.alignment == 0,
+                "Aliased resource memory offset must be aligned to memory requirements");
 
-        // create image
-        VA_AssertResult(vmaCreateImage(castedCtx->GetAllocator()->mAllocator, &imageCI, &allocCI, &mData->mImage,
-                            &mData->mAllocation, &mData->mAllocInfo),
-            "Failed to create image");
+            VmaAllocationCreateInfo allocCI{};
+            allocCI.usage = VMA_MEMORY_USAGE_AUTO;
+            if (HasFlagBit(desc.mUsage, ERhiImageUsageFlag::CPUWritable))
+            {
+                allocCI.flags |=
+                    VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            }
 
-        // IF_LOG_INFO("VulkanRHI2", "Texture handle: {}", (void*)mData->mImage);
+            VA_AssertResult(vmaCreateAliasingImage2(castedCtx->GetAllocator()->mAllocator,
+                                (VmaAllocation)desc.mManualMemory.mMemory->GetRawHandle_Allocation(),
+                                desc.mManualMemory.mOffset, &imageCI, &mData->mImage),
+                "Failed to create aliased image");
+        }
 
         auto cmdList        = RHI::GetCommandListExecutor()->GetImmediateCmdList();
         bool isRenderTarget = HasFlagBit(desc.mUsage, ERhiImageUsageFlag::RenderTarget)
@@ -433,8 +550,16 @@ namespace Ifrit::RHI::VulkanRHI2
     {
         if (mData->mCreated)
         {
-            auto castedCtx = CheckedCast<VA_Device>(mContext);
-            vmaDestroyImage(castedCtx->GetAllocator()->mAllocator, mData->mImage, mData->mAllocation);
+            auto castedCtx         = CheckedCast<VA_Device>(mContext);
+            bool isAliasedResource = HasFlagBit(mDesc.mUsage, ERhiBufferUsageFlag::Aliasing);
+            if (!isAliasedResource)
+            {
+                vmaDestroyImage(castedCtx->GetAllocator()->mAllocator, mData->mImage, mData->mAllocation);
+            }
+            else
+            {
+                vkDestroyImage(castedCtx->GetVulkanDevice(), mData->mImage, nullptr);
+            }
         }
         delete mData;
         mData = nullptr;

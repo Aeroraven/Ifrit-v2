@@ -183,10 +183,16 @@ namespace Ifrit::RHI
 
     struct RhiImageSubResource
     {
-        u32 mipLevel;
-        u32 arrayLayer;
-        u32 mipCount   = 1;
-        u32 layerCount = 1;
+        u32  mipLevel;
+        u32  arrayLayer;
+        u32  mipCount   = 1;
+        u32  layerCount = 1;
+
+        bool operator==(const RhiImageSubResource& other) const
+        {
+            return mipLevel == other.mipLevel && arrayLayer == other.arrayLayer && mipCount == other.mipCount
+                && layerCount == other.layerCount;
+        }
     };
 
     // Update 250326: This is a deprecated struct, the bindless descriptor index is disentangled with
@@ -234,3 +240,19 @@ namespace Ifrit::RHI
     };
 
 } // namespace Ifrit::RHI
+
+// hash for subresource
+namespace std
+{
+    template <> struct hash<Ifrit::RHI::RhiImageSubResource>
+    {
+        size_t operator()(const Ifrit::RHI::RhiImageSubResource& subRes) const noexcept
+        {
+            size_t h1 = std::hash<u32>{}(subRes.mipLevel);
+            size_t h2 = std::hash<u32>{}(subRes.arrayLayer);
+            size_t h3 = std::hash<u32>{}(subRes.mipCount);
+            size_t h4 = std::hash<u32>{}(subRes.layerCount);
+            return ((h1 ^ (h2 << 1)) >> 1) ^ (h3 << 1) ^ (h4 << 1);
+        }
+    };
+} // namespace std

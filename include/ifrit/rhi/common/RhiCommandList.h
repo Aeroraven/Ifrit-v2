@@ -16,7 +16,6 @@ namespace Ifrit::RHI
 
     // ===== Command List Context =====
 
-
     enum class ERhiCommandSubmissionAction
     {
         None,
@@ -24,59 +23,64 @@ namespace Ifrit::RHI
     };
 
     class IFRIT_RHI_API IRhiCommandContext
-     {
-     public:
+    {
+    public:
         virtual ~IRhiCommandContext() = default;
- 
+
         virtual void                   AddCompletionCallback(Fn<void()> callback)              = 0;
         virtual Ref<RhiTaskSubmission> FlushCommands(ERhiCommandSubmissionAction action)       = 0;
         virtual void                   SetLastUploadingTask(Ref<RhiTaskSubmission> uploadTask) = 0;
 
         virtual void                   CmdSetComputePipelineState(const RhiComputePipelineStateDesc& desc)   = 0;
         virtual void                   CmdSetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc) = 0;
+        virtual void                   CmdSetShaderParameters(const RhiShaderParameter& params)              = 0;
 
-        virtual void                   CmdBeginTransition(RhiTransition& transition)                      = 0;
-        virtual void                   CmdEndTransition(RhiTransition& transition)                        = 0;
         virtual void                   CmdBeginTransitionList(const Vec<Ref<RhiTransition>>& transitions) = 0;
         virtual void                   CmdEndTransitionList(const Vec<Ref<RhiTransition>>& transitions)   = 0;
-     };
- 
-     // ===== Command List Base (Recording) =====
+
+        virtual void                   CmdDispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) = 0;
+    };
+
+    // ===== Command List Base (Recording) =====
     class IFRIT_RHI_API RhiCommandListBase
-     {
-     public:
+    {
+    public:
         virtual ~RhiCommandListBase() = default;
- 
+
         void                EnqueueLambda(Fn<void(RhiCommandListBase*)> func);
- 
+
         void                SetComputePipelineState(const RhiComputePipelineStateDesc& desc);
         void                SetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc);
+        void                SetShaderParameters(const RhiShaderParameter& params);
+
         void                BeginTransitions(const Vec<Ref<RhiTransition>>& transitions);
         void                EndTransitions(const Vec<Ref<RhiTransition>>& transitions);
- 
+
+        void                Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ);
+
         IRhiCommandContext* GetActiveContext();
         IRhiCommandContext* GetUploadContext();
         inline bool         IsImmediate() const { return mImmediateCmdList == nullptr; }
- 
+
     protected:
         void EnqueueRHICommand(Owner<RhiCommand> cmd);
- 
+
     protected:
         IRhiCommandContext*         mActiveContextImm = nullptr;
         Owner<IRhiCommandContext>   mActiveContext;
         Owner<IRhiCommandContext>   mUploadContext;
         Ref<RhiTaskSubmission>      mLastUploadTask;
- 
+
         ERhiCommandListPipelineType mRhiPipeline = ERhiCommandListPipelineType::Invalid;
         Vec<Owner<RhiCommand>>      mCommands;
         Vec<Ref<RhiTaskSubmission>> mWaitSubmissions;
- 
+
         RhiCommandListBase*         mImmediateCmdList = nullptr;
         bool                        mValid            = true;
- 
-         friend class RhiCommandListExecutor;
-     };
- 
+
+        friend class RhiCommandListExecutor;
+    };
+
     class IFRIT_RHI_API RhiCommandListImmediate : public RhiCommandListBase
     {
     public:
@@ -86,11 +90,11 @@ namespace Ifrit::RHI
         void Initialize();
     };
 
-     // ===== Command List Executor =====
+    // ===== Command List Executor =====
     struct RhiCommandListExecutorInternal;
     class IFRIT_RHI_API RhiCommandListExecutor : public NonCopyable
-     {
-     public:
+    {
+    public:
         RhiCommandListExecutor();
         ~RhiCommandListExecutor();
 
@@ -98,11 +102,11 @@ namespace Ifrit::RHI
 
         void                     Init();
         void                     PreFinalize();
- 
-     private:
+
+    private:
         RhiCommandListExecutorInternal* mInternal;
-     };
+    };
 
     IFRIT_RHI_API RhiCommandListExecutor* GetCommandListExecutor();
     IFRIT_RHI_API void                    UnloadCommandListExecutor();
- } // namespace Ifrit::RHI
+} // namespace Ifrit::RHI

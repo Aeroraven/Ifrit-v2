@@ -5,7 +5,7 @@
 #include "RhiShaderResource.h"
 #include "RhiResourceView.h"
 #include "ifrit/core/algo/Hash.h"
- 
+
 namespace Ifrit::RHI
 {
     // ===== Pipeline Descriptor =====
@@ -29,7 +29,7 @@ namespace Ifrit::RHI
         }
         u64 Hash() const { return HashCombine(mType, mCount, mBindless); }
     };
- 
+
     struct RhiPipelineDescriptorBinding
     {
         Vec<RhiPipelineDescriptorDesc> mDesc;
@@ -54,7 +54,7 @@ namespace Ifrit::RHI
             return seed;
         }
     };
- 
+
     struct RhiPipelineDescriptorLayout
     {
         Vec<RhiPipelineDescriptorBinding> mSetLayouts;
@@ -79,26 +79,33 @@ namespace Ifrit::RHI
             return seed;
         }
     };
- 
+
     // ===== Pipeline State =====
- 
+
     enum class ERhiGraphicsPipelineVertexGeneration
     {
         VertexShader,
         MeshShader
     };
- 
+
+    enum class ERhiPipelineBindpoint
+    {
+        Compute,
+        Graphics,
+        RayTracing
+    };
+
     struct RhiComputePipelineStateDesc
     {
         RhiPipelineDescriptorLayout mDescriptorLayout;
         RhiShaderVariantDesc        mComputeShader;
- 
+
         IFRIT_RHI_API bool          operator==(const RhiComputePipelineStateDesc& other) const;
         IFRIT_RHI_API u64           Hash() const;
     };
 
     struct RhiSingleRTBlendDesc
-     {
+    {
         bool            mEnableBlend   = false;
         ERhiBlendOp     mBlendOp       = ERhiBlendOp::Add;
         ERhiBlendOp     mAlphaBlendOp  = ERhiBlendOp::Add;
@@ -122,8 +129,8 @@ namespace Ifrit::RHI
                 && (mDstBlend == other.mDstBlend) && (mSrcAlphaBlend == other.mSrcAlphaBlend)
                 && (mDstAlphaBlend == other.mDstAlphaBlend);
         }
-     };
- 
+    };
+
     struct RhiRTBlendDesc
     {
         bool                      mEnableAlphaToCoverage = false;
@@ -152,9 +159,9 @@ namespace Ifrit::RHI
             return true;
         }
     };
- 
+
     struct RhiGraphicsPipelineStateDesc
-     {
+    {
         RhiPipelineDescriptorLayout          mDescriptorLayout;
         ERhiGraphicsPipelineVertexGeneration mVertexGeneration = ERhiGraphicsPipelineVertexGeneration::VertexShader;
         RhiRenderTargetsFormat               mFrameBufferFormat;
@@ -186,10 +193,10 @@ namespace Ifrit::RHI
     };
 
     // ===== Pipeline =====
- 
+
     class IFRIT_RHI_API RhiComputePipeline : public RhiDeviceResource
     {
-     public:
+    public:
         RhiComputePipeline(const RhiComputePipelineStateDesc& desc)
             : RhiDeviceResource(ERhiResourceType::Pipeline), mDesc(desc)
         {
@@ -198,11 +205,11 @@ namespace Ifrit::RHI
 
     private:
         RhiComputePipelineStateDesc mDesc;
-     };
- 
+    };
+
     class IFRIT_RHI_API RhiGraphicsPipeline : public RhiDeviceResource
-     {
-     public:
+    {
+    public:
         RhiGraphicsPipeline(const RhiGraphicsPipelineStateDesc& desc)
             : RhiDeviceResource(ERhiResourceType::Pipeline), mDesc(desc)
         {
@@ -211,13 +218,13 @@ namespace Ifrit::RHI
 
     private:
         RhiGraphicsPipelineStateDesc mDesc;
-     };
- 
+    };
+
     // ===== Pipeline Cache (Runtime) =====
     struct RhiPipelineCacheRegistryInternal;
     class IFRIT_RHI_API RhiPipelineCacheRegistry
-     {
-     public:
+    {
+    public:
         RhiPipelineCacheRegistry();
         ~RhiPipelineCacheRegistry();
         RhiComputePipelineRef  GetComputePipeline(const RhiComputePipelineStateDesc& desc);
@@ -225,6 +232,6 @@ namespace Ifrit::RHI
 
     private:
         RhiPipelineCacheRegistryInternal* mInternal = nullptr;
-     };
- 
- } // namespace Ifrit::RHI
+    };
+
+} // namespace Ifrit::RHI

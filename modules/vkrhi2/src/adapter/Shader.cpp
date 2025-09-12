@@ -71,6 +71,7 @@ namespace Ifrit::RHI::VulkanRHI2
 
     VA_ShaderVariant::~VA_ShaderVariant()
     {
+        IF_LOG_DEBUG("VA_ShaderVariant", "Destroying shader variant: {}", mData->mEntryPoint);
         if (mData->mShaderModule != VK_NULL_HANDLE)
         {
             vkDestroyShaderModule(mData->mDevice->GetVulkanDevice(), mData->mShaderModule, nullptr);
@@ -125,6 +126,13 @@ namespace Ifrit::RHI::VulkanRHI2
                     return val.type() == typeid(Matrix4x4f);
                 case ShaderCompile::EShaderReflDescriptors::DataMat2f:
                     return val.type() == typeid(Matrix2x2f);
+                case ShaderCompile::EShaderReflDescriptors::BindlessConstantBuffer:
+                case ShaderCompile::EShaderReflDescriptors::BindlessStructuredBuffer:
+                case ShaderCompile::EShaderReflDescriptors::BindlessRWStructuredBuffer:
+                case ShaderCompile::EShaderReflDescriptors::BindlessTexture:
+                case ShaderCompile::EShaderReflDescriptors::BindlessRWTexture:
+                case ShaderCompile::EShaderReflDescriptors::BindlessSamplerState:
+                    return val.type() == typeid(RhiDescriptorHandle);
                 default:
                     return false;
             }
@@ -149,6 +157,18 @@ namespace Ifrit::RHI::VulkanRHI2
             }
         }
 
+        // and check if all fields are provided
+        for (auto& binding : reflData.mBindings)
+        {
+            if (params.GetAllParameters().count(binding.mName) == 0)
+            {
+                IF_LOG_ERROR("VA_ShaderVariant",
+                    "Shader parameter `{}` not provided in shader variant, please check the parameter name.",
+                    binding.mName);
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -160,6 +180,108 @@ namespace Ifrit::RHI::VulkanRHI2
     IFRIT_APIDECL VkPipelineShaderStageCreateInfo VA_ShaderVariant::GetShaderStageInfo() const
     {
         return mData->mStageCI;
+    }
+    IFRIT_APIDECL SizedBuffer VA_ShaderVariant::GetRootConstantData(const RhiShaderParameter& params)
+    {
+        SizedBuffer ret;
+        Vec<u8>     rootConstantData(mData->mReflection.mPushConstantSize);
+        for (auto& [name, value] : params.GetAllParameters())
+        {
+            auto it = mData->mReflection.mBindingNameToIndex.find(name);
+            if (it != mData->mReflection.mBindingNameToIndex.end())
+            {
+                auto& binding = mData->mReflection.mBindings[it->second];
+                if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataBool)
+                {
+                    bool v = std::any_cast<bool>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(bool));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataInt32)
+                {
+                    i32 v = std::any_cast<i32>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(i32));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataUint32)
+                {
+                    u32 v = std::any_cast<u32>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(u32));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataInt64)
+                {
+                    i64 v = std::any_cast<i64>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(i64));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataUint64)
+                {
+                    u64 v = std::any_cast<u64>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(u64));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataFloat)
+                {
+                    f32 v = std::any_cast<f32>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(f32));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataDouble)
+                {
+                    f64 v = std::any_cast<f64>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(f64));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataVec2)
+                {
+                    Vector2f v = std::any_cast<Vector2f>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(Vector2f));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataVec4)
+                {
+                    Vector4f v = std::any_cast<Vector4f>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(Vector4f));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataVec2i)
+                {
+                    Vector2i v = std::any_cast<Vector2i>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(Vector2i));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataVec4i)
+                {
+                    Vector4i v = std::any_cast<Vector4i>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(Vector4i));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataVec2u)
+                {
+                    Vector2u v = std::any_cast<Vector2u>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(Vector2u));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataVec4u)
+                {
+                    Vector4u v = std::any_cast<Vector4u>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(Vector4u));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataMat4f)
+                {
+                    Matrix4x4f v = std::any_cast<Matrix4x4f>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(Matrix4x4f));
+                }
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::DataMat2f)
+                {
+                    Matrix2x2f v = std::any_cast<Matrix2x2f>(value);
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &v, sizeof(Matrix2x2f));
+                }
+                // Bindless
+                else if (binding.mType == ShaderCompile::EShaderReflDescriptors::BindlessTexture
+                    || binding.mType == ShaderCompile::EShaderReflDescriptors::BindlessRWTexture
+                    || binding.mType == ShaderCompile::EShaderReflDescriptors::BindlessStructuredBuffer
+                    || binding.mType == ShaderCompile::EShaderReflDescriptors::BindlessRWStructuredBuffer
+                    || binding.mType == ShaderCompile::EShaderReflDescriptors::BindlessConstantBuffer
+                    || binding.mType == ShaderCompile::EShaderReflDescriptors::BindlessSamplerState)
+                {
+                    RhiDescriptorHandle v  = std::any_cast<RhiDescriptorHandle>(value);
+                    auto                id = v.GetId();
+                    memcpy(rootConstantData.data() + binding.mPushConstantOffset, &id, sizeof(u32));
+                }
+            }
+        }
+        ret = SizedBuffer(rootConstantData.data(),(rootConstantData.size()));
+        return ret;
     }
 
     // ===== Shader =====
@@ -215,6 +337,7 @@ namespace Ifrit::RHI::VulkanRHI2
     }
     VA_Shader::~VA_Shader()
     {
+        IF_LOG_DEBUG("VA_Shader", "Destroying shader: {}", mDesc.mName);
         for (auto& [k, v] : mData->mShaderVariants)
         {
             v = nullptr;

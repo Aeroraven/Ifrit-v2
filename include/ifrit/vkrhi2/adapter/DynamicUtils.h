@@ -16,6 +16,8 @@ namespace Ifrit::RHI::VulkanRHI2
         VA_DynamicUtils(VA_Device* device);
         virtual RhiShaderRef CreateShader_RhiInternal(const RhiShaderCreateDesc& desc) override;
         virtual RhiSampler*  GetDefaultSampler_RhiInternal() override;
+        virtual SizedBuffer  GetRootConstantData_RhiInternal(
+             RhiShaderVariant* variant, const RhiShaderParameter& params) override;
     };
 
 } // namespace Ifrit::RHI::VulkanRHI2

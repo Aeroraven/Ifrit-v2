@@ -8,6 +8,7 @@ namespace Ifrit::RHI
     class RhiContext;
 
     class RhiDeviceResource;
+    class RhiDeviceMemory;
     class RhiBuffer;
     class RhiTexture;
     class RhiSampler;
@@ -98,7 +99,8 @@ namespace Ifrit::RHI
             CPUAccess = 1 << 16,
 
             // Dynamic buffers are shortlived buffer, w/ reference to UE5 and NVRHI
-            Dynamic = 1 << 17
+            Dynamic  = 1 << 17,
+            Aliasing = 1 << 18,
         };
     } // namespace ERhiBufferUsageFlag
 
@@ -132,7 +134,8 @@ namespace Ifrit::RHI
             InputAttachment = 1 << 8,
             Presentable     = 1 << 9,
 
-            CPUWritable = 1 << 16
+            CPUWritable = 1 << 16,
+            Aliasing    = 1 << 17,
         };
     } // namespace ERhiImageUsageFlag
     using ERhiImageUsage = u64;
@@ -581,6 +584,8 @@ namespace Ifrit::RHI
 
 namespace Ifrit::RHI
 {
+    using RhiDeviceMemoryRef = TCountRef<RhiDeviceMemory>;
+
     using RhiTextureRef = TCountRef<RhiTexture>;
     using RhiSamplerRef = TCountRef<RhiSampler>;
     using RhiBufferRef  = TCountRef<RhiBuffer>;

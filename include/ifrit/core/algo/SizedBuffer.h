@@ -22,25 +22,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 namespace Ifrit
 {
 
-    class TSizedBuffer
+    class SizedBuffer
     {
     private:
         Vec<u8> m_Data;
 
     public:
-        TSizedBuffer() = default;
-        TSizedBuffer(u32 size) : m_Data(size) {}
-        TSizedBuffer(void* ptr, u32 size) : m_Data(size) { memcpy(m_Data.data(), ptr, size); }
+        SizedBuffer() = default;
+        SizedBuffer(u32 size) : m_Data(size) {}
+        SizedBuffer(void* ptr, u32 size) : m_Data(size) { memcpy(m_Data.data(), ptr, size); }
 
-        template <typename T> TSizedBuffer(const Vec<T>& data) : m_Data(data.size() * sizeof(T))
+        template <typename T> SizedBuffer(const Vec<T>& data) : m_Data(data.size() * sizeof(T))
         {
             memcpy(m_Data.data(), data.data(), m_Data.size());
         }
 
-        TSizedBuffer(const TSizedBuffer& other) : m_Data(other.m_Data) {}
-        TSizedBuffer(TSizedBuffer&& other) noexcept : m_Data(std::move(other.m_Data)) {}
+        SizedBuffer(const SizedBuffer& other) : m_Data(other.m_Data) {}
+        SizedBuffer(SizedBuffer&& other) noexcept : m_Data(std::move(other.m_Data)) {}
 
-        TSizedBuffer& operator=(const TSizedBuffer& other)
+        SizedBuffer& operator=(const SizedBuffer& other)
         {
             if (this != &other)
             {
@@ -48,7 +48,7 @@ namespace Ifrit
             }
             return *this;
         }
-        TSizedBuffer& operator=(TSizedBuffer&& other) noexcept
+        SizedBuffer& operator=(SizedBuffer&& other) noexcept
         {
             if (this != &other)
             {
@@ -56,23 +56,23 @@ namespace Ifrit
             }
             return *this;
         }
-        TSizedBuffer& operator=(const Vec<u8>& other)
+        SizedBuffer& operator=(const Vec<u8>& other)
         {
             m_Data = other;
             return *this;
         }
-        TSizedBuffer& operator=(Vec<u8>&& other) noexcept
+        SizedBuffer& operator=(Vec<u8>&& other) noexcept
         {
             m_Data = std::move(other);
             return *this;
         }
-        TSizedBuffer& operator=(const Vec<u8>&& other)
+        SizedBuffer& operator=(const Vec<u8>&& other)
         {
             m_Data = other;
             return *this;
         }
 
-        ~TSizedBuffer() = default;
+        ~SizedBuffer() = default;
 
         void*       GetData() { return m_Data.data(); }
         const void* GetData() const { return m_Data.data(); }

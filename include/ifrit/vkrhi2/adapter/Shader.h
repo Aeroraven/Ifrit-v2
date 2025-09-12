@@ -24,14 +24,15 @@ namespace Ifrit::RHI::VulkanRHI2
         VA_ShaderVariant(VA_Device* device, const VA_ShaderVariantCI& ci, void* reflData);
         virtual ~VA_ShaderVariant();
 
-        virtual u64                             GetSignatureHash() const override;
-        virtual RhiRawHandle                    GetRawHandle() const override;
-        virtual bool                            ValidateShaderParameters(const RhiShaderParameter& params) override;
+        virtual u64          GetSignatureHash() const override;
+        virtual RhiRawHandle GetRawHandle() const override;
+        virtual bool         ValidateShaderParameters(const RhiShaderParameter& params) override;
 
-        virtual u32                             GetRefl_PushConstantSize() const override;
+        virtual u32          GetRefl_PushConstantSize() const override;
 
     public:
         virtual VkPipelineShaderStageCreateInfo GetShaderStageInfo() const;
+        SizedBuffer                             GetRootConstantData(const RhiShaderParameter& params);
 
     private:
         VA_ShaderVariantInternal* mData;

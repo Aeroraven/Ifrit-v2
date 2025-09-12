@@ -14,5 +14,7 @@ namespace Ifrit::RHI
         virtual ~RhiDynamicUtils()                                                     = default;
         virtual RhiShaderRef CreateShader_RhiInternal(const RhiShaderCreateDesc& desc) = 0;
         virtual RhiSampler*  GetDefaultSampler_RhiInternal()                           = 0;
+        virtual SizedBuffer  GetRootConstantData_RhiInternal(
+             RhiShaderVariant* variant, const RhiShaderParameter& params) = 0;
     };
 } // namespace Ifrit::RHI

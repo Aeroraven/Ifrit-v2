@@ -13,6 +13,11 @@ namespace Ifrit::RHI
         cmd->GetActiveContext()->CmdSetGraphicsPipelineState(mDesc);
     }
 
+    void RhiCmd_SetShaderParameters::Execute(RhiCommandListBase* cmd)
+    {
+        cmd->GetActiveContext()->CmdSetShaderParameters(mParams);
+    }
+
     // ===== Transition Commands =====
     void RhiCmd_BeginTransitions::Execute(RhiCommandListBase* cmd)
     {
@@ -21,6 +26,12 @@ namespace Ifrit::RHI
     void RhiCmd_EndTransitions::Execute(RhiCommandListBase* cmd)
     {
         cmd->GetActiveContext()->CmdEndTransitionList(mTransitions);
+    }
+
+    // ===== Draw Calls =====
+    void RhiCmd_Dispatch::Execute(RhiCommandListBase* cmd)
+    {
+        cmd->GetActiveContext()->CmdDispatch(mGroupCountX, mGroupCountY, mGroupCountZ);
     }
 
 } // namespace Ifrit::RHI

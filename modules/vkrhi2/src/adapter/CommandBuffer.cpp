@@ -112,7 +112,7 @@ namespace Ifrit::RHI::VulkanRHI2
         ScopedLock lock(mInternal->mMutex);
         auto       numFreeCmds = 0;
 
-        for (int i = mInternal->mAllocatedCommandBuffers.size() - 1; i >= 0; i--)
+        for (i32 i = SizeCast<i32>(mInternal->mAllocatedCommandBuffers.size()) - 1; i >= 0; i--)
         {
             auto& cmd             = mInternal->mAllocatedCommandBuffers[i];
             auto  state           = cmd->GetState();

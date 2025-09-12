@@ -12,6 +12,7 @@ namespace Ifrit::RHI
         bool bValidationLayerEnabled = true;
         bool bImmediateMode          = false;
         bool bAsyncComputeEnable     = true;
+        bool bAsyncTransferEnable    = true;
 
         // Device capabilities
         bool bMeshShaderEnabled                = true;
@@ -25,7 +26,7 @@ namespace Ifrit::RHI
 
     struct RhiPropertyList
     {
-        u32 mWaveSize = ~0u;
+        u32 mWaveSize                   = ~0u;
         u32 mMaxDescriptorsSetCBVBuffer = 0;
         u32 mMaxDescriptorsSetSRVBuffer = 0;
         u32 mMaxDescriptorsSetUAVBuffer = 0;

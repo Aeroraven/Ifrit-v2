@@ -404,8 +404,7 @@ namespace Ifrit::RHI::VulkanRHI2
             VkDescriptorBufferInfo bufferInfo{};
             bufferInfo.buffer = reinterpret_cast<VkBuffer>(buffer);
             bufferInfo.offset = uav.GetDesc().mBufferView.mOffset;
-            bufferInfo.range  = uav.GetDesc().mBufferView.mSize != ~0u ? uav.GetDesc().mBufferView.mSize
-                                                                       : uav.GetDesc().mBufferView.mSize;
+            bufferInfo.range  = uav.GetDesc().mBufferView.mSize != ~0u ? uav.GetDesc().mBufferView.mSize : VK_WHOLE_SIZE;
             VkWriteDescriptorSet write{};
             write.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             write.dstSet          = mInternal->mDescriptorSet;

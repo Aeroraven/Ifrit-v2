@@ -2,6 +2,7 @@
 #include "RhiBaseTypes.h"
 #include "ifrit/rhi/common/RhiApi.h"
 #include "ifrit/rhi/common/RhiResource.h"
+#include "ifrit/core/algo/SizedBuffer.h"
 #include <any>
 
 namespace Ifrit::RHI
@@ -86,6 +87,7 @@ namespace Ifrit::RHI
     public:
         template <typename T> bool SetValue(const String& name, const T& value)
         {
+            mIsDirty          = true;
             mParameters[name] = value;
             return true;
         }
@@ -102,8 +104,12 @@ namespace Ifrit::RHI
 
         const HashMap<String, std::any>& GetAllParameters() const { return mParameters; }
 
+        SizedBuffer                      GetRootConstantData(RhiShaderVariant* variant);
+
     protected:
         HashMap<String, std::any> mParameters;
+        bool                      mIsDirty = true;
+        SizedBuffer               mRootConstantData;
     };
 
     // ===== Shader Global Functions =====

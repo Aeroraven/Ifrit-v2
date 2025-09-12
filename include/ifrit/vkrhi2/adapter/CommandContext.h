@@ -46,20 +46,23 @@ namespace Ifrit::RHI::VulkanRHI2
 
         void                   CmdSetComputePipelineState(const RhiComputePipelineStateDesc& desc) override;
         void                   CmdSetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc) override;
+        void                   CmdSetShaderParameters(const RhiShaderParameter& params) override;
 
-        void                   CmdBeginTransition(RhiTransition& transition) override;
-        void                   CmdEndTransition(RhiTransition& transition) override;
-        virtual void           CmdBeginTransitionList(const Vec<Ref<RhiTransition>>& transitions) override;
-        virtual void           CmdEndTransitionList(const Vec<Ref<RhiTransition>>& transitions) override;
+        void                   CmdBeginTransitionList(const Vec<Ref<RhiTransition>>& transitions) override;
+        void                   CmdEndTransitionList(const Vec<Ref<RhiTransition>>& transitions) override;
+
+        void                   CmdDispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) override;
 
         void                   RegisterExternalDependencies(VkFence extFence, VkSemaphore extSema);
         void                   RegisterDependencies(Vec<Ref<VA_CommandSubmission>> toWait);
 
-    protected:
+    private:
+        void                      ApplyShaderParameterChange();
+        void                      ApplyPipelineStateChange();
+
         void                      NewTaskSection();
         void                      EndTaskSection();
         Ref<VA_CommandSubmission> FlushAllTaskSections();
-
         VA_CommandTask*           GetTaskSection(EVA_CommandTaskState desiredState);
 
     private:

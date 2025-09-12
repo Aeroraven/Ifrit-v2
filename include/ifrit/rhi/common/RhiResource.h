@@ -35,6 +35,8 @@ namespace Ifrit::RHI
         virtual void          SetDebugName(const String& name) { mDebugName = name; }
         virtual const String& GetDebugName() const { return mDebugName; }
 
+        virtual u32           GetRefCount() const { return mRefCount.load(); }
+
     protected:
         inline void              SetState(ERhiResourceState state) { mState = state; }
         inline ERhiResourceState GetState() const { return mState; }
@@ -47,6 +49,46 @@ namespace Ifrit::RHI
         bool              mIsUnmanaged = false; // unmanaged resources are EXTERNAL resources
     };
 
+    // ===== Memory =====
+    namespace ERhiMemoryFlagBits
+    {
+        enum Enum : u32
+        {
+            None      = 0,
+            CPUAccess = 1 << 0,
+            GPUAccess = 1 << 1,
+        };
+    } // namespace ERhiMemoryFlagBits
+    using ERhiMemoryFlags = u32;
+
+    struct RhiDeviceMemoryDesc
+    {
+        u64             mSize      = 0;
+        u64             mAlignment = 0;
+        ERhiMemoryFlags mFlags     = ERhiMemoryFlagBits::None;
+    };
+
+    class IFRIT_RHI_API RhiDeviceMemory : public RhiDeviceResource
+    {
+    public:
+        RhiDeviceMemory(const RhiDeviceMemoryDesc& inDesc) : RhiDeviceResource(ERhiResourceType::Buffer), mDesc(inDesc)
+        {
+        }
+        virtual ~RhiDeviceMemory()                           = default;
+        virtual RhiRawHandle GetRawHandle_Allocation() const = 0;
+
+    private:
+        RhiDeviceMemoryDesc mDesc;
+    };
+
+    // ===== Memory Desc =====
+
+    struct RhiDeviceMemoryPtr
+    {
+        RhiDeviceMemoryRef mMemory = nullptr;
+        u64                mOffset = 0;
+    };
+
     // ===== Buffers =====
 
     enum class ERhiBufferMapType
@@ -57,10 +99,11 @@ namespace Ifrit::RHI
 
     struct RhiBufferDesc
     {
-        String          mName   = "";
-        u64             mSize   = 0;
-        u32             mStride = 0;
-        ERhiBufferUsage mFlags  = ERhiBufferUsageFlag::None;
+        String             mName   = "";
+        u64                mSize   = 0;
+        u32                mStride = 0;
+        ERhiBufferUsage    mFlags  = ERhiBufferUsageFlag::None;
+        RhiDeviceMemoryPtr mManualMemory{};
     };
 
     class IFRIT_RHI_API RhiBuffer : public RhiDeviceResource
@@ -100,6 +143,8 @@ namespace Ifrit::RHI
         u32                   mMips      = 1;
         u32                   mSamples   = 1;
         u32                   mArraySize = 1;
+
+        RhiDeviceMemoryPtr    mManualMemory{};
 
         static RhiTextureDesc CreateTexture2D(
             u32 width, u32 height, ERhiImageFormat format, ERhiImageUsage usage = 0, u32 mipLevels = 1)

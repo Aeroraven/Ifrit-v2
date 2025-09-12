@@ -18,48 +18,70 @@ namespace Ifrit::RHI
 
     // Lambda Command
     DECLARE_RHI_COMMAND(RhiCmd_Lambda)
-     {
+    {
         using LambdaType = Fn<void(RhiCommandListBase * cmd)>;
-         LambdaType mLambda;
- 
-         RhiCmd_Lambda(LambdaType lambda) : mLambda(std::move(lambda)) {}
+        LambdaType mLambda;
+
+        RhiCmd_Lambda(LambdaType lambda) : mLambda(std::move(lambda)) {}
         void Execute(RhiCommandListBase * cmd) override final { mLambda(cmd); }
-     };
- 
+    };
+
     // Pipeline State Commands
     DECLARE_RHI_COMMAND(RhiCmd_SetComputePipelineState)
-     {
+    {
         RhiComputePipelineStateDesc mDesc;
- 
+
         RhiCmd_SetComputePipelineState(const RhiComputePipelineStateDesc& desc) : mDesc(desc) {}
         void Execute(RhiCommandListBase * cmd) override final;
-     };
- 
+    };
+
     DECLARE_RHI_COMMAND(RhiCmd_SetGraphicsPipelineState)
-     {
+    {
         RhiGraphicsPipelineStateDesc mDesc;
- 
+
         RhiCmd_SetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc) : mDesc(desc) {}
         void Execute(RhiCommandListBase * cmd) override final;
-     };
- 
+    };
+
+    DECLARE_RHI_COMMAND(RhiCmd_SetShaderParameters)
+    {
+        RhiShaderParameter mParams;
+
+        RhiCmd_SetShaderParameters(const RhiShaderParameter& params) : mParams(params) {}
+        void Execute(RhiCommandListBase * cmd) override final;
+    };
+
     // Transition Commands
     DECLARE_RHI_COMMAND(RhiCmd_BeginTransitions)
-     {
+    {
         Vec<Ref<RhiTransition>> mTransitions;
- 
+
         RhiCmd_BeginTransitions(const Vec<Ref<RhiTransition>>& transitions) : mTransitions(transitions) {}
         void Execute(RhiCommandListBase * cmd) override final;
-     };
- 
+    };
+
     DECLARE_RHI_COMMAND(RhiCmd_EndTransitions)
-     {
+    {
         Vec<Ref<RhiTransition>> mTransitions;
- 
+
         RhiCmd_EndTransitions(const Vec<Ref<RhiTransition>>& transitions) : mTransitions(transitions) {}
         void Execute(RhiCommandListBase * cmd) override final;
-     };
- 
+    };
+
+    // Draw Calls
+    DECLARE_RHI_COMMAND(RhiCmd_Dispatch)
+    {
+        u32 mGroupCountX;
+        u32 mGroupCountY;
+        u32 mGroupCountZ;
+
+        RhiCmd_Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ)
+            : mGroupCountX(groupCountX), mGroupCountY(groupCountY), mGroupCountZ(groupCountZ)
+        {
+        }
+        void Execute(RhiCommandListBase * cmd) override final;
+    };
+
     // // Memory Transfer Commands
     // DECLARE_RHI_COMMAND(RhiCmd_CopyBuffer)
     // {

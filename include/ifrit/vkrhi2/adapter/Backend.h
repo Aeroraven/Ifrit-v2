@@ -19,6 +19,8 @@ namespace Ifrit::RHI::VulkanRHI2
         void                      Init(const RhiInitializeArguments& args) override final;
         void                      Finalize() override final;
 
+        RhiCapabilityList         GetCapabilities() const override final;
+
         IRhiCommandContext*       GetImmediateContext() override final;
         Owner<IRhiCommandContext> GetUploadContext() override final;
         Owner<IRhiCommandContext> GetCommandContext(ERhiCommandListPipelineType type) override final;

@@ -188,18 +188,18 @@ ifrit_add_core_component(external/imgui)
 ifrit_add_core_component(external/glfw)
 ifrit_add_core_component(external/nfd)
 # ifrit_add_core_component(reflparser)
- ifrit_add_core_component(core)
- ifrit_add_core_component(shadercompile)
-# ifrit_add_core_component(imaging)
- ifrit_add_core_component(display)
+ifrit_add_core_component(core)
+ifrit_add_core_component(shadercompile)
+ifrit_add_core_component(imaging)
+ifrit_add_core_component(display)
 # ifrit_add_core_component(ircompile)
 # ifrit_add_core_component(softgraphics)
-# ifrit_add_core_component(geomproc)
+ifrit_add_core_component(geomproc)
 # ifrit_add_core_component(vkrhi)
- ifrit_add_core_component(vkrhi2)
+ifrit_add_core_component(vkrhi2)
 # ifrit_add_core_component(dx12rhi)
-# ifrit_add_core_component(runtime)
- ifrit_add_core_component(rhi)
+ifrit_add_core_component(runtime)
+ifrit_add_core_component(rhi)
 # ifrit_add_core_component(profiler)
 # ifrit_add_core_component(editor)
  
@@ -210,7 +210,7 @@ ifrit_add_core_component(external/nfd)
     # ifrit.geomproc 
      ifrit.display 
     # ifrit.vkrhi 
-    # ifrit.runtime 
+     ifrit.runtime 
     # ifrit.core
     # ifrit.profiler
     # ifrit.editor
@@ -225,7 +225,7 @@ ifrit_add_core_component(external/nfd)
     # ifrit.geomproc 
     # ifrit.softgraphics 
      ifrit.display 
-    # ifrit.runtime 
+     ifrit.runtime 
     # ifrit.rhi
     # ifrit.imaging
     # ifrit.profiler
@@ -291,15 +291,15 @@ set_target_properties(ifrit.external.imgui PROPERTIES FOLDER ${IFRIT_GROUP_DEPEN
 set_target_properties(nfd PROPERTIES FOLDER ${IFRIT_GROUP_DEPENDENCIES}/nfd)
  
 # ifrit targets
- set_target_properties(ifrit.core PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
-# set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
- set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+set_target_properties(ifrit.core PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+set_target_properties(ifrit.runtime PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
+set_target_properties(ifrit.rhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
 # set_target_properties(ifrit.editor PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE})
  
- set_target_properties(ifrit.shadercompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
-# set_target_properties(ifrit.imaging PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
- set_target_properties(ifrit.display PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
-# set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+set_target_properties(ifrit.shadercompile PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+set_target_properties(ifrit.imaging PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+set_target_properties(ifrit.display PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
+set_target_properties(ifrit.geomproc PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
 # set_target_properties(ifrit.profiler PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/Utility)
  
 # set_target_properties(ifrit.vkrhi PROPERTIES FOLDER ${IFRIT_GROUP_ENGINE}/RHIAdapter)
