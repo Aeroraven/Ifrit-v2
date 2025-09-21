@@ -11,15 +11,15 @@
 
 namespace Ifrit::RHI
 {
-    IF_FORCEINLINE u32 GetNumVerticesFromPrimitive(RhiRasterizerTopology topo, u32 numPrims)
+    IF_FORCEINLINE u32 GetNumVerticesFromPrimitive(ERhiRasterizerTopology topo, u32 numPrims)
     {
         switch (topo)
         {
-            case RhiRasterizerTopology::TriangleList:
+            case ERhiRasterizerTopology::TriangleList:
                 return numPrims * 3;
-            case RhiRasterizerTopology::Line:
+            case ERhiRasterizerTopology::Line:
                 return numPrims * 2;
-            case RhiRasterizerTopology::Point:
+            case ERhiRasterizerTopology::Point:
                 return numPrims;
             default:
                 IF_UNLIKELY

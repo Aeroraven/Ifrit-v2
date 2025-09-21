@@ -51,7 +51,7 @@ namespace Ifrit::ShaderCompile
     }
 
     ShaderCompileOutput ShaderCompileHelper::CompileShaderFromFile(const String& fileName, const String& entryPoint,
-        const HashMap<String, String>& definitions, EShaderIRFormat targetFormat)
+        const THashMap<String, String>& definitions, EShaderIRFormat targetFormat)
     {
         // get extension from fileName
         auto                extension         = fileName.substr(fileName.find_last_of('.') + 1);

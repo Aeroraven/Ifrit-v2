@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/shadercompile/base/ShaderCompileBase.h"
+#include "ifrit/core/base/containers/Maps.h"
 
 namespace Ifrit::ShaderCompile
 {
@@ -34,7 +35,7 @@ namespace Ifrit::ShaderCompile
         inline void         SetOptimization(EShaderCompileOptimization optimization) { mOptimization = optimization; }
         ShaderCompileOutput CompileShaderFromSource(const ShaderCompileJob& job, EShaderIRFormat targetFormat);
         ShaderCompileOutput CompileShaderFromFile(const String& fileName, const String& entryPoint,
-            const HashMap<String, String>& definitions, EShaderIRFormat targetFormat);
+            const THashMap<String, String>& definitions, EShaderIRFormat targetFormat);
         EShaderSourceFormat GetEShaderSourceFormatFromFileName(const String& fileName);
     };
 } // namespace Ifrit::ShaderCompile

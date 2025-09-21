@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/base/containers/Atomic.h"
 
 namespace Ifrit
 {
@@ -28,9 +29,9 @@ namespace Ifrit
     template <typename T, u32 TPageNums = 4096, u32 TPageSize = 16384> class TConcurrentGrowthVector
     {
     private:
-        Atomic<T*>  m_Pages[TPageNums];
-        Atomic<u32> m_SpinLock;
-        Atomic<u32> m_CurrentBack = 0;
+        TAtomic<T*>  m_Pages[TPageNums];
+        TAtomic<u32> m_SpinLock;
+        TAtomic<u32> m_CurrentBack = 0;
 
     private:
         void AutoGrow(u32 pos)

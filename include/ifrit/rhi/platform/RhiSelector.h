@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/platform/ApiConv.h"
 #include "ifrit/rhi/common/RhiLayer.h"
-#include <memory>
 
 namespace Ifrit::RHI
 {

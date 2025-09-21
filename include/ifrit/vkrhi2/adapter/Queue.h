@@ -23,7 +23,7 @@ namespace Ifrit::RHI::VulkanRHI2
     private:
         VA_Device*  mContext;
         VkSemaphore mSemaphore;
-        Atomic<u64> mRecordedCounter = 0;
+        TAtomic<u64> mRecordedCounter = 0;
     };
 
     struct VA_QueueInternal;

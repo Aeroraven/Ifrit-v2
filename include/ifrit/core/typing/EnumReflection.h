@@ -1,6 +1,7 @@
 
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/typing/EnumUtils.h"
 #include "magicenum/include/magic_enum/magic_enum.hpp"
 
 namespace Ifrit
@@ -11,13 +12,6 @@ namespace Ifrit
     {
         String ret = String{ magic_enum::enum_name(value) };
         return ret;
-    }
-
-    template <typename T>
-        requires std::is_enum_v<T>
-    IF_CONSTEXPR IF_FORCEINLINE typename std::underlying_type<T>::type GetEnumUnderlyingValue(T e) noexcept
-    {
-        return static_cast<typename std::underlying_type<T>::type>(e);
     }
 
     template <typename T>

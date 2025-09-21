@@ -6,8 +6,8 @@
 #include "ifrit/core/reflection/Archive.h"
 #include "ifrit/core/reflection/RttiIdentifier.h"
 #include "ifrit/core/typing/EnumReflection.h"
-
 #include "ifrit/core/math/VectorGenerics.h"
+#include <map>
 namespace Ifrit::Reflection
 {
     IFRIT_CORE_API void InvokeSerializeDynamicImpl(void* ptr, const std::type_info& typeInfo, Archive* archive);

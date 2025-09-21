@@ -1,5 +1,5 @@
 #pragma once
-#include "ifrit/core/typing/CountRef.h"
+#include "ifrit/core/algo/CountRef.h"
 
 namespace Ifrit::RHI
 {

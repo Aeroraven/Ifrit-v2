@@ -33,7 +33,7 @@ namespace MPM{
         TRWStructuredBufferHandle<float4> m_ParticleColor;
     };
 
-    IFSHADER_PUSHCONST PushConst_T PushConst;
+    IFSHADER_PUSHCONST_DECL(PushConst_T,PushConst);
     groupshared uint sParticleSlotStart;
 
     IFSHADER_ENTRY(IFSHADER_CS_ENTRY)

@@ -29,10 +29,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include <tuple>
 #include <chrono>
 #include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/base/containers/Atomic.h"
 
 namespace Ifrit::Logging
 {
-    static Atomic<u32>             sLogEntries = 0;
+    static TAtomic<u32>             sLogEntries = 0;
     static Vec<InternalLogEntries> sLogEntriesVec(1145141);
 
     IFRIT_APIDECL VecView<InternalLogEntries> GetLogEntries()

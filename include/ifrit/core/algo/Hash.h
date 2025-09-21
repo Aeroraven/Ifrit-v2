@@ -18,14 +18,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 #include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/core/typing/Traits.h"
 #include <tuple>
 
 namespace Ifrit
 {
     // hash operator for std::pair
-    template <class T1, class T2> struct PairwiseHash
+    template <IHashable T1, IHashable T2> struct PairwiseHash
     {
-        std::size_t operator()(const std::pair<T1, T2>& p) const
+        usize operator()(const std::pair<T1, T2>& p) const
         {
             auto h1 = std::hash<T1>{}(p.first);
             auto h2 = std::hash<T2>{}(p.second);
@@ -33,10 +34,20 @@ namespace Ifrit
         }
     };
 
-    template <typename... Types> std::size_t HashCombine(const Types&... args)
+    template <typename... Types, u32 InitSeed = 0u>
+    IF_NODISCARD IF_FORCEINLINE constexpr usize HashCombineImpl(TArgType<Types>... args) noexcept
     {
-        std::size_t seed = 0;
-        (..., (seed ^= std::hash<Types>{}(args) + 0x9e3779b9 + (seed << 6) + (seed >> 2)));
+        usize seed = InitSeed;
+        (...,
+            (seed ^= std::hash<TEnumDecayedType<Types>>{}(static_cast<TEnumDecayedType<Types>>(args)) + 0x9e3779b9
+                    + (seed << 6) + (seed >> 2)));
         return seed;
     }
+
+    template <typename... Types, u32 InitSeed = 0u>
+    IF_NODISCARD IF_FORCEINLINE constexpr usize HashCombine(Types&&... args) noexcept
+    {
+        return HashCombineImpl<Types...>(std::forward<Types>(args)...);
+    }
+
 } // namespace Ifrit

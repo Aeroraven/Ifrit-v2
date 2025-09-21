@@ -21,8 +21,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/core/algo/Memory.h"
 #include "ifrit/core/algo/Parallel.h"
-
 #include "ifrit/core/base/CoreBase.h"
+#include "ifrit/core/base/containers/Atomic.h"
+
 namespace Ifrit::Task
 {
     IF_CONSTEXPR u32 cTaskMaxContinuationCount = 16;
@@ -78,12 +79,12 @@ namespace Ifrit::Task
         // 2. If parent is running, add to parent's child list
         // 3. Release the lock
 
-        Atomic<i32>                             m_PendingJobs = 1;
-        Atomic<i32>                             m_ChildJobs   = 0;
-        Atomic<i32>                             m_ParentJobs  = 0;
+        TAtomic<i32>                            m_PendingJobs = 1;
+        TAtomic<i32>                            m_ChildJobs   = 0;
+        TAtomic<i32>                            m_ParentJobs  = 0;
 
         FSpinLock                               m_ContinuationLock = 0;
-        Atomic<ETaskState>                      m_State            = ETaskState::Idle;
+        TAtomic<ETaskState>                     m_State            = ETaskState::Idle;
         Array<Task*, cTaskMaxContinuationCount> m_Continuations;
         Array<Task*, cTaskMaxContinuationCount> m_Parents;
         FIndexedPtr                             m_PooledIdx = FIndexedPtr(0);

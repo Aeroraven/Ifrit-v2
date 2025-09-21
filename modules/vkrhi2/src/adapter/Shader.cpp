@@ -8,6 +8,12 @@
 #include "ifrit/shadercompile/helper/ShaderCompileHelper.h"
 #include "ifrit/vkrhi2/util/Log.h"
 #include "ifrit/core/math/VectorDefs.h"
+#include "ifrit/core/base/Intrinsics.h"
+
+#ifdef __INTELLISENSE__
+    #define IFRIT_VKRHI2_SHARED_SHADER_NEXT_INCLUDE_BASE ""
+    #define IFRIT_VKRHI2_SHARED_SHADER_PATH ""
+#endif
 
 namespace Ifrit::RHI::VulkanRHI2
 {
@@ -280,7 +286,7 @@ namespace Ifrit::RHI::VulkanRHI2
                 }
             }
         }
-        ret = SizedBuffer(rootConstantData.data(),(rootConstantData.size()));
+        ret = SizedBuffer(rootConstantData.data(), (rootConstantData.size()));
         return ret;
     }
 
@@ -288,13 +294,13 @@ namespace Ifrit::RHI::VulkanRHI2
 
     struct VA_ShaderInternal
     {
-        VA_Device*                          mDevice = nullptr;
-        Vec<String>                         mDefineNames;
-        HashMap<String, u32>                mDefineIds;
-        HashMap<u64, Ref<VA_ShaderVariant>> mShaderVariants;
-        Vec<u32>                            mMultiCompileIds;
-        bool                                mMultiCompileReady = false;
-        String                              mPreprocessedCode;
+        VA_Device*                           mDevice = nullptr;
+        Vec<String>                          mDefineNames;
+        THashMap<String, u32>                mDefineIds;
+        THashMap<u64, Ref<VA_ShaderVariant>> mShaderVariants;
+        Vec<u32>                             mMultiCompileIds;
+        bool                                 mMultiCompileReady = false;
+        String                               mPreprocessedCode;
     };
 
     VA_Shader::VA_Shader(VA_Device* device, const RhiShaderCreateDesc& desc) : RhiShader(desc)
@@ -413,7 +419,7 @@ namespace Ifrit::RHI::VulkanRHI2
         auto        permIdCopy = permId;
         while (permId)
         {
-            u32 trailingBit = Math::CountTrailingZero(permId);
+            u32 trailingBit = CountTrailingZero(permId);
             permId &= ~(1 << trailingBit);
             defines.push_back(mData->mDefineNames[trailingBit]);
         }
@@ -453,7 +459,7 @@ namespace Ifrit::RHI::VulkanRHI2
         };
 
         ShaderCompile::ShaderCompileJob job;
-        HashMap<String, String>         definitionsInternal;
+        THashMap<String, String>        definitionsInternal;
         job.mName           = mDesc.mName;
         job.mSource.mCode   = String(mData->mPreprocessedCode.begin(), mData->mPreprocessedCode.end());
         job.mSource.mFormat = sourceTypeConvert(mDesc.mSourceType);

@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/shadercompile/base/ShaderCompileApi.h"
 #include "ifrit/core/algo/SizedBuffer.h"
 #include "ifrit/core/reflection/Fwd.h"
+#include "ifrit/core/base/containers/Maps.h"
 
 namespace Ifrit::ShaderCompile
 {
@@ -139,7 +140,7 @@ namespace Ifrit::ShaderCompile
         String                  mName;
         ShaderSource            mSource;
         String                  mEntryPoint;
-        HashMap<String, String> mDefinitions;
+        THashMap<String, String> mDefinitions;
         EShaderCompileStage     mStage;
         bool                    mRequestReflection = true;
     };
@@ -147,7 +148,7 @@ namespace Ifrit::ShaderCompile
     struct IFRIT_SHADERCOMPILE_API ShaderReflectionData
     {
         Vec<ShaderBinding>   mBindings;
-        HashMap<String, u32> mBindingNameToIndex;
+        THashMap<String, u32> mBindingNameToIndex;
         u32                  mPushConstantSize = 0;
         bool                 mValid            = false;
 

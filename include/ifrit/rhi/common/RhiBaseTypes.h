@@ -104,6 +104,32 @@ namespace Ifrit::RHI
             }
             return *this;
         }
+
+        IF_NODISCARD inline constexpr bool operator==(const RhiClearColorValue& other) const noexcept
+        {
+            if (m_Type != other.m_Type)
+                return false;
+            if (m_Type == ERhiTypeFlags::Float32)
+            {
+                return m_ValueF32[0] == other.m_ValueF32[0] && m_ValueF32[1] == other.m_ValueF32[1]
+                    && m_ValueF32[2] == other.m_ValueF32[2] && m_ValueF32[3] == other.m_ValueF32[3];
+            }
+            else if (m_Type == ERhiTypeFlags::UInt32)
+            {
+                return m_ValueU32[0] == other.m_ValueU32[0] && m_ValueU32[1] == other.m_ValueU32[1]
+                    && m_ValueU32[2] == other.m_ValueU32[2] && m_ValueU32[3] == other.m_ValueU32[3];
+            }
+            else // if (m_Type == RhiTypeFlags::Int32)
+            {
+                return m_ValueI32[0] == other.m_ValueI32[0] && m_ValueI32[1] == other.m_ValueI32[1]
+                    && m_ValueI32[2] == other.m_ValueI32[2] && m_ValueI32[3] == other.m_ValueI32[3];
+            }
+        }
+
+        IF_NODISCARD inline constexpr bool operator!=(const RhiClearColorValue& other) const noexcept
+        {
+            return !(*this == other);
+        }
     };
 
     struct RhiClearDepthStencilValue
@@ -248,10 +274,10 @@ namespace std
     {
         size_t operator()(const Ifrit::RHI::RhiImageSubResource& subRes) const noexcept
         {
-            size_t h1 = std::hash<u32>{}(subRes.mipLevel);
-            size_t h2 = std::hash<u32>{}(subRes.arrayLayer);
-            size_t h3 = std::hash<u32>{}(subRes.mipCount);
-            size_t h4 = std::hash<u32>{}(subRes.layerCount);
+            size_t h1 = std::hash<Ifrit::u32>{}(subRes.mipLevel);
+            size_t h2 = std::hash<Ifrit::u32>{}(subRes.arrayLayer);
+            size_t h3 = std::hash<Ifrit::u32>{}(subRes.mipCount);
+            size_t h4 = std::hash<Ifrit::u32>{}(subRes.layerCount);
             return ((h1 ^ (h2 << 1)) >> 1) ^ (h3 << 1) ^ (h4 << 1);
         }
     };

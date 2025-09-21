@@ -3,8 +3,7 @@
 #include "ifrit/rhi/common/RhiBaseTypes.h"
 #include "ifrit/rhi/common/RhiDevice.h"
 #include "ifrit/rhi/common/RhiApi.h"
-#include <queue>
-#include <cstddef>
+#include "ifrit/core/base/containers/Atomic.h"
 
 namespace Ifrit::RHI
 {
@@ -42,7 +41,7 @@ namespace Ifrit::RHI
         inline ERhiResourceState GetState() const { return mState; }
 
     private:
-        Atomic<u32>       mRefCount = 0;
+        TAtomic<u32>      mRefCount = 0;
         String            mDebugName;
         ERhiResourceState mState       = ERhiResourceState::Undefined;
         ERhiResourceType  mType        = ERhiResourceType::Unknown;
@@ -178,8 +177,18 @@ namespace Ifrit::RHI
         inline bool               IsDepthTexture() const { return (mDesc.mUsage & ERhiImageUsageFlag::Depth) != 0; }
         inline u32                GetSamples() const { return mDesc.mSamples; }
         inline ERhiImageUsage     GetUsage() const { return mDesc.mUsage; }
+        IF_NODISCARD inline ERhiResourceState   GetInitialState() const noexcept { return mDesc.mInitialState; }
+        IF_NODISCARD inline RhiImageSubResource GetFullSubresource() const noexcept
+        {
+            RhiImageSubResource subRes;
+            subRes.mipLevel   = 0;
+            subRes.arrayLayer = 0;
+            subRes.mipCount   = mDesc.mMips;
+            subRes.layerCount = mDesc.mArraySize;
+            return subRes;
+        }
 
-        virtual RhiRawHandle      GetRawHandle() const = 0;
+        virtual RhiRawHandle GetRawHandle() const = 0;
 
         friend class RhiCommandListContext;
 

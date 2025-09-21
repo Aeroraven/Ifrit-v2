@@ -8,7 +8,7 @@ namespace Ifrit::ShaderCompile
 
     struct BindlessWrapperTypeRegistration
     {
-        HashMap<String, EShaderReflDescriptors> mRegisteredNames;
+        THashMap<String, EShaderReflDescriptors> mRegisteredNames;
 
         BindlessWrapperTypeRegistration()
         {

@@ -19,8 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
-#include "ifrit/core/serialization/MathTypeSerialization.h"
-#include "ifrit/core/serialization/SerialInterface.h"
 #include "ifrit/geomproc/base/MeshDesc.h"
 
 namespace Ifrit::GeometryProc::MeshProcess
@@ -34,8 +32,6 @@ namespace Ifrit::GeometryProc::MeshProcess
         f32      parentError = INFINITY;
         u32      lod         = 0;
         u32      dummy       = 0;
-
-        IFRIT_STRUCT_SERIALIZE(selfSphere, parentSphere, selfError, parentError, lod);
     };
     struct ClusterGroup
     {
@@ -45,8 +41,6 @@ namespace Ifrit::GeometryProc::MeshProcess
         u32      childMeshletSize;
         u32      lod;
         u32      dummy1;
-
-        IFRIT_STRUCT_SERIALIZE(selfBoundingSphere, parentBoundingSphere, childMeshletStart, childMeshletSize, lod);
     };
     struct FlattenedBVHNode
     {
@@ -60,9 +54,6 @@ namespace Ifrit::GeometryProc::MeshProcess
         u32      pad1;
         u32      pad2;
         u32      pad3;
-
-        IFRIT_STRUCT_SERIALIZE(
-            boundSphere, numChildNodes, clusterGroupStart, clusterGroupSize, subTreeSize, childNodes, maxClusterError);
     };
 
 } // namespace Ifrit::GeometryProc::MeshProcess

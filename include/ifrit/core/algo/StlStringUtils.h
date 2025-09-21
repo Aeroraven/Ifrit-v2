@@ -1,28 +1,12 @@
 
-/*
-Ifrit-v2
-Copyright (C) 2024-2025 funkybirds(Aeroraven)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/typing/Traits.h"
 
 namespace Ifrit
 {
 
-    Vec<String> SplitString(const String& str, const String& delimiter)
+    inline Vec<String> SplitString(const String& str, const String& delimiter)
     {
         Vec<String> result;
         size_t      start = 0;
@@ -37,7 +21,7 @@ namespace Ifrit
         return result;
     }
 
-    String JoinString(const Vec<String>& strings, const String& delimiter)
+    inline String JoinString(const Vec<String>& strings, const String& delimiter)
     {
         String result;
         for (size_t i = 0; i < strings.size(); ++i)
@@ -50,4 +34,23 @@ namespace Ifrit
         }
         return result;
     }
+
+    template <IConceptConvertibleToString T>
+        requires IConceptIsScalar<TTraitDecayedType<T>>
+    IF_NODISCARD IF_FORCEINLINE constexpr String ToString(T value) noexcept
+    {
+        std::stringstream ss;
+        ss << value;
+        return ss.str();
+    }
+
+    template <IConceptConvertibleToString T>
+        requires(!IConceptIsScalar<TTraitDecayedType<T>>)
+    IF_NODISCARD IF_FORCEINLINE constexpr String ToString(const T& value) noexcept
+    {
+        std::stringstream ss;
+        ss << value;
+        return ss.str();
+    }
+
 } // namespace Ifrit

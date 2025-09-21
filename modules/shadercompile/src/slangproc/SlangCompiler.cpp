@@ -144,7 +144,7 @@ namespace Ifrit::ShaderCompile::SlangProc
         }
     };
 
-    static HashMap<u32, FSlangCompilerPersistentData> sPersistentData;
+    static THashMap<u32, FSlangCompilerPersistentData> sPersistentData;
 
     void                                              DiagnoseIfNeeded(slang::IBlob* diagnosticsBlob)
     {

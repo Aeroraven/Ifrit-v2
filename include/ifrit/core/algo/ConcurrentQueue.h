@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/core/algo/Memory.h"
-#include <memory>
+#include "ifrit/core/base/containers/Atomic.h"
 
 namespace Ifrit
 {
@@ -30,12 +30,12 @@ namespace Ifrit
     public:
         struct TPooledConcurrentQueueElement
         {
-            Atomic<IntPtr> m_Next    = 0;
-            u8             m_IsDummy = 0;
+            TAtomic<IntPtr> m_Next    = 0;
+            u8              m_IsDummy = 0;
             union
             {
-                Atomic<u64> m_Dummy = 0;
-                T           m_Data;
+                TAtomic<u64> m_Dummy = 0;
+                T            m_Data;
             };
             explicit TPooledConcurrentQueueElement(nullptr_t x) : m_Next(0), m_Dummy(0), m_IsDummy(1) {}
             explicit TPooledConcurrentQueueElement(T&& data) : m_Next(0), m_Data(std::move(data)), m_IsDummy(0) {}
@@ -51,9 +51,9 @@ namespace Ifrit
         };
 
     private:
-        Atomic<IntPtr>                             m_Head     = 0;
-        Atomic<IntPtr>                             m_Tail     = 0;
-        Atomic<u64>                                m_RefCount = 0;
+        TAtomic<IntPtr>                            m_Head     = 0;
+        TAtomic<IntPtr>                            m_Tail     = 0;
+        TAtomic<u64>                               m_RefCount = 0;
         TObjectPool<TPooledConcurrentQueueElement> m_Pool;
 
     private:

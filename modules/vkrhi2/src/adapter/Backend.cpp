@@ -79,13 +79,13 @@ namespace Ifrit::RHI::VulkanRHI2
     }
     RhiTextureRef VA_Backend::CreateTexture(const RhiTextureDesc& desc)
     {
-        auto texRaw = new VA_Texture(static_cast<RhiDevice*>(mInternal->mDevice.get()), desc);
-        return MakeCountRef<RhiTexture>(texRaw);
+        auto texRaw = MakeCountRef<VA_Texture>(static_cast<RhiDevice*>(mInternal->mDevice.get()), desc);
+        return CastAndMoveCountRef<RhiTexture>(std::move(texRaw));
     }
     RhiBufferRef VA_Backend::CreateBuffer(const RhiBufferDesc& desc)
     {
-        auto bufRaw = new VA_Buffer(static_cast<RhiDevice*>(mInternal->mDevice.get()), desc);
-        return MakeCountRef<RhiBuffer>(bufRaw);
+        auto bufRaw = MakeCountRef<VA_Buffer>(static_cast<RhiDevice*>(mInternal->mDevice.get()), desc);
+        return CastAndMoveCountRef<RhiBuffer>(std::move(bufRaw));
     }
 
     IFRIT_VKRHI2_API void VA_Backend::BeginFrame()
@@ -121,8 +121,8 @@ namespace Ifrit::RHI::VulkanRHI2
         RhiResourceViewDesc desc;
         desc.mType                     = ERhiResourceViewedType::Texture;
         desc.mTextureView.mSubResource = subResource;
-        auto view = new VA_ResourceViewUAV(desc, static_cast<VA_Texture*>(texture), mInternal->mDevice.get());
-        return MakeCountRef<RhiUnorderedAccessView>(view);
+        auto view = MakeCountRef<VA_ResourceViewUAV>(desc, static_cast<VA_Texture*>(texture), mInternal->mDevice.get());
+        return CastAndMoveCountRef<RhiUnorderedAccessView>(std::move(view));
     }
     IFRIT_VKRHI2_API RhiUAVRef VA_Backend::CreateUAV(RhiBuffer* buffer)
     {
@@ -130,16 +130,16 @@ namespace Ifrit::RHI::VulkanRHI2
         desc.mType               = ERhiResourceViewedType::Buffer;
         desc.mBufferView.mOffset = 0;
         desc.mBufferView.mSize   = ~0u;
-        auto view = new VA_ResourceViewUAV(desc, static_cast<VA_Buffer*>(buffer), mInternal->mDevice.get());
-        return MakeCountRef<RhiUnorderedAccessView>(view);
+        auto view = MakeCountRef<VA_ResourceViewUAV>(desc, static_cast<VA_Buffer*>(buffer), mInternal->mDevice.get());
+        return CastAndMoveCountRef<RhiUnorderedAccessView>(std::move(view));
     }
     IFRIT_VKRHI2_API RhiSRVRef VA_Backend::CreateSRV(RhiTexture* texture, RhiImageSubResource subResource)
     {
         RhiResourceViewDesc desc;
         desc.mType                     = ERhiResourceViewedType::Texture;
         desc.mTextureView.mSubResource = subResource;
-        auto view = new VA_ResourceViewSRV(desc, static_cast<VA_Texture*>(texture), mInternal->mDevice.get());
-        return MakeCountRef<RhiShaderReadView>(view);
+        auto view = MakeCountRef<VA_ResourceViewSRV>(desc, static_cast<VA_Texture*>(texture), mInternal->mDevice.get());
+        return CastAndMoveCountRef<RhiShaderReadView>(std::move(view));
     }
     IFRIT_VKRHI2_API RhiSRVRef VA_Backend::CreateSRV(RhiBuffer* buffer)
     {
@@ -147,8 +147,8 @@ namespace Ifrit::RHI::VulkanRHI2
         desc.mType               = ERhiResourceViewedType::Buffer;
         desc.mBufferView.mOffset = 0;
         desc.mBufferView.mSize   = ~0u;
-        auto view = new VA_ResourceViewSRV(desc, static_cast<VA_Buffer*>(buffer), mInternal->mDevice.get());
-        return MakeCountRef<RhiShaderReadView>(view);
+        auto view = MakeCountRef<VA_ResourceViewSRV>(desc, static_cast<VA_Buffer*>(buffer), mInternal->mDevice.get());
+        return CastAndMoveCountRef<RhiShaderReadView>(std::move(view));
     }
 
     IFRIT_VKRHI2_API RhiComputePipeline* VA_Backend::Experimental_GetComputePipeline(

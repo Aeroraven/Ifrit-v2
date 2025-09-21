@@ -130,6 +130,9 @@ namespace Ifrit::RHI::VulkanRHI2
                 }
                 numFreeCmds++;
             }
+            else
+            {
+            }
         }
 
         if (numFreeCmds > 0)
@@ -180,6 +183,9 @@ namespace Ifrit::RHI::VulkanRHI2
 
             cmd = MakeOwner<VA_CommandListNative>(cmdVk, mInternal->mDevice);
             IF_LOG_ASSERTION("VA_CommandListPool", cmd != nullptr, "Failed to create command list wrapper");
+
+            // IF_LOG_WARNING("VA_CommandListPool", "Allocated new command buffer, total allocated: {}",
+            //     mInternal->mAllocatedCommandBuffers.size() + 1);
         }
 
         cmd->GetState(); // just to make sure the state is valid

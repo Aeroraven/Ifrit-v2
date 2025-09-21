@@ -477,10 +477,10 @@ namespace Ifrit::RHI::VulkanRHI2
     // ===== Pipeline State Cache Registry =====
     struct VA_PipelineStateCacheRegistryInternal : public NonCopyable
     {
-        HashMap<u64, Owner<VA_ComputePipelineState>>  mComputePipelines;
-        HashMap<u64, Owner<VA_GraphicsPipelineState>> mGraphicsPipelines;
-        VA_Device*                                    mDevice = nullptr;
-        Mutex                                         mMutex;
+        THashMap<u64, Owner<VA_ComputePipelineState>>  mComputePipelines;
+        THashMap<u64, Owner<VA_GraphicsPipelineState>> mGraphicsPipelines;
+        VA_Device*                                     mDevice = nullptr;
+        Mutex                                          mMutex;
     };
     IFRIT_VKRHI2_API VA_PipelineStateCacheRegistry::VA_PipelineStateCacheRegistry(VA_Device* device)
     {

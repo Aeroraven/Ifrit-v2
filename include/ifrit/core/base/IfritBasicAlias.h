@@ -70,6 +70,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
     #define IF_FORCEINLINE inline
 #endif
 
+// disable implicit conversion
+#define IF_OPTION_DISCOURAGE_IMPLICIT_CONVERSION 1
+
 namespace Ifrit
 {
     typedef uint8_t   u8;

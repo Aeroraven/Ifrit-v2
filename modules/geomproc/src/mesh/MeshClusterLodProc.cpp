@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/geomproc/mesh/MeshClusterLodProc.h"
 #include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/base/containers/Maps.h"
 
 #if IFRIT_FEATURE_SIMD
     #include <emmintrin.h>
@@ -349,7 +350,7 @@ namespace Ifrit::GeometryProc::MeshProcess
         {
             Vec<i32>          localWeights;
             Vec<i32>          localAdjs;
-            HashMap<i32, i32> weightMap;
+            THashMap<i32, i32> weightMap;
             for (int j = 0; j < meshletAdjacency[i].size(); j++)
             {
                 if (weightMap.find(meshletAdjacency[i][j]) == weightMap.end())
@@ -417,7 +418,7 @@ namespace Ifrit::GeometryProc::MeshProcess
         // The parentError is calculated in cluster-group level,
         // The selfError is calculated in cluster level, (not in cluster-group level)
 
-        Map<u32, Vec<u32>> clusterGroupToMeshletMap;
+        TMap<u32, Vec<u32>> clusterGroupToMeshletMap;
         for (int i = 0; i < ctx.totalMeshlets; i++)
         {
             clusterGroupToMeshletMap[ctx.graphPartition[i]].push_back(i);

@@ -20,8 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "MeshClusterBase.h"
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/math/linalg/LinalgOps.h"
-#include "ifrit/core/serialization/MathTypeSerialization.h"
-#include "ifrit/core/serialization/SerialInterface.h"
 #include "ifrit/core/platform/ApiConv.h"
 #include <cstdint>
 #include <meshoptimizer/src/meshoptimizer.h>
@@ -72,9 +70,6 @@ namespace Ifrit::GeometryProc::MeshProcess
 
         // Num clusters for each lod
         Vec<u32>             numClustersEachLod;
-
-        IFRIT_STRUCT_SERIALIZE(meshletsRaw, meshletVertices, meshletTriangles, graphPartition, parentStart, parentSize,
-            meshletCull, selfErrorSphereW, clusterGroups, meshletsInClusterGroups, numClustersEachLod);
     };
 
     class IFRIT_GEOMPROC_API MeshClusterLodProc

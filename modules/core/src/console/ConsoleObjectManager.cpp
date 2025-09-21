@@ -18,12 +18,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "ifrit/core/console/ConsoleObjectManager.h"
 #include "ifrit/core/logging/Logging.h"
-
+#include "ifrit/core/base/containers/Maps.h"
 namespace Ifrit
 {
     struct FConsoleVariableRegistryData
     {
-        HashMap<String, Owner<IFConsoleVariableRegistryEntry>> m_CVars;
+        THashMap<String, Owner<IFConsoleVariableRegistryEntry>> m_CVars;
     };
 
     IFRIT_APIDECL FConsoleVariableRegistry::~FConsoleVariableRegistry() { delete m_Data; }

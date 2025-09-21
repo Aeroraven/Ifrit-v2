@@ -1,7 +1,8 @@
 #pragma once
 #include "ifrit/core/base/CoreBase.h"
 #include "ifrit/core/base/IfritBase.h"
-#include "ifrit/core/math/Intrinsics.h"
+#include "ifrit/core/base/Intrinsics.h"
+#include "ifrit/core/base/containers/Maps.h"
 namespace Ifrit
 {
 
@@ -27,7 +28,7 @@ namespace Ifrit
             mTotalMinBlocks = totalSize / granularity;
             mGranularity    = granularity;
             mTotalSize      = totalSize;
-            mOrders         = Math::IntegerLog2(mTotalMinBlocks) + 1;
+            mOrders         = IntegerLog2(mTotalMinBlocks) + 1;
 
             mFreeBlocks.resize(mOrders);
             if ((mTotalMinBlocks & (mTotalMinBlocks - 1)) != 0)
@@ -46,7 +47,7 @@ namespace Ifrit
             {
                 ret.mSuccess                  = true;
                 mAllocatedBlocks[ret.mOffset] = { ret.mOffset / mGranularity,
-                    static_cast<u64>(Math::IntegerLog2RoundUp(requiredBlocks)) };
+                    static_cast<u64>(IntegerLog2RoundUp(requiredBlocks)) };
             }
             return ret;
         }
@@ -126,7 +127,7 @@ namespace Ifrit
 
         u64 AllocateInternal(u64 requiredBlocks)
         {
-            u64 requiredOrder = Math::IntegerLog2RoundUp(requiredBlocks);
+            u64 requiredOrder = IntegerLog2RoundUp(requiredBlocks);
             if (requiredOrder >= mOrders)
             {
                 return ~0ull;
@@ -140,14 +141,14 @@ namespace Ifrit
         }
 
     private:
-        u64                      mGranularity;
-        u64                      mTotalSize;
-        u64                      mOrders;
+        u64                       mGranularity;
+        u64                       mTotalSize;
+        u64                       mOrders;
 
-        u64                      mTotalMinBlocks;
+        u64                       mTotalMinBlocks;
 
-        Vec<Set<u64>>            mFreeBlocks; // key is offset
-        HashMap<u64, BuddyBlock> mAllocatedBlocks;
+        Vec<TSet<u64>>            mFreeBlocks; // key is offset
+        THashMap<u64, BuddyBlock> mAllocatedBlocks;
     };
 
 } // namespace Ifrit

@@ -7,12 +7,12 @@
 namespace Ifrit::Imaging::Compress
 {
     IFRIT_IMAGING_API void DiscardBAChannel(
-        const TSizedBuffer& in, TSizedBuffer& out, u32 width, u32 height, u32 depth, u32 inChannels, u32 channelWidth)
+        const SizedBuffer& in, SizedBuffer& out, u32 width, u32 height, u32 depth, u32 inChannels, u32 channelWidth)
     {
         IF_LOG_ASSERTION("TexCompression", in.GetSize() > 0, "Compress: size is 0");
         IF_LOG_ASSERTION("TexCompression", inChannels == 4, "Compress: only RGBA format is supported");
 
-        out = TSizedBuffer(width * height * depth * 2);
+        out = SizedBuffer(width * height * depth * 2);
         Vec<u8> outData(width * height * depth * 2);
         for (u32 i = 0; i < width * height * depth; ++i)
         {
@@ -22,7 +22,7 @@ namespace Ifrit::Imaging::Compress
         out.CopyFromRaw(outData.data(), out.GetSize());
     }
 
-    IFRIT_IMAGING_API void WriteTex2DToBlockCompressedFile(const TSizedBuffer& in, const String& outFile,
+    IFRIT_IMAGING_API void WriteTex2DToBlockCompressedFile(const SizedBuffer& in, const String& outFile,
         TextureFormat fmt, u32 baseWidth, u32 baseHeight, u32 baseDepth, CompressionAlgo algo)
     {
         IF_LOG_ASSERTION("TexCompression", in.GetSize() > 0, "Compress: size is 0");
@@ -108,7 +108,7 @@ namespace Ifrit::Imaging::Compress
     }
 
     IFRIT_APIDECL void ReadBlockCompressedTex2DFromFile(
-        TSizedBuffer& out, const String& inFile, u32& baseWidth, u32& baseHeight, u32& baseDepth)
+        SizedBuffer& out, const String& inFile, u32& baseWidth, u32& baseHeight, u32& baseDepth)
     {
         ktxTexture*    texture;
         KTX_error_code result;

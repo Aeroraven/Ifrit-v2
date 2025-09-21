@@ -19,104 +19,72 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/platform/ApiConv.h"
+#include "ifrit/core/typing/Traits.h"
 #ifdef _DEBUG
     #include <stdexcept>
+    #define IFRIT_UNCHECKED_NOEXCEPT
+#else
+    #define IFRIT_UNCHECKED_NOEXCEPT noexcept
 #endif
 
 namespace Ifrit
 {
-    template <typename T> IntPtr         ToIntPtr(T* ptr) { return reinterpret_cast<IntPtr>(ptr); }
-    template <typename T> T*             FromIntPtr(IntPtr ptr) { return reinterpret_cast<T*>(ptr); }
 
-    template <typename T, typename U> T* CheckedCast(U* ptr)
+    template <typename T> IntPtr ToIntPtr(T* ptr) { return reinterpret_cast<IntPtr>(ptr); }
+    template <typename T> T*     FromIntPtr(IntPtr ptr) { return reinterpret_cast<T*>(ptr); }
+
+    // Reference: NVIDIAGameWorks/nvrhi/blob/main/include/nvrhi/nvrhi.h
+    template <typename T, typename U>
+        requires IConceptIsDynamicallyConvertible<T*, U*>
+    IF_NODISCARD constexpr inline T* CheckedCast(U* ptr) IFRIT_UNCHECKED_NOEXCEPT
     {
-        // Reference: NVIDIAGameWorks/nvrhi/blob/main/include/nvrhi/nvrhi.h
+
 #ifdef _DEBUG
-        // dynamic cast
         if (ptr == nullptr)
-        {
             return nullptr;
-        }
         auto casted = dynamic_cast<T*>(ptr);
         if (casted == nullptr)
-        {
             throw std::runtime_error("Invalid cast");
-        }
         return casted;
 #else
         return static_cast<T*>(ptr);
 #endif
     }
 
-    template <typename T, typename U> const T* CheckedCast(const U* ptr)
-    {
-#ifdef _DEBUG
-        // dynamic cast
-        if (ptr == nullptr)
-        {
-            return nullptr;
-        }
-        auto casted = dynamic_cast<const T*>(ptr);
-        if (casted == nullptr)
-        {
-            throw std::runtime_error("Invalid cast");
-        }
-        return casted;
-#else
-        return static_cast<const T*>(ptr);
-#endif
-    }
-
-    template <typename T, typename U> T* ForcedCheckedCast(U* ptr)
+    template <typename T, typename U>
+        requires IConceptIsDynamicallyConvertible<T*, U*>
+    IF_NODISCARD inline T* ForcedCheckedCast(U* ptr)
     {
         // static cast
         if (ptr == nullptr)
-        {
             return nullptr;
-        }
         auto casted = dynamic_cast<T*>(ptr);
         if (casted == nullptr)
-        {
             std::abort();
-        }
         return casted;
     }
 
-    template <typename T, typename U> const T* ForcedCheckedCast(const U* ptr)
-    {
-        // static cast
-        if (ptr == nullptr)
-        {
-            return nullptr;
-        }
-        auto casted = dynamic_cast<const T*>(ptr);
-        if (casted == nullptr)
-        {
-            std::abort();
-        }
-        return casted;
-    }
-
-    template <typename T, typename U> std::shared_ptr<T> CheckedPointerCast(const std::shared_ptr<U>& ptr)
+    template <typename T, typename U>
+        requires IConceptIsDynamicallyConvertible<T*, U*>
+    IF_NODISCARD inline Ref<T> CheckedPointerCast(const Ref<U>& ptr)
     {
 #ifdef _DEBUG
         // dynamic cast
         if (ptr == nullptr)
-        {
             return nullptr;
-        }
         auto casted = std::dynamic_pointer_cast<T>(ptr);
         if (casted == nullptr)
-        {
             throw std::runtime_error("Invalid cast");
-        }
         return casted;
 #else
         return std::static_pointer_cast<T>(ptr);
 #endif
     }
 
-    template <typename T> T SizeCast(size_t size) { return static_cast<T>(size); }
+    template <IIntegral T> T IF_NODISCARD constexpr IF_FORCEINLINE SizeCast(size_t size) noexcept
+    {
+        return static_cast<T>(size);
+    }
 
     // Non-copyable class:
     // https://www.boost.org/doc/libs/1_41_0/boost/noncopyable.hpp

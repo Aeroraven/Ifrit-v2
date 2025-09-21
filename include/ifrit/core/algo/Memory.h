@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/typing/Util.h"
 #include "ifrit/core/logging/Logging.h"
+#include "ifrit/core/base/containers/Atomic.h"
 #include <memory>
 #include <cstddef>
 #include <mutex>
@@ -46,11 +47,11 @@ namespace Ifrit
     class TThreadSafePagedVector
     {
     private:
-        Atomic<volatile T*> m_Pages[TPageNums];
-        Atomic<u32>         m_SpinLock;
-        Atomic<u32>         m_CurrentBack  = 0;
-        Atomic<u32>         m_CurrentFront = 0;
-        Atomic<u32>         m_CurrentSize  = 0;
+        TAtomic<volatile T*> m_Pages[TPageNums];
+        TAtomic<u32>         m_SpinLock;
+        TAtomic<u32>         m_CurrentBack  = 0;
+        TAtomic<u32>         m_CurrentFront = 0;
+        TAtomic<u32>         m_CurrentSize  = 0;
 
     public:
         TThreadSafePagedVector()
@@ -148,7 +149,7 @@ namespace Ifrit
         bool    operator!=(decltype(nullptr) x) const { return m_Ptr != 0; }
     };
 
-    template <typename T, typename Alloc = std::allocator<T>, typename AtomicAlloc = std::allocator<Atomic<u64>>>
+    template <typename T, typename Alloc = std::allocator<T>, typename AtomicAlloc = std::allocator<TAtomic<u64>>>
     class TObjectPool : public NonCopyable
     {
     private:
@@ -159,14 +160,14 @@ namespace Ifrit
         Alloc                       m_Allocator;
         Vec<T*>                     m_IdToPtr;
 
-        Vec<Atomic<u64>*>           m_AtomMemory;
+        Vec<TAtomic<u64>*>           m_AtomMemory;
         Vec<u64>                    m_AtomMemorySize; // Relative to sizeof(Atomic<u64>)
-        Vec<Atomic<u64>*>           m_AtomVacantList;
+        Vec<TAtomic<u64>*>           m_AtomVacantList;
         AtomicAlloc                 m_AtomicAllocator;
 
-        Atomic<u64>                 m_CASLock;
-        Atomic<i64>                 m_VacantPos       = 0;
-        Atomic<u64>                 m_VacantAvailable = 0;
+        TAtomic<u64>                 m_CASLock;
+        TAtomic<i64>                 m_VacantPos       = 0;
+        TAtomic<u64>                 m_VacantAvailable = 0;
 
         std::mutex                  m_Mutex;
 
@@ -177,7 +178,7 @@ namespace Ifrit
         private:
             FIndexedPtr  m_Index;
             T*           m_Ref;
-            Atomic<u64>* m_RefCount;
+            TAtomic<u64>* m_RefCount;
             TObjectPool* m_Pool;
 
         private:
@@ -199,7 +200,7 @@ namespace Ifrit
         public:
             TObjectRef(nullptr_t) : m_Index(0), m_Ref(nullptr), m_RefCount(nullptr), m_Pool(nullptr) {}
             TObjectRef() : m_Index(0), m_Ref(nullptr), m_RefCount(nullptr), m_Pool(nullptr) {}
-            explicit TObjectRef(FIndexedPtr idx, T* ref, Atomic<u64>* refCount, TObjectPool* pool)
+            explicit TObjectRef(FIndexedPtr idx, T* ref, TAtomic<u64>* refCount, TObjectPool* pool)
                 : m_Index(idx), m_Ref(ref), m_RefCount(refCount), m_Pool(pool)
             {
                 m_RefCount->store(1, std::memory_order::release);
@@ -370,7 +371,7 @@ namespace Ifrit
         }
 
     private:
-        Atomic<u64>* AllocateAtomic()
+        TAtomic<u64>* AllocateAtomic()
         {
             if (m_AtomVacantList.empty())
             {
@@ -385,13 +386,13 @@ namespace Ifrit
             }
             auto obj = m_AtomVacantList.back();
             m_AtomVacantList.pop_back();
-            new (obj) Atomic<u64>(0);
+            new (obj) TAtomic<u64>(0);
             return obj;
         }
 
-        IF_FORCEINLINE void DeallocateAtomic(Atomic<u64>* obj)
+        IF_FORCEINLINE void DeallocateAtomic(TAtomic<u64>* obj)
         {
-            obj->~Atomic<u64>();
+            obj->~TAtomic<u64>();
             m_AtomVacantList.push_back(obj);
         }
         IF_FORCEINLINE u64 GetNextMemAllocSize() { return 16384; }

@@ -6,8 +6,8 @@ namespace Ifrit::Reflection
 {
     struct DynamicReflectionManager
     {
-        HashMap<u64, FReflTypeMetaInfo> TypeRegistry;
-        HashMap<u64, u64>               TypeIDHashToInternalHash;
+        THashMap<u64, FReflTypeMetaInfo> TypeRegistry;
+        THashMap<u64, u64>               TypeIDHashToInternalHash;
     };
     IFRIT_APIDECL DynamicReflectionManager& GetDynamicReflectionManager()
     {
@@ -229,13 +229,13 @@ namespace Ifrit::Reflection
         return result;
     }
 
-    HashMap<u64, FPropertyField> GetPropertyListRecursive(u64 typeHash)
+    THashMap<u64, FPropertyField> GetPropertyListRecursive(u64 typeHash)
     {
 
-        auto&                        manager = GetDynamicReflectionManager();
-        HashMap<u64, FPropertyField> properties;
+        auto&                         manager = GetDynamicReflectionManager();
+        THashMap<u64, FPropertyField> properties;
 
-        auto                         it = manager.TypeRegistry.find(typeHash);
+        auto                          it = manager.TypeRegistry.find(typeHash);
         if (it != manager.TypeRegistry.end())
         {
             const FReflTypeMetaInfo& typeInfo = it->second;
@@ -256,7 +256,7 @@ namespace Ifrit::Reflection
         return properties;
     }
 
-    IFRIT_CORE_API HashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj)
+    IFRIT_CORE_API THashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj)
     {
         auto& manager  = GetDynamicReflectionManager();
         u64   typeHash = obj.TypeHash;

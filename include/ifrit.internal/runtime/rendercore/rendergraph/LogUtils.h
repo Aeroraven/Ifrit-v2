@@ -14,11 +14,6 @@ namespace Ifrit::Runtime::RenderCore::RDG
 #define RDG_ASSERTION(expr, ...) IF_LOG_ASSERTION("RenderGraph", expr, __VA_ARGS__)
 #define RDG_NOTNULL(ptr, ...) IF_LOG_ASSERTION("RenderGraph", (ptr) != nullptr, __VA_ARGS__)
 
-    template <typename T, typename U> bool HasFlagBit(T value, U flag)
-    {
-        return (static_cast<std::underlying_type_t<T>>(value) & static_cast<std::underlying_type_t<U>>(flag)) != 0;
-    }
-
 #define RDG_NOT_IMPLEMENTED() RDG_LOG_CRITICAL("Function not implemented: {}", __FUNCTION__)
 
 } // namespace Ifrit::Runtime::RenderCore::RDG

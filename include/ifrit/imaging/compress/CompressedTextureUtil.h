@@ -40,12 +40,12 @@ namespace Ifrit::Imaging::Compress
     };
 
     IFRIT_IMAGING_API void DiscardBAChannel(
-        const TSizedBuffer& in, TSizedBuffer& out, u32 width, u32 height, u32 depth, u32 inChannels, u32 channelWidth);
+        const SizedBuffer& in, SizedBuffer& out, u32 width, u32 height, u32 depth, u32 inChannels, u32 channelWidth);
 
-    IFRIT_IMAGING_API void WriteTex2DToBlockCompressedFile(const TSizedBuffer& in, const String& outFile,
+    IFRIT_IMAGING_API void WriteTex2DToBlockCompressedFile(const SizedBuffer& in, const String& outFile,
         TextureFormat fmt, u32 baseWidth, u32 baseHeight, u32 baseDepth, CompressionAlgo algo);
 
     IFRIT_IMAGING_API void ReadBlockCompressedTex2DFromFile(
-        TSizedBuffer& out, const String& inFile, u32& baseWidth, u32& baseHeight, u32& baseDepth);
+        SizedBuffer& out, const String& inFile, u32& baseWidth, u32& baseHeight, u32& baseDepth);
 
 } // namespace Ifrit::Imaging::Compress

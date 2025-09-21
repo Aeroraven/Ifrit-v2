@@ -10,6 +10,7 @@
 #include "ifrit/core/reflection/RttiIdentifier.h"
 #include "ifrit/core/reflection/PropertyMeta.h"
 #include "ifrit/core/reflection/PropertyUIControl.h"
+#include "ifrit/core/base/containers/Maps.h"
 
 namespace Ifrit::Reflection
 {
@@ -50,11 +51,11 @@ namespace Ifrit::Reflection
 
     struct FPropertyField
     {
-        String                                 Name;
-        Fn<ObjectImpl(ObjectImpl&)>            Accessor;
-        Fn<void(ObjectImpl&)>                  UIHandle;
-        HashMap<String, PropertyHintValueType> Hints;
-        PropertyMetadata                       Metadata;
+        String                                  Name;
+        Fn<ObjectImpl(ObjectImpl&)>             Accessor;
+        Fn<void(ObjectImpl&)>                   UIHandle;
+        THashMap<String, PropertyHintValueType> Hints;
+        PropertyMetadata                        Metadata;
 
         FPropertyWrapper GetProperty(ObjectImpl& obj) const { return FPropertyWrapper{ Accessor(obj) }; }
     };
@@ -63,7 +64,7 @@ namespace Ifrit::Reflection
     {
         String                                              Name;
         Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> Invoker;
-        HashMap<String, PropertyHintValueType>              Hints;
+        THashMap<String, PropertyHintValueType>             Hints;
         Fn<void(ObjectImpl&)>                               UIHandle;
 
         ObjectImpl Invoke(ObjectImpl& obj, const Vec<ObjectImpl>& args) const { return Invoker(obj, args); }
@@ -83,15 +84,15 @@ namespace Ifrit::Reflection
 
     struct FReflTypeMetaInfo
     {
-        StringView                   Name;
-        u64                          Hash;
-        Fn<ObjectImpl()>             Constructor = nullptr;
-        HashMap<u64, FPropertyField> PropertyFields;
-        HashMap<u64, FMethodField>   MethodFields;
-        FMetaTypeExtendedInfo        MetaInfo;
-        bool                         Polymorphic = false;
-        Vec<u64>                     BaseTypes;
-        Vec<u64>                     DerivedTypes;
+        StringView                    Name;
+        u64                           Hash;
+        Fn<ObjectImpl()>              Constructor = nullptr;
+        THashMap<u64, FPropertyField> PropertyFields;
+        THashMap<u64, FMethodField>   MethodFields;
+        FMetaTypeExtendedInfo         MetaInfo;
+        bool                          Polymorphic = false;
+        Vec<u64>                      BaseTypes;
+        Vec<u64>                      DerivedTypes;
 
         FReflTypeMetaInfo() = default;
         bool operator==(const FReflTypeMetaInfo& other) const { return Hash == other.Hash; }
@@ -171,7 +172,7 @@ namespace Ifrit::Reflection
                            Fn<ObjectImpl(ObjectImpl&, const Vec<ObjectImpl>&)> invoker, Fn<void(ObjectImpl&)> uihandle);
 
     IFRIT_CORE_API ObjectImpl              Internal_GetProperty(TReflObject<ObjectImpl>& obj, u64 propertyHash);
-    IFRIT_CORE_API HashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj);
+    IFRIT_CORE_API THashMap<u64, FPropertyField> Internal_GetPropertyList(TReflObject<ObjectImpl>& obj);
     IFRIT_CORE_API TReflObject<ObjectImpl> Internal_Reference(void* target, std::type_info const& typeInfo);
     IFRIT_CORE_API u64                     Internal_GetTypeHashFromTypeInfoHash(u64 typeInfoHash);
     IFRIT_CORE_API void                    Internal_RegisterPolymorphic(u64 baseTypeHash, u64 derivedTypeHash);
@@ -224,7 +225,7 @@ namespace Ifrit::Reflection
                 }
                 else if constexpr (IConceptHasCustomEditingHandle<MemberType>)
                 {
-                    MemberType& member = prop.As<MemberType>();
+                    MemberType&             member   = prop.As<MemberType>();
                     auto                    typeInfo = FReflTypeMetaInfo::Create<ClassType>();
                     auto                    propInfo = FReflPropertyMetaInfo::Create<Member>();
                     const PropertyMetadata& metadata = Internal_GetPropertyMetadata(typeInfo.Hash, propInfo.Hash);
@@ -235,7 +236,8 @@ namespace Ifrit::Reflection
     };
 
     template <typename T, typename R, typename... Args, usize... I>
-    R MemberFunctorInvokerWrapperImpl(R (T::*f)(Args...), T& obj, const Vec<ObjectImpl>& vec, std::index_sequence<I...>)
+    R MemberFunctorInvokerWrapperImpl(
+        R (T::*f)(Args...), T& obj, const Vec<ObjectImpl>& vec, TSinkArg<std::index_sequence<I...>>)
     {
         return (obj.*f)((vec[I]).As<Args>()...);
     }

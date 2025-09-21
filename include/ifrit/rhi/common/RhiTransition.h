@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 
 #include "RhiBaseTypes.h"
 #include "RhiResource.h"
+#include "ifrit/core/base/containers/Atomic.h"
 
 namespace Ifrit::RHI
 {
@@ -42,7 +43,7 @@ namespace Ifrit::RHI
 
     struct RhiTransition
     {
-        Atomic<ERhiTransitionState>    mState       = ERhiTransitionState::Pending;
+        TAtomic<ERhiTransitionState>   mState       = ERhiTransitionState::Pending;
         ERhiPipelineType               mPipelineSrc = ERhiPipelineType::Graphics;
         ERhiPipelineType               mPipelineDst = ERhiPipelineType::Graphics;
         Vec<RhiResourceTransitionDesc> mTransitions;

@@ -92,41 +92,41 @@ namespace Ifrit::RHI::VulkanRHI2
 
     struct VA_DevicePrivate
     {
-        RHI::RhiInitializeArguments           mArgs;
-        ResourceDeleteQueue                   mDeleteQueue;
+        RHI::RhiInitializeArguments            mArgs;
+        ResourceDeleteQueue                    mDeleteQueue;
 
-        VkInstance                            mInstance       = VK_NULL_HANDLE;
-        VkDebugUtilsMessengerEXT              mDebugMessenger = VK_NULL_HANDLE;
-        VkDevice                              mDevice         = VK_NULL_HANDLE;
+        VkInstance                             mInstance       = VK_NULL_HANDLE;
+        VkDebugUtilsMessengerEXT               mDebugMessenger = VK_NULL_HANDLE;
+        VkDevice                               mDevice         = VK_NULL_HANDLE;
 
-        VA_PhysicalDeviceDesc                 mPhysicalDevice = {};
-        VA_ChosenQueueFamily                  mQueueInfo      = {};
-        VA_DeviceProcs                        mProcs          = {};
-        VA_DeviceQueueInfo                    mActiveQueues   = {};
-        Owner<VA_DynamicUtils>                mDynamicUtils   = nullptr;
+        VA_PhysicalDeviceDesc                  mPhysicalDevice = {};
+        VA_ChosenQueueFamily                   mQueueInfo      = {};
+        VA_DeviceProcs                         mProcs          = {};
+        VA_DeviceQueueInfo                     mActiveQueues   = {};
+        Owner<VA_DynamicUtils>                 mDynamicUtils   = nullptr;
 
-        RhiCapabilityList                     mCapabilities = {};
-        RhiPropertyList                       mProperties   = {};
+        RhiCapabilityList                      mCapabilities = {};
+        RhiPropertyList                        mProperties   = {};
 
-        VmaAllocator                          mAllocator;
-        VA_Allocator                          mAllocatorWrapper = {};
+        VmaAllocator                           mAllocator;
+        VA_Allocator                           mAllocatorWrapper = {};
 
-        HashMap<VkFormat, VkFormatProperties> mFormatPropertiesCache;
+        THashMap<VkFormat, VkFormatProperties> mFormatPropertiesCache;
 
-        u64                                   mFrameId = 0;
+        u64                                    mFrameId = 0;
 
         // Pipeline State Cache
-        Owner<VA_PipelineStateCacheRegistry>  mPipelineStateCache;
+        Owner<VA_PipelineStateCacheRegistry>   mPipelineStateCache;
 
         // Descriptor Heap
-        Owner<VA_BindlessDescriptorHeap>      mBindlessDescriptorHeap;
+        Owner<VA_BindlessDescriptorHeap>       mBindlessDescriptorHeap;
 
         // Staging Buffer
-        Owner<VA_StagingBufferManager>        mStagingBufferManager;
-        Owner<VA_SamplerRegistry>             mSamplerRegistry;
+        Owner<VA_StagingBufferManager>         mStagingBufferManager;
+        Owner<VA_SamplerRegistry>              mSamplerRegistry;
 
         // Commands
-        Owner<VA_CommandListContext>          mImmediateContext;
+        Owner<VA_CommandListContext>           mImmediateContext;
     };
 
     IFRIT_APIDECL VA_Device::VA_Device(const RHI::RhiInitializeArguments& args)

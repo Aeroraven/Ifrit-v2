@@ -21,6 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/platform/ApiConv.h"
 #include "ifrit/core/base/IfritBase.h"
 #include "ifrit/core/base/CoreBase.h"
+#include "ifrit/core/typing/Traits.h"
 
 namespace Ifrit::Logging
 {
@@ -47,6 +48,7 @@ namespace Ifrit::Logging
     IFRIT_CORE_API VecView<InternalLogEntries> GetLogEntries();
 
     template <ELoggingLevel Level, typename... Args>
+        requires IFormattableAll<Args...>
     inline void LogWrapper(
         const char* moduleName, const char* subModule, std::format_string<Args...> fmt, Args&&... args)
     {
@@ -60,10 +62,11 @@ namespace Ifrit::Logging
     }
 
     template <typename... Args>
+        requires IFormattableAll<Args...>
     inline void LogAssertion(
         const char* moduleName, const char* subModule, bool condition, std::format_string<Args...> fmt, Args&&... args)
     {
-        if (!condition)
+        if (!condition) IF_UNLIKELY
         {
             LogWrapper<ELoggingLevel::Critical>(moduleName, subModule, fmt, std::forward<Args>(args)...);
         }

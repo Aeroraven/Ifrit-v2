@@ -57,7 +57,7 @@ namespace Ifrit::RHI::VulkanRHI2
 
     VA_DeviceMemory::VA_DeviceMemory(VA_Device* device, const RhiDeviceMemoryDesc& desc) : RhiDeviceMemory(desc)
     {
-        auto castedCtx = CheckedCast<VA_Device>(device);
+        auto castedCtx = device;
 
         IF_LOG_ASSERTION("VulkanRHI2", desc.mSize > 0, "Memory size must be greater than 0");
 
@@ -856,9 +856,9 @@ namespace Ifrit::RHI::VulkanRHI2
     // ===== Sampler Registry =====
     struct VA_SamplerRegistryInternal : public NonCopyable
     {
-        VA_Device*                                  mDevice;
-        HashMap<ERhiGlobalSamplerType, VA_Sampler*> mSamplerMap;
-        Mutex                                       mMutex;
+        VA_Device*                                   mDevice;
+        THashMap<ERhiGlobalSamplerType, VA_Sampler*> mSamplerMap;
+        Mutex                                        mMutex;
     };
     VA_SamplerRegistry::VA_SamplerRegistry(VA_Device* device)
     {

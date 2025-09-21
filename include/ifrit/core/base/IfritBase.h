@@ -1,35 +1,11 @@
-/*
-Ifrit-v2
-Copyright (C) 2024 funkybirds(Aeroraven)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>. */
-
 #pragma once
 
-#include <cstdint>
 #ifdef __cplusplus
     #include <array>
-    #include <atomic>
     #include <functional>
-    #include <map>
     #include <memory>
-    #include <set>
     #include <string>
-    #include <unordered_map>
-    #include <unordered_set>
     #include <vector>
-    #include <queue>
     #include <span>
     #include <concepts>
     #include <type_traits>
@@ -40,23 +16,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #ifdef __cplusplus
 namespace Ifrit
 {
-    template <typename T, u32 V> using Array                          = std::array<T, V>;
-    template <typename T> using VecView                               = std::span<T>;
-    template <typename T> using Vec                                   = std::vector<T>;
-    template <typename T> using Ref                                   = std::shared_ptr<T>;
-    template <typename T> using Owner                                 = std::unique_ptr<T>;
-    template <typename T> using Set                                   = std::set<T>;
-    template <typename T> using HashSet                               = std::unordered_set<T>;
-    template <typename K, typename V> using Map                       = std::map<K, V>;
-    template <typename K, typename V> using HashMap                   = std::unordered_map<K, V>;
-    template <typename K, typename V, typename H> using CustomHashMap = std::unordered_map<K, V, H>;
-    template <typename T> using Fn                                    = std::function<T>;
-    template <typename T> using Atomic                                = std::atomic<T>;
-    template <typename T, typename U> using Pair                      = std::pair<T, U>;
-    using String                                                      = std::string;
-    using StringView                                                  = std::string_view;
-    template <typename T> using Queue                                 = std::queue<T>;
-    using IntPtr                                                      = std::intptr_t;
+    template <typename T, u32 V> using Array     = std::array<T, V>;
+    template <typename T> using VecView          = std::span<T>;
+    template <typename T> using Vec              = std::vector<T>;
+    template <typename T> using Ref              = std::shared_ptr<T>;
+    template <typename T> using Owner            = std::unique_ptr<T>;
+    template <typename T> using Fn               = std::function<T>;
+    template <typename T, typename U> using Pair = std::pair<T, U>;
+    using String                                 = std::string;
+    using StringView                             = std::string_view;
+    using IntPtr                                 = std::intptr_t;
+
+    using ZString  = char*;
+    using CZString = const char*;
 
     template <typename T, typename... Args>
         requires std::is_constructible_v<T, Args...>

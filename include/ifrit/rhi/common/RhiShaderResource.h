@@ -3,6 +3,7 @@
 #include "ifrit/rhi/common/RhiApi.h"
 #include "ifrit/rhi/common/RhiResource.h"
 #include "ifrit/core/algo/SizedBuffer.h"
+#include "ifrit/core/base/containers/Maps.h"
 #include <any>
 
 namespace Ifrit::RHI
@@ -59,7 +60,7 @@ namespace Ifrit::RHI
 
         u64 Hash() const
         {
-            u64 addr1 = reinterpret_cast<u64>(mShader.get());
+            u64 addr1 = reinterpret_cast<u64>(mShader.Get());
             u64 addr2 = reinterpret_cast<u64>(mVariant);
             return addr1 ^ addr2;
         }
@@ -102,14 +103,14 @@ namespace Ifrit::RHI
             return nullptr;
         }
 
-        const HashMap<String, std::any>& GetAllParameters() const { return mParameters; }
+        const THashMap<String, std::any>& GetAllParameters() const { return mParameters; }
 
-        SizedBuffer                      GetRootConstantData(RhiShaderVariant* variant);
+        SizedBuffer                       GetRootConstantData(RhiShaderVariant* variant);
 
     protected:
-        HashMap<String, std::any> mParameters;
-        bool                      mIsDirty = true;
-        SizedBuffer               mRootConstantData;
+        THashMap<String, std::any> mParameters;
+        bool                       mIsDirty = true;
+        SizedBuffer                mRootConstantData;
     };
 
     // ===== Shader Global Functions =====

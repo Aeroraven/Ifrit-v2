@@ -31,7 +31,7 @@ namespace MPM{
         TRWStructuredBufferHandle<float4> m_ParticleColor;
     };
 
-    IFSHADER_PUSHCONST PushConst_T PushConst;
+    IFSHADER_PUSHCONST_DECL(PushConst_T,PushConst);
 
     float3 Hash31(float p)
     {

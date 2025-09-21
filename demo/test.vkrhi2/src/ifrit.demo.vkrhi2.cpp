@@ -19,6 +19,8 @@
 #include "ifrit/rhi/common/RhiDynamicUtils.h"
 #include "ifrit/shadercompile/helper/ShaderCompileHelper.h"
 
+#include "ifrit/runtime/rendercore/rendergraph/RenderGraph.h"
+
 #include <windows.h>
 #include <iostream>
 
@@ -85,6 +87,86 @@ namespace Ifrit
         return;
     }
 
+    void testRDG()
+    {
+        auto backend = RHI::GetRhiBackend();
+
+        using namespace Ifrit::Runtime::RenderCore::RDG;
+        RDGGraphBuilder    builder;
+
+        RHI::RhiBufferDesc bufDesc = {};
+        bufDesc.mSize              = 114;
+        bufDesc.mFlags = RHI::ERhiBufferUsageFlag::UnorderedAccess | RHI::ERhiBufferUsageFlag::StructuredBuffer
+            | RHI::ERhiBufferUsageFlag::CopySrc;
+        bufDesc.mName            = "TestBuffer";
+        auto           buffer    = backend->CreateBuffer(bufDesc);
+        auto           bufferUAV = backend->CreateUAV(buffer.Get());
+
+        RDGTextureDesc texDescA = RDGTextureDesc::CreateTexture2D(32, 32, RHI::ERhiImageFormat::R32_SFLOAT);
+        auto           texA     = builder.DeclareTexture("TexA", texDescA);
+        auto           texB     = builder.DeclareTexture("TexB", texDescA);
+        auto           texC     = builder.DeclareTexture("TexC", texDescA);
+        auto           texD     = builder.DeclareTexture("TexD", texDescA);
+        auto           bufA     = builder.ImportBuffer(buffer);
+
+        struct PassAData
+        {
+            IRDGAccess_ResourceView* mSRV1;
+            IRDGAccess_ResourceView* mSRV2;
+            IRDGAccess_ResourceView* mUAV1;
+        };
+
+        struct PassBData
+        {
+            IRDGAccess_ResourceView* mUAV1;
+            IRDGAccess_ResourceView* mUAV2;
+        };
+
+        struct PassCData
+        {
+            IRDGAccess_ResourceView* mUAV1;
+            IRDGAccess_ResourceView* mUAV2;
+        };
+
+        builder.AddPass<PassBData>(
+            "PassB", ERDGPassType::Graphics,
+            [&](PassBData& data, IRDGGraphBuilderSetupContext& ctx) {
+                data.mUAV1 = ctx.CreateUAV(texA, NullOpt, Runtime::RenderCore::RDG::ERDGReadWriteModeFlag::ReadWrite);
+                data.mUAV2 = ctx.CreateUAV(texD, NullOpt, Runtime::RenderCore::RDG::ERDGReadWriteModeFlag::ReadWrite);
+            },
+            [](const PassBData& data, RDGGraphBuilderExecuteContext& ctx) {
+                auto uav1Desc = data.mUAV1->GetDescriptor();
+            });
+
+        builder.AddPass<PassAData>(
+            "PassA", ERDGPassType::AsyncCompute,
+            [&](PassAData& data, IRDGGraphBuilderSetupContext& ctx) {
+                data.mSRV1 = ctx.CreateSRV(texA, NullOpt);
+                data.mSRV2 = ctx.CreateSRV(texB, NullOpt);
+                data.mUAV1 = ctx.CreateUAV(bufA, Runtime::RenderCore::RDG::ERDGReadWriteModeFlag::Write);
+            },
+            [](const PassAData& data, RDGGraphBuilderExecuteContext& ctx) {
+                auto srv1Desc = data.mSRV1->GetDescriptor();
+                auto srv2Desc = data.mSRV2->GetDescriptor();
+                auto uav1Desc = data.mUAV1->GetDescriptor();
+            });
+
+        builder.AddPass<PassCData>(
+            "PassC", ERDGPassType::AsyncCompute,
+            [&](PassCData& data, IRDGGraphBuilderSetupContext& ctx) {
+                data.mUAV1 = ctx.CreateUAV(texC, NullOpt, Runtime::RenderCore::RDG::ERDGReadWriteModeFlag::ReadWrite);
+                data.mUAV2 = ctx.CreateUAV(bufA, Runtime::RenderCore::RDG::ERDGReadWriteModeFlag::ReadWrite);
+            },
+            [](const PassCData& data, RDGGraphBuilderExecuteContext& ctx) {
+                auto uav1Desc = data.mUAV1->GetDescriptor();
+                auto uav2Desc = data.mUAV2->GetDescriptor();
+            });
+
+        builder.Compile();
+        builder.DumpDebugFile(
+            "D:/Project2/Ifrit-v2/rendergraph.dot", ERDGDebugVisualizationMode::PhysicalResourceAlloc);
+    }
+
     void testRhi2()
     {
         using namespace Ifrit;
@@ -135,6 +217,8 @@ namespace Ifrit
             Task::ENamedTaskThread::AnyThread, {}, nullptr);
         taskScheduler->WaitForTask(task);
 
+        Ifrit::testRDG();
+
         RHI::RhiBufferDesc bufDesc = {};
         bufDesc.mSize              = 114;
         bufDesc.mFlags = RHI::ERhiBufferUsageFlag::UnorderedAccess | RHI::ERhiBufferUsageFlag::StructuredBuffer
@@ -142,7 +226,7 @@ namespace Ifrit
         bufDesc.mName = "TestBuffer";
         auto buffer   = backend->CreateBuffer(bufDesc);
 
-        auto bufferUAV = backend->CreateUAV(buffer.get());
+        auto bufferUAV = backend->CreateUAV(buffer.Get());
 
         provider->Loop([&](int* unused) {
             backend->BeginFrame();

@@ -1,5 +1,6 @@
 #pragma once
 #include "ifrit/core/base/IfritBase.h"
+#include "ifrit/core/base/containers/Atomic.h"
 #include <algorithm>
 #include <execution>
 #include <functional>
@@ -22,7 +23,7 @@ namespace Ifrit
         }
     }
 
-    using FSpinLock = Atomic<i32>;
+    using FSpinLock = TAtomic<i32>;
     IF_FORCEINLINE void SpinLockAcquire(FSpinLock& lock)
     {
         i32 expected = 0;

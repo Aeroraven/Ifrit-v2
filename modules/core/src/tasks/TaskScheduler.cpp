@@ -20,11 +20,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. */
 #include "ifrit/core/algo/ConcurrentQueue.h"
 #include "ifrit/core/hal/HalHostConcurrency.h"
 #include "ifrit/core/typing/EnumReflection.h"
-
+#include "ifrit/core/base/containers/Atomic.h"
+#include "ifrit/core/base/containers/Maps.h"
 namespace Ifrit::Task
 {
 
-    static HashMap<ENamedTaskThread, std::thread::id> sNamedWorkerToThreadIdMap;
+    static THashMap<ENamedTaskThread, std::thread::id> sNamedWorkerToThreadIdMap;
 
     // Task
     IFRIT_APIDECL void                                Task::Execute()
@@ -76,7 +77,7 @@ namespace Ifrit::Task
         using TaskRef                               = TObjectPool<Task>::TObjectRef;
         TaskScheduler*                  m_Scheduler = nullptr;
         u32                             m_ThreadId  = 0;
-        Atomic<ETaskWorkerState>        m_State     = ETaskWorkerState::Alive;
+        TAtomic<ETaskWorkerState>        m_State     = ETaskWorkerState::Alive;
         TPooledConcurrentQueue<TaskRef> m_JobQueue;
     };
 
@@ -183,9 +184,9 @@ namespace Ifrit::Task
     {
         using TaskRef = TObjectPool<Task>::TObjectRef;
         // Hold this to ensure the object's reference count is not 0
-        HashMap<FIndexedPtr::Underlying, TaskRef>    m_JobAlive;
+        THashMap<FIndexedPtr::Underlying, TaskRef>    m_JobAlive;
         Vec<Owner<TaskWorker>>                       m_Workers;
-        HashMap<ENamedTaskThread, Owner<TaskWorker>> m_NamedWorkers;
+        THashMap<ENamedTaskThread, Owner<TaskWorker>> m_NamedWorkers;
         TObjectPool<Task>                            m_TaskPool;
     };
 

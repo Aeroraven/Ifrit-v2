@@ -5,6 +5,7 @@
 #include "ifrit/vkrhi2/adapter/DeviceProcs.h"
 #include "ifrit/core/algo/Parallel.h"
 #include "ifrit/vkrhi2/adapter/Queue.h"
+#include "ifrit/core/base/containers/Queue.h"
 
 #include <vulkan/vulkan.h>
 #ifdef _WIN32
@@ -39,8 +40,8 @@ namespace Ifrit::RHI::VulkanRHI2
 
     private:
         u64                            mCurrentFrameStep = 0;
-        Queue<RHI::RhiDeviceResource*> mDeleteQueue;
-        Queue<u64>                     mFrameIdToDelete;
+        TQueue<RHI::RhiDeviceResource*> mDeleteQueue;
+        TQueue<u64>                     mFrameIdToDelete;
         Mutex                          mLock;
     };
 

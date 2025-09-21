@@ -3,6 +3,7 @@
 #include "ifrit/core/logging/Logging.h"
 #include "ifrit/rhi/common/RhiInterface.h"
 #include "ifrit/rhi/common/RhiDynamicUtils.h"
+#include "ifrit/core/base/containers/Maps.h"
 
 namespace Ifrit::RHI
 {
@@ -14,7 +15,7 @@ namespace Ifrit::RHI
     // ===== Shader Registry =====
     struct RhiShaderRegistryInternal : public NonCopyableStruct
     {
-        HashMap<String, RhiShaderRef> mRegisteredShaders;
+        THashMap<String, RhiShaderRef> mRegisteredShaders;
     };
 
     RhiShaderRegistry::RhiShaderRegistry() { mInternal = new RhiShaderRegistryInternal(); }

@@ -7,8 +7,8 @@ namespace Ifrit::RHI::VulkanRHI2
     IFRIT_APIDECL                 VA_DynamicUtils::VA_DynamicUtils(VA_Device* device) { mContext = device; }
     IFRIT_VKRHI2_API RhiShaderRef VA_DynamicUtils::CreateShader_RhiInternal(const RhiShaderCreateDesc& desc)
     {
-        VA_Shader* shader = new VA_Shader(static_cast<VA_Device*>(mContext), desc);
-        return MakeCountRef<RhiShader>(shader);
+        auto shader = MakeCountRef<VA_Shader>(static_cast<VA_Device*>(mContext), desc);
+        return CastAndMoveCountRef<RhiShader>(std::move(shader));
     }
     IFRIT_VKRHI2_API SizedBuffer VA_DynamicUtils::GetRootConstantData_RhiInternal(
         RhiShaderVariant* variant, const RhiShaderParameter& params)

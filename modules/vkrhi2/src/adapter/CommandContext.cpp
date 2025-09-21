@@ -11,7 +11,7 @@
 namespace Ifrit::RHI::VulkanRHI2
 {
     static TConsoleVariable<bool> cvVulkanAsyncPipelineSetup(
-        "cv.VulkanRHI2.CommandListTTL", true, "Vulkan Command List TTL", CVF_ReadOnly);
+        "cv.VulkanRHI2.AsyncSetup", true, "Vulkan Command List TTL", CVF_ReadOnly);
 
     struct VA_CommandListNativeInternal
     {
@@ -194,12 +194,12 @@ namespace Ifrit::RHI::VulkanRHI2
         mInternal->mCurrentComputePSO = desc;
         auto psoCache                 = static_cast<VA_Device*>(mInternal->mDevice)->GetPipelineStateCache();
         auto taskScheduler            = Task::GetTaskScheduler();
-        //taskScheduler->EnqueueTask(
-        //    [this, psoCache, desc](Task::Task* task, void* payload) {
-        //        mInternal->mComputePSOCompilation = nullptr;
-        //        auto pso                          = psoCache->GetComputePipeline(desc);
-        //    },
-        //    Task::ENamedTaskThread::AnyThread, {}, nullptr);
+        // taskScheduler->EnqueueTask(
+        //     [this, psoCache, desc](Task::Task* task, void* payload) {
+        //         mInternal->mComputePSOCompilation = nullptr;
+        //         auto pso                          = psoCache->GetComputePipeline(desc);
+        //     },
+        //     Task::ENamedTaskThread::AnyThread, {}, nullptr);
     }
     IFRIT_VKRHI2_API void VA_CommandListContext::CmdSetGraphicsPipelineState(const RhiGraphicsPipelineStateDesc& desc)
     {
@@ -207,12 +207,12 @@ namespace Ifrit::RHI::VulkanRHI2
         mInternal->mCurrentGraphicsPSO = desc;
         auto psoCache                  = static_cast<VA_Device*>(mInternal->mDevice)->GetPipelineStateCache();
         auto taskScheduler             = Task::GetTaskScheduler();
-        //taskScheduler->EnqueueTask(
-        //    [this, psoCache, desc](Task::Task* task, void* payload) {
-        //        mInternal->mGraphicsPSOCompilation = nullptr;
-        //        auto pso                           = psoCache->GetGraphicsPipeline(desc);
-        //    },
-        //    Task::ENamedTaskThread::AnyThread, {}, nullptr);
+        // taskScheduler->EnqueueTask(
+        //     [this, psoCache, desc](Task::Task* task, void* payload) {
+        //         mInternal->mGraphicsPSOCompilation = nullptr;
+        //         auto pso                           = psoCache->GetGraphicsPipeline(desc);
+        //     },
+        //     Task::ENamedTaskThread::AnyThread, {}, nullptr);
     }
     void VA_CommandListContext::CmdSetShaderParameters(const RhiShaderParameter& params)
     {
